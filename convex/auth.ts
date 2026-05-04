@@ -19,8 +19,8 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       minPasswordLength: 8,
     },
     trustedOrigins: process.env.SITE_URL
-      ? [process.env.SITE_URL, "http://localhost:3000"]
-      : ["http://localhost:3000"],
+      ? [process.env.SITE_URL, "http://localhost:3000", "http://localhost:3001"]
+      : ["http://localhost:3000", "http://localhost:3001"],
     plugins: [convex({ authConfig })],
   })
 }
