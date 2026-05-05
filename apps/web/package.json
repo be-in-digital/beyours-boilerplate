@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "predev": "node ../../scripts/convex-codegen.js",
-    "dev": "next dev",
+    "dev": "dotenv -e ../../.env.local -- next dev",
     "prebuild": "node ../../scripts/convex-codegen.js",
-    "build": "next build",
-    "start": "next start",
+    "build": "dotenv -e ../../.env.local -- next build",
+    "start": "dotenv -e ../../.env.local -- next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },
@@ -40,6 +40,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv-cli": "^9.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
