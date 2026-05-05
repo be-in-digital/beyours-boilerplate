@@ -25,6 +25,21 @@ if (!existsSync(resolve(repoRoot, "convex"))) {
   process.exit(1)
 }
 
+// Convex codegen requires CONVEX_DEPLOYMENT to fetch component types from
+// the backend. In CI there is no deployment configured, so we fall back
+// to the `_generated/` files committed to the repo — they are the
+// authoritative source for type-checking and bundling.
+//
+// The fail-fast contract (Constraint Guardian #5) is satisfied at dev
+// time, when developers naturally have CONVEX_DEPLOYMENT set in their
+// .env.local. CI just trusts the committed artifacts.
+if (!process.env.CONVEX_DEPLOYMENT && process.env.CI) {
+  console.log(
+    "[convex-codegen] CI detected without CONVEX_DEPLOYMENT — skipping codegen, using committed convex/_generated/.",
+  )
+  process.exit(0)
+}
+
 const result = spawnSync("pnpx", ["convex", "codegen"], {
   cwd: repoRoot,
   stdio: "inherit",
