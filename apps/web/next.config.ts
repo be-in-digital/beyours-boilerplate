@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -17,7 +18,7 @@ const nextConfig: NextConfig = {
     "@convex-dev/better-auth",
     "@repo/backend",
   ],
-  outputFileTracingRoot: require("path").join(__dirname, "../.."),
+  outputFileTracingRoot: path.join(process.cwd(), "..", ".."),
   images: {
     remotePatterns: [
       {
