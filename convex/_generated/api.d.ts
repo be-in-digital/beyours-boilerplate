@@ -28,6 +28,7 @@ import type * as products from "../products.js";
 import type * as promotions from "../promotions.js";
 import type * as seed from "../seed.js";
 import type * as stores from "../stores.js";
+import type * as stripe from "../stripe.js";
 import type * as teamMembers from "../teamMembers.js";
 import type * as userProfiles from "../userProfiles.js";
 
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   promotions: typeof promotions;
   seed: typeof seed;
   stores: typeof stores;
+  stripe: typeof stripe;
   teamMembers: typeof teamMembers;
   userProfiles: typeof userProfiles;
 }>;
