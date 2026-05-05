@@ -34,6 +34,8 @@ beindigital-boilerplate/
 └── package.json               # orchestration (turbo run dev/build/...)
 ```
 
+> Pour un guide pas-a-pas detaille, voir [`docs/SETUP.md`](docs/SETUP.md).
+
 ## Quick start (5 commandes)
 
 ```bash
