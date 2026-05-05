@@ -5,6 +5,9 @@
   "packageManager": "pnpm@10.28.1",
   "scripts": {
     "preinstall": "node scripts/check-node-auth-token.js",
+    "setup": "node scripts/init.js",
+    "add-mobile": "node scripts/add-mobile.js",
+    "predev": "node scripts/ensure-initialized.js",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",

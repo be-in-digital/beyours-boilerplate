@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  web:
+    name: Build web
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -26,7 +27,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
 
-      - name: Lint
+      - name: Lint web
         run: pnpm --filter web lint
 
       - name: Build web
@@ -34,3 +35,46 @@ jobs:
         env:
           NEXT_PUBLIC_CONVEX_URL: https://placeholder.convex.cloud
           CONVEX_SITE_URL: https://placeholder.convex.site
+
+  detect-mobile:
+    name: Detect mobile workspace
+    runs-on: ubuntu-latest
+    outputs:
+      has_mobile: ${{ steps.check.outputs.has_mobile }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          if [ -f apps/mobile/package.json ]; then
+            echo "has_mobile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_mobile=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  mobile:
+    name: Lint mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: detect-mobile
+    if: needs.detect-mobile.outputs.has_mobile == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+
+      - name: Lint mobile
+        run: pnpm --filter mobile lint
+
+      - name: Typecheck mobile
+        run: pnpm --filter mobile typecheck
