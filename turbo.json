@@ -44,6 +44,14 @@
         "$TURBO_DEFAULT$",
         "tsconfig.json"
       ]
+    },
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "vitest.config.ts",
+        "vitest.setup.ts"
+      ],
+      "outputs": ["coverage/**"]
     }
   }
 }
