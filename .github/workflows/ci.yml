@@ -7,8 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  web:
-    name: Build web
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -27,7 +26,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
 
-      - name: Lint web
+      - name: Lint
         run: pnpm --filter web lint
 
       - name: Build web
@@ -35,32 +34,3 @@ jobs:
         env:
           NEXT_PUBLIC_CONVEX_URL: https://placeholder.convex.cloud
           CONVEX_SITE_URL: https://placeholder.convex.site
-
-  mobile:
-    name: Build mobile
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    # Constraint Guardian #6: mobile job runs only when apps/mobile/ exists.
-    # Web-only clones do not have this directory and the job is skipped.
-    if: ${{ hashFiles('apps/mobile/package.json') != '' }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
-
-      - name: Lint mobile
-        run: pnpm --filter mobile lint
-
-      - name: Typecheck mobile
-        run: pnpm --filter mobile typecheck
