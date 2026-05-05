@@ -42,7 +42,7 @@ jobs:
     timeout-minutes: 10
     # Constraint Guardian #6: mobile job runs only when apps/mobile/ exists.
     # Web-only clones do not have this directory and the job is skipped.
-    if: hashFiles('apps/mobile/package.json') != ''
+    if: ${{ hashFiles('apps/mobile/package.json') != '' }}
 
     steps:
       - uses: actions/checkout@v4
