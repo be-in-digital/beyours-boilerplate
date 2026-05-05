@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { api } from "@/convex/_generated/api"
+import { api } from "@repo/backend"
 import { useAdminApiStore } from "@be-in-digital/admin"
 
 export function AdminApiInit() {

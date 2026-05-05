@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@be-in-digital/admin": "^2.0.1",
+    "@repo/backend": "workspace:*",
     "@be-in-digital/convex-functions": "^2.0.1",
     "@be-in-digital/convex-schema": "^2.0.1",
     "@be-in-digital/core": "^2.0.1",
