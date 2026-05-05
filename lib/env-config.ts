@@ -6,6 +6,14 @@ export type EnvVarConfig = {
   isPublic?: boolean
 }
 
+/**
+ * Variables d'environnement utilisees cote Next.js uniquement (.env.local).
+ *
+ * Les variables utilisees uniquement par Convex (Stripe, Deliveroo, Uber Eats,
+ * AWS, OPENAI_API_KEY, ENCRYPTION_KEY, etc.) ne sont pas listees ici car elles
+ * doivent etre definies cote Convex via `pnpx convex env set <NAME> <VALUE>`.
+ * Voir .env.example et scripts/setup-convex-env.sh.
+ */
 export const envConfig: EnvVarConfig[] = [
   // Convex
   {
@@ -22,17 +30,17 @@ export const envConfig: EnvVarConfig[] = [
     description: "Identifiant du deployment Convex",
   },
   {
-    name: "NEXT_PUBLIC_CONVEX_SITE_URL",
-    required: false,
-    group: "Convex",
-    description: "URL du site Convex (pour les HTTP actions)",
-    isPublic: true,
-  },
-  {
     name: "CONVEX_SITE_URL",
     required: true,
     group: "Convex",
     description: "URL du site Convex (server-side, pour Better Auth)",
+  },
+  {
+    name: "NEXT_PUBLIC_CONVEX_SITE_URL",
+    required: false,
+    group: "Convex",
+    description: "URL du site Convex (pour les HTTP actions cote client)",
+    isPublic: true,
   },
 
   // Better Auth
@@ -49,6 +57,22 @@ export const envConfig: EnvVarConfig[] = [
     description: "Secret pour signer les sessions (generer avec openssl rand -hex 32)",
   },
 
+  // Admin
+  {
+    name: "NEXT_PUBLIC_ADMIN_PAGE_SIZE",
+    required: false,
+    group: "Admin",
+    description: "Taille de page par defaut pour les tables admin (defaut: 15)",
+    isPublic: true,
+  },
+  {
+    name: "NEXT_PUBLIC_APP_VERSION",
+    required: false,
+    group: "Admin",
+    description: "Version de l'app affichee dans le footer admin",
+    isPublic: true,
+  },
+
   // Google Maps
   {
     name: "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
@@ -58,99 +82,13 @@ export const envConfig: EnvVarConfig[] = [
     isPublic: true,
   },
 
-  // AWS S3
-  {
-    name: "AWS_REGION",
-    required: true,
-    group: "AWS S3",
-    description: "Region AWS (ex: eu-west-1)",
-  },
-  {
-    name: "AWS_ACCESS_KEY_ID",
-    required: true,
-    group: "AWS S3",
-    description: "Cle d'acces AWS",
-  },
-  {
-    name: "AWS_SECRET_ACCESS_KEY",
-    required: true,
-    group: "AWS S3",
-    description: "Cle secrete AWS",
-  },
-  {
-    name: "AWS_S3_BUCKET_NAME",
-    required: true,
-    group: "AWS S3",
-    description: "Nom du bucket S3",
-  },
-
-  // AWS SES
-  {
-    name: "AWS_SES_FROM_EMAIL",
-    required: false,
-    group: "AWS SES",
-    description: "Email d'envoi verifie dans SES",
-  },
-
-  // OpenAI
-  {
-    name: "OPENAI_API_KEY",
-    required: false,
-    group: "OpenAI",
-    description: "Cle API OpenAI pour la traduction automatique",
-  },
-
-  // Paiements
-  {
-    name: "STRIPE_SECRET_KEY",
-    required: false,
-    group: "Paiements",
-    description: "Cle secrete Stripe",
-  },
+  // Stripe (cote client uniquement - le secret est sur Convex)
   {
     name: "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
     required: false,
-    group: "Paiements",
-    description: "Cle publique Stripe",
+    group: "Stripe",
+    description: "Cle publique Stripe pour les paiements cote client",
     isPublic: true,
-  },
-  {
-    name: "SUMUP_API_KEY",
-    required: false,
-    group: "Paiements",
-    description: "Cle API SumUp",
-  },
-  {
-    name: "PAYPAL_CLIENT_ID",
-    required: false,
-    group: "Paiements",
-    description: "Client ID PayPal",
-  },
-  {
-    name: "SQUARE_ACCESS_TOKEN",
-    required: false,
-    group: "Paiements",
-    description: "Token d'acces Square",
-  },
-
-  // Integrations
-  {
-    name: "UBER_EATS_API_KEY",
-    required: false,
-    group: "Integrations",
-    description: "Cle API Uber Eats",
-  },
-  {
-    name: "DELIVEROO_API_KEY",
-    required: false,
-    group: "Integrations",
-    description: "Cle API Deliveroo",
-  },
-  {
-    name: "UBER_DIRECT_CUSTOMER_ID",
-    required: false,
-    group: "Integrations",
-    description: "Customer ID Uber Direct",
   },
 
   // Sentry

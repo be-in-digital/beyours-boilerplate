@@ -39,24 +39,36 @@ Suivre les instructions pour creer un nouveau deployment. Les credentials seront
 
 ### 3. Configurer les variables d'environnement
 
-Copier `.env.example` vers `.env.local` et remplir les valeurs requises :
+Le boilerplate a **deux scopes de variables** :
+- **Cote Next.js** (`.env.local`) — tout ce qui est utilise dans `app/`, `lib/`, `components/`
+- **Cote Convex** (`pnpx convex env set ...`) — tout ce qui est utilise par les fonctions Convex (Better Auth, Stripe, AWS, integrations livraison, etc.)
+
+#### 3a. Variables cote Next.js (`.env.local`)
 
 ```bash
 cp .env.example .env.local
 ```
 
-Variables minimales pour demarrer :
-- `NEXT_PUBLIC_CONVEX_URL`, `CONVEX_DEPLOYMENT`, `CONVEX_SITE_URL` (rempli par `convex dev`)
+Remplir au minimum les sections marquees `[REQUIS]` :
+- `NEXT_PUBLIC_CONVEX_URL`, `CONVEX_DEPLOYMENT`, `CONVEX_SITE_URL` (deja remplis par `convex dev`)
 - `BETTER_AUTH_URL` (ex: `http://localhost:3000`)
 - `BETTER_AUTH_SECRET` (generer avec `openssl rand -hex 32`)
 
-Cote Convex, definir aussi les memes secrets :
+#### 3b. Variables cote Convex
 
 ```bash
-pnpx convex env set BETTER_AUTH_SECRET <votre-secret>
-pnpx convex env set BETTER_AUTH_URL http://localhost:3000
-pnpx convex env set SITE_URL http://localhost:3000
+cp .env.convex.example .env.convex
+# Editer .env.convex avec les valeurs propres au client
+bash scripts/setup-convex-env.sh
 ```
+
+Le script lit `.env.convex` et appelle `pnpx convex env set` pour chaque ligne non vide. `.env.convex` est dans `.gitignore` (jamais commit).
+
+Sections obligatoires pour Better Auth :
+- `BETTER_AUTH_SECRET` (meme valeur que dans `.env.local`)
+- `BETTER_AUTH_URL`, `SITE_URL`
+
+Les autres sections (Stripe, Uber Eats, Deliveroo, AWS, etc.) sont activees a la carte selon les integrations du client.
 
 ### 4. Lancer le dev server
 
