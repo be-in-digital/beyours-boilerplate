@@ -102,8 +102,11 @@ pnpm dev           # turbo orchestre apps/web (et apps/mobile si actif)
 - **Capacite Convex** : 1 deployment par client. Plan dev gratuit suffit jusqu'a ~200 RPS storefront sustained. Au-dela, escalader le plan plutot que repenser l'archi
 - **Limite mainteneur** : ~10 clients actifs par mainteneur — au-dela, investir dans du tooling (provisioning automatise Convex + Vercel)
 - **Vercel cost guard** : storefront en ISR/static par defaut. Toute route en SSR dynamique requiert un commentaire de justification. Alarme budget Vercel a 80%
-- **CI** : workflow GitHub Actions dans `.github/workflows/ci.yml`. Job `web` toujours required. Job `mobile` declenche uniquement si `apps/mobile/package.json` existe
-- **Branch protection main** : status check requis = `Build web`. Si mobile actif, ajouter `Lint mobile` aux required checks
+- **CI** : workflow GitHub Actions dans `.github/workflows/ci.yml`. Jobs:
+  * `web` (toujours) — lint + unit tests Vitest + build
+  * `e2e` (conditionnel) — Playwright. Skip si la repo variable `NEXT_PUBLIC_CONVEX_URL` n'est pas configuree. Pour l'activer: Settings → Secrets and variables → Actions → Variables, ajouter `NEXT_PUBLIC_CONVEX_URL` et `CONVEX_SITE_URL` (publics). Plus le secret `BETTER_AUTH_SECRET`
+  * `mobile` (conditionnel) — declenche si `apps/mobile/package.json` existe
+- **Branch protection main** : status check requis = `Lint + Test + Build (web)`. Si mobile actif, ajouter `Lint mobile`. Si e2e configure, ajouter `E2E tests (Playwright)`
 
 ## Scripts pnpm
 
