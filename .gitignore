@@ -22,6 +22,11 @@
 # turborepo
 .turbo/
 
+# playwright
+**/playwright-report/
+**/test-results/
+**/playwright/.cache/
+
 # production
 /build
 

@@ -13,7 +13,14 @@ import {
  * Used in the /stores selector list.
  */
 export function StoreCard({ store }: { store: StoreDoc }) {
-  const open = isStoreOpen(store)
+  // Defensive : isStoreOpen calls hours.find — older Convex docs may not
+  // have a properly-shaped hours array. Default to "ferme" if it throws.
+  let open = false
+  try {
+    open = Array.isArray(store.hours) ? isStoreOpen(store) : false
+  } catch {
+    open = false
+  }
 
   return (
     <Link
