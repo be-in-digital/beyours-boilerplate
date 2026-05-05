@@ -2,7 +2,9 @@
   "name": "beindigital-boilerplate",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.28.1",
   "scripts": {
+    "preinstall": "node scripts/check-node-auth-token.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -39,6 +41,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
+    "turbo": "^2.9.9",
     "typescript": "^5"
   }
 }
