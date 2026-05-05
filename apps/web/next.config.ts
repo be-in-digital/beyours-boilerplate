@@ -15,7 +15,9 @@ const nextConfig: NextConfig = {
     "@be-in-digital/convex-schema",
     "@be-in-digital/convex-functions",
     "@convex-dev/better-auth",
+    "@repo/backend",
   ],
+  outputFileTracingRoot: require("path").join(__dirname, "../.."),
   images: {
     remotePatterns: [
       {

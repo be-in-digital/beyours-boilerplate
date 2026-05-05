@@ -5,43 +5,22 @@
   "packageManager": "pnpm@10.28.1",
   "scripts": {
     "preinstall": "node scripts/check-node-auth-token.js",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy",
+    "convex:codegen": "convex codegen"
   },
   "dependencies": {
-    "@be-in-digital/admin": "^2.0.1",
-    "@repo/backend": "workspace:*",
     "@be-in-digital/convex-functions": "^2.0.1",
     "@be-in-digital/convex-schema": "^2.0.1",
-    "@be-in-digital/core": "^2.0.1",
-    "@be-in-digital/restaurant": "^2.0.1",
-    "@be-in-digital/themes": "^2.0.1",
-    "@be-in-digital/ui": "^2.0.1",
     "@convex-dev/better-auth": "^0.11.4",
-    "@hookform/resolvers": "^5.2.2",
     "better-auth": "^1.5.6",
-    "convex": "^1.34.1",
-    "framer-motion": "^12.38.0",
-    "lucide-react": "^1.7.0",
-    "next": "16.2.2",
-    "next-themes": "^0.4.6",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-hook-form": "^7.72.1",
-    "sonner": "^2.0.7",
-    "zod": "^4.3.6",
-    "zustand": "^5.0.12"
+    "convex": "^1.34.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.2",
-    "tailwindcss": "^4",
     "turbo": "^2.9.9",
     "typescript": "^5"
   }
