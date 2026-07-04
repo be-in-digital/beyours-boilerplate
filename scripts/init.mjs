@@ -9,6 +9,9 @@
  * Idempotent : la présence de .beindigital-site.json marque un site déjà
  * initialisé (relancer avec --force pour ré-exécuter).
  *
+ * Configuration : web seul (défaut) ou web + app mobile Expo
+ * (--mobile / --web pour forcer sans question).
+ *
  * Ce que fait le script :
  *   1. Renseigne site.config.ts (nom, description, locale)
  *   2. Renomme le package (slug du site)
@@ -24,6 +27,7 @@ import crypto from "node:crypto"
 import readline from "node:readline"
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
+import { activateMobile } from "./add-mobile.mjs"
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..")
 const SENTINEL = path.join(ROOT, ".beindigital-site.json")
@@ -78,8 +82,9 @@ async function main() {
   let name = opt("name")
   let description = opt("description")
   let locale = opt("locale")
+  let mobile = flag("mobile") ? true : flag("web") ? false : undefined
 
-  if (!flag("yes") && (!name || !description || !locale)) {
+  if (!flag("yes") && (!name || !description || !locale || mobile === undefined)) {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -93,8 +98,17 @@ async function main() {
         "Commande en ligne, click & collect et livraison.",
       ))
     locale = locale || (await ask(rl, "Locale par défaut", "fr"))
+    if (mobile === undefined) {
+      const answer = await ask(
+        rl,
+        "Configuration — 1) web seul  2) web + app mobile",
+        "1",
+      )
+      mobile = answer.trim() === "2"
+    }
     rl.close()
   }
+  mobile = mobile === true
   name = name || "Mon Restaurant"
   description =
     description || "Commande en ligne, click & collect et livraison."
@@ -168,6 +182,7 @@ async function main() {
       {
         name,
         slug,
+        mobile,
         templateRepo: TEMPLATE_REPO,
         templateVersion,
         initializedAt: new Date().toISOString(),
@@ -178,14 +193,19 @@ async function main() {
   )
   console.log("  ✓ .beindigital-site.json")
 
+  if (mobile) {
+    console.log("\n6. app mobile")
+    activateMobile({ name, slug })
+  }
+
   console.log(`
 ────────────────────────────────────────────────────────
-Site "${name}" initialisé. Prochaines étapes :
+Site "${name}" initialisé (${mobile ? "web + app mobile" : "web"}). Prochaines étapes :
 
   1. pnpx convex dev          # provisionne le deployment Convex
   2. Compléter .env.local     # sections [REQUIS] restantes
   3. cp .env.convex.example .env.convex && pnpm convex:env
-  4. pnpm dev
+  4. pnpm dev${mobile ? "\n  5. cd mobile && pnpm install && pnpm start   # app Expo" : ""}
 
 Personnalisation : site.config.ts, site/ (thème, polices, composants),
 public/ (logos). Voir docs/CUSTOMIZATION.md.

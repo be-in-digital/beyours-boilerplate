@@ -80,8 +80,9 @@ Le boilerplate maintient un delta VOLONTAIREMENT minimal vs
 | --- | --- |
 | `app/layout.tsx` | métadonnées/fonts/theme depuis la zone site |
 | `next.config.ts` | `transpilePackages` registre + images via `site.config.ts` |
+| `eslint.config.mjs` | ignores `mobile/**` + `.template/**` (bloc `PATCH BOILERPLATE`) |
 | `package.json` | deps `workspace:^` → versions registre `^2.x` |
-| `tsconfig.json` | base monorepo aplatie |
+| `tsconfig.json` | base monorepo aplatie + exclude `mobile`/`.template` |
 | `.env.example` | en-tête chemins racine |
 
 Tout le reste (`app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`,

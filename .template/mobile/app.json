@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "__SITE_NAME__",
+    "slug": "__SITE_SLUG__-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "__SITE_SLUG__",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.beindigital.__SITE_SLUG_COMPACT__"
+    },
+    "android": {
+      "package": "com.beindigital.__SITE_SLUG_COMPACT__"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ]
+  }
+}

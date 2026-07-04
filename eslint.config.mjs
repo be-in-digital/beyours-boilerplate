@@ -15,6 +15,10 @@ const eslintConfig = defineConfig([
     // Convex auto-generated files:
     "convex/_generated/**",
     ".convex-build/**",
+    // PATCH BOILERPLATE : zones hors app web — l'app Expo a sa propre
+    // config ESLint, le snapshot dormant n'est jamais linté.
+    "mobile/**",
+    ".template/**",
   ]),
   {
     rules: {

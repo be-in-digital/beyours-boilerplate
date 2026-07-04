@@ -16,6 +16,7 @@ possibles sans conflit :
 | `public/` | Logos, favicon, images statiques (remplacer les fichiers) |
 | `.env.local`, `.env.convex` | Secrets et endpoints du client (gitignorés) |
 | `.beindigital-site.json` | Sentinel d'init (métadonnées du site) |
+| `mobile/` | App Expo (config « web + app ») — zone client tant que l'engine ne publie pas de produit mobile |
 
 **Zone ENGINE — synchronisée, ne pas éditer :**
 

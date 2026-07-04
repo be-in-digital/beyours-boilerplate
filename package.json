@@ -9,6 +9,8 @@
   "scripts": {
     "preinstall": "node scripts/check-node-auth-token.mjs",
     "setup": "node scripts/init.mjs",
+    "add:mobile": "node scripts/add-mobile.mjs",
+    "create:site": "node scripts/create-site.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

@@ -32,5 +32,13 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "convex", "dist", ".next", "coverage"]
+  "exclude": [
+    "node_modules",
+    "convex",
+    "dist",
+    ".next",
+    "coverage",
+    "mobile",
+    ".template"
+  ]
 }

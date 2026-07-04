@@ -1,0 +1,31 @@
+{
+  "_comment": "Template EAS (Expo Application Services). Renommé en eas.json par l'activation mobile. Secret EAS requis : NODE_AUTH_TOKEN (PAT read:packages pour @be-in-digital/*) — eas secret:create --scope project --name NODE_AUTH_TOKEN --value <token>",
+  "cli": {
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "$EXPO_PUBLIC_CONVEX_URL"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "$EXPO_PUBLIC_CONVEX_URL"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "$EXPO_PUBLIC_CONVEX_URL"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

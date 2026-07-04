@@ -62,6 +62,50 @@ jobs:
           NEXT_PUBLIC_CONVEX_URL: https://placeholder.convex.cloud
           CONVEX_SITE_URL: https://placeholder.convex.site
 
+  detect-mobile:
+    name: Detect mobile app
+    runs-on: ubuntu-latest
+    outputs:
+      has_mobile: ${{ steps.check.outputs.has_mobile }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          if [ -f mobile/package.json ]; then
+            echo "has_mobile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_mobile=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  mobile:
+    name: Lint + Typecheck (mobile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: detect-mobile
+    if: needs.detect-mobile.outputs.has_mobile == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # L'app mobile est autonome (aucun package privé) : pas de token requis
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: pnpm install
+
+      - name: Lint mobile
+        working-directory: mobile
+        run: pnpm lint
+
+      - name: Typecheck mobile
+        working-directory: mobile
+        run: pnpm typecheck
+
   e2e:
     name: E2E tests (Playwright)
     runs-on: ubuntu-latest

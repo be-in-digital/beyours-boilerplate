@@ -28,32 +28,55 @@ site client (1 repo par restaurant)              ← site.config.ts + site/ + en
 
 ## Créer un nouveau site client
 
-```bash
-# 1. Cloner (garder l'historique = mises à jour template propres)
-git clone https://github.com/be-in-digital/beindigital-boilerplate.git client-luigi
-cd client-luigi
-git remote rename origin template
-git remote add origin git@github.com:be-in-digital/client-luigi.git
+Deux configurations : **web** (storefront + admin) ou **web + app**
+(+ app mobile Expo cliente).
 
-# 2. Installer (PAT GitHub scope read:packages)
+### La commande one-shot (recommandée)
+
+```bash
+export NODE_AUTH_TOKEN=ghp_xxx      # PAT GitHub scope read:packages
+
+# Web seul, repo GitHub créé et poussé :
+gh api repos/be-in-digital/beindigital-boilerplate/contents/scripts/create-site.mjs \
+  -H "Accept: application/vnd.github.raw" | node --input-type=module - \
+  client-luigi --name "Chez Luigi" --repo be-in-digital/client-luigi
+
+# Web + app mobile :
+…create-site.mjs … client-luigi --name "Chez Luigi" --mobile --repo be-in-digital/client-luigi
+```
+
+La commande enchaîne : clone du template → remote `template` (mises à jour) →
+création du repo GitHub privé → `pnpm install` → configuration complète
+(`site.config.ts`, secrets générés, `.env.local`, app mobile si demandée) →
+commit initial → push. Depuis un clone existant : `pnpm create:site <dossier> [options]`.
+
+### À la main (équivalent)
+
+```bash
+git clone https://github.com/be-in-digital/beindigital-boilerplate.git client-luigi
+cd client-luigi && git remote rename origin template
 export NODE_AUTH_TOKEN=ghp_xxx
 pnpm install
+pnpm setup            # wizard : nom, description, locale, web / web + app
+```
 
-# 3. Initialiser le site (nom, secrets, .env.local, sentinel)
-pnpm setup
+Puis provisionner le backend :
 
-# 4. Provisionner Convex + env backend
+```bash
 pnpx convex dev                      # crée le deployment, remplit .env.local
 cp .env.convex.example .env.convex   # remplir les intégrations actives
 pnpm convex:env
-
-# 5. Lancer
 pnpm dev
 ```
 
+Un site web peut activer l'app mobile plus tard : `pnpm add:mobile`
+(copie `.template/mobile/` → `mobile/`, app Expo autonome branchée sur le
+même backend Convex — voir `.template/mobile/README.md`).
+
 > Le bouton GitHub « Use this template » fonctionne aussi, mais casse
 > l'historique commun : le premier `pnpm update:template` devra être lancé
-> avec `-- --first`. Le clone est la voie recommandée.
+> avec `-- --first`. Le clone (ce que fait `create-site`) est la voie
+> recommandée.
 
 ## Personnaliser le site
 
@@ -97,7 +120,9 @@ pnpm engine:unlink     # retour au registre (ne jamais commiter en mode link)
 
 | Commande | Rôle |
 | --- | --- |
-| `pnpm setup` | Initialise un site client (idempotent) |
+| `pnpm create:site <dossier>` | Crée un site complet (clone + repo + config) |
+| `pnpm setup` | Initialise un site client (idempotent, web / web + app) |
+| `pnpm add:mobile` | Active l'app mobile Expo sur un site web |
 | `pnpm dev` / `build` / `start` | Next.js |
 | `pnpm lint` / `typecheck` / `test` / `test:e2e` | Qualité |
 | `pnpm convex:dev` / `convex:deploy` / `convex:codegen` | Backend Convex |

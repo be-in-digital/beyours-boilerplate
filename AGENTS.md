@@ -26,7 +26,9 @@ est un clone de ce repo. Le code produit vient de deux sources :
   tête de fichier) : `app/layout.tsx`, `next.config.ts`.
 - **Zones CLIENT** (personnalisation par site, jamais écrasées) :
   `site.config.ts`, `site/` (theme.css, fonts.ts, components/), `.env*`,
-  `.beindigital-site.json`.
+  `.beindigital-site.json`, `mobile/` (app Expo autonome, config
+  « web + app » — activée par `pnpm setup` ou `pnpm add:mobile` depuis le
+  snapshot `.template/mobile/`).
 
 Une personnalisation impossible depuis la zone client = évolution à faire
 dans l'engine, pas un patch local.
@@ -39,9 +41,10 @@ dans l'engine, pas un patch local.
 
 ## Commandes
 
-`pnpm setup` (init site) · `pnpm dev` · `pnpm build` · `pnpm lint` ·
-`pnpm typecheck` · `pnpm test` · `pnpm test:e2e` · `pnpm convex:dev` ·
-`pnpm convex:deploy` · `pnpm convex:env`
+`pnpm create:site <dossier>` (site complet one-shot) · `pnpm setup`
+(wizard : web / web + app) · `pnpm add:mobile` · `pnpm dev` · `pnpm build` ·
+`pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` ·
+`pnpm convex:dev` · `pnpm convex:deploy` · `pnpm convex:env`
 
 ## Convex
 

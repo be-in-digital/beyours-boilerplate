@@ -42,6 +42,16 @@ Suppression de turbo/pnpm-workspace/apps/packages :
 Si le mobile revient, il sera un produit engine à part avec son propre
 template — pas un placeholder dormant dans chaque site.
 
+**Addendum (même jour)** — la config « web + app » est réintroduite à la
+demande, SANS monorepo : `mobile/` est une app Expo **autonome** (propre
+`package.json`, install indépendant, aucun package privé), branchée sur le
+même backend Convex via `EXPO_PUBLIC_CONVEX_URL`. Le snapshot dormant vit
+dans `.template/mobile/` (activation : `pnpm setup` choix 2, ou
+`pnpm add:mobile`), la racine web reste single-app. Tant que l'engine ne
+publie pas de produit mobile, `mobile/` est **zone client** (point de
+départ, pas de canal de mise à jour). Création one-shot :
+`scripts/create-site.mjs` (clone + repo GitHub + install + config + push).
+
 ### D3 — Versions alignées sur l'engine, pas en avance
 
 next 16.1.6, convex 1.31.7 (exact), better-auth 1.4.9 (exact),
