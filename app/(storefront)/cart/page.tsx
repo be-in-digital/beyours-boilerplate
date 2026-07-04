@@ -1,0 +1,463 @@
+"use client"
+
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import {
+  ShoppingBag,
+  Trash2,
+  ArrowRight,
+  ArrowLeft,
+  Minus,
+  Plus,
+  X,
+} from "lucide-react"
+import {
+  Button,
+  Separator,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  TooltipProvider,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@be-in-digital/ui/components"
+import { useCartStore, formatPrice } from "@be-in-digital/restaurant"
+import type { OrderType } from "@be-in-digital/restaurant"
+import { useStoreId } from "@/lib/hooks/use-store-id"
+import { useStoreStatus } from "@/lib/hooks/use-store-status"
+import { OrderTypeSelector } from "@/components/storefront/order-type-selector"
+
+export default function CartPage() {
+  const router = useRouter()
+  const { storeId } = useStoreId()
+  const { isOpen, services } = useStoreStatus(storeId)
+
+  const items = useCartStore((s) => s.items)
+  const orderType = useCartStore((s) => s.orderType)
+  const updateQuantity = useCartStore((s) => s.updateQuantity)
+  const removeItem = useCartStore((s) => s.removeItem)
+  const clearCart = useCartStore((s) => s.clearCart)
+  const setOrderType = useCartStore((s) => s.setOrderType)
+  const getSubtotal = useCartStore((s) => s.getSubtotal)
+  const getItemCount = useCartStore((s) => s.getItemCount)
+
+  const subtotal = getSubtotal()
+  const itemCount = getItemCount()
+
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#FDFCF6]">
+        {/* Empty hero */}
+        <div className="bg-[#0D5C3F] pb-24 pt-32 text-center md:rounded-b-[6rem] md:pb-32">
+          <div className="flex justify-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-[1.5rem] bg-white/20 backdrop-blur-md">
+              <ShoppingBag className="h-10 w-10 text-white" />
+            </div>
+          </div>
+          <h1 className="mt-6 text-4xl font-black uppercase italic tracking-tighter text-white md:text-6xl">
+            Votre Box
+          </h1>
+          <p className="mt-3 text-sm font-medium text-white/60">
+            Votre Box est vide. Parcourez notre menu pour ajouter vos plats
+            préférés.
+          </p>
+          <Link href="/menu" className="mt-8 inline-block">
+            <Button
+              size="lg"
+              className="h-14 rounded-2xl bg-white px-8 text-xs font-black uppercase tracking-widest text-[#0D5C3F] shadow-xl shadow-black/10 hover:bg-zinc-100"
+            >
+              Parcourir le menu
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FDFCF6]">
+      {/* Hero header */}
+      <div className="bg-[#0D5C3F] pb-20 pt-28 md:rounded-b-[6rem] md:pb-28">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
+              <ShoppingBag className="h-7 w-7 text-white" />
+            </div>
+            <h1 className="mt-4 text-4xl font-black uppercase italic tracking-tighter text-white md:text-6xl">
+              Votre Box
+            </h1>
+            <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-white/60">
+              {itemCount}{" "}
+              {itemCount > 1
+                ? "articles sélectionnés"
+                : "article sélectionné"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="container mx-auto -mt-12 px-4 pb-16 md:-mt-16">
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Items list */}
+          <div className="lg:col-span-2">
+            {/* Clear cart bar */}
+            <div className="mb-6 flex items-center justify-between rounded-[2rem] border border-zinc-100 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/menu"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-100 text-zinc-400 transition-colors hover:border-zinc-200 hover:text-zinc-600"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                  Continuer mes achats
+                </span>
+              </div>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:bg-rose-50 hover:text-rose-500"
+                  >
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    Tout vider
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-[2rem] border-none p-10">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
+                      Vider votre Box ?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-lg font-medium text-zinc-500">
+                      Cela supprimera tous les articles de votre Box.
+                      Êtes-vous sûr de vouloir recommencer ?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="mt-8 gap-4">
+                    <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-zinc-100 hover:bg-zinc-50">
+                      Annuler
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={clearCart}
+                      className="h-14 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600"
+                    >
+                      Oui, tout vider
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+
+            {/* Items */}
+            <div className="space-y-4">
+              <TooltipProvider delayDuration={300}>
+                {items.map((item, idx) => {
+                  const optionsTotal = item.options.reduce(
+                    (s, o) => s + o.priceModifier,
+                    0
+                  )
+                  const unitPrice = item.price + optionsTotal
+                  const lineTotal = unitPrice * item.quantity
+
+                  return (
+                    <div
+                      key={`${item.productId}-${item.options.map((o) => o.choice).join("-")}-${idx}`}
+                      className="group flex gap-4 rounded-[2rem] border border-zinc-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-lg hover:shadow-zinc-100/50 md:gap-6 md:p-6"
+                    >
+                      {/* Image */}
+                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-100 md:h-28 md:w-28">
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <ShoppingBag className="h-8 w-8 text-zinc-300" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex flex-1 flex-col justify-between py-0.5">
+                        <div>
+                          <div className="flex items-start justify-between">
+                            <h4 className="text-sm font-black uppercase leading-tight tracking-tight text-zinc-800 md:text-base">
+                              {item.name}
+                            </h4>
+
+                            {/* Remove item */}
+                            <AlertDialog>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <button className="p-1 text-zinc-300 transition-colors hover:text-rose-500">
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent className="rounded-xl border-none bg-rose-500 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                  Retirer de la Box
+                                </TooltipContent>
+                              </Tooltip>
+                              <AlertDialogContent className="rounded-[2rem] border-none p-10">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
+                                    Retirer l&apos;article ?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription className="text-lg font-medium text-zinc-500">
+                                    Êtes-vous sûr de vouloir retirer{" "}
+                                    <span className="font-bold text-zinc-800">
+                                      {item.name}
+                                    </span>{" "}
+                                    de votre Box ?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="mt-8 gap-4">
+                                  <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-zinc-100 hover:bg-zinc-50">
+                                    Le garder
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      removeItem(item.productId)
+                                    }
+                                    className="h-14 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600"
+                                  >
+                                    Retirer maintenant
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+
+                          {/* Unit price */}
+                          <p className="text-sm font-black text-emerald-700">
+                            {formatPrice(unitPrice)}
+                          </p>
+
+                          {/* Options as badges */}
+                          {item.options.length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {item.options.map((opt, i) => (
+                                <span
+                                  key={i}
+                                  className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[9px] font-black uppercase text-emerald-600"
+                                >
+                                  + {opt.name}: {opt.choice}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Quantity controls + line total */}
+                        <div className="mt-3 flex items-center justify-between">
+                          <div className="flex items-center rounded-lg border border-zinc-100 bg-zinc-50 p-1">
+                            {item.quantity === 1 ? (
+                              <AlertDialog>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertDialogTrigger asChild>
+                                      <button className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition-all hover:bg-white hover:text-rose-500 hover:shadow-sm">
+                                        <Minus className="h-3 w-3" />
+                                      </button>
+                                    </AlertDialogTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="rounded-xl border-none bg-zinc-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                    Retirer
+                                  </TooltipContent>
+                                </Tooltip>
+                                <AlertDialogContent className="rounded-[2rem] border-none p-10">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
+                                      Retirer l&apos;article ?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription className="text-lg font-medium text-zinc-500">
+                                      Êtes-vous sûr de vouloir retirer{" "}
+                                      <span className="font-bold text-zinc-800">
+                                        {item.name}
+                                      </span>{" "}
+                                      de votre Box ?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter className="mt-8 gap-4">
+                                    <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-zinc-100 hover:bg-zinc-50">
+                                      Le garder
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        updateQuantity(item.productId, 0)
+                                      }
+                                      className="h-14 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600"
+                                    >
+                                      Retirer maintenant
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() =>
+                                      updateQuantity(
+                                        item.productId,
+                                        item.quantity - 1
+                                      )
+                                    }
+                                    className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition-all hover:bg-white hover:text-zinc-600 hover:shadow-sm"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="rounded-xl border-none bg-zinc-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                  Diminuer
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+
+                            <span className="w-10 text-center text-xs font-black text-zinc-800">
+                              {item.quantity}
+                            </span>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() =>
+                                    updateQuantity(
+                                      item.productId,
+                                      item.quantity + 1
+                                    )
+                                  }
+                                  className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition-all hover:bg-white hover:text-zinc-600 hover:shadow-sm"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="rounded-xl border-none bg-zinc-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                Augmenter
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+
+                          {/* Line total */}
+                          <span className="text-xs font-black uppercase tracking-widest text-zinc-400">
+                            {formatPrice(lineTotal)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </TooltipProvider>
+            </div>
+          </div>
+
+          {/* Summary sidebar */}
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <div className="rounded-[2rem] border border-zinc-100 bg-white p-8 shadow-sm">
+              {/* Header */}
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0D5C3F]/10">
+                  <ShoppingBag className="h-6 w-6 text-[#0D5C3F]" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black uppercase italic tracking-tighter text-zinc-800">
+                    Résumé
+                  </h2>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                    {itemCount} article{itemCount > 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+
+              {/* Order type */}
+              <div>
+                <h3 className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                  Type de commande
+                </h3>
+                <OrderTypeSelector
+                  value={orderType}
+                  onChange={(type) => setOrderType(type as OrderType)}
+                  services={services}
+                />
+              </div>
+
+              <Separator className="my-6" />
+
+              {/* Totals */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-400">
+                  <span>Sous-total</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-400">
+                  <span>Livraison</span>
+                  {orderType === "delivery" ? (
+                    <span>Au checkout</span>
+                  ) : (
+                    <span className="font-black text-emerald-600">GRATUIT</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-400">
+                  <span>Taxes</span>
+                  <span>Au checkout</span>
+                </div>
+              </div>
+
+              <Separator className="my-6" />
+
+              {/* Total */}
+              <div className="flex items-center justify-between">
+                <span className="text-xl font-black uppercase tracking-tighter text-zinc-800">
+                  Total estimé
+                </span>
+                <span className="text-2xl font-black tracking-tighter text-[#0D5C3F]">
+                  {formatPrice(subtotal)}
+                </span>
+              </div>
+
+              {/* Checkout button */}
+              <Button
+                className="group mt-6 h-16 w-full rounded-2xl bg-[#0D5C3F] text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 hover:bg-[#0A412D]"
+                size="lg"
+                onClick={() => router.push("/checkout")}
+                disabled={!isOpen}
+              >
+                {isOpen ? (
+                  <>
+                    Commander maintenant
+                    <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </>
+                ) : (
+                  "Restaurant fermé"
+                )}
+              </Button>
+
+              {/* Continue shopping link */}
+              <Link
+                href="/menu"
+                className="mt-5 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-400 transition-colors hover:text-[#0D5C3F]"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Continuer mes achats
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -8,60 +8,74 @@ on:
 
 jobs:
   web:
-    name: Lint + Test + Build (web)
+    name: Lint + Test + Build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Guard — pas d'overrides link: commités
+        run: |
+          if grep -q '"link:' package.json; then
+            echo "::error::package.json contient des overrides link: (mode engine-link). Lancer pnpm engine:unlink avant de commiter."
+            exit 1
+          fi
 
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        # --frozen-lockfile dès que le lockfile est commité ; sinon install
+        # simple (premier commit du template, avant le premier install tokené)
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
 
-      - name: Lint web
-        run: pnpm --filter web lint
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
 
       - name: Unit tests (Vitest)
-        run: pnpm --filter web test
+        run: pnpm test
 
-      - name: Build web
-        run: pnpm --filter web build
+      - name: Build
+        run: pnpm build
         env:
           NEXT_PUBLIC_CONVEX_URL: https://placeholder.convex.cloud
           CONVEX_SITE_URL: https://placeholder.convex.site
 
-  detect-e2e:
-    name: Detect E2E config
-    runs-on: ubuntu-latest
-    outputs:
-      can_run: ${{ steps.check.outputs.can_run }}
-    steps:
-      - id: check
-        env:
-          CONVEX_URL: ${{ vars.NEXT_PUBLIC_CONVEX_URL }}
-        run: |
-          if [ -n "$CONVEX_URL" ]; then
-            echo "can_run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "can_run=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::E2E job skipped — set repo variable NEXT_PUBLIC_CONVEX_URL to enable."
-          fi
-
   e2e:
     name: E2E tests (Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [web, detect-e2e]
-    if: needs.detect-e2e.outputs.can_run == 'true'
+    timeout-minutes: 30
+    needs: web
+    # Activer en définissant la repo variable CONVEX_E2E_ENABLED=true
+    # + les secrets E2E_* (deployment Convex de test dédié)
+    if: vars.CONVEX_E2E_ENABLED == 'true'
+    env:
+      NEXT_PUBLIC_CONVEX_URL: ${{ secrets.E2E_NEXT_PUBLIC_CONVEX_URL || 'https://placeholder.convex.cloud' }}
+      CONVEX_SITE_URL: ${{ secrets.E2E_CONVEX_SITE_URL || 'https://placeholder.convex.site' }}
+      BETTER_AUTH_URL: http://localhost:3000
+      SITE_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ${{ secrets.E2E_BETTER_AUTH_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -71,10 +85,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
 
@@ -83,68 +108,21 @@ jobs:
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('apps/web/package.json') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
 
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter web test:e2e:install
+        run: pnpm test:e2e:install
 
       - name: Run Playwright tests
-        run: pnpm --filter web test:e2e
+        run: pnpm test:e2e
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ vars.NEXT_PUBLIC_CONVEX_URL }}
-          CONVEX_SITE_URL: ${{ vars.CONVEX_SITE_URL }}
-          BETTER_AUTH_URL: http://localhost:3001
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-          NEXT_PUBLIC_E2E: "1"
+          CI: "true"
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: apps/web/playwright-report/
+          path: playwright-report/
           retention-days: 7
-
-  detect-mobile:
-    name: Detect mobile workspace
-    runs-on: ubuntu-latest
-    outputs:
-      has_mobile: ${{ steps.check.outputs.has_mobile }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: check
-        run: |
-          if [ -f apps/mobile/package.json ]; then
-            echo "has_mobile=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_mobile=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  mobile:
-    name: Lint mobile
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: detect-mobile
-    if: needs.detect-mobile.outputs.has_mobile == 'true'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
-
-      - name: Lint mobile
-        run: pnpm --filter mobile lint
-
-      - name: Typecheck mobile
-        run: pnpm --filter mobile typecheck

@@ -1,5 +1,52 @@
-<!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+This version has breaking changes — APIs, conventions, and file structure may
+all differ from your training data. Read the relevant guide in
+`node_modules/next/dist/docs/` before writing any code. Heed deprecation
+notices.
+
+# Boilerplate BeInDigital — règles pour agents
+
+Ce repo est le **template** des sites restaurant BeInDigital. Un site client
+est un clone de ce repo. Le code produit vient de deux sources :
+
+1. **Packages npm `@be-in-digital/*`** (GitHub Packages privé, publiés depuis
+   [be-in-digital/beindigital-engine](https://github.com/be-in-digital/beindigital-engine)).
+   `NODE_AUTH_TOKEN` (PAT `read:packages`) est requis pour `pnpm install`.
+   Sans token : `pnpm engine:link <clone-engine>` (symlinks locaux).
+2. **Le shell applicatif** (`app/`, `components/`, `lib/`, `hooks/`, `cms/`,
+   `convex/`) : miroir de `apps/restaurant-theme` de l'engine.
+
+## Zones de propriété — règle ABSOLUE
+
+- **Zones ENGINE** (synchronisées depuis l'engine, ne pas éditer sur un site
+  client) : `app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`,
+  `public/` (fichiers d'origine), configs racine.
+  Exceptions patchées par le boilerplate (marquées `PATCH BOILERPLATE` en
+  tête de fichier) : `app/layout.tsx`, `next.config.ts`.
+- **Zones CLIENT** (personnalisation par site, jamais écrasées) :
+  `site.config.ts`, `site/` (theme.css, fonts.ts, components/), `.env*`,
+  `.beindigital-site.json`.
+
+Une personnalisation impossible depuis la zone client = évolution à faire
+dans l'engine, pas un patch local.
+
+## Mises à jour (2 canaux)
+
+- `pnpm update:engine` — bump des packages `@be-in-digital/*` (npm).
+- `pnpm update:template` — merge git depuis le remote `template`
+  (boilerplate). Voir `docs/UPDATES.md`.
+
+## Commandes
+
+`pnpm setup` (init site) · `pnpm dev` · `pnpm build` · `pnpm lint` ·
+`pnpm typecheck` · `pnpm test` · `pnpm test:e2e` · `pnpm convex:dev` ·
+`pnpm convex:deploy` · `pnpm convex:env`
+
+## Convex
+
+`convex/*.ts` sont des wrappers fins : ils re-exportent les définitions de
+`@be-in-digital/convex-functions` (`export const list = query(defs.list)`).
+Le schéma compose les tables de `@be-in-digital/convex-schema`. Ne pas écrire
+de logique métier dans `convex/` — elle vit dans l'engine.
+`convex/_generated/` est commité ; régénérer avec `pnpm convex:codegen`.

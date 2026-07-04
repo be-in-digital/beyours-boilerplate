@@ -1,0 +1,5 @@
+export { ProductsContent } from "./ProductsContent"
+export { ProductsTable } from "./ProductsTable"
+export { ProductForm } from "./ProductForm"
+export { NewProductContent } from "./NewProductContent"
+export { EditProductContent } from "./EditProductContent"

@@ -1,0 +1,6 @@
+export { SettingsContent } from "./SettingsContent"
+export { DesignTabContent } from "./DesignTabContent"
+export { LanguagesTabContent } from "./LanguagesTabContent"
+export { PaymentsTabContent } from "./PaymentsTabContent"
+export { KitchenSettingsTabContent } from "./KitchenSettingsTabContent"
+export { DisplaySettingsTabContent } from "./DisplaySettingsTabContent"

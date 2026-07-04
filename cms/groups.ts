@@ -1,0 +1,10 @@
+import type { CmsGroupDefinition } from "@be-in-digital/cms"
+
+export const cmsGroups: CmsGroupDefinition[] = [
+  { id: "storefront", label: "Vitrine", order: 1 },
+  { id: "catalog", label: "Catalogue", order: 2 },
+  { id: "order", label: "Commande", order: 3 },
+  { id: "account", label: "Compte", order: 4 },
+  { id: "auth", label: "Authentification", order: 5 },
+  { id: "games", label: "Jeux", order: 6 },
+]

@@ -1,0 +1,93 @@
+"use client"
+
+import { useState } from "react"
+import {
+  AddressAutocomplete,
+  type AddressValue,
+} from "@/components/ui/address-autocomplete"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""
+
+/**
+ * Test-only page for Playwright E2E testing of AddressAutocomplete.
+ * Not protected by AuthGuard.
+ */
+export default function AddressTestPage() {
+  const [address, setAddress] = useState<AddressValue>({
+    street: "",
+    city: "",
+    postalCode: "",
+    country: "France",
+  })
+
+  const [dialogAddress, setDialogAddress] = useState<AddressValue>({
+    street: "",
+    city: "",
+    postalCode: "",
+    country: "France",
+  })
+
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div className="p-8 max-w-2xl mx-auto space-y-8">
+      <h1 className="text-2xl font-bold" data-testid="page-title">
+        Test AddressAutocomplete
+      </h1>
+
+      {/* Standalone test */}
+      <section data-testid="standalone-section" className="space-y-4">
+        <h2 className="text-lg font-semibold">Standalone</h2>
+        <AddressAutocomplete
+          label="Adresse"
+          value={address}
+          onChange={setAddress}
+          apiKey={GOOGLE_MAPS_API_KEY}
+        />
+      </section>
+
+      {/* Inside Dialog test */}
+      <section data-testid="dialog-section" className="space-y-4">
+        <h2 className="text-lg font-semibold">Inside Dialog</h2>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="open-dialog-btn">Ouvrir le dialog</Button>
+          </DialogTrigger>
+          <DialogContent
+            className="max-w-2xl"
+            onPointerDownOutside={(e) => {
+              const target = e.target as HTMLElement
+              if (target.closest(".pac-container")) {
+                e.preventDefault()
+              }
+            }}
+            onInteractOutside={(e) => {
+              const target = e.target as HTMLElement
+              if (target.closest(".pac-container")) {
+                e.preventDefault()
+              }
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Test Adresse dans Dialog</DialogTitle>
+            </DialogHeader>
+            <AddressAutocomplete
+              label="Adresse"
+              value={dialogAddress}
+              onChange={setDialogAddress}
+              apiKey={GOOGLE_MAPS_API_KEY}
+            />
+          </DialogContent>
+        </Dialog>
+      </section>
+    </div>
+  )
+}

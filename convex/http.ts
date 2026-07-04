@@ -1,41 +1,103 @@
-import { httpRouter } from "convex/server"
-import { authComponent, createAuth } from "./auth"
+import { httpRouter } from "convex/server";
+import { authComponent, createAuth } from "./auth";
+import { handleWebhook as uberEatsWebhook } from "./uberEatsWebhook";
+import { handleWebhook as deliverooWebhook } from "./deliverooWebhookHandler";
+import { handleWebhook as stripePaymentWebhook } from "./stripeWebhook";
+import { stripeCallback, stripeRefresh, sumupCallback } from "./oauthCallbackHandlers";
+import { uberEatsConnectCallback } from "./uberEatsOAuthHttp";
+import { handleUnsubscribe, handleConfirmOptIn, handleSesWebhook } from "./emailHttpHandlers";
+import { handleWebhook as bidStripeWebhook } from "./bidStripeWebhook";
 
-/**
- * Convex HTTP router.
- *
- * Better Auth routes are mounted with `cors: true` — the allowed origins
- * are derived from `trustedOrigins` in `auth.ts` (sourced from env var
- * SITE_URL). The boilerplate refuses to ship without an explicit SITE_URL
- * because guarding cross-origin requests is a hard security requirement
- * for the mobile bearer-token flow (see design doc: Constraint Guardian #9).
- *
- * For custom HTTP actions added later, validate the Origin header against
- * the same SITE_URL env var before processing the request.
- */
-const http = httpRouter()
+const http = httpRouter();
 
-authComponent.registerRoutes(http, createAuth, {
-  cors: true,
-})
+// Uber Eats webhooks
+http.route({
+  path: "/webhooks/uber-eats",
+  method: "POST",
+  handler: uberEatsWebhook,
+});
 
-export default http
+// Deliveroo webhooks (generic + dedicated order/menu paths)
+http.route({
+  path: "/webhooks/deliveroo",
+  method: "POST",
+  handler: deliverooWebhook,
+});
 
-/**
- * Helper to be reused by future custom HTTP actions.
- *
- * Usage:
- *   if (!isAllowedOrigin(request)) return new Response("Forbidden", { status: 403 })
- */
-export function isAllowedOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin")
-  if (!origin) return false
-  const siteUrl = process.env.SITE_URL
-  if (!siteUrl || siteUrl === "*") {
-    // Refuse to allow requests if SITE_URL is not configured.
-    // This is intentional — `*` is never an acceptable value here.
-    return false
-  }
-  const allowed = [siteUrl, "http://localhost:3000", "http://localhost:3001"]
-  return allowed.includes(origin)
-}
+http.route({
+  path: "/webhooks/deliveroo/order",
+  method: "POST",
+  handler: deliverooWebhook,
+});
+
+http.route({
+  path: "/webhooks/deliveroo/menu",
+  method: "POST",
+  handler: deliverooWebhook,
+});
+
+// Stripe payment webhook
+http.route({
+  path: "/webhooks/stripe",
+  method: "POST",
+  handler: stripePaymentWebhook,
+});
+
+// OAuth payment provider callbacks
+http.route({
+  path: "/connect/stripe/callback",
+  method: "GET",
+  handler: stripeCallback,
+});
+
+http.route({
+  path: "/connect/stripe/refresh",
+  method: "GET",
+  handler: stripeRefresh,
+});
+
+http.route({
+  path: "/connect/sumup/callback",
+  method: "GET",
+  handler: sumupCallback,
+});
+
+// Uber Eats OAuth (eats.pos_provisioning) merchant consent callback
+http.route({
+  path: "/connect/uber-eats/callback",
+  method: "GET",
+  handler: uberEatsConnectCallback,
+});
+
+// Email unsubscribe (public link in every campaign email)
+http.route({
+  path: "/email/unsubscribe",
+  method: "GET",
+  handler: handleUnsubscribe,
+});
+
+// Email double opt-in confirmation
+http.route({
+  path: "/email/confirm",
+  method: "GET",
+  handler: handleConfirmOptIn,
+});
+
+// AWS SES webhook (bounces, complaints, delivery, open, click via SNS)
+http.route({
+  path: "/webhooks/ses",
+  method: "POST",
+  handler: handleSesWebhook,
+});
+
+// BeInDigital Stripe webhook (subscription lifecycle)
+http.route({
+  path: "/webhooks/stripe-bid",
+  method: "POST",
+  handler: bidStripeWebhook,
+});
+
+// Register Better Auth HTTP routes (sign-in, sign-up, callbacks, etc.)
+authComponent.registerRoutes(http, createAuth, { cors: true });
+
+export default http;

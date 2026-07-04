@@ -1,0 +1,41 @@
+import type { PageDefinition } from "@be-in-digital/cms"
+
+export const forgotPasswordPage: PageDefinition = {
+  slug: "forgot-password",
+  label: "Page mot de passe oublie",
+  groupId: "auth",
+  blocks: [
+    {
+      key: "form",
+      label: "Formulaire de reinitialisation",
+      fields: {
+        heading: {
+          type: "text",
+          label: "Titre",
+          required: true,
+          maxLength: 100,
+          hasCodeFallback: true,
+        },
+        description: {
+          type: "text",
+          label: "Description",
+          maxLength: 300,
+          hasCodeFallback: true,
+        },
+        submitLabel: {
+          type: "text",
+          label: "Texte du bouton",
+          required: true,
+          maxLength: 50,
+          hasCodeFallback: true,
+        },
+        signinLink: {
+          type: "text",
+          label: "Texte lien retour connexion",
+          maxLength: 100,
+          hasCodeFallback: true,
+        },
+      },
+    },
+  ],
+}

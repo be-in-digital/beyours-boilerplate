@@ -1,0 +1,25 @@
+/*
+ * Thème du site — ZONE CLIENT.
+ *
+ * Ce fichier est chargé APRÈS app/globals.css : toute variable redéfinie ici
+ * écrase le thème par défaut de l'engine, en clair comme en sombre.
+ * Il n'est jamais écrasé par une mise à jour du template.
+ *
+ * Les tokens disponibles sont ceux de app/globals.css (format HSL sans hsl()) :
+ *   --primary, --secondary, --accent, --background, --foreground, --card,
+ *   --muted, --border, --ring, --radius, --success, --warning, --info,
+ *   --status-pending … --status-cancelled, --chart-1 … --chart-5
+ *
+ * Exemple — passer l'accent orange par défaut sur un rouge brique :
+ *
+ *   :root {
+ *     --primary: 8 76% 45%;
+ *     --ring: 8 76% 45%;
+ *     --accent: 8 70% 96%;
+ *     --accent-foreground: 8 76% 30%;
+ *   }
+ *
+ *   .dark {
+ *     --primary: 8 80% 55%;
+ *   }
+ */
