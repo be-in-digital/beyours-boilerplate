@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# beindigital — CLI des sites restaurant BeInDigital (tout depuis le terminal).
+#
+# Install (une fois, gh authentifié requis) :
+#   gh api repos/be-in-digital/beindigital-boilerplate/contents/scripts/beindigital \
+#     -H "Accept: application/vnd.github.raw" > /usr/local/bin/beindigital \
+#     && chmod +x /usr/local/bin/beindigital
+#
+# La CLI va chercher les scripts sur le repo boilerplate à chaque appel :
+# elle profite donc des mises à jour du template sans réinstallation
+# (`beindigital upgrade` ne met à jour que ce wrapper).
+set -euo pipefail
+
+REPO="be-in-digital/beindigital-boilerplate"
+REF="${BEINDIGITAL_REF:-main}"
+TOKEN_FILE="$HOME/.config/beindigital/token"
+
+# Token packages : env prioritaire, sinon fichier local (posé via `beindigital token`)
+if [ -z "${NODE_AUTH_TOKEN:-}" ] && [ -f "$TOKEN_FILE" ]; then
+  NODE_AUTH_TOKEN="$(cat "$TOKEN_FILE")"
+  export NODE_AUTH_TOKEN
+fi
+
+need() { command -v "$1" >/dev/null 2>&1 || { echo "✗ $1 requis" >&2; exit 1; }; }
+
+fetch() {
+  gh api "repos/$REPO/contents/$1?ref=$REF" -H "Accept: application/vnd.github.raw"
+}
+
+show_help() {
+  cat <<'HELP'
+beindigital — sites restaurant BeInDigital
+
+USAGE
+  beindigital create <dossier> [options]   Crée un site client complet
+      --name "Chez Luigi"     nom du restaurant
+      --mobile | --web        web + app Expo, ou web seul (défaut)
+      --repo owner/nom        crée le repo GitHub privé et pousse
+      --description "…"       description SEO
+      --locale fr             locale par défaut
+      --skip-install          sans pnpm install
+
+  beindigital token <PAT>     Enregistre le PAT read:packages
+                              (~/.config/beindigital/token, chmod 600)
+  beindigital version         Version du template (main)
+  beindigital upgrade         Met à jour cette CLI
+  beindigital help            Cette aide
+
+ENSUITE, DANS UN SITE CRÉÉ
+  pnpx convex dev             provisionne le backend
+  pnpm env:setup              wizard .env (web + convex + mobile)
+  pnpm convex:env             pousse .env.convex côté Convex
+  pnpm dev                    lance le site
+  pnpm update:engine          maj logique métier (npm)
+  pnpm update:template        maj shell (git)
+  pnpm add:mobile             active l'app mobile après coup
+
+PRÉ-REQUIS : gh (authentifié), node ≥ 20, pnpm, git.
+DOCS : https://github.com/be-in-digital/beindigital-boilerplate
+HELP
+}
+
+cmd="${1:-help}"
+case "$cmd" in
+  create)
+    shift
+    need gh
+    need node
+    need pnpm
+    need git
+    [ $# -ge 1 ] || {
+      echo "Usage : beindigital create <dossier> [options] (beindigital help)" >&2
+      exit 1
+    }
+    if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+      echo "⚠ Pas de NODE_AUTH_TOKEN ni ~/.config/beindigital/token — l'install des packages privés sera sautée." >&2
+      echo "  Enregistrer un PAT read:packages : beindigital token ghp_xxx" >&2
+    fi
+    fetch "scripts/create-site.mjs" | node --input-type=module - "$@"
+    ;;
+  token)
+    shift
+    [ "${1:-}" ] || {
+      echo "Usage : beindigital token <PAT read:packages>" >&2
+      exit 1
+    }
+    mkdir -p "$(dirname "$TOKEN_FILE")"
+    printf '%s' "$1" > "$TOKEN_FILE"
+    chmod 600 "$TOKEN_FILE"
+    echo "✓ Token enregistré dans $TOKEN_FILE (chmod 600)."
+    ;;
+  upgrade)
+    need gh
+    dest="$(command -v beindigital || true)"
+    [ -n "$dest" ] || { echo "beindigital introuvable dans le PATH" >&2; exit 1; }
+    fetch "scripts/beindigital" > "${dest}.tmp"
+    chmod +x "${dest}.tmp"
+    mv "${dest}.tmp" "$dest"
+    echo "✓ CLI mise à jour ($dest)."
+    ;;
+  version | --version | -v)
+    need gh
+    need node
+    fetch "package.json" | node -e 'let d="";process.stdin.on("data",(c)=>d+=c).on("end",()=>console.log("boilerplate v"+JSON.parse(d).version+" (ref: "+(process.env.BEINDIGITAL_REF||"main")+")"))'
+    ;;
+  help | -h | --help)
+    show_help
+    ;;
+  *)
+    echo "Commande inconnue : $cmd" >&2
+    show_help
+    exit 1
+    ;;
+esac

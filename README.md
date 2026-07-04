@@ -31,18 +31,32 @@ site client (1 repo par restaurant)              ← site.config.ts + site/ + en
 Deux configurations : **web** (storefront + admin) ou **web + app**
 (+ app mobile Expo cliente).
 
-### La commande one-shot (recommandée)
+### La CLI `beindigital` (recommandée)
+
+Installation (une fois, `gh` authentifié) :
 
 ```bash
-export NODE_AUTH_TOKEN=ghp_xxx      # PAT GitHub scope read:packages
+gh api repos/be-in-digital/beindigital-boilerplate/contents/scripts/beindigital \
+  -H "Accept: application/vnd.github.raw" > /opt/homebrew/bin/beindigital \
+  && chmod +x /opt/homebrew/bin/beindigital
+beindigital token ghp_xxx           # PAT read:packages, stocké chmod 600
+```
 
-# Web seul, repo GitHub créé et poussé :
+Puis tout se fait au terminal :
+
+```bash
+beindigital create client-luigi --name "Chez Luigi" --repo be-in-digital/client-luigi
+beindigital create client-luigi --name "Chez Luigi" --mobile   # web + app
+beindigital help · version · upgrade
+```
+
+La CLI va chercher les scripts sur ce repo à chaque appel — elle profite des
+mises à jour du template sans réinstallation. Équivalent sans CLI :
+
+```bash
 gh api repos/be-in-digital/beindigital-boilerplate/contents/scripts/create-site.mjs \
   -H "Accept: application/vnd.github.raw" | node --input-type=module - \
   client-luigi --name "Chez Luigi" --repo be-in-digital/client-luigi
-
-# Web + app mobile :
-…create-site.mjs … client-luigi --name "Chez Luigi" --mobile --repo be-in-digital/client-luigi
 ```
 
 La commande enchaîne : clone du template → remote `template` (mises à jour) →

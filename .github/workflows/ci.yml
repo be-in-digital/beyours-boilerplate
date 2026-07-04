@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Guard — pas d'overrides link: commités
+      - name: "Guard — pas d'overrides link: commités"
         run: |
           if grep -q '"link:' package.json; then
             echo "::error::package.json contient des overrides link: (mode engine-link). Lancer pnpm engine:unlink avant de commiter."

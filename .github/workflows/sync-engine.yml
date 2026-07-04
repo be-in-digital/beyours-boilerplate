@@ -69,16 +69,16 @@ jobs:
           git add -A
           git commit -m "chore(sync): miroir engine @ $sha"
           git push -u origin "$branch" --force
+          {
+            echo "Resync automatique du shell depuis \`beindigital-engine/apps/restaurant-theme\`."
+            echo ""
+            echo "Avant merge :"
+            echo "- [ ] Lire le rapport de dépendances dans les logs du workflow (section « Dépendances à réconcilier ») et appliquer les ajouts éventuels à \`package.json\`"
+            echo "- [ ] Valider en local : \`pnpm engine:link <clone> && pnpm typecheck && pnpm test && pnpm build\`"
+            echo "- [ ] Si le schéma Convex a bougé : prévoir \`pnpm convex:deploy\` sur les sites après leur \`update:template\`"
+            echo ""
+            echo "Généré par \`.github/workflows/sync-engine.yml\`."
+          } > "$RUNNER_TEMP/pr-body.md"
           gh pr create --base main \
             --title "chore(sync): miroir engine @ $sha" \
-            --body "$(cat <<'EOF'
-Resync automatique du shell depuis `beindigital-engine/apps/restaurant-theme`.
-
-Avant merge :
-- [ ] Lire le rapport de dépendances dans les logs du workflow (section « Dépendances à réconcilier ») et appliquer les ajouts éventuels à `package.json`
-- [ ] Valider en local : `pnpm engine:link <clone> && pnpm typecheck && pnpm test && pnpm build`
-- [ ] Si le schéma Convex a bougé : prévoir `pnpm convex:deploy` sur les sites après leur `update:template`
-
-Généré par `.github/workflows/sync-engine.yml`.
-EOF
-)" || echo "PR déjà ouverte pour cette branche."
+            --body-file "$RUNNER_TEMP/pr-body.md" || echo "PR déjà ouverte pour cette branche."
