@@ -4,9 +4,12 @@ name: Sync engine
 # be-in-digital/beindigital-engine (apps/restaurant-theme) et ouvre une PR
 # quand il y a une dérive. Voir docs/UPDATES.md et scripts/sync-from-engine.mjs.
 #
-# Requiert le secret ENGINE_SYNC_TOKEN : PAT fine-grained avec contents:read
-# sur beindigital-engine (docs/SETUP-CI.md). Sans lui, le job s'arrête
-# proprement avec une notice.
+# Authentification vers l'engine, au choix (docs/SETUP-CI.md) :
+#   - ENGINE_SYNC_KEY   : clé privée SSH d'une deploy key read-only posée sur
+#                         beindigital-engine (si les deploy keys sont
+#                         autorisées dans l'org)
+#   - ENGINE_SYNC_TOKEN : PAT fine-grained contents:read sur beindigital-engine
+# Sans aucun des deux, le job s'arrête proprement avec une notice.
 
 on:
   schedule:
@@ -25,22 +28,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Vérifier le secret
+      - name: Vérifier les secrets
         id: token
+        env:
+          HAS_KEY: ${{ secrets.ENGINE_SYNC_KEY != '' }}
+          HAS_TOKEN: ${{ secrets.ENGINE_SYNC_TOKEN != '' }}
         run: |
-          if [ -z "${{ secrets.ENGINE_SYNC_TOKEN }}" ]; then
-            echo "::notice::ENGINE_SYNC_TOKEN absent — sync engine sautée (docs/SETUP-CI.md)."
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          else
+          if [ "$HAS_KEY" = "true" ] || [ "$HAS_TOKEN" = "true" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Ni ENGINE_SYNC_KEY ni ENGINE_SYNC_TOKEN — sync engine sautée (docs/SETUP-CI.md)."
+            echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Clone engine
         if: steps.token.outputs.available == 'true'
+        env:
+          ENGINE_SSH_KEY: ${{ secrets.ENGINE_SYNC_KEY }}
+          ENGINE_TOKEN: ${{ secrets.ENGINE_SYNC_TOKEN }}
         run: |
-          git clone --depth 1 \
-            "https://x-access-token:${{ secrets.ENGINE_SYNC_TOKEN }}@github.com/be-in-digital/beindigital-engine" \
-            "$RUNNER_TEMP/engine"
+          if [ -n "$ENGINE_SSH_KEY" ]; then
+            mkdir -p ~/.ssh
+            printf '%s\n' "$ENGINE_SSH_KEY" > ~/.ssh/engine_sync_key
+            chmod 600 ~/.ssh/engine_sync_key
+            ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+            GIT_SSH_COMMAND="ssh -i ~/.ssh/engine_sync_key -o IdentitiesOnly=yes" \
+              git clone --depth 1 \
+              "git@github.com:be-in-digital/beindigital-engine.git" \
+              "$RUNNER_TEMP/engine"
+          else
+            git clone --depth 1 \
+              "https://x-access-token:${ENGINE_TOKEN}@github.com/be-in-digital/beindigital-engine" \
+              "$RUNNER_TEMP/engine"
+          fi
 
       - uses: actions/setup-node@v4
         if: steps.token.outputs.available == 'true'

@@ -10,8 +10,14 @@ proprement (jobs sautés avec notice) mais ne rendent pas leur service.
 
 | Secret | Contenu | Utilisé par |
 | --- | --- | --- |
-| `GH_PACKAGES_TOKEN` | PAT fine-grained `read:packages` limité à `@be-in-digital/*` | `ci.yml` (install) |
-| `ENGINE_SYNC_TOKEN` | PAT fine-grained `contents:read` sur `beindigital-engine` | `sync-engine.yml` (clone engine) |
+| `GH_PACKAGES_TOKEN` | PAT `read:packages` limité à `@be-in-digital/*` | `ci.yml` (install) |
+| `ENGINE_SYNC_KEY` **ou** `ENGINE_SYNC_TOKEN` | Clé privée SSH d'une deploy key read-only sur `beindigital-engine` (si l'org les autorise — désactivées à ce jour), **ou** PAT fine-grained `contents:read` sur `beindigital-engine` | `sync-engine.yml` (clone engine) |
+
+Recette PAT `ENGINE_SYNC_TOKEN` : github.com/settings/personal-access-tokens/new
+→ Resource owner `be-in-digital` → Only select repositories
+`beindigital-engine` → Repository permissions : Contents **Read-only** →
+expiration 90 j. Puis :
+`gh secret set ENGINE_SYNC_TOKEN -R be-in-digital/beindigital-boilerplate --body "github_pat_…"`
 
 ### Première installation tokénée → committer le lockfile
 
