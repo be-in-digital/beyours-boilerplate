@@ -140,6 +140,7 @@ Site « ${name} » prêt dans ${target} (${flag("mobile") ? "web + app mobile" :
 
   cd ${targetArg}
   pnpx convex dev            # provisionne le backend
+  pnpm env:setup             # wizard .env (requis + intégrations), puis pnpm convex:env
   pnpm dev                   # storefront + admin${flag("mobile") ? "\n  cd mobile && pnpm install && pnpm start   # app Expo" : ""}
 
 Personnalisation : site.config.ts, site/, public/ (docs/CUSTOMIZATION.md)

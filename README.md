@@ -60,14 +60,30 @@ pnpm install
 pnpm setup            # wizard : nom, description, locale, web / web + app
 ```
 
-Puis provisionner le backend :
+Puis provisionner le backend et les variables d'environnement :
 
 ```bash
-pnpx convex dev                      # crée le deployment, remplit .env.local
-cp .env.convex.example .env.convex   # remplir les intégrations actives
-pnpm convex:env
+pnpx convex dev      # crée le deployment, remplit .env.local
+pnpm env:setup       # wizard .env : requis + intégrations (Stripe, AWS, Uber…)
+pnpm convex:env      # pousse .env.convex côté Convex
 pnpm dev
 ```
+
+### Variables d'environnement — une commande pour les 3 fichiers
+
+Un site a trois fichiers d'env : `.env.local` (web, source de vérité),
+`.env.convex` (backend) et `mobile/.env` (app). La commande `env` évite la
+triple saisie :
+
+| Commande | Rôle |
+| --- | --- |
+| `pnpm env:setup` | Wizard : secrets auto-générés, requis, puis activation intégration par intégration (Stripe, AWS, PayPal, SumUp, OpenAI, Uber Eats, Deliveroo, Maps, Sentry, Unsplash) |
+| `pnpm env:check` | État : requis manquants, intégrations incomplètes, fichiers désynchronisés (exit ≠ 0 si problème) |
+| `pnpm env:sync` | Propage `.env.local` → `.env.convex` (clés partagées) et → `mobile/.env` (URL Convex) |
+
+`env:setup` marche aussi en mode pipé (réponses via stdin) pour
+l'automatisation. Après toute modification : `pnpm convex:env` applique
+`.env.convex` au deployment (`convex env set`).
 
 Un site web peut activer l'app mobile plus tard : `pnpm add:mobile`
 (copie `.template/mobile/` → `mobile/`, app Expo autonome branchée sur le
@@ -126,6 +142,7 @@ pnpm engine:unlink     # retour au registre (ne jamais commiter en mode link)
 | `pnpm dev` / `build` / `start` | Next.js |
 | `pnpm lint` / `typecheck` / `test` / `test:e2e` | Qualité |
 | `pnpm convex:dev` / `convex:deploy` / `convex:codegen` | Backend Convex |
+| `pnpm env:setup` / `env:check` / `env:sync` | Gestion des 3 fichiers .env (web/convex/mobile) |
 | `pnpm convex:env` | Applique `.env.convex` via `convex env set` |
 | `pnpm update:engine` / `update:template` | Mises à jour |
 | `pnpm engine:link` / `engine:unlink` | Dev local contre l'engine |

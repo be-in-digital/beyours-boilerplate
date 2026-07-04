@@ -203,8 +203,8 @@ async function main() {
 Site "${name}" initialisé (${mobile ? "web + app mobile" : "web"}). Prochaines étapes :
 
   1. pnpx convex dev          # provisionne le deployment Convex
-  2. Compléter .env.local     # sections [REQUIS] restantes
-  3. cp .env.convex.example .env.convex && pnpm convex:env
+  2. pnpm env:setup           # wizard .env (web + convex + mobile)
+  3. pnpm convex:env          # pousse .env.convex côté backend
   4. pnpm dev${mobile ? "\n  5. cd mobile && pnpm install && pnpm start   # app Expo" : ""}
 
 Personnalisation : site.config.ts, site/ (thème, polices, composants),

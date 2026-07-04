@@ -42,7 +42,8 @@ dans l'engine, pas un patch local.
 ## Commandes
 
 `pnpm create:site <dossier>` (site complet one-shot) · `pnpm setup`
-(wizard : web / web + app) · `pnpm add:mobile` · `pnpm dev` · `pnpm build` ·
+(wizard : web / web + app) · `pnpm add:mobile` · `pnpm env:setup|check|sync`
+(les 3 fichiers .env : web/convex/mobile) · `pnpm dev` · `pnpm build` ·
 `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` ·
 `pnpm convex:dev` · `pnpm convex:deploy` · `pnpm convex:env`
 
