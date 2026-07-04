@@ -145,6 +145,7 @@ pnpm engine:unlink     # retour au registre (ne jamais commiter en mode link)
 | `pnpm env:setup` / `env:check` / `env:sync` | Gestion des 3 fichiers .env (web/convex/mobile) |
 | `pnpm convex:env` | Applique `.env.convex` via `convex env set` |
 | `pnpm update:engine` / `update:template` | Mises à jour |
+| `pnpm sync:engine` | (Mainteneur) resync du miroir depuis l'engine |
 | `pnpm engine:link` / `engine:unlink` | Dev local contre l'engine |
 
 ## Déploiement
@@ -154,10 +155,11 @@ Env vars : toutes les `[REQUIS]` de `.env.example` + `NODE_AUTH_TOKEN`
 (secret, pour l'install). Convex prod : `pnpm convex:deploy` puis reporter
 `NEXT_PUBLIC_CONVEX_URL` / `CONVEX_SITE_URL` de prod dans Vercel.
 
-**CI GitHub Actions** (`.github/workflows/ci.yml`) : lint + typecheck +
-tests + build sur chaque PR (secret `GH_PACKAGES_TOKEN` requis). E2E
-Playwright activables avec la variable `CONVEX_E2E_ENABLED=true` + secrets
-`E2E_*` (deployment Convex de test dédié).
+**CI GitHub Actions** : `ci.yml` (lint + typecheck + tests + build, secret
+`GH_PACKAGES_TOKEN` requis ; e2e via `CONVEX_E2E_ENABLED=true` + secrets
+`E2E_*` ; job mobile conditionnel) et `sync-engine.yml` (resync automatique
+du miroir engine par PR). Runbook complet des secrets :
+[`docs/SETUP-CI.md`](docs/SETUP-CI.md).
 
 ## Sécurité
 

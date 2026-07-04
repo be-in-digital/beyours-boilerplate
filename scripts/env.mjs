@@ -48,11 +48,11 @@ const GENERATORS = {
 
 /** Intégrations optionnelles, activables une par une dans le wizard. */
 const GROUPS = [
-  { name: "AWS (S3 médias + SES emails)", keys: ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_BUCKET_NAME", "AWS_SES_FROM_EMAIL", "AWS_SES_FROM_NAME", "AWS_SES_REPLY_TO_EMAIL", "AWS_SES_CONFIGURATION_SET"] },
+  { name: "AWS (S3 médias + SES emails) — requis en prod (plateforme)", keys: ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_BUCKET_NAME", "AWS_SES_FROM_EMAIL", "AWS_SES_FROM_NAME", "AWS_SES_REPLY_TO_EMAIL", "AWS_SES_CONFIGURATION_SET"] },
   { name: "Stripe (paiement CB)", keys: ["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY", "STRIPE_WEBHOOK_SECRET"] },
   { name: "PayPal", keys: ["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET"] },
   { name: "SumUp", keys: ["SUMUP_CLIENT_ID", "SUMUP_CLIENT_SECRET"] },
-  { name: "OpenAI (traductions auto)", keys: ["OPENAI_API_KEY"] },
+  { name: "OpenAI (traductions auto) — requis en prod (plateforme)", keys: ["OPENAI_API_KEY"] },
   { name: "Uber Eats", keys: ["UBER_EATS_CLIENT_ID", "UBER_EATS_CLIENT_SECRET", "UBER_EATS_WEBHOOK_SECRET", "UBER_EATS_SANDBOX_MODE"] },
   { name: "Deliveroo", keys: ["DELIVEROO_CLIENT_ID", "DELIVEROO_CLIENT_SECRET", "DELIVEROO_WEBHOOK_SECRET", "DELIVEROO_BRAND_ID", "DELIVEROO_SITE_ID", "DELIVEROO_IS_SANDBOX"] },
   { name: "Google Maps (adresses)", keys: ["NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"] },
@@ -141,7 +141,7 @@ function groupStatus(vars, group) {
 
 // ---------------------------------------------------------------------------
 
-function check({ quiet } = {}) {
+async function check({ quiet } = {}) {
   const web = parse(ENV_LOCAL)
   const convex = parse(ENV_CONVEX)
   const hasMobile = fs.existsSync(path.join(ROOT, "mobile"))
@@ -193,6 +193,29 @@ function check({ quiet } = {}) {
     } else {
       console.log("  ✓ mobile/.env aligné")
     }
+  }
+
+  // Validation officielle engine (schémas Zod de @be-in-digital/core) —
+  // couche d'autorité quand node_modules est installé ; sinon silencieux.
+  try {
+    for (const [k, v] of Object.entries(web)) {
+      if (process.env[k] === undefined) process.env[k] = v
+    }
+    const { validateAllEnv, formatEnvReport } = await import(
+      "@be-in-digital/core/env"
+    )
+    const { ok, missing } = validateAllEnv()
+    if (ok) {
+      console.log("\nValidation @be-in-digital/core : ✓")
+    } else {
+      problems += 1
+      console.log("\nValidation @be-in-digital/core :")
+      console.log(formatEnvReport(missing))
+    }
+  } catch {
+    console.log(
+      "\n(validation @be-in-digital/core indisponible — lancer pnpm install)",
+    )
   }
 
   if (!quiet) {
@@ -329,13 +352,13 @@ async function setup() {
   // 4. Propagation convex + mobile, puis état final
   sync()
   console.log("")
-  check({ quiet: true })
+  await check({ quiet: true })
 }
 
 // ---------------------------------------------------------------------------
 
 const cmd = process.argv[2]
-if (cmd === "check") process.exit(check())
+if (cmd === "check") process.exit(await check())
 else if (cmd === "sync") sync()
 else if (cmd === "setup") await setup()
 else {

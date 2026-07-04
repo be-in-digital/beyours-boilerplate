@@ -91,24 +91,27 @@ un en-tête `PATCH BOILERPLATE`.
 
 ## Maintenance du boilerplate (équipe BeInDigital)
 
-Resynchroniser le boilerplate après une release engine qui modifie le shell :
+La resync du shell depuis l'engine est **outillée et automatisée** :
+
+- **`pnpm sync:engine`** (mainteneur, local) — miroir strict depuis
+  `apps/restaurant-theme` d'un clone engine (`--engine <chemin>`,
+  `--check` pour un dry-run). Le script protège les fichiers patchés et
+  boilerplate, ré-applique le patch d'en-tête de `.env.example`, rapporte le
+  diff de dépendances (jamais auto-appliqué) et écrit `.engine-sync.json`
+  (commit engine de référence).
+- **`.github/workflows/sync-engine.yml`** — cron jours ouvrés + déclenchement
+  manuel : clone l'engine (secret `ENGINE_SYNC_TOKEN`, cf.
+  `docs/SETUP-CI.md`), lance la resync et **ouvre une PR** `sync/engine-<sha>`
+  quand il y a une dérive, avec checklist de validation.
+
+Validation avant merge d'une PR de sync :
 
 ```bash
-# depuis un clone du boilerplate, engine cloné à côté
-rsync -a --delete \
-  --exclude node_modules --exclude .next \
-  --exclude CHANGELOG.md --exclude SETUP_SUMMARY.md \
-  --exclude DASHBOARD_IMPLEMENTATION.md \
-  ../beindigital-engine/apps/restaurant-theme/app/ ./app/
-# idem pour components/ lib/ hooks/ cms/ convex/ e2e/ public/
-git diff   # ré-appliquer les patchs listés ci-dessus s'ils ont sauté
-pnpm engine:link ../beindigital-engine && pnpm typecheck && pnpm test
+pnpm engine:link ../beindigital-engine && pnpm typecheck && pnpm test && pnpm build
 pnpm engine:unlink
 ```
 
-Puis committer sur `main` du boilerplate : les sites récupèrent via
-`update:template`. (Automatisation possible plus tard : workflow
-`repository_dispatch` déclenché par la release engine.)
+Les sites récupèrent ensuite via `update:template`.
 
 ## Rappels d'exploitation
 
