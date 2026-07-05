@@ -69,10 +69,14 @@ let changes = []
 function rsync(from, to, { del = true, excludes = [] } = {}) {
   const ex = excludes.map((e) => `--exclude=${JSON.stringify(e)}`).join(" ")
   const out = execSync(
-    `rsync -ai ${dry} ${del ? "--delete" : ""} ${ex} --exclude=.DS_Store ${JSON.stringify(from + "/")} ${JSON.stringify(to + "/")}`,
+    // --checksum : ne compter/copier que les VRAIS diffs de contenu (sur un
+    // clone frais, les mtimes divergent et rsync recopierait tout le miroir)
+    `rsync -aic ${dry} ${del ? "--delete" : ""} ${ex} --exclude=.DS_Store ${JSON.stringify(from + "/")} ${JSON.stringify(to + "/")}`,
     { encoding: "utf8" },
   )
-  const lines = out.split("\n").filter((l) => l.trim() && !l.startsWith(".d..t"))
+  // Ignorer les mises à jour d'attributs seuls (préfixe ".") : avec
+  // --checksum, ".f..t...." = contenu identique, seul le mtime diffère.
+  const lines = out.split("\n").filter((l) => l.trim() && !l.startsWith("."))
   changes.push(...lines.map((l) => `${path.basename(to)}: ${l}`))
 }
 
