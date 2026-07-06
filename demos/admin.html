@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tableau de bord · BeInDigital (démo)</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400..700&family=Figtree:wght@400..700&display=swap">
+<!--
+  MAQUETTE BACK-OFFICE — montre l'autre moitié du produit (côté restaurateur) :
+  commandes qui tombent en direct, écran cuisine (KDS), réservations, chiffres.
+  Autonome (n'utilise pas site.js) ; reprend les tokens du thème choisi (?t=)
+  pour être « aux couleurs » du site vitrine correspondant.
+-->
+<style>
+  :root { --p: #e2661f; --pf: #fff; --bg: #f6f6f8; --card: #fff; --fg: #16151b; --mut: #6b6975; --bd: #e6e5ea; --acc: #f3ede8; --accf: #8a5a33; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: 'Figtree', system-ui, sans-serif; line-height: 1.5; }
+  h1, h2, h3, .num { font-family: 'Inter Tight', system-ui, sans-serif; letter-spacing: -0.01em; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  .ribbon { background: var(--fg); color: var(--bg); text-align: center; font-size: 12.5px; font-weight: 650; padding: 7px 16px; }
+  .ribbon a { text-decoration: underline; }
+  .shell { display: grid; grid-template-columns: 230px 1fr; min-height: calc(100vh - 33px); }
+  aside { border-right: 1px solid var(--bd); background: var(--card); padding: 20px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .brand { font-family: 'Inter Tight'; font-weight: 700; font-size: 20px; padding: 8px 10px 18px; }
+  .brand .d { color: var(--p); }
+  .navitem { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 9px; font-size: 14.5px; font-weight: 550; color: var(--mut); }
+  .navitem.on { background: var(--acc); color: var(--fg); }
+  .navitem.on b { color: var(--p); }
+  .navitem svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+  aside .spacer { flex: 1; }
+  aside .who { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--bd); font-size: 13px; }
+  aside .who .av { width: 32px; height: 32px; border-radius: 50%; background: var(--p); color: var(--pf); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  main { padding: 22px 26px 40px; overflow: auto; }
+  .top { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+  .top h1 { font-size: 23px; }
+  .top .loc { font-size: 13px; color: var(--mut); }
+  .top .sp { flex: 1; }
+  .pill { font-size: 12.5px; font-weight: 650; padding: 8px 13px; border-radius: 999px; border: 1px solid var(--bd); }
+  .btn-new { background: var(--p); color: var(--pf); font-weight: 700; font-size: 13.5px; padding: 10px 16px; border-radius: 10px; }
+  .live { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--mut); }
+  .live .d { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 #22c55e88; animation: lp 1.8s infinite; }
+  @keyframes lp { 0% { box-shadow: 0 0 0 0 #22c55e66; } 70% { box-shadow: 0 0 0 7px #22c55e00; } 100% { box-shadow: 0 0 0 0 #22c55e00; } }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .kpi { background: var(--card); border: 1px solid var(--bd); border-radius: 13px; padding: 16px 18px; }
+  .kpi .l { font-size: 12.5px; color: var(--mut); font-weight: 600; }
+  .kpi .v { font-family: 'Inter Tight'; font-size: 27px; font-weight: 700; margin-top: 5px; }
+  .kpi .t { font-size: 12px; color: #16a34a; margin-top: 2px; }
+
+  .cols { display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; }
+  .panel { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; overflow: hidden; }
+  .panel-h { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--bd); }
+  .panel-h h2 { font-size: 16px; }
+  .panel-h .cnt { font-size: 12px; color: var(--mut); }
+  .kds { padding: 14px; display: grid; gap: 12px; max-height: 620px; overflow: auto; }
+  .order { border: 1px solid var(--bd); border-left: 4px solid var(--p); border-radius: 11px; padding: 13px 15px; background: var(--card); }
+  .order.done { opacity: .55; border-left-color: #22c55e; }
+  .order-h { display: flex; align-items: baseline; gap: 10px; }
+  .order-h .ref { font-family: 'Inter Tight'; font-weight: 700; font-size: 15px; }
+  .order-h .mode { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accf); background: var(--acc); padding: 2px 8px; border-radius: 999px; }
+  .order-h .time { margin-left: auto; font-size: 12.5px; color: var(--mut); font-variant-numeric: tabular-nums; }
+  .order ul { list-style: none; margin: 10px 0 12px; display: grid; gap: 4px; }
+  .order li { font-size: 14px; display: flex; gap: 8px; }
+  .order li b { color: var(--p); font-family: 'Inter Tight'; min-width: 22px; }
+  .order-f { display: flex; align-items: center; gap: 10px; }
+  .st { font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px; }
+  .st.a { background: #fef3c7; color: #92650e; }
+  .st.b { background: #dbeafe; color: #1e40af; }
+  .st.c { background: #dcfce7; color: #166534; }
+  .adv { margin-left: auto; font-size: 12.5px; font-weight: 650; color: var(--p); border: 1px solid var(--p); padding: 6px 12px; border-radius: 8px; }
+  .adv:hover { background: var(--p); color: var(--pf); }
+  .adv.ghost { color: var(--mut); border-color: var(--bd); }
+
+  .resa { padding: 8px 4px; }
+  .resa-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--bd); }
+  .resa-row:last-child { border-bottom: none; }
+  .resa-row .h { font-family: 'Inter Tight'; font-weight: 700; font-size: 16px; width: 52px; }
+  .resa-row .who2 { flex: 1; }
+  .resa-row .who2 .nm { font-weight: 600; font-size: 14.5px; }
+  .resa-row .who2 .dt { font-size: 12.5px; color: var(--mut); }
+  .resa-row .g { font-size: 13px; color: var(--mut); }
+  .resa-row .cov { background: var(--acc); color: var(--accf); font-weight: 700; font-size: 12.5px; padding: 5px 10px; border-radius: 999px; }
+
+  .note { margin-top: 22px; font-size: 12.5px; color: var(--mut); }
+  @media (max-width: 960px) { .shell { grid-template-columns: 1fr; } aside { flex-direction: row; overflow: auto; align-items: center; } aside .spacer, aside .who { display: none; } .kpis { grid-template-columns: repeat(2, 1fr); } .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="ribbon"><b>MAQUETTE BACK-OFFICE</b> · côté restaurateur · <a href="#" id="back">← revenir à la vitrine</a></div>
+<div class="shell">
+  <aside>
+    <div class="brand" id="brand">Tableau <span class="d">de bord</span></div>
+    <div class="navitem on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> <b>Vue d'ensemble</b></div>
+    <div class="navitem"><svg viewBox="0 0 24 24"><path d="M3 3h18v4H3zM6 7v14M18 7v14M3 12h18"/></svg> Commandes</div>
+    <div class="navitem"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg> Cuisine (KDS)</div>
+    <div class="navitem"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Réservations</div>
+    <div class="navitem"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg> Statistiques</div>
+    <div class="navitem"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg> Menu &amp; CMS</div>
+    <div class="spacer"></div>
+    <div class="who"><span class="av" id="av">R</span><div><div style="font-weight:600" id="who">Restaurateur</div><div style="color:var(--mut);font-size:12px">Gérant</div></div></div>
+  </aside>
+  <main>
+    <div class="top">
+      <h1>Bonjour, voici le service en cours</h1>
+      <span class="loc" id="loc"></span>
+      <span class="sp"></span>
+      <span class="live"><span class="d"></span> Temps réel</span>
+      <button class="btn-new" id="newo">+ Simuler une commande</button>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="cols">
+      <div class="panel">
+        <div class="panel-h"><h2>Commandes en cours</h2><span class="cnt" id="ordc">0 en attente</span></div>
+        <div class="kds" id="kds"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><h2>Réservations du jour</h2><span class="cnt" id="resc"></span></div>
+        <div class="resa" id="resa"></div>
+      </div>
+    </div>
+    <p class="note">Maquette de démonstration : données simulées côté navigateur pour montrer l'expérience restaurateur. Dans le produit réel, les commandes du site vitrine arrivent ici en direct (Convex), l'écran cuisine tourne sur tablette, et les statistiques sont réelles.</p>
+  </main>
+</div>
+
+<script src="assets/themes.js"></script>
+<script>
+  const X = window.BIDX;
+  const qs = (k) => new URLSearchParams(location.search).get(k);
+  const tid = X.THEMES[qs("t")] ? qs("t") : "pizzeria-trattoria";
+  const T = X.THEMES[tid], PACK = X.CATS[T.cat];
+  const eur = (n) => n.toFixed(2).replace(".", ",") + " €";
+
+  // Tokens du thème (mode clair) → variables admin
+  const P = (s) => { const m = s.match(/([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/); return { h: +m[1], s: +m[2], l: +m[3] }; };
+  const r = document.documentElement.style;
+  const p = P(T.L.p), a = P(T.L.a), af = P(T.L.af);
+  r.setProperty("--p", `hsl(${T.L.p})`); r.setProperty("--pf", `hsl(${T.L.pf})`);
+  r.setProperty("--acc", `hsl(${T.L.a})`); r.setProperty("--accf", `hsl(${T.L.af})`);
+  r.setProperty("--fg", "hsl(230 18% 12%)"); r.setProperty("--mut", "hsl(230 6% 44%)");
+
+  const brandTxt = T.brand[0] + T.brand[1];
+  document.getElementById("brand").innerHTML = `${T.brand[0]}<span class="d">${T.brand[1]}</span>`;
+  document.getElementById("av").textContent = (T.brand[1][0] || "R").toUpperCase();
+  document.getElementById("who").textContent = brandTxt;
+  const LOCS = PACK.locations.slice(0, T.locN);
+  document.getElementById("loc").textContent = LOCS.length > 1 ? `${LOCS.length} établissements` : LOCS[0].name;
+  document.getElementById("back").href = `home.html?t=${tid}`;
+  document.title = `Tableau de bord · ${brandTxt} (démo)`;
+
+  const MODES = ["Sur place", "À emporter", "Livraison", "Click & collect"];
+  const NAMES = ["Camille R.", "Yanis B.", "Fatou D.", "Léa M.", "Hugo T.", "Inès K.", "Marc V.", "Sofia L.", "Tom P.", "Awa S."];
+  let seq = 412;
+  function rnd(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function newOrder(ageSec) {
+    const n = 1 + Math.floor(Math.random() * 3);
+    const items = []; const pool = [...PACK.dishes];
+    for (let i = 0; i < n && pool.length; i++) items.push({ d: pool.splice(Math.floor(Math.random() * pool.length), 1)[0], q: 1 + Math.floor(Math.random() * 2) });
+    return { ref: "#" + (++seq), mode: rnd(MODES), items, at: Date.now() - (ageSec || 0) * 1000, status: 0 };
+  }
+  const orders = [newOrder(320), newOrder(180), newOrder(70), newOrder(20)];
+  orders[0].status = 2; orders[1].status = 1;
+
+  const ST = [["À préparer", "a"], ["En préparation", "b"], ["Prête", "c"]];
+  function renderKds() {
+    const active = orders.filter((o) => o.status < 3);
+    document.getElementById("ordc").textContent = `${active.filter((o) => o.status < 2).length} en attente · ${active.length} au total`;
+    document.getElementById("kds").innerHTML = orders.slice().reverse().map((o) => {
+      const done = o.status >= 3;
+      const mins = Math.floor((Date.now() - o.at) / 60000), secs = Math.floor((Date.now() - o.at) / 1000) % 60;
+      const st = ST[Math.min(o.status, 2)];
+      return `<div class="order ${done ? "done" : ""}">
+        <div class="order-h"><span class="ref">${o.ref}</span><span class="mode">${o.mode}</span><span class="time">${mins}:${String(secs).padStart(2, "0")}</span></div>
+        <ul>${o.items.map((it) => `<li><b>${it.q}×</b> ${it.d.name}</li>`).join("")}</ul>
+        <div class="order-f"><span class="st ${st[1]}">${done ? "Servie" : st[0]}</span>
+          ${done ? `<span class="adv ghost" style="pointer-events:none">Terminée</span>` : `<button class="adv" data-adv="${o.ref}">${o.status < 2 ? "Avancer →" : "Marquer servie"}</button>`}</div>
+      </div>`;
+    }).join("");
+  }
+  document.getElementById("kds").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-adv]"); if (!b) return;
+    const o = orders.find((x) => x.ref === b.dataset.adv); if (o) o.status++;
+    renderKds(); renderKpis();
+  });
+  document.getElementById("newo").addEventListener("click", () => { orders.push(newOrder(0)); renderKds(); renderKpis(); flash(); });
+
+  function renderKpis() {
+    const served = orders.filter((o) => o.status >= 3).length + 34;
+    const ca = orders.reduce((s, o) => s + o.items.reduce((t, it) => t + it.d.price * it.q, 0), 0) + 612.4;
+    document.getElementById("kpis").innerHTML = [
+      ["Commandes du jour", served + orders.filter((o) => o.status < 3).length, "+12 % vs hier"],
+      ["Chiffre d'affaires", eur(ca), "+8 % vs hier"],
+      ["Panier moyen", eur(ca / (served + 4)), "stable"],
+      ["Réservations", "9 couverts ce soir", "3 tables"],
+    ].map(([l, v, t]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="t">${t}</div></div>`).join("");
+  }
+  function flash() { const k = document.getElementById("kds").firstElementChild; if (k) { k.animate([{ background: "hsl(" + T.L.a + ")" }, { background: "var(--card)" }], { duration: 900 }); } }
+
+  const RES = [
+    { h: "12:30", nm: rnd(NAMES), g: 2, note: "Près de la fenêtre" },
+    { h: "13:00", nm: rnd(NAMES), g: 4, note: "Anniversaire" },
+    { h: "19:30", nm: rnd(NAMES), g: 2, note: "" },
+    { h: "20:00", nm: rnd(NAMES), g: 6, note: "Allergie fruits à coque" },
+    { h: "21:00", nm: rnd(NAMES), g: 3, note: "" },
+  ];
+  document.getElementById("resc").textContent = RES.reduce((s, r) => s + r.g, 0) + " couverts";
+  document.getElementById("resa").innerHTML = RES.map((r) => `<div class="resa-row">
+    <span class="h">${r.h}</span><div class="who2"><div class="nm">${r.nm}</div><div class="dt">${r.note || "Réservation en ligne"}</div></div>
+    <span class="cov">${r.g} couv.</span></div>`).join("");
+
+  renderKds(); renderKpis();
+  setInterval(renderKds, 1500);
+  // une nouvelle commande tombe toute seule de temps en temps
+  setInterval(() => { if (Math.random() < 0.5 && orders.filter((o) => o.status < 3).length < 8) { orders.push(newOrder(0)); renderKds(); renderKpis(); flash(); } }, 9000);
+</script>
+</body>
+</html>

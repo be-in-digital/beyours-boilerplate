@@ -171,7 +171,7 @@
     const linksB = center ? `<nav class="nl nl-b">${mk(NAVL.slice(3))}</nav>` : "";
     const locChip = LOCS.length > 1 ? `<a class="locchip" href="${href("locations")}" title="Changer de lieu">${svg("pin")} ${esc(activeLoc().name)}</a>` : "";
     document.getElementById("app").innerHTML = `
-      <div class="demo-ribbon"><b>DÉMO INTERACTIVE</b> · naviguez et testez librement · aucune commande réelle · paiement en mode test</div>
+      <div class="demo-ribbon"><b>DÉMO INTERACTIVE</b> · aucune commande réelle · paiement en mode test · <a href="admin.html?t=${tid}" style="text-decoration:underline">voir le tableau de bord restaurateur →</a></div>
       <header class="nav"><div class="wrap nav-in">
         <a class="brand" href="${href("home")}">${brandHtml()}</a>
         <nav class="nl">${links}</nav>
