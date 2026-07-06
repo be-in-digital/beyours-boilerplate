@@ -119,6 +119,21 @@ proche, changer marque/couleurs/copy, et partager
 `home.html?t=<son-theme>`. Garder les `id` de plats alignés avec
 `api/checkout.js` (source d'autorité des prix côté paiement).
 
+## Analytics (opt-in, off par défaut)
+
+Le moteur émet des événements de vente (`demo_theme_viewed`, `add_to_cart`,
+`begin_checkout`, `order_paid`, `reservation_made`) et les pages vues, **si et
+seulement si** une clé PostHog publique est fournie. Aucune clé n'est commitée,
+aucun réseau tant qu'elle est absente. Pour activer, injecter avant `site.js` :
+
+```html
+<script>window.POSTHOG_KEY = "phc_votre_cle_publique"; /* window.POSTHOG_HOST optionnel */</script>
+```
+
+(par exemple via une balise ajoutée aux coquilles, ou une variable injectée au
+déploiement). On sait alors quels thèmes les prospects regardent et où ils
+décrochent.
+
 ## Régénérer les captures du showroom
 
 Le showroom (`index.html`) affiche les **captures réelles** des 50 accueils

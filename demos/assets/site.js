@@ -159,6 +159,18 @@
     clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove("show"), 2000);
   }
 
+  /* ── Analytics (opt-in, off par défaut, aucune clé commitée) ──
+     Pour activer : définir window.POSTHOG_KEY (clé publique phc_… PostHog)
+     avant site.js, ou l'injecter via Vercel. Sans clé : aucun réseau. */
+  function track(ev, props) { try { if (window.posthog) window.posthog.capture(ev, Object.assign({ theme: tid, categorie: T.cat }, props)); } catch (e) {} }
+  function initAnalytics() {
+    const key = window.POSTHOG_KEY; if (!key || window.__phInit) return; window.__phInit = 1;
+    const host = window.POSTHOG_HOST || "https://us.i.posthog.com";
+    !function (t, e) { var o, n, p, r; e.__SV || (window.posthog = e, e._i = [], e.init = function (i, s, a) { function g(t, e) { var o = e.split("."); 2 == o.length && (t = t[o[0]], e = o[1]), t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))); }; } (p = t.createElement("script")).type = "text/javascript", p.async = !0, p.src = s.api_host + "/static/array.js", (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r); var u = e; for (void 0 !== a ? u = e[a] = [] : a = "posthog", u.people = u.people || [], u.toString = function (t) { var e = "posthog"; return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e; }, u.people.toString = function () { return u.toString(1) + ".people (stub)"; }, o = "capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys getNextSurveyStep".split(" "), n = 0; n < o.length; n++) g(u, o[n]); e._i.push([i, s, a]); }, e.__SV = 1); }(document, window.posthog || []);
+    window.posthog.init(key, { api_host: host, capture_pageview: true, autocapture: false });
+    track("demo_theme_viewed", { theme_name: T.name, brand: brandTxt() });
+  }
+
   /* ══════════ Chrome commun ══════════ */
   const NAVL = [
     ["home", "Accueil"], ["menu", "La carte"], ["about", "À propos"],
@@ -232,7 +244,7 @@
     document.getElementById("go-checkout").addEventListener("click", (e) => { if (cartN() === 0) { e.preventDefault(); toast("Votre panier est vide"); } });
     document.getElementById("app").addEventListener("click", (e) => {
       const add = e.target.closest("[data-add]"), inc = e.target.closest("[data-inc]"), dec = e.target.closest("[data-dec]"), rm = e.target.closest("[data-rm]");
-      if (add) { cart[add.dataset.add] = (cart[add.dataset.add] || 0) + 1; cartSave(); syncCart(); const d = PACK.dishes.find((x) => x.id === add.dataset.add); toast(`${d.name.replace(/&amp;/g, "&")} ajouté au panier`); }
+      if (add) { cart[add.dataset.add] = (cart[add.dataset.add] || 0) + 1; cartSave(); syncCart(); const d = PACK.dishes.find((x) => x.id === add.dataset.add); toast(`${d.name.replace(/&amp;/g, "&")} ajouté au panier`); track("add_to_cart", { item: d.name, price: d.price }); }
       else if (inc) { cart[inc.dataset.inc]++; cartSave(); syncCart(); }
       else if (dec) { cart[dec.dataset.dec] = Math.max(0, cart[dec.dataset.dec] - 1); if (!cart[dec.dataset.dec]) delete cart[dec.dataset.dec]; cartSave(); syncCart(); }
       else if (rm) { delete cart[rm.dataset.rm]; cartSave(); syncCart(); }
@@ -484,6 +496,7 @@
         locId, status: "confirmed",
       };
       setResa(resa);
+      track("reservation_made", { couverts: resa.guests, lieu: (LOCS.find((l) => l.id === locId) || LOCS[0]).name });
       toast("Réservation confirmée");
       renderResaCard(document.getElementById("resa-zone"), resa);
       window.scrollTo({ top: 0 });
@@ -600,6 +613,7 @@
     if (copy) copy.addEventListener("click", () => { navigator.clipboard && navigator.clipboard.writeText("4242424242424242"); toast("Numéro copié"); });
     const pay = document.getElementById("pay");
     if (pay) pay.addEventListener("click", async function () {
+      track("begin_checkout", { total: cartTotal(), articles: cartN(), lieu: activeLoc().name });
       this.disabled = true; this.style.opacity = ".6"; this.textContent = "Redirection vers Stripe…";
       try {
         const res = await fetch("api/checkout", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -620,6 +634,7 @@
     const items = Object.keys(cart).filter((id) => cart[id] > 0).map((id) => { const d = PACK.dishes.find((x) => x.id === id); return { name: d.name, qty: cart[id] }; });
     const order = { ref: "C-" + Date.now().toString(36).toUpperCase().slice(-6), ts: Date.now(), locId: loc.id, items, total: cartTotal() };
     if (items.length) localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+    track("order_paid", { total: order.total, ref: order.ref, lieu: loc.name });
     Object.keys(cart).forEach((k) => delete cart[k]); cartSave();
     const sim = qs("sim") === "1";
     chrome("success", `
@@ -694,6 +709,7 @@
   /* ══════════ Boot ══════════ */
   applyTheme();
   injectFonts();
+  initAnalytics();
   document.addEventListener("DOMContentLoaded", () => {
     const page = document.body.dataset.page;
     ({ home: pageHome, menu: pageMenu, about: pageAbout, contact: pageContact,
