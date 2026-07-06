@@ -1,0 +1,24 @@
+name: Démos
+
+# Valide l'outil de vente demos/ : 50 thèmes, contraste AA, unicité des mises
+# en page, présence des captures / pages de partage, cohérence des prix.
+# Hermétique (node pur, sans navigateur ni dépendances), donc rapide.
+
+on:
+  push:
+    branches: [main]
+    paths: ["demos/**"]
+  pull_request:
+    paths: ["demos/**"]
+
+jobs:
+  validate:
+    name: Validation des démos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Valider le catalogue de démos
+        run: node demos/scripts/validate.mjs
