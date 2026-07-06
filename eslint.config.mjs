@@ -19,6 +19,9 @@ const eslintConfig = defineConfig([
     // config ESLint, le snapshot dormant n'est jamais linté.
     "mobile/**",
     ".template/**",
+    // PATCH BOILERPLATE : démos de vente statiques (JS navigateur + fonction
+    // serverless CommonJS), hors périmètre de la config Next/TS.
+    "demos/**",
   ]),
   {
     rules: {
