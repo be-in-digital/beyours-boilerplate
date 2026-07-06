@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Master Poulet · rôtisserie (démo)</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap">
+<!--
+  DESIGN POULET — poster rôtisserie, partage & promo. Layout propre : bandeau
+  promo défilant, section « À PARTAGER » (buckets en grandes cartes portions),
+  sélecteur de SAUCES en pastilles, offres. Rien de partagé avec les autres
+  stores hormis les helpers window.BID.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: var(--body); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, .brand { font-family: var(--heading); font-weight: 800; text-transform: uppercase; letter-spacing: .01em; line-height: .95; }
+  img { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 22px; }
+  svg { width: 20px; height: 20px; }
+  ::selection { background: hsl(var(--primary) / .18); }
+
+  /* Bandeau promo défilant */
+  .promo { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); overflow: hidden; white-space: nowrap; border-bottom: 3px solid hsl(var(--foreground)); }
+  .promo .track { display: inline-block; padding: 9px 0; font-family: var(--heading); font-weight: 700; text-transform: uppercase; font-size: 14px; letter-spacing: .04em; animation: marquee 22s linear infinite; }
+  .promo .track span { margin: 0 26px; }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  header { position: sticky; top: 0; z-index: 40; background: hsl(var(--background) / .94); backdrop-filter: blur(8px); border-bottom: 2px solid hsl(var(--border)); }
+  .nav { display: flex; align-items: center; height: 64px; gap: 18px; }
+  .brand { font-size: 27px; }
+  .brand .flame { color: hsl(var(--primary)); }
+  .nav nav { display: flex; gap: 20px; margin-left: 6px; }
+  .nav nav a { font-family: var(--heading); font-weight: 600; text-transform: uppercase; font-size: 16px; color: hsl(var(--muted-foreground)); }
+  .nav nav a:hover { color: hsl(var(--foreground)); }
+  .nav .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .ib { width: 42px; height: 42px; border-radius: 10px; border: 2px solid hsl(var(--border)); display: grid; place-items: center; position: relative; }
+  .ib:hover { background: hsl(var(--secondary)); }
+  .cc { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-radius: 6px; font-size: 11px; font-weight: 800; display: grid; place-items: center; font-family: var(--body); transform: scale(0); transition: transform .2s cubic-bezier(.34,1.56,.64,1); }
+  .cc.show { transform: scale(1); }
+
+  /* Hero poster */
+  .hero { padding: 40px 0 20px; }
+  .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 34px; align-items: center; }
+  .kick { display: inline-block; font-family: var(--heading); font-weight: 700; text-transform: uppercase; font-size: 14px; letter-spacing: .1em; color: hsl(var(--primary)); border: 2px solid hsl(var(--primary)); padding: 5px 12px; border-radius: 999px; margin-bottom: 18px; }
+  .hero h1 { font-size: clamp(46px, 7.5vw, 92px); }
+  .hero p { color: hsl(var(--muted-foreground)); font-size: 17px; margin: 16px 0 26px; max-width: 40ch; }
+  .cta-primary { display: inline-flex; align-items: center; gap: 9px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-family: var(--heading); font-weight: 800; text-transform: uppercase; font-size: 18px; padding: 15px 28px; border-radius: 12px; box-shadow: 6px 6px 0 hsl(var(--foreground)); transition: transform .1s; }
+  .cta-primary:active { transform: translate(3px,3px); box-shadow: 3px 3px 0 hsl(var(--foreground)); }
+  .hero-img .frm { aspect-ratio: 1/1; border-radius: 18px; overflow: hidden; border: 3px solid hsl(var(--foreground)); }
+  .hero-img .frm img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Section À PARTAGER */
+  .sect { padding: 30px 0 10px; }
+  .sect-h { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .sect-h h2 { font-size: clamp(28px, 4vw, 42px); }
+  .sect-h .tagline { color: hsl(var(--muted-foreground)); font-size: 14px; }
+  .share-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .bcard { display: grid; grid-template-columns: 150px 1fr; background: hsl(var(--card)); border: 2px solid hsl(var(--foreground)); border-radius: 14px; overflow: hidden; }
+  .bcard .ph { overflow: hidden; background: hsl(var(--muted)); }
+  .bcard .ph img { width: 100%; height: 100%; object-fit: cover; }
+  .bcard .b { padding: 15px 16px; display: flex; flex-direction: column; }
+  .bcard .pers { font-family: var(--body); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: hsl(var(--primary)); }
+  .bcard h3 { font-size: 25px; margin: 4px 0 5px; }
+  .bcard .d { font-size: 13px; color: hsl(var(--muted-foreground)); flex: 1; }
+  .bcard .row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .bcard .pr { font-family: var(--heading); font-weight: 800; font-size: 28px; }
+  .add { display: inline-flex; align-items: center; gap: 6px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-family: var(--heading); font-weight: 800; text-transform: uppercase; font-size: 13px; padding: 10px 15px; border-radius: 10px; transition: transform .1s; }
+  .add:active { transform: scale(.93); }
+
+  /* Sauces */
+  .sauces { margin: 30px 0; background: hsl(var(--accent)); border-radius: 16px; padding: 24px 26px; }
+  .sauces h3 { font-size: 24px; color: hsl(var(--accent-foreground)); }
+  .sauces p { color: hsl(var(--accent-foreground)); opacity: .8; font-size: 13.5px; margin: 4px 0 16px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { font-family: var(--heading); font-weight: 700; text-transform: uppercase; font-size: 14px; padding: 9px 16px; border-radius: 999px; border: 2px solid hsl(var(--accent-foreground) / .4); color: hsl(var(--accent-foreground)); background: transparent; transition: all .12s; }
+  .chip.on { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
+
+  /* Reste carte */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: hsl(var(--card)); border: 2px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .card .ph { aspect-ratio: 5/4; overflow: hidden; background: hsl(var(--muted)); }
+  .card .ph img { width: 100%; height: 100%; object-fit: cover; }
+  .card .b { padding: 13px 14px 14px; display: flex; flex-direction: column; flex: 1; }
+  .card h3 { font-size: 20px; }
+  .card .d { color: hsl(var(--muted-foreground)); font-size: 12.5px; margin: 4px 0 12px; flex: 1; }
+  .card .row { display: flex; align-items: center; justify-content: space-between; }
+  .card .pr { font-family: var(--heading); font-weight: 800; font-size: 22px; }
+  .addsm { width: 40px; height: 40px; border-radius: 10px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); display: grid; place-items: center; }
+  .addsm:active { transform: scale(.9); }
+
+  footer { border-top: 2px solid hsl(var(--border)); margin-top: 40px; }
+  .foot { display: flex; flex-wrap: wrap; gap: 24px 52px; padding: 34px 0; }
+  .foot .fb { font-family: var(--heading); font-weight: 800; text-transform: uppercase; font-size: 25px; }
+  .foot .fb .flame { color: hsl(var(--primary)); }
+  .foot .col h4 { font-family: var(--heading); font-weight: 700; text-transform: uppercase; font-size: 14px; color: hsl(var(--muted-foreground)); margin-bottom: 6px; }
+  .foot .col p { font-size: 14px; }
+  .foot-note { border-top: 1px solid hsl(var(--border)); padding: 16px 0; font-size: 12.5px; color: hsl(var(--muted-foreground)); }
+
+  .cartbtn { position: fixed; right: 20px; bottom: 20px; z-index: 45; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-radius: 12px; padding: 14px 18px; display: none; align-items: center; gap: 12px; box-shadow: 6px 6px 0 hsl(var(--foreground)); font-family: var(--heading); font-weight: 800; text-transform: uppercase; }
+  .cartbtn.show { display: inline-flex; }
+  .cartbtn .cnt { background: hsl(var(--primary-foreground)); color: hsl(var(--primary)); border-radius: 6px; padding: 2px 8px; }
+
+  .scrim { position: fixed; inset: 0; background: hsl(var(--foreground) / .45); opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 50; }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .drawer { position: fixed; top: 0; right: 0; height: 100%; width: 400px; max-width: 92vw; background: hsl(var(--background)); border-left: 2px solid hsl(var(--foreground)); z-index: 51; transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; }
+  .drawer.open { transform: translateX(0); }
+  .dh { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px 16px; border-bottom: 2px solid hsl(var(--foreground)); }
+  .dh h2 { font-size: 23px; }
+  .ditems { flex: 1; overflow-y: auto; padding: 6px 22px; }
+  .empty { color: hsl(var(--muted-foreground)); text-align: center; padding: 56px 20px; }
+  .li { display: flex; gap: 12px; padding: 15px 0; border-bottom: 1px solid hsl(var(--border)); }
+  .li .lt { width: 56px; height: 56px; border-radius: 9px; overflow: hidden; background: hsl(var(--muted)); flex-shrink: 0; }
+  .li .lt img { width: 100%; height: 100%; object-fit: cover; }
+  .li .lb { flex: 1; }
+  .li .ln { font-family: var(--heading); font-weight: 700; text-transform: uppercase; font-size: 16px; }
+  .li .lp { color: hsl(var(--muted-foreground)); font-size: 13px; }
+  .qty { display: inline-flex; align-items: center; gap: 12px; margin-top: 7px; }
+  .qty button { width: 27px; height: 27px; border-radius: 8px; border: 2px solid hsl(var(--border)); display: grid; place-items: center; font-weight: 800; }
+  .qty span { min-width: 14px; text-align: center; font-weight: 800; }
+  .rm { color: hsl(var(--muted-foreground)); font-size: 12px; text-decoration: underline; align-self: flex-start; }
+  .df { padding: 16px 22px 22px; border-top: 2px solid hsl(var(--foreground)); }
+  .tot2 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .tot2 .tv { font-family: var(--heading); font-weight: 800; font-size: 26px; }
+  .cta2 { display: block; text-align: center; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-family: var(--heading); font-weight: 800; text-transform: uppercase; font-size: 16px; padding: 14px; border-radius: 11px; }
+
+  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } .hero-img { max-width: 360px; } .share-grid { grid-template-columns: 1fr; } .grid { grid-template-columns: repeat(2, 1fr); } .nav nav { display: none; } }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } .bcard { grid-template-columns: 110px 1fr; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto; } }
+</style>
+</head>
+<body data-page="store-poulet">
+<div id="app"></div>
+<script src="assets/data.js"></script>
+<script src="assets/demo.js"></script>
+<script>
+  const cfg = window.DEMOS["poulet"];
+  BID.applyTheme(cfg, BID.currentMode());
+  BID.injectDemoChrome();
+  const items = BID.loadCart(cfg.slug);
+  const SAUCES = ["Buffalo", "Hot honey", "Sauce blanche", "BBQ fumé", "Curry doux"];
+
+  const shareItems = cfg.menu.filter((m) => m.cat === "poulet");
+  const rest = cfg.menu.filter((m) => m.cat !== "poulet");
+  const pers = { pl1: "Pour 2-3 pers.", pl5: "Pour 3-4 pers.", pl2: "Pour 1 pers.", pl3: "À partager", pl4: "À partager" };
+
+  document.getElementById("app").innerHTML = `
+    <div class="promo"><div class="track">${Array(2).fill('<span>Le mardi tout le mois : le 2e bucket à moitié prix</span><span>Livraison offerte dès 25 €</span><span>Mariné 24 h, frit minute</span>').join("")}</div></div>
+    <header><div class="wrap nav">
+      <a class="brand" href="index.html">Master <span class="flame">Poulet</span></a>
+      <nav><a href="#partager">Buckets</a><a href="#sauces">Sauces</a><a href="#carte">La carte</a></nav>
+      <div class="right">
+        <button class="ib" id="theme-toggle" aria-label="Clair/sombre">${BID.svg("sun")}</button>
+        <button class="ib" id="cart-open" aria-label="Panier">${BID.svg("cart")}<span class="cc" id="cc">0</span></button>
+      </div>
+    </div></header>
+
+    <section class="hero"><div class="wrap hero-grid">
+      <div>
+        <span class="kick">Poulet fermier · Mariné 24 h</span>
+        <h1>Frit à la commande.</h1>
+        <p>Panure croustillante, marinades maison, sauces signature. Sur place, à emporter ou livré.</p>
+        <a class="cta-primary" href="#partager">Composer mon bucket ${BID.svg("arrow")}</a>
+      </div>
+      <div class="hero-img"><div class="frm"><img src="${cfg.hero.image}" alt="Poulet" onerror="this.style.display='none'"></div></div>
+    </div></section>
+
+    <section class="sect" id="partager"><div class="wrap">
+      <div class="sect-h"><h2>À partager</h2><span class="tagline">Les buckets et pièces généreuses</span></div>
+      <div class="share-grid">${shareItems.map((m) => `
+        <div class="bcard"><div class="ph"><img src="${m.img}" alt="${BID.esc(m.name)}" loading="lazy" onerror="this.style.display='none'"></div>
+          <div class="b"><span class="pers">${pers[m.id] || "À partager"}</span><h3>${BID.esc(m.name)}</h3><p class="d">${BID.esc(m.desc)}</p>
+            <div class="row"><span class="pr">${BID.eur(m.price)}</span><button class="add" data-add="${m.id}">${BID.svg("plus", ' style="width:15px;height:15px"')} Ajouter</button></div></div>
+        </div>`).join("")}</div>
+
+      <div class="sauces" id="sauces">
+        <h3>Vos sauces maison</h3>
+        <p>Choisissez, elles sont offertes avec chaque bucket.</p>
+        <div class="chips" id="chips">${SAUCES.map((s) => `<button class="chip" data-sauce="${BID.esc(s)}">${BID.esc(s)}</button>`).join("")}</div>
+      </div>
+
+      <div class="sect-h" id="carte"><h2>Aussi à la carte</h2><span class="tagline">Burgers &amp; accompagnements</span></div>
+      <div class="grid">${rest.map((m) => `
+        <article class="card"><div class="ph"><img src="${m.img}" alt="${BID.esc(m.name)}" loading="lazy" onerror="this.style.display='none'"></div>
+          <div class="b"><h3>${BID.esc(m.name)}</h3><p class="d">${BID.esc(m.desc)}</p>
+            <div class="row"><span class="pr">${BID.eur(m.price)}</span><button class="addsm" data-add="${m.id}" aria-label="Ajouter">${BID.svg("plus")}</button></div></div>
+        </article>`).join("")}</div>
+    </div></section>
+
+    <footer><div class="wrap">
+      <div class="foot">
+        <div style="flex:1 1 240px"><div class="fb">Master <span class="flame">Poulet</span></div>
+          <p style="color:hsl(var(--muted-foreground));max-width:32ch;margin-top:8px">${BID.esc(cfg.footer.blurb)}</p></div>
+        <div class="col"><h4>Horaires</h4>${cfg.footer.hours.map((h) => `<p>${BID.esc(h)}</p>`).join("")}</div>
+        <div class="col"><h4>Nous trouver</h4>${cfg.footer.address.map((a) => `<p>${BID.esc(a)}</p>`).join("")}<p>${BID.esc(cfg.footer.phone)}</p></div>
+      </div>
+      <div class="foot-note">© Master Poulet · démonstration BeInDigital · thème « Braise », catégorie Poulet</div>
+    </div></footer>
+
+    <button class="cartbtn" id="cartbtn"><span class="cnt" id="cb-cnt">0</span> Mon panier · <span id="cb-tot">0,00 €</span></button>
+
+    <div class="scrim" id="scrim"></div>
+    <aside class="drawer" id="drawer" aria-label="Panier">
+      <div class="dh"><h2>Mon panier</h2><button class="ib" id="cart-close" style="width:36px;height:36px" aria-label="Fermer">${BID.svg("close")}</button></div>
+      <div class="ditems" id="ditems"></div>
+      <div class="df"><div class="tot2"><span style="color:hsl(var(--muted-foreground))">Total</span><span class="tv" id="tot">0,00 €</span></div>
+        <a class="cta2" id="checkout" href="checkout.html?t=poulet">Commander</a></div>
+    </aside>`;
+
+  // Sauces (flavor : toggle + toast, sans impact panier)
+  document.getElementById("chips").addEventListener("click", (e) => {
+    const c = e.target.closest(".chip"); if (!c) return;
+    c.classList.toggle("on"); BID.toast(c.classList.contains("on") ? `${c.dataset.sauce} ajoutée` : `${c.dataset.sauce} retirée`);
+  });
+
+  const cc = document.getElementById("cc"), cb = document.getElementById("cartbtn"), cbc = document.getElementById("cb-cnt"), cbt = document.getElementById("cb-tot");
+  const ditems = document.getElementById("ditems"), tot = document.getElementById("tot");
+  function persist() { BID.saveCart(cfg.slug, items); sync(); }
+  function sync() {
+    const n = BID.cartCount(items), total = BID.cartTotal(cfg, items);
+    cc.textContent = n; cc.classList.toggle("show", n > 0);
+    cbc.textContent = n; cbt.textContent = BID.eur(total); cb.classList.toggle("show", n > 0);
+    tot.textContent = BID.eur(total);
+    const ids = Object.keys(items).filter((id) => items[id] > 0);
+    if (!ids.length) ditems.innerHTML = `<div class="empty">Panier vide.<br>Composez votre bucket.</div>`;
+    else ditems.innerHTML = ids.map((id) => { const m = cfg.menu.find((x) => x.id === id); return `
+      <div class="li"><div class="lt"><img src="${m.img}" alt="" onerror="this.style.display='none'"></div>
+        <div class="lb"><div class="ln">${BID.esc(m.name)}</div><div class="lp">${BID.eur(m.price)}</div>
+          <div class="qty"><button data-dec="${id}">–</button><span>${items[id]}</span><button data-inc="${id}">+</button></div></div>
+        <button class="rm" data-rm="${id}">retirer</button></div>`; }).join("");
+  }
+  document.getElementById("app").addEventListener("click", (e) => {
+    const add = e.target.closest("[data-add]"), inc = e.target.closest("[data-inc]"), dec = e.target.closest("[data-dec]"), rm = e.target.closest("[data-rm]");
+    if (add) { items[add.dataset.add] = (items[add.dataset.add] || 0) + 1; persist(); const m = cfg.menu.find((x) => x.id === add.dataset.add); BID.toast(`${m.name} ajouté`); }
+    else if (inc) { items[inc.dataset.inc]++; persist(); }
+    else if (dec) { items[dec.dataset.dec] = Math.max(0, items[dec.dataset.dec] - 1); if (!items[dec.dataset.dec]) delete items[dec.dataset.dec]; persist(); }
+    else if (rm) { delete items[rm.dataset.rm]; persist(); }
+  });
+  const scrim = document.getElementById("scrim"), drawer = document.getElementById("drawer");
+  const open = () => { scrim.classList.add("open"); drawer.classList.add("open"); };
+  const close = () => { scrim.classList.remove("open"); drawer.classList.remove("open"); };
+  document.getElementById("cart-open").addEventListener("click", open);
+  document.getElementById("cartbtn").addEventListener("click", open);
+  document.getElementById("cart-close").addEventListener("click", close);
+  scrim.addEventListener("click", close);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  const tt = document.getElementById("theme-toggle");
+  const paint = () => { tt.querySelector("svg").outerHTML = BID.svg(BID.currentMode() === "dark" ? "moon" : "sun"); };
+  paint(); tt.addEventListener("click", () => { BID.setMode(BID.currentMode() === "dark" ? "light" : "dark"); BID.applyTheme(cfg, BID.currentMode()); paint(); });
+  sync();
+</script>
+</body>
+</html>

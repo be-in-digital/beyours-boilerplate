@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fuoco e Farina · pizzeria napolitaine (démo)</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Bodoni:ital,wght@0,400..700;1,400..600&family=Figtree:wght@300..700&display=swap">
+<!--
+  DESIGN PIZZERIA — éditorial « carte imprimée ». Layout propre à cet univers :
+  hero à photo ronde, bande récit du four, menu typographié en liste avec
+  lignes de points (pas de grille de cartes). Rien de partagé avec les autres
+  stores hormis les helpers window.BID (thème, panier, toast).
+-->
+<style>
+  :root { --maxw: 1120px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: var(--body); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .serif { font-family: var(--heading); letter-spacing: var(--track); }
+  h1, h2, h3, .brand { font-family: var(--heading); letter-spacing: var(--track); font-weight: 700; }
+  img { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+  svg { width: 20px; height: 20px; }
+  ::selection { background: hsl(var(--primary) / .18); }
+
+  /* Header éditorial : fin, filet, capitale serif */
+  header { position: sticky; top: 0; z-index: 30; background: hsl(var(--background) / .9); backdrop-filter: blur(10px); border-bottom: 1px solid hsl(var(--border)); }
+  .nav { display: flex; align-items: center; height: 74px; gap: 30px; }
+  .brand { font-size: 25px; }
+  .brand .flame { color: hsl(var(--primary)); font-style: italic; }
+  .nav nav { display: flex; gap: 26px; margin-left: 8px; }
+  .nav nav a { font-size: 13px; letter-spacing: .04em; color: hsl(var(--muted-foreground)); }
+  .nav nav a:hover { color: hsl(var(--foreground)); }
+  .nav .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .ib { width: 42px; height: 42px; border-radius: 999px; border: 1px solid hsl(var(--border)); display: grid; place-items: center; color: hsl(var(--foreground)); transition: background .15s; position: relative; }
+  .ib:hover { background: hsl(var(--secondary)); }
+  .cc { position: absolute; top: -5px; right: -5px; min-width: 20px; height: 20px; padding: 0 5px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-radius: 999px; font-size: 11px; font-weight: 700; display: grid; place-items: center; font-family: var(--body); transform: scale(0); transition: transform .2s cubic-bezier(.34,1.56,.64,1); }
+  .cc.show { transform: scale(1); }
+
+  /* Hero éditorial */
+  .hero { padding: 72px 0 40px; }
+  .hero-grid { display: grid; grid-template-columns: 1.02fr .98fr; gap: 56px; align-items: center; }
+  .eyebrow { font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: hsl(var(--primary)); font-weight: 600; margin-bottom: 22px; }
+  .hero h1 { font-size: clamp(40px, 6vw, 68px); line-height: 1.04; }
+  .hero h1 em { font-style: italic; color: hsl(var(--primary)); }
+  .hero .sub { color: hsl(var(--muted-foreground)); font-size: 18px; margin: 26px 0 32px; max-width: 42ch; }
+  .hero .actions { display: flex; gap: 26px; align-items: center; }
+  .link-primary { font-family: var(--heading); font-style: italic; font-size: 19px; color: hsl(var(--primary)); border-bottom: 1.5px solid hsl(var(--primary)); padding-bottom: 3px; }
+  .link-plain { font-size: 15px; color: hsl(var(--muted-foreground)); border-bottom: 1px solid hsl(var(--border)); padding-bottom: 3px; }
+  .hero-photo { position: relative; }
+  .round { aspect-ratio: 1/1; border-radius: 50%; overflow: hidden; box-shadow: 0 40px 90px -30px hsl(var(--primary) / .5); transform: rotate(-3deg); border: 10px solid hsl(var(--card)); }
+  .round img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.05); }
+  .stamp { position: absolute; right: 4%; bottom: 6%; width: 116px; height: 116px; border-radius: 50%; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); display: grid; place-items: center; text-align: center; transform: rotate(8deg); box-shadow: 0 16px 34px -12px hsl(var(--foreground)/.35); }
+  .stamp b { font-family: var(--heading); font-size: 24px; display: block; line-height: 1; }
+  .stamp span { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+
+  /* Bande récit (famille de layout distincte) */
+  .story { margin: 40px 0; }
+  .story-inner { display: grid; grid-template-columns: 1fr 1fr; min-height: 380px; border-radius: 4px; overflow: hidden; border: 1px solid hsl(var(--border)); }
+  .story-photo { position: relative; overflow: hidden; }
+  .story-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .story-text { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 56px 52px; display: flex; flex-direction: column; justify-content: center; }
+  .story-text .k { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; opacity: .7; margin-bottom: 18px; }
+  .story-text blockquote { font-family: var(--heading); font-size: clamp(24px, 2.6vw, 33px); line-height: 1.22; }
+  .story-text .sig { margin-top: 22px; font-style: italic; font-family: var(--heading); opacity: .85; }
+
+  /* La carte : menu typographié, lignes de points */
+  .menu { padding: 40px 0 90px; }
+  .menu-head { text-align: center; margin-bottom: 8px; }
+  .menu-head .k { font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: hsl(var(--primary)); font-weight: 600; }
+  .menu-head h2 { font-size: clamp(34px, 4.5vw, 52px); margin-top: 12px; }
+  .menu-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 72px; margin-top: 52px; }
+  .cat { break-inside: avoid; margin-bottom: 30px; }
+  .cat > h3 { font-style: italic; font-size: 26px; color: hsl(var(--primary)); margin-bottom: 6px; }
+  .cat > .rule { height: 1px; background: hsl(var(--border)); margin-bottom: 14px; }
+  .dish { display: grid; grid-template-columns: 1fr auto auto; align-items: baseline; gap: 4px 12px; padding: 13px 0; border-bottom: 1px dotted hsl(var(--border)); }
+  .dish:last-child { border-bottom: none; }
+  .dish .n { font-family: var(--heading); font-size: 19px; font-weight: 600; }
+  .dish .tag { font-family: var(--body); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: hsl(var(--accent-foreground)); background: hsl(var(--accent)); padding: 2px 7px; border-radius: 999px; margin-left: 9px; vertical-align: 2px; }
+  .dish .p { font-family: var(--heading); font-size: 19px; font-weight: 700; }
+  .dish .d { grid-column: 1 / 2; color: hsl(var(--muted-foreground)); font-size: 13.5px; font-style: italic; }
+  .dish .addbtn { grid-column: 3; grid-row: 1; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid hsl(var(--primary)); color: hsl(var(--primary)); display: grid; place-items: center; transition: all .15s; }
+  .dish .addbtn:hover { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  .dish .addbtn:active { transform: scale(.9); }
+  .dish .addbtn svg { width: 15px; height: 15px; }
+
+  footer { border-top: 1px solid hsl(var(--border)); }
+  .foot { display: flex; flex-wrap: wrap; gap: 30px 60px; padding: 48px 0; align-items: flex-start; }
+  .foot .fb { font-family: var(--heading); font-size: 26px; }
+  .foot .fb .flame { color: hsl(var(--primary)); font-style: italic; }
+  .foot .col h4 { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: hsl(var(--muted-foreground)); margin-bottom: 10px; }
+  .foot .col p { font-size: 14px; }
+  .foot-note { border-top: 1px solid hsl(var(--border)); padding: 18px 0; font-size: 12.5px; color: hsl(var(--muted-foreground)); }
+
+  /* Drawer panier */
+  .scrim { position: fixed; inset: 0; background: hsl(var(--foreground) / .4); opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 50; }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .drawer { position: fixed; top: 0; right: 0; height: 100%; width: 410px; max-width: 92vw; background: hsl(var(--background)); border-left: 1px solid hsl(var(--border)); z-index: 51; transform: translateX(100%); transition: transform .32s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; }
+  .drawer.open { transform: translateX(0); }
+  .dh { display: flex; align-items: center; justify-content: space-between; padding: 24px 24px 18px; border-bottom: 1px solid hsl(var(--border)); }
+  .dh h2 { font-size: 24px; }
+  .ditems { flex: 1; overflow-y: auto; padding: 6px 24px; }
+  .empty { color: hsl(var(--muted-foreground)); text-align: center; padding: 64px 20px; font-style: italic; font-family: var(--heading); font-size: 18px; }
+  .li { display: flex; gap: 14px; padding: 18px 0; border-bottom: 1px dotted hsl(var(--border)); }
+  .li .lt { width: 58px; height: 58px; border-radius: 50%; overflow: hidden; background: hsl(var(--accent)); flex-shrink: 0; }
+  .li .lt img { width: 100%; height: 100%; object-fit: cover; }
+  .li .lb { flex: 1; }
+  .li .ln { font-family: var(--heading); font-weight: 600; font-size: 16px; }
+  .li .lp { color: hsl(var(--muted-foreground)); font-size: 13px; }
+  .qty { display: inline-flex; align-items: center; gap: 12px; margin-top: 8px; }
+  .qty button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid hsl(var(--border)); display: grid; place-items: center; font-size: 15px; }
+  .qty button:hover { background: hsl(var(--secondary)); }
+  .qty span { min-width: 16px; text-align: center; font-weight: 600; }
+  .rm { background: none; color: hsl(var(--muted-foreground)); font-size: 12px; text-decoration: underline; align-self: flex-start; }
+  .df { padding: 20px 24px 26px; border-top: 1px solid hsl(var(--border)); }
+  .tot { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .tot .tl { color: hsl(var(--muted-foreground)); font-size: 14px; }
+  .tot .tv { font-family: var(--heading); font-size: 28px; font-weight: 700; }
+  .cta { display: block; text-align: center; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-family: var(--heading); font-size: 18px; padding: 15px; border-radius: 999px; }
+  .cta:hover { background: hsl(var(--primary) / .92); }
+
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 36px; }
+    .hero-photo { max-width: 380px; margin: 0 auto; order: -1; }
+    .story-inner { grid-template-columns: 1fr; }
+    .story-photo { min-height: 240px; }
+    .menu-cols { grid-template-columns: 1fr; gap: 0; }
+    .nav nav { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto; } }
+</style>
+</head>
+<body data-page="store-pizzeria">
+<div id="app"></div>
+<script src="assets/data.js"></script>
+<script src="assets/demo.js"></script>
+<script>
+  const cfg = window.DEMOS["pizzeria"];
+  BID.applyTheme(cfg, BID.currentMode());
+  BID.injectDemoChrome();
+
+  const items = BID.loadCart(cfg.slug);
+  const catName = { classiques: "Le classiche", blanches: "Le bianche", vegetariennes: "Vegetariane", antipasti: "Antipasti" };
+  const storyImg = cfg.menu[3].img;
+
+  const groups = cfg.cats.filter((c) => c.key !== "all").map((c) => {
+    const dishes = cfg.menu.filter((m) => m.cat === c.key);
+    if (!dishes.length) return "";
+    return `<div class="cat"><h3>${catName[c.key] || c.label}</h3><div class="rule"></div>${dishes.map((m) => `
+      <div class="dish">
+        <span class="n">${BID.esc(m.name)}${m.tag ? `<span class="tag">${BID.esc(m.tag)}</span>` : ""}</span>
+        <span class="p">${BID.eur(m.price)}</span>
+        <button class="addbtn" data-add="${m.id}" aria-label="Ajouter ${BID.esc(m.name)}">${BID.svg("plus")}</button>
+        <span class="d">${BID.esc(m.desc)}</span>
+      </div>`).join("")}</div>`;
+  }).join("");
+
+  document.getElementById("app").innerHTML = `
+    <header><div class="wrap nav">
+      <a class="brand" href="index.html">Fuoco e <span class="flame">Farina</span></a>
+      <nav><a href="#carte">La carte</a><a href="#carte">Antipasti</a><a href="#story">Il forno</a></nav>
+      <div class="right">
+        <button class="ib" id="theme-toggle" aria-label="Clair/sombre">${BID.svg("sun")}</button>
+        <button class="ib" id="cart-open" aria-label="Panier">${BID.svg("cart")}<span class="cc" id="cc">0</span></button>
+      </div>
+    </div></header>
+
+    <section class="hero"><div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow">Napoli · Four à bois depuis 1998</div>
+        <h1>La pâte repose 48 heures, le feu fait le <em>reste</em>.</h1>
+        <p class="sub">Farines italiennes, tomates San Marzano DOP, mozzarella fior di latte. Cuite en 90 secondes à 450 °C.</p>
+        <div class="actions"><a class="link-primary" href="#carte">Découvrir la carte</a><a class="link-plain" href="#">Réserver une table</a></div>
+      </div>
+      <div class="hero-photo">
+        <div class="round"><img src="${cfg.hero.image}" alt="Pizza au four à bois" onerror="this.style.display='none'"></div>
+        <div class="stamp"><div><b>4,8</b><span>640 avis</span></div></div>
+      </div>
+    </div></section>
+
+    <section class="story" id="story"><div class="wrap"><div class="story-inner">
+      <div class="story-photo"><img src="${storyImg}" alt="Le four" onerror="this.style.display='none'"></div>
+      <div class="story-text">
+        <div class="k">Il forno</div>
+        <blockquote>« On ne triche pas avec le feu. La braise monte, la pâte gonfle, le cornicione se marque. Chaque pizza sort en une minute trente. »</blockquote>
+        <div class="sig">Gennaro, pizzaiolo</div>
+      </div>
+    </div></div></section>
+
+    <section class="menu" id="carte"><div class="wrap">
+      <div class="menu-head"><div class="k">La carta</div><h2>Notre carte du jour</h2></div>
+      <div class="menu-cols">${groups}</div>
+    </div></section>
+
+    <footer><div class="wrap">
+      <div class="foot">
+        <div style="flex:1 1 260px"><div class="fb">Fuoco e <span class="flame">Farina</span></div>
+          <p style="color:hsl(var(--muted-foreground));max-width:32ch;margin-top:8px">${BID.esc(cfg.footer.blurb)}</p></div>
+        <div class="col"><h4>Horaires</h4>${cfg.footer.hours.map((h) => `<p>${BID.esc(h)}</p>`).join("")}</div>
+        <div class="col"><h4>Nous trouver</h4>${cfg.footer.address.map((a) => `<p>${BID.esc(a)}</p>`).join("")}<p>${BID.esc(cfg.footer.phone)}</p></div>
+      </div>
+      <div class="foot-note">© Fuoco e Farina · démonstration BeInDigital · thème « Trattoria », catégorie Pizzeria</div>
+    </div></footer>
+
+    <div class="scrim" id="scrim"></div>
+    <aside class="drawer" id="drawer" aria-label="Panier">
+      <div class="dh"><h2>Il carrello</h2><button class="ib" id="cart-close" style="width:38px;height:38px" aria-label="Fermer">${BID.svg("close")}</button></div>
+      <div class="ditems" id="ditems"></div>
+      <div class="df"><div class="tot"><span class="tl">Totale</span><span class="tv" id="tot">0,00 €</span></div>
+        <a class="cta" id="checkout" href="checkout.html?t=pizzeria">Commander</a></div>
+    </aside>`;
+
+  // ── Interactions ──
+  const cc = document.getElementById("cc"), ditems = document.getElementById("ditems"), tot = document.getElementById("tot");
+  function persist() { BID.saveCart(cfg.slug, items); sync(); }
+  function sync() {
+    const n = BID.cartCount(items); cc.textContent = n; cc.classList.toggle("show", n > 0);
+    const ids = Object.keys(items).filter((id) => items[id] > 0);
+    if (!ids.length) ditems.innerHTML = `<div class="empty">Panier vide.<br>Choisissez une pizza sur la carte.</div>`;
+    else ditems.innerHTML = ids.map((id) => { const m = cfg.menu.find((x) => x.id === id); return `
+      <div class="li"><div class="lt"><img src="${m.img}" alt="" onerror="this.style.display='none'"></div>
+        <div class="lb"><div class="ln">${BID.esc(m.name)}</div><div class="lp">${BID.eur(m.price)}</div>
+          <div class="qty"><button data-dec="${id}">–</button><span>${items[id]}</span><button data-inc="${id}">+</button></div></div>
+        <button class="rm" data-rm="${id}">retirer</button></div>`; }).join("");
+    tot.textContent = BID.eur(BID.cartTotal(cfg, items));
+  }
+  document.getElementById("app").addEventListener("click", (e) => {
+    const add = e.target.closest("[data-add]"), inc = e.target.closest("[data-inc]"), dec = e.target.closest("[data-dec]"), rm = e.target.closest("[data-rm]");
+    if (add) { items[add.dataset.add] = (items[add.dataset.add] || 0) + 1; persist(); const m = cfg.menu.find((x) => x.id === add.dataset.add); BID.toast(`${m.name.replace(/&amp;/g, "&")} ajoutée`); }
+    else if (inc) { items[inc.dataset.inc]++; persist(); }
+    else if (dec) { items[dec.dataset.dec] = Math.max(0, items[dec.dataset.dec] - 1); if (!items[dec.dataset.dec]) delete items[dec.dataset.dec]; persist(); }
+    else if (rm) { delete items[rm.dataset.rm]; persist(); }
+  });
+  const scrim = document.getElementById("scrim"), drawer = document.getElementById("drawer");
+  const open = () => { scrim.classList.add("open"); drawer.classList.add("open"); };
+  const close = () => { scrim.classList.remove("open"); drawer.classList.remove("open"); };
+  document.getElementById("cart-open").addEventListener("click", open);
+  document.getElementById("cart-close").addEventListener("click", close);
+  scrim.addEventListener("click", close);
+  document.getElementById("checkout").addEventListener("click", (e) => { if (BID.cartCount(items) === 0) { e.preventDefault(); BID.toast("Ajoutez une pizza"); } });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  const tt = document.getElementById("theme-toggle");
+  const paint = () => { tt.querySelector("svg").outerHTML = BID.svg(BID.currentMode() === "dark" ? "moon" : "sun"); };
+  paint(); tt.addEventListener("click", () => { BID.setMode(BID.currentMode() === "dark" ? "light" : "dark"); BID.applyTheme(cfg, BID.currentMode()); paint(); });
+  sync();
+</script>
+</body>
+</html>

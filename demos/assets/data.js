@@ -15,6 +15,8 @@ window.DEMOS = {
   /* ============================ PIZZERIA ============================ */
   pizzeria: {
     slug: "pizzeria",
+    category: "Pizzeria",
+    themeName: "Trattoria",
     label: "Trattoria",
     brandPrefix: "Fuoco e ",
     brandWord: "Farina",
@@ -54,6 +56,8 @@ window.DEMOS = {
   /* ============================ FAST-FOOD ============================ */
   "fast-food": {
     slug: "fast-food",
+    category: "Fast-food",
+    themeName: "Smash",
     label: "Smash",
     brandPrefix: "Le Comptoir ",
     brandWord: "Smash",
@@ -90,6 +94,8 @@ window.DEMOS = {
   /* ============================ FOOD-TRUCK ============================ */
   "food-truck": {
     slug: "food-truck",
+    category: "Food truck",
+    themeName: "Convoi",
     label: "Convoi",
     brandPrefix: "La ",
     brandWord: "Remorque",
@@ -127,6 +133,8 @@ window.DEMOS = {
   /* ============================ POULET ============================ */
   poulet: {
     slug: "poulet",
+    category: "Poulet",
+    themeName: "Braise",
     label: "Braise",
     brandPrefix: "Master ",
     brandWord: "Poulet",
@@ -164,6 +172,8 @@ window.DEMOS = {
   /* ============================ ASIATIQUE ============================ */
   asiatique: {
     slug: "asiatique",
+    category: "Asiatique",
+    themeName: "Izakaya",
     label: "Izakaya",
     brandPrefix: "",
     brandWord: "Kōyō",

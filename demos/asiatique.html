@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kōyō · izakaya contemporain (démo)</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Noto+Sans:wght@300;400;500;600&display=swap">
+<!--
+  DESIGN ASIATIQUE — minimal zen, éditorial calme. Layout propre : immense
+  blanc, hero aéré asymétrique, menu en COLONNE UNIQUE étroite avec filets
+  fins (l'opposé du bruit). Rien de partagé avec les autres stores hormis les
+  helpers window.BID.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: var(--body); line-height: 1.6; -webkit-font-smoothing: antialiased; font-weight: 400; }
+  h1, h2, h3, .brand { font-family: var(--heading); letter-spacing: var(--track); font-weight: 500; }
+  img { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+  .narrow { max-width: 680px; margin: 0 auto; padding: 0 28px; }
+  svg { width: 19px; height: 19px; }
+  ::selection { background: hsl(var(--primary) / .14); }
+
+  /* Header minimal */
+  header { position: sticky; top: 0; z-index: 30; background: hsl(var(--background) / .82); backdrop-filter: blur(10px); }
+  .nav { display: flex; align-items: center; height: 78px; gap: 30px; }
+  .brand { font-size: 23px; font-weight: 700; letter-spacing: .14em; }
+  .brand .flame { color: hsl(var(--primary)); }
+  .nav nav { display: flex; gap: 30px; margin-left: 12px; }
+  .nav nav a { font-size: 13px; letter-spacing: .04em; color: hsl(var(--muted-foreground)); }
+  .nav nav a:hover { color: hsl(var(--foreground)); }
+  .nav .right { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+  .ib { width: 40px; height: 40px; display: grid; place-items: center; color: hsl(var(--foreground)); position: relative; }
+  .ib:hover { color: hsl(var(--primary)); }
+  .cc { position: absolute; top: 0; right: -2px; min-width: 17px; height: 17px; padding: 0 4px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-radius: 999px; font-size: 10px; font-weight: 600; display: grid; place-items: center; transform: scale(0); transition: transform .2s cubic-bezier(.34,1.56,.64,1); }
+  .cc.show { transform: scale(1); }
+
+  /* Hero aéré asymétrique */
+  .hero { padding: 90px 0 80px; }
+  .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; align-items: center; }
+  .eyebrow { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: hsl(var(--primary)); margin-bottom: 30px; }
+  .hero h1 { font-size: clamp(32px, 4vw, 46px); line-height: 1.28; font-weight: 500; }
+  .hero .sub { color: hsl(var(--muted-foreground)); font-size: 16px; margin: 30px 0 38px; max-width: 40ch; }
+  .hero .link { font-size: 14px; letter-spacing: .04em; color: hsl(var(--foreground)); border-bottom: 1px solid hsl(var(--primary)); padding-bottom: 4px; }
+  .hero .link:hover { color: hsl(var(--primary)); }
+  .hero-photo { aspect-ratio: 4/5; overflow: hidden; border-radius: 2px; }
+  .hero-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Bande comptoir */
+  .counter { padding: 30px 0 90px; }
+  .counter-in { display: grid; grid-template-columns: 1.4fr 1fr; gap: 60px; align-items: center; }
+  .counter .k { font-size: 12px; letter-spacing: .24em; text-transform: uppercase; color: hsl(var(--primary)); margin-bottom: 18px; }
+  .counter p { font-family: var(--heading); font-size: clamp(20px, 2.2vw, 26px); line-height: 1.5; font-weight: 400; }
+  .counter .cimg { aspect-ratio: 5/4; overflow: hidden; border-radius: 2px; }
+  .counter .cimg img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Menu colonne unique, filets fins */
+  .menu { padding: 20px 0 100px; }
+  .menu-title { text-align: center; margin-bottom: 66px; }
+  .menu-title .k { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: hsl(var(--primary)); }
+  .menu-title h2 { font-size: clamp(30px, 3.6vw, 42px); margin-top: 16px; font-weight: 500; }
+  .cat { margin-bottom: 58px; }
+  .cat > .cl { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: hsl(var(--muted-foreground)); padding-bottom: 16px; border-bottom: 1px solid hsl(var(--foreground)); margin-bottom: 6px; }
+  .dish { display: grid; grid-template-columns: 56px 1fr auto; align-items: start; gap: 20px; padding: 24px 0; border-bottom: 1px solid hsl(var(--border)); }
+  .dish .th { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: hsl(var(--accent)); }
+  .dish .th img { width: 100%; height: 100%; object-fit: cover; }
+  .dish .info .top { display: flex; align-items: baseline; gap: 12px; }
+  .dish .info .n { font-family: var(--heading); font-size: 19px; font-weight: 500; }
+  .dish .info .tag { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: hsl(var(--primary)); }
+  .dish .info .d { color: hsl(var(--muted-foreground)); font-size: 14px; margin-top: 6px; max-width: 46ch; }
+  .dish .right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+  .dish .p { font-family: var(--heading); font-size: 18px; font-weight: 500; white-space: nowrap; }
+  .dish .add { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: hsl(var(--primary)); display: inline-flex; align-items: center; gap: 6px; border-bottom: 1px solid transparent; transition: border-color .15s; }
+  .dish .add:hover { border-color: hsl(var(--primary)); }
+  .dish .add svg { width: 13px; height: 13px; }
+
+  footer { border-top: 1px solid hsl(var(--border)); }
+  .foot { display: flex; flex-wrap: wrap; gap: 30px 70px; padding: 60px 0; }
+  .foot .fb { font-family: var(--heading); font-weight: 700; letter-spacing: .14em; font-size: 22px; }
+  .foot .fb .flame { color: hsl(var(--primary)); }
+  .foot .col h4 { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: hsl(var(--muted-foreground)); margin-bottom: 12px; }
+  .foot .col p { font-size: 14px; }
+  .foot-note { border-top: 1px solid hsl(var(--border)); padding: 22px 0; font-size: 12.5px; color: hsl(var(--muted-foreground)); text-align: center; }
+
+  .cartbtn { position: fixed; right: 24px; bottom: 24px; z-index: 45; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-radius: 999px; padding: 14px 22px; display: none; align-items: center; gap: 12px; box-shadow: 0 16px 34px -12px hsl(var(--foreground)/.4); font-size: 14px; letter-spacing: .04em; }
+  .cartbtn.show { display: inline-flex; }
+
+  .scrim { position: fixed; inset: 0; background: hsl(var(--foreground) / .35); opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 50; }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .drawer { position: fixed; top: 0; right: 0; height: 100%; width: 400px; max-width: 92vw; background: hsl(var(--background)); border-left: 1px solid hsl(var(--border)); z-index: 51; transform: translateX(100%); transition: transform .32s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; }
+  .drawer.open { transform: translateX(0); }
+  .dh { display: flex; align-items: center; justify-content: space-between; padding: 26px 26px 20px; }
+  .dh h2 { font-size: 20px; font-weight: 500; letter-spacing: .08em; }
+  .ditems { flex: 1; overflow-y: auto; padding: 0 26px; }
+  .empty { color: hsl(var(--muted-foreground)); text-align: center; padding: 70px 20px; font-size: 14px; }
+  .li { display: flex; gap: 15px; padding: 20px 0; border-bottom: 1px solid hsl(var(--border)); }
+  .li .lt { width: 52px; height: 52px; border-radius: 50%; overflow: hidden; background: hsl(var(--accent)); flex-shrink: 0; }
+  .li .lt img { width: 100%; height: 100%; object-fit: cover; }
+  .li .lb { flex: 1; }
+  .li .ln { font-family: var(--heading); font-size: 15px; font-weight: 500; }
+  .li .lp { color: hsl(var(--muted-foreground)); font-size: 13px; margin-top: 2px; }
+  .qty { display: inline-flex; align-items: center; gap: 14px; margin-top: 9px; }
+  .qty button { width: 24px; height: 24px; border-radius: 50%; border: 1px solid hsl(var(--border)); display: grid; place-items: center; font-size: 14px; }
+  .qty span { min-width: 14px; text-align: center; }
+  .rm { color: hsl(var(--muted-foreground)); font-size: 12px; text-decoration: underline; align-self: flex-start; }
+  .df { padding: 22px 26px 28px; border-top: 1px solid hsl(var(--border)); }
+  .tot2 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
+  .tot2 .tv { font-family: var(--heading); font-size: 24px; font-weight: 500; }
+  .cta2 { display: block; text-align: center; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: 14px; letter-spacing: .06em; text-transform: uppercase; padding: 15px; border-radius: 2px; }
+
+  @media (max-width: 860px) { .hero-grid, .counter-in { grid-template-columns: 1fr; gap: 40px; } .hero-photo { max-width: 380px; order: -1; } .nav nav { display: none; } .hero { padding: 50px 0; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto; } }
+</style>
+</head>
+<body data-page="store-asiatique">
+<div id="app"></div>
+<script src="assets/data.js"></script>
+<script src="assets/demo.js"></script>
+<script>
+  const cfg = window.DEMOS["asiatique"];
+  BID.applyTheme(cfg, BID.currentMode());
+  BID.injectDemoChrome();
+  const items = BID.loadCart(cfg.slug);
+  const catName = { ramen: "Ramen", bowls: "Donburi & bowls", assiettes: "Petites assiettes" };
+  const counterImg = cfg.menu[5].img;
+
+  const groups = cfg.cats.filter((c) => c.key !== "all").map((c) => {
+    const dishes = cfg.menu.filter((m) => m.cat === c.key);
+    if (!dishes.length) return "";
+    return `<div class="cat"><div class="cl">${catName[c.key] || c.label}</div>${dishes.map((m) => `
+      <div class="dish">
+        <div class="th"><img src="${m.img}" alt="${BID.esc(m.name)}" loading="lazy" onerror="this.style.display='none'"></div>
+        <div class="info"><div class="top"><span class="n">${BID.esc(m.name)}</span>${m.tag ? `<span class="tag">${BID.esc(m.tag)}</span>` : ""}</div><div class="d">${BID.esc(m.desc)}</div></div>
+        <div class="right"><span class="p">${BID.eur(m.price)}</span><button class="add" data-add="${m.id}">${BID.svg("plus")} Ajouter</button></div>
+      </div>`).join("")}</div>`;
+  }).join("");
+
+  document.getElementById("app").innerHTML = `
+    <header><div class="wrap nav">
+      <a class="brand" href="index.html"><span class="flame">Kōyō</span></a>
+      <nav><a href="#carte">La carte</a><a href="#comptoir">Le comptoir</a><a href="#">Réserver</a></nav>
+      <div class="right">
+        <button class="ib" id="theme-toggle" aria-label="Clair/sombre">${BID.svg("sun")}</button>
+        <button class="ib" id="cart-open" aria-label="Panier">${BID.svg("cart")}<span class="cc" id="cc">0</span></button>
+      </div>
+    </div></header>
+
+    <section class="hero"><div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow">Izakaya · Paris 1er</div>
+        <h1>Le bouillon mijote depuis ce matin.</h1>
+        <p class="sub">Ramen, donburi et petites assiettes, dressés au comptoir. Peu de plats, faits avec soin. Click &amp; collect ou livraison.</p>
+        <a class="link" href="#carte">Découvrir la carte</a>
+      </div>
+      <div class="hero-photo"><img src="${cfg.hero.image}" alt="Ramen" onerror="this.style.display='none'"></div>
+    </div></section>
+
+    <section class="counter" id="comptoir"><div class="wrap counter-in">
+      <div><div class="k">Le comptoir</div><p>« Douze heures pour un bouillon. Le reste se joue à la minute, devant vous, au comptoir. On ne sert que ce qui est prêt. »</p></div>
+      <div class="cimg"><img src="${counterImg}" alt="Le comptoir" onerror="this.style.display='none'"></div>
+    </div></section>
+
+    <section class="menu" id="carte"><div class="narrow">
+      <div class="menu-title"><div class="k">O-shina-gaki</div><h2>La carte</h2></div>
+      ${groups}
+    </div></section>
+
+    <footer><div class="wrap">
+      <div class="foot">
+        <div style="flex:1 1 240px"><div class="fb"><span class="flame">Kōyō</span></div>
+          <p style="color:hsl(var(--muted-foreground));max-width:32ch;margin-top:10px">${BID.esc(cfg.footer.blurb)}</p></div>
+        <div class="col"><h4>Horaires</h4>${cfg.footer.hours.map((h) => `<p>${BID.esc(h)}</p>`).join("")}</div>
+        <div class="col"><h4>Nous trouver</h4>${cfg.footer.address.map((a) => `<p>${BID.esc(a)}</p>`).join("")}<p>${BID.esc(cfg.footer.phone)}</p></div>
+      </div>
+      <div class="foot-note">© Kōyō · démonstration BeInDigital · thème « Izakaya », catégorie Asiatique</div>
+    </div></footer>
+
+    <button class="cartbtn" id="cartbtn">${BID.svg("cart", ' style="width:17px;height:17px"')} Panier · <span id="cb-tot">0,00 €</span></button>
+
+    <div class="scrim" id="scrim"></div>
+    <aside class="drawer" id="drawer" aria-label="Panier">
+      <div class="dh"><h2>Votre panier</h2><button class="ib" id="cart-close" aria-label="Fermer">${BID.svg("close")}</button></div>
+      <div class="ditems" id="ditems"></div>
+      <div class="df"><div class="tot2"><span style="color:hsl(var(--muted-foreground));font-size:14px">Total</span><span class="tv" id="tot">0,00 €</span></div>
+        <a class="cta2" id="checkout" href="checkout.html?t=asiatique">Commander</a></div>
+    </aside>`;
+
+  const cc = document.getElementById("cc"), cb = document.getElementById("cartbtn"), cbt = document.getElementById("cb-tot");
+  const ditems = document.getElementById("ditems"), tot = document.getElementById("tot");
+  function persist() { BID.saveCart(cfg.slug, items); sync(); }
+  function sync() {
+    const n = BID.cartCount(items), total = BID.cartTotal(cfg, items);
+    cc.textContent = n; cc.classList.toggle("show", n > 0);
+    cbt.textContent = BID.eur(total); cb.classList.toggle("show", n > 0);
+    tot.textContent = BID.eur(total);
+    const ids = Object.keys(items).filter((id) => items[id] > 0);
+    if (!ids.length) ditems.innerHTML = `<div class="empty">Votre panier est vide.</div>`;
+    else ditems.innerHTML = ids.map((id) => { const m = cfg.menu.find((x) => x.id === id); return `
+      <div class="li"><div class="lt"><img src="${m.img}" alt="" onerror="this.style.display='none'"></div>
+        <div class="lb"><div class="ln">${BID.esc(m.name)}</div><div class="lp">${BID.eur(m.price)}</div>
+          <div class="qty"><button data-dec="${id}">–</button><span>${items[id]}</span><button data-inc="${id}">+</button></div></div>
+        <button class="rm" data-rm="${id}">retirer</button></div>`; }).join("");
+  }
+  document.getElementById("app").addEventListener("click", (e) => {
+    const add = e.target.closest("[data-add]"), inc = e.target.closest("[data-inc]"), dec = e.target.closest("[data-dec]"), rm = e.target.closest("[data-rm]");
+    if (add) { items[add.dataset.add] = (items[add.dataset.add] || 0) + 1; persist(); const m = cfg.menu.find((x) => x.id === add.dataset.add); BID.toast(`${m.name} ajouté`); }
+    else if (inc) { items[inc.dataset.inc]++; persist(); }
+    else if (dec) { items[dec.dataset.dec] = Math.max(0, items[dec.dataset.dec] - 1); if (!items[dec.dataset.dec]) delete items[dec.dataset.dec]; persist(); }
+    else if (rm) { delete items[rm.dataset.rm]; persist(); }
+  });
+  const scrim = document.getElementById("scrim"), drawer = document.getElementById("drawer");
+  const open = () => { scrim.classList.add("open"); drawer.classList.add("open"); };
+  const close = () => { scrim.classList.remove("open"); drawer.classList.remove("open"); };
+  document.getElementById("cart-open").addEventListener("click", open);
+  document.getElementById("cartbtn").addEventListener("click", open);
+  document.getElementById("cart-close").addEventListener("click", close);
+  scrim.addEventListener("click", close);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  const tt = document.getElementById("theme-toggle");
+  const paint = () => { tt.querySelector("svg").outerHTML = BID.svg(BID.currentMode() === "dark" ? "moon" : "sun"); };
+  paint(); tt.addEventListener("click", () => { BID.setMode(BID.currentMode() === "dark" ? "light" : "dark"); BID.applyTheme(cfg, BID.currentMode()); paint(); });
+  sync();
+</script>
+</body>
+</html>

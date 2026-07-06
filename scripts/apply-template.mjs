@@ -85,7 +85,8 @@ function printList(root) {
   }
   console.log("Templates design disponibles :\n")
   for (const t of templates) {
-    console.log(`  ${t.slug.padEnd(12)} ${t.label}`)
+    const cat = t.category ? `[${t.category}] ` : ""
+    console.log(`  ${t.slug.padEnd(12)} ${cat}${t.label}`)
     console.log(`  ${"".padEnd(12)} ${t.description}`)
     if (t.fonts)
       console.log(

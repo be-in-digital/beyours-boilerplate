@@ -32,8 +32,10 @@
   .card .label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8f8b98; }
   .card .brand { font-size: 22px; font-weight: 700; margin: 4px 0 4px; }
   .card .brand .flame { color: var(--pc); }
-  .card .desc { font-size: 13.5px; color: #9c98a4; min-height: 2.8em; }
-  .card .go { margin-top: 14px; display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; color: var(--pc); }
+  .card .desc { font-size: 13.5px; color: #9c98a4; min-height: 3.6em; }
+  .card .themes { margin-top: 12px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #6d6a75; display: inline-flex; align-items: center; gap: 7px; }
+  .card .themes::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pc); }
+  .card .go { margin-top: 8px; display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; color: var(--pc); }
   .note { border: 1px solid #221f27; border-radius: 14px; padding: 20px 22px; margin: 8px 0 70px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; background: #121116; }
   .note .card-num { font-family: ui-monospace, Menlo, monospace; font-size: 17px; font-weight: 700; letter-spacing: .04em; color: #eee; }
   .note .t { font-size: 13.5px; color: #a5a2ac; flex: 1; min-width: 240px; }
@@ -46,8 +48,8 @@
 <div class="wrap">
   <header>
     <div class="kicker">BeInDigital · sites restaurant</div>
-    <h1>Choisissez un univers et testez le site pour de vrai.</h1>
-    <p class="intro">Chaque univers est une <b>démo interactive</b> du site que vous obtiendrez : naviguez la carte, ajoutez au panier, allez jusqu'au paiement avec une <b>carte de test</b>. Le design de votre site partira de l'un de ces univers, puis sera décliné à vos couleurs et votre marque.</p>
+    <h1>Choisissez une thématique et testez le site pour de vrai.</h1>
+    <p class="intro">Chaque thématique a son <b>design entièrement dédié</b> (mise en page, ambiance, parcours), pas seulement ses couleurs. Ouvrez une démo : naviguez la carte, ajoutez au panier, allez jusqu'au paiement avec une <b>carte de test</b>. Un thème par thématique pour l'instant ; d'autres viendront pour chacune.</p>
   </header>
 
   <div class="grid" id="grid"></div>
@@ -72,14 +74,15 @@
     // (la primaire claire du fast-food est un charbon, invisible ici)
     const pc = `hsl(${c.dark["--primary"]})`;
     const a1 = `hsl(${c.light["--primary"]})`, a2 = `hsl(${c.light["--accent"]})`, a3 = `hsl(${c.light["--background"]})`;
-    return `<a class="card" href="store.html?t=${slug}" style="--pc:${pc}">
-      <div class="ph"><img src="${c.hero.image}" alt="${c.label}" loading="lazy">
+    return `<a class="card" href="${slug}.html" style="--pc:${pc}">
+      <div class="ph"><img src="${c.hero.image}" alt="${c.category}" loading="lazy">
         <div class="swatch"><i style="background:${a1}"></i><i style="background:${a2}"></i><i style="background:${a3}"></i></div>
       </div>
       <div class="b">
-        <div class="label">${c.label}</div>
-        <div class="brand">${c.brandPrefix || ""}<span class="flame">${c.brandWord}</span></div>
-        <div class="desc">${c.footer.blurb}</div>
+        <div class="label">${c.category}</div>
+        <div class="brand">Thème <span class="flame">${c.themeName}</span></div>
+        <div class="desc">Aperçu : ${c.brandPrefix || ""}${c.brandWord}. ${c.footer.blurb}</div>
+        <div class="themes">1 thème disponible</div>
         <div class="go">Ouvrir la démo →</div>
       </div>
     </a>`;
