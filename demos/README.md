@@ -37,6 +37,7 @@ demos/
     themes.js           50 identités + packs catégorie (plats, lieux, story)
     site.css            familles de mise en page (pilotées par data-attributes)
     site.js             moteur multipage : thème, panier, lieux, réservation
+    shots/              captures réelles des 50 accueils (galerie du showroom)
   api/checkout.js       fonction serverless : session Stripe Checkout (TEST)
   package.json          dépendance stripe (installée par Vercel)
   vercel.json           liens propres + noindex
@@ -117,6 +118,16 @@ contact). Pour coller à un prospect précis : dupliquer le thème le plus
 proche, changer marque/couleurs/copy, et partager
 `home.html?t=<son-theme>`. Garder les `id` de plats alignés avec
 `api/checkout.js` (source d'autorité des prix côté paiement).
+
+## Régénérer les captures du showroom
+
+Le showroom (`index.html`) affiche les **captures réelles** des 50 accueils
+(`assets/shots/<themeId>.jpg`, cliquables en visionneuse). Après une retouche
+de thème, re-capturer : servir `demos/` en local, ouvrir chaque
+`home.html?t=<themeId>` dans un navigateur headless en 1280×800, capturer la
+vue, puis convertir en JPEG ~840 px (ex. `sips -s format jpeg
+-s formatOptions 74 --resampleWidth 840`). Un thème seul se recapture à
+l'unité, inutile de refaire les 50.
 
 ## Lien avec l'engine (important)
 

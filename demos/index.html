@@ -11,48 +11,79 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0d0c0f; color: #ececf1; font-family: 'Figtree', system-ui, sans-serif; line-height: 1.5; }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  .wrap { max-width: 1220px; margin: 0 auto; padding: 0 24px; }
   a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
   .ribbon { background: #f5f4f2; color: #1a1a1a; text-align: center; font-size: 12.5px; font-weight: 650; padding: 8px 16px; }
   .ribbon b { font-weight: 800; }
-  header { padding: 58px 0 6px; }
+  header.top { padding: 56px 0 6px; }
   .kicker { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #f0803b; }
   h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; letter-spacing: -0.02em; margin: 14px 0; max-width: 22ch; }
   .intro { color: #a5a2ac; font-size: 16px; max-width: 66ch; }
   .intro b { color: #ececf1; font-weight: 650; }
-  .catnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 10px; }
+  .catnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 8px; }
   .catnav a { font-size: 13px; font-weight: 650; border: 1px solid #2a2731; border-radius: 999px; padding: 8px 15px; color: #cfccd6; }
   .catnav a:hover { border-color: #4a4655; color: #fff; }
-  section.cat { padding: 34px 0 8px; }
-  .cat-h { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #26232d; padding-bottom: 12px; margin-bottom: 20px; }
-  .cat-h h2 { font-size: 24px; font-weight: 700; }
+
+  section.cat { padding: 36px 0 6px; }
+  .cat-h { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #26232d; padding-bottom: 12px; margin-bottom: 22px; }
+  .cat-h h2 { font-size: 25px; font-weight: 700; }
   .cat-h .n { color: #8f8b98; font-size: 13.5px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 14px; padding-bottom: 22px; }
+
+  .gal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding-bottom: 26px; }
+  @media (max-width: 980px) { .gal { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .gal { grid-template-columns: 1fr; } }
   .card { display: flex; flex-direction: column; border: 1px solid #221f27; background: #141318; border-radius: 14px; overflow: hidden; transition: transform .16s, border-color .16s; }
-  .card:hover { transform: translateY(-3px); border-color: #3a3644; }
-  .sw { height: 64px; display: flex; }
-  .sw i { flex: 1; }
-  .b { padding: 13px 15px 15px; display: flex; flex-direction: column; flex: 1; }
-  .tname { font-size: 18px; font-weight: 700; }
-  .tbrand { font-size: 12.5px; color: #8f8b98; margin-top: 1px; }
-  .ttag { font-size: 12.5px; color: #a5a2ac; margin-top: 7px; flex: 1; }
-  .lay { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
+  .card:hover { transform: translateY(-3px); border-color: #3d3948; }
+  .shot { position: relative; aspect-ratio: 1280/800; overflow: hidden; cursor: zoom-in; background: #1a1820; }
+  .shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; transition: transform .3s ease; }
+  .card:hover .shot img { transform: scale(1.025); }
+  .shot .zoom { position: absolute; right: 10px; bottom: 10px; background: #000c; color: #fff; font-size: 11.5px; font-weight: 700; padding: 5px 11px; border-radius: 999px; opacity: 0; transition: opacity .15s; pointer-events: none; }
+  .card:hover .shot .zoom { opacity: 1; }
+  .b { padding: 13px 15px 15px; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .tt { display: flex; align-items: center; gap: 9px; }
+  .tname { font-size: 17.5px; font-weight: 700; }
+  .dots { display: flex; gap: 4px; margin-left: auto; }
+  .dots i { width: 13px; height: 13px; border-radius: 50%; border: 1px solid #ffffff2e; }
+  .tbrand { font-size: 12.5px; color: #8f8b98; }
+  .lay { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
   .lay span { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #9a96a4; border: 1px solid #2a2731; padding: 3px 7px; border-radius: 5px; }
   .go { margin-top: 11px; font-size: 13px; font-weight: 700; color: var(--pc); }
+  .go:hover { text-decoration: underline; text-underline-offset: 3px; }
+
   .note { border: 1px solid #221f27; border-radius: 14px; padding: 20px 22px; margin: 26px 0 60px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; background: #121116; }
   .note .num { font-family: ui-monospace, Menlo, monospace; font-size: 17px; font-weight: 700; letter-spacing: .04em; }
   .note .t { font-size: 13.5px; color: #a5a2ac; flex: 1; min-width: 240px; }
   .note .t b { color: #ececf1; }
   .foot { color: #6d6a75; font-size: 13px; padding-bottom: 50px; }
+
+  /* ── Visionneuse (lightbox) ── */
+  .lb { position: fixed; inset: 0; z-index: 100; background: rgba(6, 5, 10, .93); display: none; }
+  .lb.open { display: grid; grid-template-rows: auto 1fr auto; }
+  .lb-top { display: flex; align-items: center; gap: 14px; padding: 14px 20px; }
+  .lb-name { font-size: 16px; font-weight: 700; }
+  .lb-meta { font-size: 12.5px; color: #9a96a4; }
+  .lb-close { margin-left: auto; width: 40px; height: 40px; border-radius: 999px; border: 1px solid #ffffff2b; display: grid; place-items: center; font-size: 17px; }
+  .lb-close:hover { background: #ffffff14; }
+  .lb-stage { position: relative; display: grid; place-items: center; padding: 0 66px; min-height: 0; }
+  .lb-stage img { max-width: min(1120px, 100%); max-height: 100%; border-radius: 10px; border: 1px solid #ffffff1f; box-shadow: 0 40px 120px -30px #000; }
+  .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 999px; border: 1px solid #ffffff2b; display: grid; place-items: center; font-size: 20px; background: #0d0c0fb8; }
+  .lb-nav:hover { background: #ffffff18; }
+  .lb-prev { left: 12px; } .lb-next { right: 12px; }
+  .lb-bot { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 16px 20px 22px; }
+  .lb-open-demo { background: var(--pc, #f0803b); color: #0d0c0f; font-weight: 800; font-size: 14px; padding: 12px 22px; border-radius: 999px; }
+  .lb-count { font-size: 12.5px; color: #9a96a4; }
+  @media (max-width: 640px) { .lb-stage { padding: 0 10px; } .lb-nav { display: none; } }
 </style>
 </head>
 <body>
 <div class="ribbon"><b>DÉMOS INTERACTIVES</b> · sites complets navigables · paiement en mode test Stripe · aucune commande réelle</div>
 <div class="wrap">
-  <header>
+  <header class="top">
     <div class="kicker">BeInDigital · sites restaurant</div>
-    <h1>5 thématiques, 10 designs chacune. Testez avant de choisir.</h1>
-    <p class="intro">Chaque thème est un <b>site complet multipage</b> (accueil, carte, à propos, adresses, réservation, contact) avec <b>commande et paiement de test</b>, et sa <b>propre identité</b> : mise en page, typographies, couleurs, ambiance. Naviguez, ajoutez au panier, réservez, annulez, payez avec la carte de test.</p>
+    <h1>5 thématiques, 10 designs chacune. Regardez, puis testez.</h1>
+    <p class="intro">Chaque vignette est la <b>capture réelle</b> du site de démo. Cliquez une image pour la voir en grand et feuilleter la galerie, ou ouvrez la démo : <b>site complet multipage</b> (accueil, carte, adresses, réservation, contact) avec <b>commande et paiement de test</b>.</p>
     <nav class="catnav" id="catnav"></nav>
   </header>
   <div id="cats"></div>
@@ -66,34 +97,96 @@
   <div class="foot">Démonstration produit BeInDigital. Marques, plats, prix et photos sont des exemples. Le design final reprend le thème choisi, décliné à la marque du client.</div>
 </div>
 
+<!-- Visionneuse -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Aperçu du thème">
+  <div class="lb-top">
+    <span class="lb-name" id="lb-name"></span>
+    <span class="lb-meta" id="lb-meta"></span>
+    <button class="lb-close" id="lb-close" aria-label="Fermer">✕</button>
+  </div>
+  <div class="lb-stage">
+    <button class="lb-nav lb-prev" id="lb-prev" aria-label="Thème précédent">‹</button>
+    <img id="lb-img" src="" alt="">
+    <button class="lb-nav lb-next" id="lb-next" aria-label="Thème suivant">›</button>
+  </div>
+  <div class="lb-bot">
+    <span class="lb-count" id="lb-count"></span>
+    <a class="lb-open-demo" id="lb-open" href="#">Ouvrir la démo →</a>
+  </div>
+</div>
+
 <script src="assets/themes.js"></script>
 <script>
   const X = window.BIDX;
   const HERO_FR = { editorial: "Éditorial", fullbleed: "Pleine image", poster: "Affiche", split: "Duo photo", board: "Tableau des lieux", magazine: "Magazine", zen: "Zen", banner: "Bandeau direct", collage: "Collage", duo: "Diagonale" };
   const MENU_FR = { dotted: "carte typographiée", tickets: "tickets", cards: "cartes photo", zen: "colonne fine", mosaic: "mosaïque", ledger: "registre", tabs: "onglets", bento: "bento" };
-  const catnav = document.getElementById("catnav");
-  const cats = document.getElementById("cats");
-  catnav.innerHTML = X.ORDER.map((c) => `<a href="#${c}">${X.CATS[c].label} · 10</a>`).join("");
-  cats.innerHTML = X.ORDER.map((c) => {
+  const shot = (t) => `assets/shots/${t.id}.jpg`;
+  const demoUrl = (t) => `home.html?t=${t.id}`;
+
+  document.getElementById("catnav").innerHTML =
+    X.ORDER.map((c) => `<a href="#${c}">${X.CATS[c].label} · 10</a>`).join("");
+
+  document.getElementById("cats").innerHTML = X.ORDER.map((c) => {
     const themes = X.LIST.filter((t) => t.cat === c);
     return `<section class="cat" id="${c}">
-      <div class="cat-h"><h2>${X.CATS[c].label}</h2><span class="n">${themes.length} thèmes, un design propre à chacun</span></div>
-      <div class="grid">${themes.map((t) => {
+      <div class="cat-h"><h2>${X.CATS[c].label}</h2><span class="n">${themes.length} designs, cliquez une capture pour feuilleter</span></div>
+      <div class="gal">${themes.map((t, i) => {
         const pc = `hsl(${t.D.p})`;
-        const sw = [t.L.p, t.L.a, t.L.bg, t.D.bg, t.D.p].map((v) => `<i style="background:hsl(${v})"></i>`).join("");
-        return `<a class="card" href="home.html?t=${t.id}" style="--pc:${pc}">
-          <div class="sw">${sw}</div>
-          <div class="b">
-            <div class="tname">${t.name}</div>
-            <div class="tbrand">${t.brand[0]}${t.brand[1]}</div>
-            <div class="ttag">${t.tag}</div>
-            <div class="lay"><span>${HERO_FR[t.hero]}</span><span>${MENU_FR[t.menu]}</span>${t.locN > 1 ? `<span>${t.locN} lieux</span>` : ""}</div>
-            <div class="go">Ouvrir la démo →</div>
+        const dots = [t.L.p, t.L.bg, t.D.bg].map((v) => `<i style="background:hsl(${v})"></i>`).join("");
+        return `<article class="card" style="--pc:${pc}">
+          <div class="shot" data-lb="${c}:${i}">
+            <img src="${shot(t)}" alt="Capture du thème ${t.name} (${X.CATS[c].label})" loading="lazy">
+            <span class="zoom">Agrandir</span>
           </div>
-        </a>`;
+          <div class="b">
+            <div class="tt"><span class="tname">${t.name}</span><span class="dots">${dots}</span></div>
+            <div class="tbrand">${t.brand[0]}${t.brand[1]} · ${t.tag}</div>
+            <div class="lay"><span>${HERO_FR[t.hero]}</span><span>${MENU_FR[t.menu]}</span>${t.locN > 1 ? `<span>${t.locN} lieux</span>` : ""}</div>
+            <a class="go" href="${demoUrl(t)}">Ouvrir la démo →</a>
+          </div>
+        </article>`;
       }).join("")}</div>
     </section>`;
   }).join("");
+
+  /* ── Visionneuse : navigation par catégorie ── */
+  const lb = document.getElementById("lb");
+  const lbImg = document.getElementById("lb-img"), lbName = document.getElementById("lb-name"),
+        lbMeta = document.getElementById("lb-meta"), lbOpen = document.getElementById("lb-open"),
+        lbCount = document.getElementById("lb-count");
+  let cur = { cat: null, i: 0 };
+  const catThemes = (c) => X.LIST.filter((t) => t.cat === c);
+
+  function showLb(cat, i) {
+    const list = catThemes(cat);
+    cur = { cat, i: (i + list.length) % list.length };
+    const t = list[cur.i];
+    lbImg.src = shot(t);
+    lbImg.alt = `Capture du thème ${t.name}`;
+    lbName.textContent = `${t.name} · ${X.CATS[cat].label}`;
+    lbMeta.textContent = `${t.brand[0]}${t.brand[1]} · ${HERO_FR[t.hero]} · ${MENU_FR[t.menu]}${t.locN > 1 ? ` · ${t.locN} lieux` : ""}`;
+    lbOpen.href = demoUrl(t);
+    lbOpen.style.setProperty("--pc", `hsl(${t.D.p})`);
+    lbCount.textContent = `${cur.i + 1} / ${list.length}`;
+    lb.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeLb() { lb.classList.remove("open"); document.body.style.overflow = ""; }
+  document.getElementById("cats").addEventListener("click", (e) => {
+    const s = e.target.closest("[data-lb]"); if (!s) return;
+    const [cat, i] = s.dataset.lb.split(":");
+    showLb(cat, +i);
+  });
+  document.getElementById("lb-close").addEventListener("click", closeLb);
+  document.getElementById("lb-prev").addEventListener("click", () => showLb(cur.cat, cur.i - 1));
+  document.getElementById("lb-next").addEventListener("click", () => showLb(cur.cat, cur.i + 1));
+  lb.addEventListener("click", (e) => { if (e.target === lb || e.target.classList.contains("lb-stage")) closeLb(); });
+  document.addEventListener("keydown", (e) => {
+    if (!lb.classList.contains("open")) return;
+    if (e.key === "Escape") closeLb();
+    else if (e.key === "ArrowLeft") showLb(cur.cat, cur.i - 1);
+    else if (e.key === "ArrowRight") showLb(cur.cat, cur.i + 1);
+  });
 </script>
 </body>
 </html>
