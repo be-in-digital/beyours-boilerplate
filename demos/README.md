@@ -1,45 +1,58 @@
 # Démos interactives — BeInDigital
 
-Cinq **démos navigables**, une par thématique (catégorie). Un prospect ouvre
-le lien, parcourt la carte, ajoute au panier et va jusqu'au **paiement en mode
-test Stripe** avec une carte de test. Objectif : vendre en montrant le site
-réel qu'il aura, pas des captures.
+**50 démos de sites complets** : 5 thématiques (catégories) × **10 thèmes
+chacune**, chaque thème avec sa **propre identité** (marque, palette
+clair/sombre, typographies, formes, texture) et sa **propre mise en page**
+(type de hero, présentation de la carte, navigation, footer). Un prospect
+ouvre le lien, navigue un **site multipage** (accueil, carte, à propos,
+adresses, réservation, contact), commande, réserve, annule, et va jusqu'au
+**paiement en mode test Stripe**.
 
-**Chaque thématique a son design entièrement dédié** — mise en page, ambiance
-et parcours propres, pas seulement des couleurs :
+Garanties :
 
-| Catégorie | Thème | Parti pris de design |
-| --- | --- | --- |
-| Pizzeria | Trattoria | Éditorial « carte imprimée » : menu typographié, photo ronde, récit du four |
-| Fast-food | Smash | App de commande sombre : onglets collants, cartes chunky, barre de commande fixe |
-| Food truck | Convoi | Ardoise de rue kraft : planning des emplacements, menu en tickets, prix monospace |
-| Poulet | Braise | Poster rôtisserie : bandeau promo, buckets à partager, sélecteur de sauces |
-| Asiatique | Izakaya | Minimal zen : colonne unique, filets fins, grand blanc |
+- **Tous les liens fonctionnent** : navigation, footer, téléphone (`tel:`),
+  e-mail (`mailto:`), itinéraires Google Maps, réservation (créable **et
+  annulable**), formulaires validés. Zéro `href="#"` (balayé en navigateur).
+- **Multi-emplacements** : chaque thème a 1 à 3 lieux ; le client choisit son
+  lieu (page Adresses), il suit la commande jusqu'au checkout et la
+  réservation. Les thèmes à 1 lieu montrent aussi ce cas.
+- **10 designs par catégorie réellement différents** : chaque thème d'une
+  catégorie a une combinaison hero × carte unique (10 familles de hero,
+  8 familles de carte, 4 navigations, 5 langues de boutons, textures),
+  vérifiée par script. Contraste : 400 paires AA vérifiées (50 thèmes × 2 modes).
 
 ```
 demos/
-  index.html          showroom : catégories → thèmes
-  pizzeria.html       \
-  fast-food.html       |  un store bespoke par thématique
-  food-truck.html      |  (design + CSS + JS propres, dans le fichier)
-  poulet.html          |
-  asiatique.html      /
-  checkout.html       récap + carte de test + bouton Payer   (partagé, thémé)
-  success.html        confirmation                           (partagé, thémé)
+  index.html            showroom : 5 catégories × 10 thèmes
+  home.html?t=<theme>   accueil          \
+  menu.html             la carte          |
+  about.html            à propos          |  pages du site, rendues par le
+  locations.html        adresses / lieux  |  moteur selon le thème choisi
+  reserve.html          réservation       |
+  contact.html          contact           |
+  checkout.html         paiement (carte de test Stripe)
+  success.html          confirmation     /
+  pizzeria.html …       redirections des anciennes URL vers le thème 1
   assets/
-    data.js           données des univers (tokens, polices, menu, photos, catégorie)
-    demo.js           helpers window.BID (thème, panier, toast) + pages checkout/success
-    demo.css          styles des pages checkout/success
-  api/checkout.js      fonction serverless : session Stripe Checkout (TEST)
-  package.json         dépendance stripe (installée par Vercel)
-  vercel.json          liens propres + noindex
+    themes.js           50 identités + packs catégorie (plats, lieux, story)
+    site.css            familles de mise en page (pilotées par data-attributes)
+    site.js             moteur multipage : thème, panier, lieux, réservation
+  api/checkout.js       fonction serverless : session Stripe Checkout (TEST)
+  package.json          dépendance stripe (installée par Vercel)
+  vercel.json           liens propres + noindex
 ```
 
-Structure catégorie → thème : une thématique pourra héberger **plusieurs
-thèmes** plus tard (ex. Asiatique : Izakaya, puis un thème street-wok, un
-sushi-bar…). Pour l'instant, un thème par catégorie. Ajouter un thème = un
-nouveau `<slug>.html` + une entrée dans `data.js` + le catalogue prix de
-`api/checkout.js`.
+Exemples d'identités dans une même catégorie (pizzeria) : Trattoria
+(éditorial serif, photo ronde), Vesuvio (affiche brutale Anton, bento),
+Milano (magazine Playfair, mosaïque), Golfo (collage méditerranéen),
+Doppio Zero (minimal suisse, registre), Notte (sombre nuit, barre de
+commande)… Aucun ne partage sa mise en page avec un autre de sa catégorie.
+
+**Ajouter un 11e thème** : une entrée dans `assets/themes.js` (palette L/D,
+paire de polices, combinaison hero/menu/nav/footer, copy) et c'est en ligne :
+les pages, le panier, les lieux et la réservation sont fournis par le moteur.
+Les plats et prix restent ceux du pack de la catégorie (alignés sur
+`api/checkout.js`, source d'autorité des prix).
 
 ## Aperçu local (sans Stripe)
 
@@ -71,10 +84,10 @@ dépôt.
    Tant que la variable n'est pas là, l'API renvoie 501 et la démo retombe
    proprement sur la simulation (rien ne casse).
 
-3. **Lien par client** : partager `https://<projet>.vercel.app/pizzeria`
-   (ou `/fast-food`, `/food-truck`, `/poulet`, `/asiatique` — `cleanUrls`
-   retire le `.html`), ou le showroom `https://<projet>.vercel.app/` pour
-   laisser le prospect choisir.
+3. **Lien par client** : le showroom `https://<projet>.vercel.app/` (choix
+   des 50 thèmes), ou directement un thème :
+   `https://<projet>.vercel.app/home?t=pizzeria-milano`. Les anciennes URL
+   (`/pizzeria`, `/poulet`…) redirigent vers le premier thème de la catégorie.
 
 Aucune clé **publique** n'est nécessaire ici : la fonction crée une session
 Stripe Checkout hébergée et renvoie son URL ; le client saisit sa carte de
@@ -97,12 +110,13 @@ Autres scénarios (paiement refusé, 3D Secure…) : voir
 
 ## Personnaliser une démo pour un rendez-vous
 
-Le contenu (marque, hero, plats, prix, photos, horaires) est dans
-`assets/data.js`. Pour coller à un prospect précis, éditer l'entrée de sa
-thématique. Le **design** de chaque thématique vit dans son `<slug>.html`
-(mise en page propre) — c'est là qu'on ajuste la structure si besoin. Garder
-les `id` d'articles alignés avec le catalogue de `api/checkout.js` (source
-d'autorité des prix côté paiement).
+Tout est dans `assets/themes.js` : l'identité du thème (marque, baseline,
+palette, polices, mise en page, nombre de lieux, copy du hero) et les packs
+de catégorie (plats, lieux avec adresses/horaires/téléphones, story,
+contact). Pour coller à un prospect précis : dupliquer le thème le plus
+proche, changer marque/couleurs/copy, et partager
+`home.html?t=<son-theme>`. Garder les `id` de plats alignés avec
+`api/checkout.js` (source d'autorité des prix côté paiement).
 
 ## Lien avec l'engine (important)
 

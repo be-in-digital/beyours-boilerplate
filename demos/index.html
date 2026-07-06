@@ -7,85 +7,92 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@300..800&family=Libre+Bodoni:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Big+Shoulders:opsz,wght@10..72,500..800&family=Barlow+Condensed:wght@600;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@300..800&display=swap">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0d0c0f; color: #eee; font-family: 'Figtree', system-ui, sans-serif; line-height: 1.5; }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  body { background: #0d0c0f; color: #ececf1; font-family: 'Figtree', system-ui, sans-serif; line-height: 1.5; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  a { color: inherit; text-decoration: none; }
   .ribbon { background: #f5f4f2; color: #1a1a1a; text-align: center; font-size: 12.5px; font-weight: 650; padding: 8px 16px; }
   .ribbon b { font-weight: 800; }
-  header { padding: 60px 0 8px; }
+  header { padding: 58px 0 6px; }
   .kicker { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #f0803b; }
-  h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; letter-spacing: -0.02em; margin: 14px 0 14px; max-width: 20ch; }
-  .intro { color: #a5a2ac; font-size: 16px; max-width: 62ch; }
-  .intro b { color: #eee; font-weight: 650; }
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 40px 0 24px; }
-  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
-  .card { display: block; text-decoration: none; color: inherit; border-radius: 16px; overflow: hidden; border: 1px solid #221f27; background: #141318; transition: transform .18s ease, border-color .18s ease; }
-  .card:hover { transform: translateY(-4px); border-color: #38343f; }
-  .card .ph { height: 150px; position: relative; overflow: hidden; }
-  .card .ph img { width: 100%; height: 100%; object-fit: cover; }
-  .card .ph .swatch { position: absolute; bottom: 12px; left: 12px; display: flex; gap: 6px; }
-  .card .ph .swatch i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,.7); display: block; }
-  .card .b { padding: 16px 18px 20px; }
-  .card .label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8f8b98; }
-  .card .brand { font-size: 22px; font-weight: 700; margin: 4px 0 4px; }
-  .card .brand .flame { color: var(--pc); }
-  .card .desc { font-size: 13.5px; color: #9c98a4; min-height: 3.6em; }
-  .card .themes { margin-top: 12px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #6d6a75; display: inline-flex; align-items: center; gap: 7px; }
-  .card .themes::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pc); }
-  .card .go { margin-top: 8px; display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; color: var(--pc); }
-  .note { border: 1px solid #221f27; border-radius: 14px; padding: 20px 22px; margin: 8px 0 70px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; background: #121116; }
-  .note .card-num { font-family: ui-monospace, Menlo, monospace; font-size: 17px; font-weight: 700; letter-spacing: .04em; color: #eee; }
+  h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; letter-spacing: -0.02em; margin: 14px 0; max-width: 22ch; }
+  .intro { color: #a5a2ac; font-size: 16px; max-width: 66ch; }
+  .intro b { color: #ececf1; font-weight: 650; }
+  .catnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 10px; }
+  .catnav a { font-size: 13px; font-weight: 650; border: 1px solid #2a2731; border-radius: 999px; padding: 8px 15px; color: #cfccd6; }
+  .catnav a:hover { border-color: #4a4655; color: #fff; }
+  section.cat { padding: 34px 0 8px; }
+  .cat-h { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #26232d; padding-bottom: 12px; margin-bottom: 20px; }
+  .cat-h h2 { font-size: 24px; font-weight: 700; }
+  .cat-h .n { color: #8f8b98; font-size: 13.5px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 14px; padding-bottom: 22px; }
+  .card { display: flex; flex-direction: column; border: 1px solid #221f27; background: #141318; border-radius: 14px; overflow: hidden; transition: transform .16s, border-color .16s; }
+  .card:hover { transform: translateY(-3px); border-color: #3a3644; }
+  .sw { height: 64px; display: flex; }
+  .sw i { flex: 1; }
+  .b { padding: 13px 15px 15px; display: flex; flex-direction: column; flex: 1; }
+  .tname { font-size: 18px; font-weight: 700; }
+  .tbrand { font-size: 12.5px; color: #8f8b98; margin-top: 1px; }
+  .ttag { font-size: 12.5px; color: #a5a2ac; margin-top: 7px; flex: 1; }
+  .lay { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
+  .lay span { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #9a96a4; border: 1px solid #2a2731; padding: 3px 7px; border-radius: 5px; }
+  .go { margin-top: 11px; font-size: 13px; font-weight: 700; color: var(--pc); }
+  .note { border: 1px solid #221f27; border-radius: 14px; padding: 20px 22px; margin: 26px 0 60px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; background: #121116; }
+  .note .num { font-family: ui-monospace, Menlo, monospace; font-size: 17px; font-weight: 700; letter-spacing: .04em; }
   .note .t { font-size: 13.5px; color: #a5a2ac; flex: 1; min-width: 240px; }
-  .note .t b { color: #eee; }
+  .note .t b { color: #ececf1; }
   .foot { color: #6d6a75; font-size: 13px; padding-bottom: 50px; }
 </style>
 </head>
 <body>
-<div class="ribbon"><b>DÉMOS INTERACTIVES</b> · exemples réels navigables · paiement en mode test Stripe · aucune commande réelle</div>
+<div class="ribbon"><b>DÉMOS INTERACTIVES</b> · sites complets navigables · paiement en mode test Stripe · aucune commande réelle</div>
 <div class="wrap">
   <header>
     <div class="kicker">BeInDigital · sites restaurant</div>
-    <h1>Choisissez une thématique et testez le site pour de vrai.</h1>
-    <p class="intro">Chaque thématique a son <b>design entièrement dédié</b> (mise en page, ambiance, parcours), pas seulement ses couleurs. Ouvrez une démo : naviguez la carte, ajoutez au panier, allez jusqu'au paiement avec une <b>carte de test</b>. Un thème par thématique pour l'instant ; d'autres viendront pour chacune.</p>
+    <h1>5 thématiques, 10 designs chacune. Testez avant de choisir.</h1>
+    <p class="intro">Chaque thème est un <b>site complet multipage</b> (accueil, carte, à propos, adresses, réservation, contact) avec <b>commande et paiement de test</b>, et sa <b>propre identité</b> : mise en page, typographies, couleurs, ambiance. Naviguez, ajoutez au panier, réservez, annulez, payez avec la carte de test.</p>
+    <nav class="catnav" id="catnav"></nav>
   </header>
-
-  <div class="grid" id="grid"></div>
-
+  <div id="cats"></div>
   <div class="note">
     <div>
       <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8f8b98;margin-bottom:6px">Carte de test au paiement</div>
-      <div class="card-num">4242 4242 4242 4242</div>
+      <div class="num">4242 4242 4242 4242</div>
     </div>
     <div class="t"><b>Date</b> future quelconque · <b>CVC</b> 3 chiffres · <b>Code postal</b> 75000. Aucun débit réel : Stripe est en mode test. C'est la vraie mécanique de paiement du site final.</div>
   </div>
-
-  <div class="foot">Démonstration produit BeInDigital. Les plats, prix et photos sont des exemples. Le design final reprend l'univers choisi, à vos couleurs.</div>
+  <div class="foot">Démonstration produit BeInDigital. Marques, plats, prix et photos sont des exemples. Le design final reprend le thème choisi, décliné à la marque du client.</div>
 </div>
 
-<script src="assets/data.js"></script>
+<script src="assets/themes.js"></script>
 <script>
-  const grid = document.getElementById("grid");
-  grid.innerHTML = window.DEMO_ORDER.map((slug) => {
-    const c = window.DEMOS[slug];
-    // accent lisible sur le hub sombre : on prend la primaire du mode sombre
-    // (la primaire claire du fast-food est un charbon, invisible ici)
-    const pc = `hsl(${c.dark["--primary"]})`;
-    const a1 = `hsl(${c.light["--primary"]})`, a2 = `hsl(${c.light["--accent"]})`, a3 = `hsl(${c.light["--background"]})`;
-    return `<a class="card" href="${slug}.html" style="--pc:${pc}">
-      <div class="ph"><img src="${c.hero.image}" alt="${c.category}" loading="lazy">
-        <div class="swatch"><i style="background:${a1}"></i><i style="background:${a2}"></i><i style="background:${a3}"></i></div>
-      </div>
-      <div class="b">
-        <div class="label">${c.category}</div>
-        <div class="brand">Thème <span class="flame">${c.themeName}</span></div>
-        <div class="desc">Aperçu : ${c.brandPrefix || ""}${c.brandWord}. ${c.footer.blurb}</div>
-        <div class="themes">1 thème disponible</div>
-        <div class="go">Ouvrir la démo →</div>
-      </div>
-    </a>`;
+  const X = window.BIDX;
+  const HERO_FR = { editorial: "Éditorial", fullbleed: "Pleine image", poster: "Affiche", split: "Duo photo", board: "Tableau des lieux", magazine: "Magazine", zen: "Zen", banner: "Bandeau direct", collage: "Collage", duo: "Diagonale" };
+  const MENU_FR = { dotted: "carte typographiée", tickets: "tickets", cards: "cartes photo", zen: "colonne fine", mosaic: "mosaïque", ledger: "registre", tabs: "onglets", bento: "bento" };
+  const catnav = document.getElementById("catnav");
+  const cats = document.getElementById("cats");
+  catnav.innerHTML = X.ORDER.map((c) => `<a href="#${c}">${X.CATS[c].label} · 10</a>`).join("");
+  cats.innerHTML = X.ORDER.map((c) => {
+    const themes = X.LIST.filter((t) => t.cat === c);
+    return `<section class="cat" id="${c}">
+      <div class="cat-h"><h2>${X.CATS[c].label}</h2><span class="n">${themes.length} thèmes, un design propre à chacun</span></div>
+      <div class="grid">${themes.map((t) => {
+        const pc = `hsl(${t.D.p})`;
+        const sw = [t.L.p, t.L.a, t.L.bg, t.D.bg, t.D.p].map((v) => `<i style="background:hsl(${v})"></i>`).join("");
+        return `<a class="card" href="home.html?t=${t.id}" style="--pc:${pc}">
+          <div class="sw">${sw}</div>
+          <div class="b">
+            <div class="tname">${t.name}</div>
+            <div class="tbrand">${t.brand[0]}${t.brand[1]}</div>
+            <div class="ttag">${t.tag}</div>
+            <div class="lay"><span>${HERO_FR[t.hero]}</span><span>${MENU_FR[t.menu]}</span>${t.locN > 1 ? `<span>${t.locN} lieux</span>` : ""}</div>
+            <div class="go">Ouvrir la démo →</div>
+          </div>
+        </a>`;
+      }).join("")}</div>
+    </section>`;
   }).join("");
 </script>
 </body>
