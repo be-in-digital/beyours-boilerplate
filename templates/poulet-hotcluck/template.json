@@ -1,0 +1,13 @@
+{
+  "slug": "poulet-hotcluck",
+  "category": "Poulet",
+  "themeName": "Hot Cluck",
+  "label": "Hot Cluck — Nashville hot, version béton",
+  "description": "Nashville hot, version béton. mosaïque photo, hero affiche typographique.",
+  "primary": "hsl(14 90% 38%)",
+  "fonts": {
+    "heading": "Anton",
+    "body": "Archivo Narrow"
+  },
+  "demo": "demos/home.html?t=poulet-hotcluck"
+}

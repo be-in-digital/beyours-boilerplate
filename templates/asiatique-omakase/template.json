@@ -1,0 +1,13 @@
+{
+  "slug": "asiatique-omakase",
+  "category": "Asiatique",
+  "themeName": "Omakase",
+  "label": "Omakase — On vous laisse choisir pour vous",
+  "description": "On vous laisse choisir pour vous. registre numéroté, hero magazine.",
+  "primary": "hsl(220 15% 14%)",
+  "fonts": {
+    "heading": "Shippori Mincho",
+    "body": "IBM Plex Sans"
+  },
+  "demo": "demos/home.html?t=asiatique-omakase"
+}

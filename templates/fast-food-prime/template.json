@@ -1,0 +1,13 @@
+{
+  "slug": "fast-food-prime",
+  "category": "Fast-food",
+  "themeName": "Prime",
+  "label": "Prime — Le burger de boucher",
+  "description": "Le burger de boucher. registre numéroté, hero diagonale couleur / photo.",
+  "primary": "hsl(30 45% 32%)",
+  "fonts": {
+    "heading": "Cormorant Garamond",
+    "body": "Outfit"
+  },
+  "demo": "demos/home.html?t=fast-food-prime"
+}

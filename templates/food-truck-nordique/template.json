@@ -1,0 +1,13 @@
+{
+  "slug": "food-truck-nordique",
+  "category": "Food truck",
+  "themeName": "Nordique",
+  "label": "Nordique — Camion scandinave, pain noir",
+  "description": "Camion scandinave, pain noir. registre numéroté, hero épuré, aéré.",
+  "primary": "hsl(170 35% 32%)",
+  "fonts": {
+    "heading": "Familjen Grotesk",
+    "body": "Karla"
+  },
+  "demo": "demos/home.html?t=food-truck-nordique"
+}

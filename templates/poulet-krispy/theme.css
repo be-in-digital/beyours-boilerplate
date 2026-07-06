@@ -1,0 +1,84 @@
+/*
+ * Template « Krispy Krush » (Poulet) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « poulet-krispy »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 48 90% 96%;
+  --foreground: 25 45% 12%;
+  --card: 48 90% 98%;
+  --card-foreground: 25 45% 12%;
+  --popover: 48 90% 98%;
+  --popover-foreground: 25 45% 12%;
+  --primary: 26 90% 38%;
+  --primary-foreground: 48 90% 97%;
+  --secondary: 47 87% 91%;
+  --secondary-foreground: 25 45% 12%;
+  --muted: 47 87% 91%;
+  --muted-foreground: 33 60% 41%;
+  --accent: 48 95% 86%;
+  --accent-foreground: 35 75% 24%;
+  --border: 45 85% 86%;
+  --input: 45 85% 86%;
+  --ring: 26 90% 38%;
+  --chart-1: 26 90% 38%;
+  --chart-2: 176 55% 40%;
+  --chart-3: 71 70% 48%;
+  --chart-4: 226 45% 45%;
+  --chart-5: 326 50% 50%;
+}
+
+.dark {
+  --background: 25 30% 7%;
+  --foreground: 48 65% 93%;
+  --card: 25 30% 11%;
+  --card-foreground: 48 65% 93%;
+  --popover: 25 30% 11%;
+  --popover-foreground: 48 65% 93%;
+  --primary: 35 95% 58%;
+  --primary-foreground: 30 60% 8%;
+  --secondary: 27 33% 15%;
+  --secondary-foreground: 48 65% 93%;
+  --muted: 27 33% 15%;
+  --muted-foreground: 41 55% 67%;
+  --accent: 35 45% 14%;
+  --accent-foreground: 45 90% 74%;
+  --border: 28 35% 18%;
+  --input: 28 35% 18%;
+  --ring: 35 95% 58%;
+  --chart-1: 35 95% 58%;
+  --chart-2: 185 55% 52%;
+  --chart-3: 80 70% 55%;
+  --chart-4: 235 45% 55%;
+  --chart-5: 335 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(48 90% 98%);
+  --sidebar-foreground: hsl(25 45% 12%);
+  --sidebar-primary: hsl(26 90% 38%);
+  --sidebar-primary-foreground: hsl(48 90% 97%);
+  --sidebar-accent: hsl(48 95% 86%);
+  --sidebar-accent-foreground: hsl(35 75% 24%);
+  --sidebar-border: hsl(45 85% 86%);
+  --sidebar-ring: hsl(26 90% 38%);
+}
+
+.dark {
+  --sidebar: hsl(25 30% 11%);
+  --sidebar-foreground: hsl(48 65% 93%);
+  --sidebar-primary: hsl(35 95% 58%);
+  --sidebar-primary-foreground: hsl(30 60% 8%);
+  --sidebar-accent: hsl(35 45% 14%);
+  --sidebar-accent-foreground: hsl(45 90% 74%);
+  --sidebar-border: hsl(28 35% 18%);
+  --sidebar-ring: hsl(35 95% 58%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: 1.5rem;
+}

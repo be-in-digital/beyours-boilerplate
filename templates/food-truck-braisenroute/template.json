@@ -1,0 +1,13 @@
+{
+  "slug": "food-truck-braisenroute",
+  "category": "Food truck",
+  "themeName": "Braise en Route",
+  "label": "Braise en Route — BBQ fumé, remorque noire",
+  "description": "BBQ fumé, remorque noire. tickets empilés, hero pleine image.",
+  "primary": "hsl(15 70% 40%)",
+  "fonts": {
+    "heading": "Bebas Neue",
+    "body": "Hanken Grotesk"
+  },
+  "demo": "demos/home.html?t=food-truck-braisenroute"
+}

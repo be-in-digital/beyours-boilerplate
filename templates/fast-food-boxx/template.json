@@ -1,0 +1,13 @@
+{
+  "slug": "fast-food-boxx",
+  "category": "Fast-food",
+  "themeName": "BOXX",
+  "label": "BOXX — Burgers en boîte, design en briques",
+  "description": "Burgers en boîte, design en briques. bento, hero affiche typographique.",
+  "primary": "hsl(0 0% 9%)",
+  "fonts": {
+    "heading": "League Spartan",
+    "body": "Inter Tight"
+  },
+  "demo": "demos/home.html?t=fast-food-boxx"
+}

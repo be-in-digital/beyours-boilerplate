@@ -1,0 +1,84 @@
+/*
+ * Template « Seoul Street » (Food truck) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « food-truck-seoulstreet »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 0 0% 97%;
+  --foreground: 345 25% 12%;
+  --card: 0 0% 99%;
+  --card-foreground: 345 25% 12%;
+  --popover: 0 0% 99%;
+  --popover-foreground: 345 25% 12%;
+  --primary: 350 85% 46%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 21 2% 92%;
+  --secondary-foreground: 345 25% 12%;
+  --muted: 21 2% 92%;
+  --muted-foreground: 228 17% 41%;
+  --accent: 350 60% 93%;
+  --accent-foreground: 350 75% 30%;
+  --border: 41 3% 87%;
+  --input: 41 3% 87%;
+  --ring: 350 85% 46%;
+  --chart-1: 350 85% 46%;
+  --chart-2: 140 55% 40%;
+  --chart-3: 35 70% 48%;
+  --chart-4: 190 45% 45%;
+  --chart-5: 290 50% 50%;
+}
+
+.dark {
+  --background: 345 20% 7%;
+  --foreground: 0 0% 94%;
+  --card: 345 20% 11%;
+  --card-foreground: 0 0% 94%;
+  --popover: 345 20% 11%;
+  --popover-foreground: 0 0% 94%;
+  --primary: 350 90% 60%;
+  --primary-foreground: 345 20% 7%;
+  --secondary: 314 18% 15%;
+  --secondary-foreground: 0 0% 94%;
+  --muted: 314 18% 15%;
+  --muted-foreground: 104 6% 68%;
+  --accent: 348 40% 15%;
+  --accent-foreground: 350 80% 78%;
+  --border: 300 17% 18%;
+  --input: 300 17% 18%;
+  --ring: 350 90% 60%;
+  --chart-1: 350 90% 60%;
+  --chart-2: 140 55% 52%;
+  --chart-3: 35 70% 55%;
+  --chart-4: 190 45% 55%;
+  --chart-5: 290 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(0 0% 99%);
+  --sidebar-foreground: hsl(345 25% 12%);
+  --sidebar-primary: hsl(350 85% 46%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(350 60% 93%);
+  --sidebar-accent-foreground: hsl(350 75% 30%);
+  --sidebar-border: hsl(41 3% 87%);
+  --sidebar-ring: hsl(350 85% 46%);
+}
+
+.dark {
+  --sidebar: hsl(345 20% 11%);
+  --sidebar-foreground: hsl(0 0% 94%);
+  --sidebar-primary: hsl(350 90% 60%);
+  --sidebar-primary-foreground: hsl(345 20% 7%);
+  --sidebar-accent: hsl(348 40% 15%);
+  --sidebar-accent-foreground: hsl(350 80% 78%);
+  --sidebar-border: hsl(300 17% 18%);
+  --sidebar-ring: hsl(350 90% 60%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .5rem;
+}

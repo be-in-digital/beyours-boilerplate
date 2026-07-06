@@ -1,0 +1,84 @@
+/*
+ * Template « Bánh Mì Club » (Asiatique) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « asiatique-banhmi »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 55 60% 96%;
+  --foreground: 95 30% 13%;
+  --card: 55 60% 98%;
+  --card-foreground: 95 30% 13%;
+  --popover: 55 60% 98%;
+  --popover-foreground: 95 30% 13%;
+  --primary: 95 55% 32%;
+  --primary-foreground: 55 70% 97%;
+  --secondary: 57 58% 91%;
+  --secondary-foreground: 95 30% 13%;
+  --muted: 57 58% 91%;
+  --muted-foreground: 81 40% 41%;
+  --accent: 18 80% 89%;
+  --accent-foreground: 16 70% 28%;
+  --border: 60 56% 86%;
+  --input: 60 56% 86%;
+  --ring: 95 55% 32%;
+  --chart-1: 95 55% 32%;
+  --chart-2: 245 55% 40%;
+  --chart-3: 140 70% 48%;
+  --chart-4: 295 45% 45%;
+  --chart-5: 35 50% 50%;
+}
+
+.dark {
+  --background: 95 20% 8%;
+  --foreground: 55 40% 92%;
+  --card: 95 20% 12%;
+  --card-foreground: 55 40% 92%;
+  --popover: 95 20% 12%;
+  --popover-foreground: 55 40% 92%;
+  --primary: 90 50% 48%;
+  --primary-foreground: 95 30% 8%;
+  --secondary: 91 22% 16%;
+  --secondary-foreground: 55 40% 92%;
+  --muted: 91 22% 16%;
+  --muted-foreground: 67 34% 67%;
+  --accent: 18 45% 15%;
+  --accent-foreground: 20 70% 74%;
+  --border: 90 23% 19%;
+  --input: 90 23% 19%;
+  --ring: 90 50% 48%;
+  --chart-1: 90 50% 48%;
+  --chart-2: 240 55% 52%;
+  --chart-3: 135 70% 55%;
+  --chart-4: 290 45% 55%;
+  --chart-5: 30 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(55 60% 98%);
+  --sidebar-foreground: hsl(95 30% 13%);
+  --sidebar-primary: hsl(95 55% 32%);
+  --sidebar-primary-foreground: hsl(55 70% 97%);
+  --sidebar-accent: hsl(18 80% 89%);
+  --sidebar-accent-foreground: hsl(16 70% 28%);
+  --sidebar-border: hsl(60 56% 86%);
+  --sidebar-ring: hsl(95 55% 32%);
+}
+
+.dark {
+  --sidebar: hsl(95 20% 12%);
+  --sidebar-foreground: hsl(55 40% 92%);
+  --sidebar-primary: hsl(90 50% 48%);
+  --sidebar-primary-foreground: hsl(95 30% 8%);
+  --sidebar-accent: hsl(18 45% 15%);
+  --sidebar-accent-foreground: hsl(20 70% 74%);
+  --sidebar-border: hsl(90 23% 19%);
+  --sidebar-ring: hsl(90 50% 48%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: 1rem;
+}

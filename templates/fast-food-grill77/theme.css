@@ -1,0 +1,84 @@
+/*
+ * Template « Grill 77 » (Fast-food) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « fast-food-grill77 »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 30 15% 95%;
+  --foreground: 20 15% 9%;
+  --card: 30 15% 97%;
+  --card-foreground: 20 15% 9%;
+  --popover: 30 15% 97%;
+  --popover-foreground: 20 15% 9%;
+  --primary: 20 85% 36%;
+  --primary-foreground: 30 25% 96%;
+  --secondary: 29 15% 90%;
+  --secondary-foreground: 20 15% 9%;
+  --muted: 29 15% 90%;
+  --muted-foreground: 23 15% 38%;
+  --accent: 20 55% 91%;
+  --accent-foreground: 20 75% 26%;
+  --border: 29 15% 85%;
+  --input: 29 15% 85%;
+  --ring: 20 85% 36%;
+  --chart-1: 20 85% 36%;
+  --chart-2: 170 55% 40%;
+  --chart-3: 65 70% 48%;
+  --chart-4: 220 45% 45%;
+  --chart-5: 320 50% 50%;
+}
+
+.dark {
+  --background: 20 12% 6%;
+  --foreground: 30 15% 92%;
+  --card: 20 12% 10%;
+  --card-foreground: 30 15% 92%;
+  --popover: 20 12% 10%;
+  --popover-foreground: 30 15% 92%;
+  --primary: 22 88% 52%;
+  --primary-foreground: 20 25% 6%;
+  --secondary: 21 12% 14%;
+  --secondary-foreground: 30 15% 92%;
+  --muted: 21 12% 14%;
+  --muted-foreground: 27 14% 66%;
+  --accent: 20 40% 13%;
+  --accent-foreground: 24 80% 72%;
+  --border: 21 12% 17%;
+  --input: 21 12% 17%;
+  --ring: 22 88% 52%;
+  --chart-1: 22 88% 52%;
+  --chart-2: 172 55% 52%;
+  --chart-3: 67 70% 55%;
+  --chart-4: 222 45% 55%;
+  --chart-5: 322 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(30 15% 97%);
+  --sidebar-foreground: hsl(20 15% 9%);
+  --sidebar-primary: hsl(20 85% 36%);
+  --sidebar-primary-foreground: hsl(30 25% 96%);
+  --sidebar-accent: hsl(20 55% 91%);
+  --sidebar-accent-foreground: hsl(20 75% 26%);
+  --sidebar-border: hsl(29 15% 85%);
+  --sidebar-ring: hsl(20 85% 36%);
+}
+
+.dark {
+  --sidebar: hsl(20 12% 10%);
+  --sidebar-foreground: hsl(30 15% 92%);
+  --sidebar-primary: hsl(22 88% 52%);
+  --sidebar-primary-foreground: hsl(20 25% 6%);
+  --sidebar-accent: hsl(20 40% 13%);
+  --sidebar-accent-foreground: hsl(24 80% 72%);
+  --sidebar-border: hsl(21 12% 17%);
+  --sidebar-ring: hsl(22 88% 52%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .25rem;
+}

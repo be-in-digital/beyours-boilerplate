@@ -1,0 +1,84 @@
+/*
+ * Template « Braise en Route » (Food truck) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « food-truck-braisenroute »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 30 15% 94%;
+  --foreground: 15 20% 9%;
+  --card: 30 15% 96%;
+  --card-foreground: 15 20% 9%;
+  --popover: 30 15% 96%;
+  --popover-foreground: 15 20% 9%;
+  --primary: 15 70% 40%;
+  --primary-foreground: 30 30% 96%;
+  --secondary: 29 15% 89%;
+  --secondary-foreground: 15 20% 9%;
+  --muted: 29 15% 89%;
+  --muted-foreground: 20 18% 38%;
+  --accent: 15 45% 90%;
+  --accent-foreground: 15 60% 25%;
+  --border: 28 16% 84%;
+  --input: 28 16% 84%;
+  --ring: 15 70% 40%;
+  --chart-1: 15 70% 40%;
+  --chart-2: 165 55% 40%;
+  --chart-3: 60 70% 48%;
+  --chart-4: 215 45% 45%;
+  --chart-5: 315 50% 50%;
+}
+
+.dark {
+  --background: 15 15% 6%;
+  --foreground: 30 18% 91%;
+  --card: 15 15% 10%;
+  --card-foreground: 30 18% 91%;
+  --popover: 15 15% 10%;
+  --popover-foreground: 30 18% 91%;
+  --primary: 18 80% 52%;
+  --primary-foreground: 15 25% 6%;
+  --secondary: 16 15% 14%;
+  --secondary-foreground: 30 18% 91%;
+  --muted: 16 15% 14%;
+  --muted-foreground: 26 17% 66%;
+  --accent: 15 35% 13%;
+  --accent-foreground: 20 70% 72%;
+  --border: 17 15% 17%;
+  --input: 17 15% 17%;
+  --ring: 18 80% 52%;
+  --chart-1: 18 80% 52%;
+  --chart-2: 168 55% 52%;
+  --chart-3: 63 70% 55%;
+  --chart-4: 218 45% 55%;
+  --chart-5: 318 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(30 15% 96%);
+  --sidebar-foreground: hsl(15 20% 9%);
+  --sidebar-primary: hsl(15 70% 40%);
+  --sidebar-primary-foreground: hsl(30 30% 96%);
+  --sidebar-accent: hsl(15 45% 90%);
+  --sidebar-accent-foreground: hsl(15 60% 25%);
+  --sidebar-border: hsl(28 16% 84%);
+  --sidebar-ring: hsl(15 70% 40%);
+}
+
+.dark {
+  --sidebar: hsl(15 15% 10%);
+  --sidebar-foreground: hsl(30 18% 91%);
+  --sidebar-primary: hsl(18 80% 52%);
+  --sidebar-primary-foreground: hsl(15 25% 6%);
+  --sidebar-accent: hsl(15 35% 13%);
+  --sidebar-accent-foreground: hsl(20 70% 72%);
+  --sidebar-border: hsl(17 15% 17%);
+  --sidebar-ring: hsl(18 80% 52%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .25rem;
+}

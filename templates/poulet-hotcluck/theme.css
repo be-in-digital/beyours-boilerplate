@@ -1,0 +1,84 @@
+/*
+ * Template « Hot Cluck » (Poulet) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « poulet-hotcluck »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 20 30% 95%;
+  --foreground: 0 0% 8%;
+  --card: 20 30% 97%;
+  --card-foreground: 0 0% 8%;
+  --popover: 20 30% 97%;
+  --popover-foreground: 0 0% 8%;
+  --primary: 14 90% 38%;
+  --primary-foreground: 20 60% 96%;
+  --secondary: 19 28% 90%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 19 28% 90%;
+  --muted-foreground: 7 10% 38%;
+  --accent: 14 70% 90%;
+  --accent-foreground: 14 75% 26%;
+  --border: 18 26% 85%;
+  --input: 18 26% 85%;
+  --ring: 14 90% 38%;
+  --chart-1: 14 90% 38%;
+  --chart-2: 164 55% 40%;
+  --chart-3: 59 70% 48%;
+  --chart-4: 214 45% 45%;
+  --chart-5: 314 50% 50%;
+}
+
+.dark {
+  --background: 0 0% 6%;
+  --foreground: 20 25% 92%;
+  --card: 0 0% 10%;
+  --card-foreground: 20 25% 92%;
+  --popover: 0 0% 10%;
+  --popover-foreground: 20 25% 92%;
+  --primary: 14 92% 55%;
+  --primary-foreground: 0 0% 7%;
+  --secondary: 2 2% 14%;
+  --secondary-foreground: 20 25% 92%;
+  --muted: 2 2% 14%;
+  --muted-foreground: 14 18% 66%;
+  --accent: 14 45% 13%;
+  --accent-foreground: 16 85% 74%;
+  --border: 3 3% 17%;
+  --input: 3 3% 17%;
+  --ring: 14 92% 55%;
+  --chart-1: 14 92% 55%;
+  --chart-2: 164 55% 52%;
+  --chart-3: 59 70% 55%;
+  --chart-4: 214 45% 55%;
+  --chart-5: 314 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(20 30% 97%);
+  --sidebar-foreground: hsl(0 0% 8%);
+  --sidebar-primary: hsl(14 90% 38%);
+  --sidebar-primary-foreground: hsl(20 60% 96%);
+  --sidebar-accent: hsl(14 70% 90%);
+  --sidebar-accent-foreground: hsl(14 75% 26%);
+  --sidebar-border: hsl(18 26% 85%);
+  --sidebar-ring: hsl(14 90% 38%);
+}
+
+.dark {
+  --sidebar: hsl(0 0% 10%);
+  --sidebar-foreground: hsl(20 25% 92%);
+  --sidebar-primary: hsl(14 92% 55%);
+  --sidebar-primary-foreground: hsl(0 0% 7%);
+  --sidebar-accent: hsl(14 45% 13%);
+  --sidebar-accent-foreground: hsl(16 85% 74%);
+  --sidebar-border: hsl(3 3% 17%);
+  --sidebar-ring: hsl(14 92% 55%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: 0rem;
+}

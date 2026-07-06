@@ -1,0 +1,84 @@
+/*
+ * Template « Wok Street » (Asiatique) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « asiatique-wokstreet »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 0 0% 97%;
+  --foreground: 20 20% 10%;
+  --card: 0 0% 99%;
+  --card-foreground: 20 20% 10%;
+  --popover: 0 0% 99%;
+  --popover-foreground: 20 20% 10%;
+  --primary: 16 85% 41%;
+  --primary-foreground: 0 0% 99%;
+  --secondary: 1 1% 92%;
+  --secondary-foreground: 20 20% 10%;
+  --muted: 1 1% 92%;
+  --muted-foreground: 13 13% 40%;
+  --accent: 16 60% 93%;
+  --accent-foreground: 16 75% 30%;
+  --border: 2 2% 87%;
+  --input: 2 2% 87%;
+  --ring: 16 85% 41%;
+  --chart-1: 16 85% 41%;
+  --chart-2: 166 55% 40%;
+  --chart-3: 61 70% 48%;
+  --chart-4: 216 45% 45%;
+  --chart-5: 316 50% 50%;
+}
+
+.dark {
+  --background: 20 18% 7%;
+  --foreground: 0 0% 94%;
+  --card: 20 18% 11%;
+  --card-foreground: 0 0% 94%;
+  --popover: 20 18% 11%;
+  --popover-foreground: 0 0% 94%;
+  --primary: 16 90% 58%;
+  --primary-foreground: 20 30% 7%;
+  --secondary: 18 16% 15%;
+  --secondary-foreground: 0 0% 94%;
+  --muted: 18 16% 15%;
+  --muted-foreground: 6 5% 68%;
+  --accent: 16 45% 14%;
+  --accent-foreground: 18 80% 76%;
+  --border: 17 16% 18%;
+  --input: 17 16% 18%;
+  --ring: 16 90% 58%;
+  --chart-1: 16 90% 58%;
+  --chart-2: 166 55% 52%;
+  --chart-3: 61 70% 55%;
+  --chart-4: 216 45% 55%;
+  --chart-5: 316 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(0 0% 99%);
+  --sidebar-foreground: hsl(20 20% 10%);
+  --sidebar-primary: hsl(16 85% 41%);
+  --sidebar-primary-foreground: hsl(0 0% 99%);
+  --sidebar-accent: hsl(16 60% 93%);
+  --sidebar-accent-foreground: hsl(16 75% 30%);
+  --sidebar-border: hsl(2 2% 87%);
+  --sidebar-ring: hsl(16 85% 41%);
+}
+
+.dark {
+  --sidebar: hsl(20 18% 11%);
+  --sidebar-foreground: hsl(0 0% 94%);
+  --sidebar-primary: hsl(16 90% 58%);
+  --sidebar-primary-foreground: hsl(20 30% 7%);
+  --sidebar-accent: hsl(16 45% 14%);
+  --sidebar-accent-foreground: hsl(18 80% 76%);
+  --sidebar-border: hsl(17 16% 18%);
+  --sidebar-ring: hsl(16 90% 58%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .75rem;
+}

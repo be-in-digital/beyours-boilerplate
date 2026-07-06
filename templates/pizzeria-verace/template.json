@@ -1,0 +1,13 @@
+{
+  "slug": "pizzeria-verace",
+  "category": "Pizzeria",
+  "themeName": "Verace",
+  "label": "Verace — Pizza napolitaine, basta",
+  "description": "Pizza napolitaine, basta. colonne unique en filets fins, hero épuré, aéré.",
+  "primary": "hsl(145 45% 26%)",
+  "fonts": {
+    "heading": "Familjen Grotesk",
+    "body": "Karla"
+  },
+  "demo": "demos/home.html?t=pizzeria-verace"
+}

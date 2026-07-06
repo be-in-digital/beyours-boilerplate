@@ -1,0 +1,13 @@
+{
+  "slug": "asiatique-matcha",
+  "category": "Asiatique",
+  "themeName": "Matcha",
+  "label": "Matcha — Salon de thé et petites assiettes",
+  "description": "Salon de thé et petites assiettes. registre numéroté, hero épuré, aéré.",
+  "primary": "hsl(88 30% 34%)",
+  "fonts": {
+    "heading": "Zen Old Mincho",
+    "body": "Noto Sans"
+  },
+  "demo": "demos/home.html?t=asiatique-matcha"
+}

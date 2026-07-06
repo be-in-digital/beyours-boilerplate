@@ -1,0 +1,13 @@
+{
+  "slug": "poulet-bouillon",
+  "category": "Poulet",
+  "themeName": "Le Bouillon",
+  "label": "Le Bouillon — Poule au pot et volailles rôties",
+  "description": "Poule au pot et volailles rôties. registre numéroté, hero magazine.",
+  "primary": "hsl(355 60% 34%)",
+  "fonts": {
+    "heading": "Cormorant Garamond",
+    "body": "Outfit"
+  },
+  "demo": "demos/home.html?t=poulet-bouillon"
+}

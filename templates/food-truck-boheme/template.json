@@ -1,0 +1,13 @@
+{
+  "slug": "food-truck-boheme",
+  "category": "Food truck",
+  "themeName": "Bohème",
+  "label": "Bohème — Le van qui suit le soleil",
+  "description": "Le van qui suit le soleil. colonne unique en filets fins, hero collage.",
+  "primary": "hsl(335 55% 44%)",
+  "fonts": {
+    "heading": "Cormorant Garamond",
+    "body": "Outfit"
+  },
+  "demo": "demos/home.html?t=food-truck-boheme"
+}

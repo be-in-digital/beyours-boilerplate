@@ -1,0 +1,13 @@
+{
+  "slug": "asiatique-wokstreet",
+  "category": "Asiatique",
+  "themeName": "Wok Street",
+  "label": "Wok Street — Feu vif, wok qui claque",
+  "description": "Feu vif, wok qui claque. onglets collants, hero pleine image.",
+  "primary": "hsl(16 85% 41%)",
+  "fonts": {
+    "heading": "Bricolage Grotesque",
+    "body": "Archivo"
+  },
+  "demo": "demos/home.html?t=asiatique-wokstreet"
+}

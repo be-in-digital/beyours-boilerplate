@@ -1,0 +1,13 @@
+{
+  "slug": "fast-food-drivein",
+  "category": "Fast-food",
+  "themeName": "Drive-In",
+  "label": "Drive-In — Commande roulante depuis 1987",
+  "description": "Commande roulante depuis 1987. cartes photo, hero tableau des emplacements.",
+  "primary": "hsl(205 80% 40%)",
+  "fonts": {
+    "heading": "Passion One",
+    "body": "Gabarito"
+  },
+  "demo": "demos/home.html?t=fast-food-drivein"
+}

@@ -1,0 +1,13 @@
+{
+  "slug": "food-truck-pitstop",
+  "category": "Food truck",
+  "themeName": "Pit Stop",
+  "label": "Pit Stop — Ravitaillement express",
+  "description": "Ravitaillement express. bento, hero affiche typographique.",
+  "primary": "hsl(0 85% 45%)",
+  "fonts": {
+    "heading": "Saira Condensed",
+    "body": "Onest"
+  },
+  "demo": "demos/home.html?t=food-truck-pitstop"
+}

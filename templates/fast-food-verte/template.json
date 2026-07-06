@@ -1,0 +1,13 @@
+{
+  "slug": "fast-food-verte",
+  "category": "Fast-food",
+  "themeName": "La Verte",
+  "label": "La Verte — Fast-food, bonne conscience",
+  "description": "Fast-food, bonne conscience. cartes photo, hero épuré, aéré.",
+  "primary": "hsl(150 45% 30%)",
+  "fonts": {
+    "heading": "Sora",
+    "body": "Manrope"
+  },
+  "demo": "demos/home.html?t=fast-food-verte"
+}

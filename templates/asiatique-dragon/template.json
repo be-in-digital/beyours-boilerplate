@@ -1,0 +1,13 @@
+{
+  "slug": "asiatique-dragon",
+  "category": "Asiatique",
+  "themeName": "Dragon",
+  "label": "Dragon — Banquet cantonais, laque et or",
+  "description": "Banquet cantonais, laque et or. mosaïque photo, hero diagonale couleur / photo.",
+  "primary": "hsl(42 70% 40%)",
+  "fonts": {
+    "heading": "Playfair Display",
+    "body": "Public Sans"
+  },
+  "demo": "demos/home.html?t=asiatique-dragon"
+}

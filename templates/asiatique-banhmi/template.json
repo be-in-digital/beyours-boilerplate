@@ -1,0 +1,13 @@
+{
+  "slug": "asiatique-banhmi",
+  "category": "Asiatique",
+  "themeName": "Bánh Mì Club",
+  "label": "Bánh Mì Club — Baguette croustillante, cœur vietnamien",
+  "description": "Baguette croustillante, cœur vietnamien. cartes photo, hero collage.",
+  "primary": "hsl(95 55% 32%)",
+  "fonts": {
+    "heading": "Gabarito",
+    "body": "Onest"
+  },
+  "demo": "demos/home.html?t=asiatique-banhmi"
+}

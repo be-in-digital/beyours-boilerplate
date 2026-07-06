@@ -1,0 +1,13 @@
+{
+  "slug": "asiatique-sichuan",
+  "category": "Asiatique",
+  "themeName": "Sichuan",
+  "label": "Sichuan — Poivre qui engourdit, feu qui réveille",
+  "description": "Poivre qui engourdit, feu qui réveille. bento, hero affiche typographique.",
+  "primary": "hsl(0 82% 45%)",
+  "fonts": {
+    "heading": "Anton",
+    "body": "Archivo Narrow"
+  },
+  "demo": "demos/home.html?t=asiatique-sichuan"
+}

@@ -1,0 +1,84 @@
+/*
+ * Template « Diner 56 » (Fast-food) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « fast-food-dinerclassic »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 160 30% 96%;
+  --foreground: 200 30% 12%;
+  --card: 160 30% 98%;
+  --card-foreground: 200 30% 12%;
+  --popover: 160 30% 98%;
+  --popover-foreground: 200 30% 12%;
+  --primary: 350 75% 45%;
+  --primary-foreground: 160 40% 97%;
+  --secondary: 162 30% 91%;
+  --secondary-foreground: 200 30% 12%;
+  --muted: 162 30% 91%;
+  --muted-foreground: 186 30% 41%;
+  --accent: 160 45% 88%;
+  --accent-foreground: 170 45% 20%;
+  --border: 165 30% 86%;
+  --input: 165 30% 86%;
+  --ring: 350 75% 45%;
+  --chart-1: 350 75% 45%;
+  --chart-2: 140 55% 40%;
+  --chart-3: 35 70% 48%;
+  --chart-4: 190 45% 45%;
+  --chart-5: 290 50% 50%;
+}
+
+.dark {
+  --background: 205 30% 9%;
+  --foreground: 160 20% 93%;
+  --card: 205 30% 13%;
+  --card-foreground: 160 20% 93%;
+  --popover: 205 30% 13%;
+  --popover-foreground: 160 20% 93%;
+  --primary: 350 80% 60%;
+  --primary-foreground: 200 30% 9%;
+  --secondary: 201 29% 17%;
+  --secondary-foreground: 160 20% 93%;
+  --muted: 201 29% 17%;
+  --muted-foreground: 174 23% 68%;
+  --accent: 170 30% 15%;
+  --accent-foreground: 165 45% 70%;
+  --border: 199 29% 20%;
+  --input: 199 29% 20%;
+  --ring: 350 80% 60%;
+  --chart-1: 350 80% 60%;
+  --chart-2: 140 55% 52%;
+  --chart-3: 35 70% 55%;
+  --chart-4: 190 45% 55%;
+  --chart-5: 290 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(160 30% 98%);
+  --sidebar-foreground: hsl(200 30% 12%);
+  --sidebar-primary: hsl(350 75% 45%);
+  --sidebar-primary-foreground: hsl(160 40% 97%);
+  --sidebar-accent: hsl(160 45% 88%);
+  --sidebar-accent-foreground: hsl(170 45% 20%);
+  --sidebar-border: hsl(165 30% 86%);
+  --sidebar-ring: hsl(350 75% 45%);
+}
+
+.dark {
+  --sidebar: hsl(205 30% 13%);
+  --sidebar-foreground: hsl(160 20% 93%);
+  --sidebar-primary: hsl(350 80% 60%);
+  --sidebar-primary-foreground: hsl(200 30% 9%);
+  --sidebar-accent: hsl(170 30% 15%);
+  --sidebar-accent-foreground: hsl(165 45% 70%);
+  --sidebar-border: hsl(199 29% 20%);
+  --sidebar-ring: hsl(350 80% 60%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: 1.25rem;
+}

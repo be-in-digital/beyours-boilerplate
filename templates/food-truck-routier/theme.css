@@ -1,0 +1,84 @@
+/*
+ * Template « Le Routier » (Food truck) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « food-truck-routier »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 210 20% 96%;
+  --foreground: 215 35% 13%;
+  --card: 210 20% 98%;
+  --card-foreground: 215 35% 13%;
+  --popover: 210 20% 98%;
+  --popover-foreground: 215 35% 13%;
+  --primary: 215 60% 30%;
+  --primary-foreground: 210 30% 97%;
+  --secondary: 210 21% 91%;
+  --secondary-foreground: 215 35% 13%;
+  --muted: 210 21% 91%;
+  --muted-foreground: 213 30% 41%;
+  --accent: 28 80% 89%;
+  --accent-foreground: 25 70% 27%;
+  --border: 211 22% 86%;
+  --input: 211 22% 86%;
+  --ring: 215 60% 30%;
+  --chart-1: 215 60% 30%;
+  --chart-2: 5 55% 40%;
+  --chart-3: 260 70% 48%;
+  --chart-4: 55 45% 45%;
+  --chart-5: 155 50% 50%;
+}
+
+.dark {
+  --background: 215 30% 8%;
+  --foreground: 210 15% 92%;
+  --card: 215 30% 12%;
+  --card-foreground: 210 15% 92%;
+  --popover: 215 30% 12%;
+  --popover-foreground: 210 15% 92%;
+  --primary: 212 55% 52%;
+  --primary-foreground: 215 40% 8%;
+  --secondary: 215 29% 16%;
+  --secondary-foreground: 210 15% 92%;
+  --muted: 215 29% 16%;
+  --muted-foreground: 212 20% 67%;
+  --accent: 215 30% 15%;
+  --accent-foreground: 210 50% 74%;
+  --border: 214 28% 19%;
+  --input: 214 28% 19%;
+  --ring: 212 55% 52%;
+  --chart-1: 212 55% 52%;
+  --chart-2: 2 55% 52%;
+  --chart-3: 257 70% 55%;
+  --chart-4: 52 45% 55%;
+  --chart-5: 152 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(210 20% 98%);
+  --sidebar-foreground: hsl(215 35% 13%);
+  --sidebar-primary: hsl(215 60% 30%);
+  --sidebar-primary-foreground: hsl(210 30% 97%);
+  --sidebar-accent: hsl(28 80% 89%);
+  --sidebar-accent-foreground: hsl(25 70% 27%);
+  --sidebar-border: hsl(211 22% 86%);
+  --sidebar-ring: hsl(215 60% 30%);
+}
+
+.dark {
+  --sidebar: hsl(215 30% 12%);
+  --sidebar-foreground: hsl(210 15% 92%);
+  --sidebar-primary: hsl(212 55% 52%);
+  --sidebar-primary-foreground: hsl(215 40% 8%);
+  --sidebar-accent: hsl(215 30% 15%);
+  --sidebar-accent-foreground: hsl(210 50% 74%);
+  --sidebar-border: hsl(214 28% 19%);
+  --sidebar-ring: hsl(212 55% 52%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .25rem;
+}

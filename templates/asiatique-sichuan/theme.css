@@ -1,0 +1,84 @@
+/*
+ * Template « Sichuan » (Asiatique) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « asiatique-sichuan »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 0 0% 96%;
+  --foreground: 0 0% 9%;
+  --card: 0 0% 98%;
+  --card-foreground: 0 0% 9%;
+  --popover: 0 0% 98%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 0 82% 45%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 91%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 91%;
+  --muted-foreground: 0 0% 39%;
+  --accent: 0 55% 92%;
+  --accent-foreground: 0 70% 28%;
+  --border: 0 0% 86%;
+  --input: 0 0% 86%;
+  --ring: 0 82% 45%;
+  --chart-1: 0 82% 45%;
+  --chart-2: 150 55% 40%;
+  --chart-3: 45 70% 48%;
+  --chart-4: 200 45% 45%;
+  --chart-5: 300 50% 50%;
+}
+
+.dark {
+  --background: 0 10% 6%;
+  --foreground: 0 0% 94%;
+  --card: 0 10% 10%;
+  --card-foreground: 0 0% 94%;
+  --popover: 0 10% 10%;
+  --popover-foreground: 0 0% 94%;
+  --primary: 0 85% 57%;
+  --primary-foreground: 0 0% 7%;
+  --secondary: 0 9% 14%;
+  --secondary-foreground: 0 0% 94%;
+  --muted: 0 9% 14%;
+  --muted-foreground: 0 3% 68%;
+  --accent: 0 45% 14%;
+  --accent-foreground: 0 75% 77%;
+  --border: 0 9% 17%;
+  --input: 0 9% 17%;
+  --ring: 0 85% 57%;
+  --chart-1: 0 85% 57%;
+  --chart-2: 150 55% 52%;
+  --chart-3: 45 70% 55%;
+  --chart-4: 200 45% 55%;
+  --chart-5: 300 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(0 0% 98%);
+  --sidebar-foreground: hsl(0 0% 9%);
+  --sidebar-primary: hsl(0 82% 45%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(0 55% 92%);
+  --sidebar-accent-foreground: hsl(0 70% 28%);
+  --sidebar-border: hsl(0 0% 86%);
+  --sidebar-ring: hsl(0 82% 45%);
+}
+
+.dark {
+  --sidebar: hsl(0 10% 10%);
+  --sidebar-foreground: hsl(0 0% 94%);
+  --sidebar-primary: hsl(0 85% 57%);
+  --sidebar-primary-foreground: hsl(0 0% 7%);
+  --sidebar-accent: hsl(0 45% 14%);
+  --sidebar-accent-foreground: hsl(0 75% 77%);
+  --sidebar-border: hsl(0 9% 17%);
+  --sidebar-ring: hsl(0 85% 57%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .25rem;
+}

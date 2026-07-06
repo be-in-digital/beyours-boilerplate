@@ -1,0 +1,84 @@
+/*
+ * Template « Vesuvio » (Pizzeria) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « pizzeria-vesuvio »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 45 60% 96%;
+  --foreground: 0 0% 9%;
+  --card: 45 60% 98%;
+  --card-foreground: 0 0% 9%;
+  --popover: 45 60% 98%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 0 78% 44%;
+  --primary-foreground: 45 80% 96%;
+  --secondary: 42 56% 91%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 42 56% 91%;
+  --muted-foreground: 15 20% 39%;
+  --accent: 45 90% 88%;
+  --accent-foreground: 20 80% 25%;
+  --border: 40 53% 86%;
+  --input: 40 53% 86%;
+  --ring: 0 78% 44%;
+  --chart-1: 0 78% 44%;
+  --chart-2: 150 55% 40%;
+  --chart-3: 45 70% 48%;
+  --chart-4: 200 45% 45%;
+  --chart-5: 300 50% 50%;
+}
+
+.dark {
+  --background: 0 0% 7%;
+  --foreground: 45 40% 93%;
+  --card: 0 0% 11%;
+  --card-foreground: 45 40% 93%;
+  --popover: 0 0% 11%;
+  --popover-foreground: 45 40% 93%;
+  --primary: 0 80% 58%;
+  --primary-foreground: 0 0% 8%;
+  --secondary: 4 4% 15%;
+  --secondary-foreground: 45 40% 93%;
+  --muted: 4 4% 15%;
+  --muted-foreground: 32 28% 67%;
+  --accent: 0 45% 14%;
+  --accent-foreground: 0 75% 76%;
+  --border: 6 5% 18%;
+  --input: 6 5% 18%;
+  --ring: 0 80% 58%;
+  --chart-1: 0 80% 58%;
+  --chart-2: 150 55% 52%;
+  --chart-3: 45 70% 55%;
+  --chart-4: 200 45% 55%;
+  --chart-5: 300 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(45 60% 98%);
+  --sidebar-foreground: hsl(0 0% 9%);
+  --sidebar-primary: hsl(0 78% 44%);
+  --sidebar-primary-foreground: hsl(45 80% 96%);
+  --sidebar-accent: hsl(45 90% 88%);
+  --sidebar-accent-foreground: hsl(20 80% 25%);
+  --sidebar-border: hsl(40 53% 86%);
+  --sidebar-ring: hsl(0 78% 44%);
+}
+
+.dark {
+  --sidebar: hsl(0 0% 11%);
+  --sidebar-foreground: hsl(45 40% 93%);
+  --sidebar-primary: hsl(0 80% 58%);
+  --sidebar-primary-foreground: hsl(0 0% 8%);
+  --sidebar-accent: hsl(0 45% 14%);
+  --sidebar-accent-foreground: hsl(0 75% 76%);
+  --sidebar-border: hsl(6 5% 18%);
+  --sidebar-ring: hsl(0 80% 58%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .25rem;
+}

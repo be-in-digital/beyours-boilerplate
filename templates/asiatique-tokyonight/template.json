@@ -1,0 +1,13 @@
+{
+  "slug": "asiatique-tokyonight",
+  "category": "Asiatique",
+  "themeName": "Tokyo Night",
+  "label": "Tokyo Night — Ramen bar de minuit",
+  "description": "Ramen bar de minuit. onglets collants, hero bandeau direct.",
+  "primary": "hsl(355 85% 45%)",
+  "fonts": {
+    "heading": "Space Grotesk",
+    "body": "Karla"
+  },
+  "demo": "demos/home.html?t=asiatique-tokyonight"
+}

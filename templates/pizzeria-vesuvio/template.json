@@ -1,0 +1,13 @@
+{
+  "slug": "pizzeria-vesuvio",
+  "category": "Pizzeria",
+  "themeName": "Vesuvio",
+  "label": "Vesuvio — La pizza qui gronde",
+  "description": "La pizza qui gronde. bento, hero affiche typographique.",
+  "primary": "hsl(0 78% 44%)",
+  "fonts": {
+    "heading": "Anton",
+    "body": "Archivo Narrow"
+  },
+  "demo": "demos/home.html?t=pizzeria-vesuvio"
+}

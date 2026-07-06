@@ -1,10 +1,17 @@
 # Templates design — catalogue
 
-Cinq directions artistiques prêtes à l'emploi, une par vertical restaurant,
-plus le neutre engine. Un template pose l'identité visuelle complète d'un
-site (couleurs clair/sombre, sidebar admin, graphiques dashboard, polices,
-langue de formes) dans la **zone client** : choisir le template à la création
-du site, puis ajuster les couleurs à l'image du client dans `site/theme.css`.
+**50 directions artistiques** (10 par vertical restaurant) + le neutre engine.
+Un template pose l'identité visuelle complète d'un site (couleurs clair/sombre,
+sidebar admin, graphiques dashboard, polices, langue de formes) dans la
+**zone client** : choisir le template à la création du site, puis ajuster les
+couleurs à l'image du client dans `site/theme.css`.
+
+Les 5 directions phares (une par vertical) sont détaillées ci-dessous et
+maintenues à la main. Les 45 autres (`<catégorie>-<thème>`, ex.
+`pizzeria-milano`, `asiatique-omakase`) sont **générées depuis les identités
+de démo** (`node scripts/gen-templates.mjs`, source :
+`demos/assets/themes.js`) : chaque `template.json` pointe vers l'aperçu
+interactif `demos/home.html?t=<slug>`. `pnpm template:list` les liste tous.
 
 | Slug | Direction | Signature | Titres / Texte |
 | --- | --- | --- | --- |

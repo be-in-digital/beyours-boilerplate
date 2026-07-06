@@ -1,0 +1,13 @@
+{
+  "slug": "pizzeria-doppiozero",
+  "category": "Pizzeria",
+  "themeName": "Doppio Zero",
+  "label": "Doppio Zero — Farine 00, design 0 fioriture",
+  "description": "Farine 00, design 0 fioriture. registre numéroté, hero bandeau direct.",
+  "primary": "hsl(240 8% 12%)",
+  "fonts": {
+    "heading": "Sora",
+    "body": "Manrope"
+  },
+  "demo": "demos/home.html?t=pizzeria-doppiozero"
+}

@@ -1,0 +1,84 @@
+/*
+ * Template « Milano » (Pizzeria) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « pizzeria-milano »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 0 0% 98%;
+  --foreground: 0 0% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+  --primary: 352 78% 40%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 93%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 0 0% 93%;
+  --muted-foreground: 0 0% 39%;
+  --accent: 352 45% 94%;
+  --accent-foreground: 352 75% 27%;
+  --border: 0 0% 87%;
+  --input: 0 0% 87%;
+  --ring: 352 78% 40%;
+  --chart-1: 352 78% 40%;
+  --chart-2: 142 55% 40%;
+  --chart-3: 37 70% 48%;
+  --chart-4: 192 45% 45%;
+  --chart-5: 292 50% 50%;
+}
+
+.dark {
+  --background: 0 0% 7%;
+  --foreground: 0 0% 94%;
+  --card: 0 0% 11%;
+  --card-foreground: 0 0% 94%;
+  --popover: 0 0% 11%;
+  --popover-foreground: 0 0% 94%;
+  --primary: 352 75% 61%;
+  --primary-foreground: 0 0% 10%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 94%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 68%;
+  --accent: 352 35% 15%;
+  --accent-foreground: 352 70% 76%;
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 352 75% 61%;
+  --chart-1: 352 75% 61%;
+  --chart-2: 142 55% 52%;
+  --chart-3: 37 70% 55%;
+  --chart-4: 192 45% 55%;
+  --chart-5: 292 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(0 0% 8%);
+  --sidebar-primary: hsl(352 78% 40%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(352 45% 94%);
+  --sidebar-accent-foreground: hsl(352 75% 27%);
+  --sidebar-border: hsl(0 0% 87%);
+  --sidebar-ring: hsl(352 78% 40%);
+}
+
+.dark {
+  --sidebar: hsl(0 0% 11%);
+  --sidebar-foreground: hsl(0 0% 94%);
+  --sidebar-primary: hsl(352 75% 61%);
+  --sidebar-primary-foreground: hsl(0 0% 10%);
+  --sidebar-accent: hsl(352 35% 15%);
+  --sidebar-accent-foreground: hsl(352 70% 76%);
+  --sidebar-border: hsl(0 0% 18%);
+  --sidebar-ring: hsl(352 75% 61%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .125rem;
+}

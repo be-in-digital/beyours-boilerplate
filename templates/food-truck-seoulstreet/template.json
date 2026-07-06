@@ -1,0 +1,13 @@
+{
+  "slug": "food-truck-seoulstreet",
+  "category": "Food truck",
+  "themeName": "Seoul Street",
+  "label": "Seoul Street — Corée de rue, feu doux et gochujang",
+  "description": "Corée de rue, feu doux et gochujang. onglets collants, hero bandeau direct.",
+  "primary": "hsl(350 85% 46%)",
+  "fonts": {
+    "heading": "Space Grotesk",
+    "body": "Karla"
+  },
+  "demo": "demos/home.html?t=food-truck-seoulstreet"
+}

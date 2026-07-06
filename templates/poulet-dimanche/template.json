@@ -1,0 +1,13 @@
+{
+  "slug": "poulet-dimanche",
+  "category": "Poulet",
+  "themeName": "Dimanche",
+  "label": "Dimanche — Le repas qui rassemble",
+  "description": "Le repas qui rassemble. colonne unique en filets fins, hero épuré, aéré.",
+  "primary": "hsl(340 45% 45%)",
+  "fonts": {
+    "heading": "Marcellus",
+    "body": "Albert Sans"
+  },
+  "demo": "demos/home.html?t=poulet-dimanche"
+}

@@ -1,0 +1,13 @@
+{
+  "slug": "food-truck-routier",
+  "category": "Food truck",
+  "themeName": "Le Routier",
+  "label": "Le Routier — Relais moderne, portions d'époque",
+  "description": "Relais moderne, portions d'époque. registre numéroté, hero duo texte / photo.",
+  "primary": "hsl(215 60% 30%)",
+  "fonts": {
+    "heading": "Oswald",
+    "body": "Onest"
+  },
+  "demo": "demos/home.html?t=food-truck-routier"
+}

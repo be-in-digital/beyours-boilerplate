@@ -1,0 +1,13 @@
+{
+  "slug": "poulet-piriwest",
+  "category": "Poulet",
+  "themeName": "Piri West",
+  "label": "Piri West — Piri-piri braise et citron",
+  "description": "Piri-piri braise et citron. bento, hero diagonale couleur / photo.",
+  "primary": "hsl(8 80% 46%)",
+  "fonts": {
+    "heading": "Staatliches",
+    "body": "Be Vietnam Pro"
+  },
+  "demo": "demos/home.html?t=poulet-piriwest"
+}

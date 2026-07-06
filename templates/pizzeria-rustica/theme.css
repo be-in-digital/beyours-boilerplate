@@ -1,0 +1,84 @@
+/*
+ * Template « Rustica » (Pizzeria) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « pizzeria-rustica »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 42 38% 95%;
+  --foreground: 28 30% 14%;
+  --card: 42 38% 97%;
+  --card-foreground: 28 30% 14%;
+  --popover: 42 38% 97%;
+  --popover-foreground: 28 30% 14%;
+  --primary: 18 55% 38%;
+  --primary-foreground: 42 45% 96%;
+  --secondary: 41 38% 90%;
+  --secondary-foreground: 28 30% 14%;
+  --muted: 41 38% 90%;
+  --muted-foreground: 33 33% 42%;
+  --accent: 80 30% 90%;
+  --accent-foreground: 90 35% 22%;
+  --border: 40 37% 85%;
+  --input: 40 37% 85%;
+  --ring: 18 55% 38%;
+  --chart-1: 18 55% 38%;
+  --chart-2: 168 55% 40%;
+  --chart-3: 63 70% 48%;
+  --chart-4: 218 45% 45%;
+  --chart-5: 318 50% 50%;
+}
+
+.dark {
+  --background: 28 22% 9%;
+  --foreground: 42 30% 92%;
+  --card: 28 22% 13%;
+  --card-foreground: 42 30% 92%;
+  --popover: 28 22% 13%;
+  --popover-foreground: 42 30% 92%;
+  --primary: 20 60% 55%;
+  --primary-foreground: 28 30% 8%;
+  --secondary: 29 23% 16%;
+  --secondary-foreground: 42 30% 92%;
+  --muted: 29 23% 16%;
+  --muted-foreground: 38 28% 67%;
+  --accent: 85 20% 15%;
+  --accent-foreground: 85 30% 70%;
+  --border: 30 23% 20%;
+  --input: 30 23% 20%;
+  --ring: 20 60% 55%;
+  --chart-1: 20 60% 55%;
+  --chart-2: 170 55% 52%;
+  --chart-3: 65 70% 55%;
+  --chart-4: 220 45% 55%;
+  --chart-5: 320 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(42 38% 97%);
+  --sidebar-foreground: hsl(28 30% 14%);
+  --sidebar-primary: hsl(18 55% 38%);
+  --sidebar-primary-foreground: hsl(42 45% 96%);
+  --sidebar-accent: hsl(80 30% 90%);
+  --sidebar-accent-foreground: hsl(90 35% 22%);
+  --sidebar-border: hsl(40 37% 85%);
+  --sidebar-ring: hsl(18 55% 38%);
+}
+
+.dark {
+  --sidebar: hsl(28 22% 13%);
+  --sidebar-foreground: hsl(42 30% 92%);
+  --sidebar-primary: hsl(20 60% 55%);
+  --sidebar-primary-foreground: hsl(28 30% 8%);
+  --sidebar-accent: hsl(85 20% 15%);
+  --sidebar-accent-foreground: hsl(85 30% 70%);
+  --sidebar-border: hsl(30 23% 20%);
+  --sidebar-ring: hsl(20 60% 55%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .375rem;
+}

@@ -1,0 +1,13 @@
+{
+  "slug": "asiatique-bambou",
+  "category": "Asiatique",
+  "themeName": "Bambou",
+  "label": "Bambou — Vapeur douce, bambou frais",
+  "description": "Vapeur douce, bambou frais. cartes photo, hero duo texte / photo.",
+  "primary": "hsl(140 45% 30%)",
+  "fonts": {
+    "heading": "Sora",
+    "body": "Manrope"
+  },
+  "demo": "demos/home.html?t=asiatique-bambou"
+}

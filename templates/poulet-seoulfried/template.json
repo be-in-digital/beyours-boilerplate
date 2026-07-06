@@ -1,0 +1,13 @@
+{
+  "slug": "poulet-seoulfried",
+  "category": "Poulet",
+  "themeName": "Seoul Fried",
+  "label": "Seoul Fried — K-chicken, double friture",
+  "description": "K-chicken, double friture. onglets collants, hero bandeau direct.",
+  "primary": "hsl(348 80% 47%)",
+  "fonts": {
+    "heading": "Space Grotesk",
+    "body": "Karla"
+  },
+  "demo": "demos/home.html?t=poulet-seoulfried"
+}

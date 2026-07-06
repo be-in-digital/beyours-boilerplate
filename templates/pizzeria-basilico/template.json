@@ -1,0 +1,13 @@
+{
+  "slug": "pizzeria-basilico",
+  "category": "Pizzeria",
+  "themeName": "Basilico",
+  "label": "Basilico — Verte, fraîche, végétale",
+  "description": "Verte, fraîche, végétale. cartes photo, hero pleine image.",
+  "primary": "hsl(120 40% 30%)",
+  "fonts": {
+    "heading": "Gabarito",
+    "body": "Onest"
+  },
+  "demo": "demos/home.html?t=pizzeria-basilico"
+}

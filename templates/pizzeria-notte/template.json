@@ -1,0 +1,13 @@
+{
+  "slug": "pizzeria-notte",
+  "category": "Pizzeria",
+  "themeName": "Notte",
+  "label": "Notte — La part de nuit",
+  "description": "La part de nuit. onglets collants, hero bandeau direct.",
+  "primary": "hsl(262 60% 45%)",
+  "fonts": {
+    "heading": "Bricolage Grotesque",
+    "body": "Archivo"
+  },
+  "demo": "demos/home.html?t=pizzeria-notte"
+}

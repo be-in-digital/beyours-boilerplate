@@ -1,0 +1,84 @@
+/*
+ * Template « Bambou » (Asiatique) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « asiatique-bambou »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 80 25% 97%;
+  --foreground: 140 30% 12%;
+  --card: 80 25% 99%;
+  --card-foreground: 140 30% 12%;
+  --popover: 80 25% 99%;
+  --popover-foreground: 140 30% 12%;
+  --primary: 140 45% 30%;
+  --primary-foreground: 80 35% 97%;
+  --secondary: 84 25% 92%;
+  --secondary-foreground: 140 30% 12%;
+  --muted: 84 25% 92%;
+  --muted-foreground: 120 28% 41%;
+  --accent: 80 40% 90%;
+  --accent-foreground: 110 40% 22%;
+  --border: 87 26% 87%;
+  --input: 87 26% 87%;
+  --ring: 140 45% 30%;
+  --chart-1: 140 45% 30%;
+  --chart-2: 290 55% 40%;
+  --chart-3: 185 70% 48%;
+  --chart-4: 340 45% 45%;
+  --chart-5: 80 50% 50%;
+}
+
+.dark {
+  --background: 140 22% 8%;
+  --foreground: 80 20% 92%;
+  --card: 140 22% 12%;
+  --card-foreground: 80 20% 92%;
+  --popover: 140 22% 12%;
+  --popover-foreground: 80 20% 92%;
+  --primary: 135 40% 50%;
+  --primary-foreground: 140 32% 8%;
+  --secondary: 135 22% 16%;
+  --secondary-foreground: 80 20% 92%;
+  --muted: 135 22% 16%;
+  --muted-foreground: 98 21% 67%;
+  --accent: 135 25% 14%;
+  --accent-foreground: 110 35% 72%;
+  --border: 132 22% 19%;
+  --input: 132 22% 19%;
+  --ring: 135 40% 50%;
+  --chart-1: 135 40% 50%;
+  --chart-2: 285 55% 52%;
+  --chart-3: 180 70% 55%;
+  --chart-4: 335 45% 55%;
+  --chart-5: 75 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(80 25% 99%);
+  --sidebar-foreground: hsl(140 30% 12%);
+  --sidebar-primary: hsl(140 45% 30%);
+  --sidebar-primary-foreground: hsl(80 35% 97%);
+  --sidebar-accent: hsl(80 40% 90%);
+  --sidebar-accent-foreground: hsl(110 40% 22%);
+  --sidebar-border: hsl(87 26% 87%);
+  --sidebar-ring: hsl(140 45% 30%);
+}
+
+.dark {
+  --sidebar: hsl(140 22% 12%);
+  --sidebar-foreground: hsl(80 20% 92%);
+  --sidebar-primary: hsl(135 40% 50%);
+  --sidebar-primary-foreground: hsl(140 32% 8%);
+  --sidebar-accent: hsl(135 25% 14%);
+  --sidebar-accent-foreground: hsl(110 35% 72%);
+  --sidebar-border: hsl(132 22% 19%);
+  --sidebar-ring: hsl(135 40% 50%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: 1.25rem;
+}

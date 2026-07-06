@@ -1,0 +1,13 @@
+{
+  "slug": "poulet-krispy",
+  "category": "Poulet",
+  "themeName": "Krispy Krush",
+  "label": "Krispy Krush — Croustillant niveau maximal",
+  "description": "Croustillant niveau maximal. cartes photo, hero collage.",
+  "primary": "hsl(26 90% 38%)",
+  "fonts": {
+    "heading": "Passion One",
+    "body": "Gabarito"
+  },
+  "demo": "demos/home.html?t=poulet-krispy"
+}

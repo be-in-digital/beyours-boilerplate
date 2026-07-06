@@ -1,0 +1,13 @@
+{
+  "slug": "food-truck-tacoloco",
+  "category": "Food truck",
+  "themeName": "Taco Loco",
+  "label": "Taco Loco — Street tacos, vraie salsa",
+  "description": "Street tacos, vraie salsa. cartes photo, hero collage.",
+  "primary": "hsl(325 75% 45%)",
+  "fonts": {
+    "heading": "Passion One",
+    "body": "Gabarito"
+  },
+  "demo": "demos/home.html?t=food-truck-tacoloco"
+}

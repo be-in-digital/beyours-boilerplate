@@ -1,0 +1,84 @@
+/*
+ * Template « Hanoï » (Asiatique) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « asiatique-hanoi »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 45 35% 96%;
+  --foreground: 170 30% 13%;
+  --card: 45 35% 98%;
+  --card-foreground: 170 30% 13%;
+  --popover: 45 35% 98%;
+  --popover-foreground: 170 30% 13%;
+  --primary: 170 45% 28%;
+  --primary-foreground: 45 45% 96%;
+  --secondary: 53 35% 91%;
+  --secondary-foreground: 170 30% 13%;
+  --muted: 53 35% 91%;
+  --muted-foreground: 128 32% 41%;
+  --accent: 35 60% 88%;
+  --accent-foreground: 30 60% 26%;
+  --border: 60 34% 86%;
+  --input: 60 34% 86%;
+  --ring: 170 45% 28%;
+  --chart-1: 170 45% 28%;
+  --chart-2: 320 55% 40%;
+  --chart-3: 215 70% 48%;
+  --chart-4: 10 45% 45%;
+  --chart-5: 110 50% 50%;
+}
+
+.dark {
+  --background: 170 25% 8%;
+  --foreground: 45 28% 92%;
+  --card: 170 25% 12%;
+  --card-foreground: 45 28% 92%;
+  --popover: 170 25% 12%;
+  --popover-foreground: 45 28% 92%;
+  --primary: 168 40% 48%;
+  --primary-foreground: 170 35% 8%;
+  --secondary: 159 25% 16%;
+  --secondary-foreground: 45 28% 92%;
+  --muted: 159 25% 16%;
+  --muted-foreground: 83 27% 67%;
+  --accent: 168 25% 14%;
+  --accent-foreground: 40 50% 72%;
+  --border: 154 25% 19%;
+  --input: 154 25% 19%;
+  --ring: 168 40% 48%;
+  --chart-1: 168 40% 48%;
+  --chart-2: 318 55% 52%;
+  --chart-3: 213 70% 55%;
+  --chart-4: 8 45% 55%;
+  --chart-5: 108 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(45 35% 98%);
+  --sidebar-foreground: hsl(170 30% 13%);
+  --sidebar-primary: hsl(170 45% 28%);
+  --sidebar-primary-foreground: hsl(45 45% 96%);
+  --sidebar-accent: hsl(35 60% 88%);
+  --sidebar-accent-foreground: hsl(30 60% 26%);
+  --sidebar-border: hsl(60 34% 86%);
+  --sidebar-ring: hsl(170 45% 28%);
+}
+
+.dark {
+  --sidebar: hsl(170 25% 12%);
+  --sidebar-foreground: hsl(45 28% 92%);
+  --sidebar-primary: hsl(168 40% 48%);
+  --sidebar-primary-foreground: hsl(170 35% 8%);
+  --sidebar-accent: hsl(168 25% 14%);
+  --sidebar-accent-foreground: hsl(40 50% 72%);
+  --sidebar-border: hsl(154 25% 19%);
+  --sidebar-ring: hsl(168 40% 48%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .625rem;
+}

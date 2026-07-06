@@ -1,0 +1,84 @@
+/*
+ * Template « Le Bouillon » (Poulet) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « poulet-bouillon »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 40 25% 96%;
+  --foreground: 355 30% 14%;
+  --card: 40 25% 98%;
+  --card-foreground: 355 30% 14%;
+  --popover: 40 25% 98%;
+  --popover-foreground: 355 30% 14%;
+  --primary: 355 60% 34%;
+  --primary-foreground: 40 40% 96%;
+  --secondary: 59 25% 91%;
+  --secondary-foreground: 355 30% 14%;
+  --muted: 59 25% 91%;
+  --muted-foreground: 248 28% 42%;
+  --accent: 40 45% 90%;
+  --accent-foreground: 355 45% 26%;
+  --border: 78 26% 86%;
+  --input: 78 26% 86%;
+  --ring: 355 60% 34%;
+  --chart-1: 355 60% 34%;
+  --chart-2: 145 55% 40%;
+  --chart-3: 40 70% 48%;
+  --chart-4: 195 45% 45%;
+  --chart-5: 295 50% 50%;
+}
+
+.dark {
+  --background: 355 22% 8%;
+  --foreground: 40 22% 92%;
+  --card: 355 22% 12%;
+  --card-foreground: 40 22% 92%;
+  --popover: 355 22% 12%;
+  --popover-foreground: 40 22% 92%;
+  --primary: 355 55% 58%;
+  --primary-foreground: 355 30% 9%;
+  --secondary: 327 22% 16%;
+  --secondary-foreground: 40 22% 92%;
+  --muted: 327 22% 16%;
+  --muted-foreground: 135 22% 67%;
+  --accent: 355 30% 15%;
+  --accent-foreground: 0 45% 75%;
+  --border: 314 22% 19%;
+  --input: 314 22% 19%;
+  --ring: 355 55% 58%;
+  --chart-1: 355 55% 58%;
+  --chart-2: 145 55% 52%;
+  --chart-3: 40 70% 55%;
+  --chart-4: 195 45% 55%;
+  --chart-5: 295 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(40 25% 98%);
+  --sidebar-foreground: hsl(355 30% 14%);
+  --sidebar-primary: hsl(355 60% 34%);
+  --sidebar-primary-foreground: hsl(40 40% 96%);
+  --sidebar-accent: hsl(40 45% 90%);
+  --sidebar-accent-foreground: hsl(355 45% 26%);
+  --sidebar-border: hsl(78 26% 86%);
+  --sidebar-ring: hsl(355 60% 34%);
+}
+
+.dark {
+  --sidebar: hsl(355 22% 12%);
+  --sidebar-foreground: hsl(40 22% 92%);
+  --sidebar-primary: hsl(355 55% 58%);
+  --sidebar-primary-foreground: hsl(355 30% 9%);
+  --sidebar-accent: hsl(355 30% 15%);
+  --sidebar-accent-foreground: hsl(0 45% 75%);
+  --sidebar-border: hsl(314 22% 19%);
+  --sidebar-ring: hsl(355 55% 58%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .375rem;
+}

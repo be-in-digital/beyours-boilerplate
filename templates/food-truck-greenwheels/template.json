@@ -1,0 +1,13 @@
+{
+  "slug": "food-truck-greenwheels",
+  "category": "Food truck",
+  "themeName": "Green Wheels",
+  "label": "Green Wheels — Camion 100 % végétal",
+  "description": "Camion 100 % végétal. colonne unique en filets fins, hero épuré, aéré.",
+  "primary": "hsl(15 72% 42%)",
+  "fonts": {
+    "heading": "Sora",
+    "body": "Manrope"
+  },
+  "demo": "demos/home.html?t=food-truck-greenwheels"
+}

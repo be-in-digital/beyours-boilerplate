@@ -1,0 +1,13 @@
+{
+  "slug": "fast-food-minuit",
+  "category": "Fast-food",
+  "themeName": "Minuit",
+  "label": "Minuit — Le burger d'après la fête",
+  "description": "Le burger d'après la fête. onglets collants, hero bandeau direct.",
+  "primary": "hsl(270 60% 48%)",
+  "fonts": {
+    "heading": "Space Grotesk",
+    "body": "Karla"
+  },
+  "demo": "demos/home.html?t=fast-food-minuit"
+}

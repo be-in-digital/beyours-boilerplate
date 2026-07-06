@@ -1,0 +1,84 @@
+/*
+ * Template « Bohème » (Food truck) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « food-truck-boheme »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 35 45% 96%;
+  --foreground: 330 25% 16%;
+  --card: 35 45% 98%;
+  --card-foreground: 330 25% 16%;
+  --popover: 35 45% 98%;
+  --popover-foreground: 330 25% 16%;
+  --primary: 335 55% 44%;
+  --primary-foreground: 35 60% 97%;
+  --secondary: 53 44% 91%;
+  --secondary-foreground: 330 25% 16%;
+  --muted: 53 44% 91%;
+  --muted-foreground: 230 32% 43%;
+  --accent: 265 35% 92%;
+  --accent-foreground: 265 40% 30%;
+  --border: 70 43% 86%;
+  --input: 70 43% 86%;
+  --ring: 335 55% 44%;
+  --chart-1: 335 55% 44%;
+  --chart-2: 125 55% 40%;
+  --chart-3: 20 70% 48%;
+  --chart-4: 175 45% 45%;
+  --chart-5: 275 50% 50%;
+}
+
+.dark {
+  --background: 330 20% 9%;
+  --foreground: 35 35% 92%;
+  --card: 330 20% 13%;
+  --card-foreground: 35 35% 92%;
+  --popover: 330 20% 13%;
+  --popover-foreground: 35 35% 92%;
+  --primary: 335 60% 65%;
+  --primary-foreground: 330 30% 9%;
+  --secondary: 303 21% 16%;
+  --secondary-foreground: 35 35% 92%;
+  --muted: 303 21% 16%;
+  --muted-foreground: 124 31% 67%;
+  --accent: 265 25% 16%;
+  --accent-foreground: 270 40% 78%;
+  --border: 292 22% 20%;
+  --input: 292 22% 20%;
+  --ring: 335 60% 65%;
+  --chart-1: 335 60% 65%;
+  --chart-2: 125 55% 52%;
+  --chart-3: 20 70% 55%;
+  --chart-4: 175 45% 55%;
+  --chart-5: 275 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(35 45% 98%);
+  --sidebar-foreground: hsl(330 25% 16%);
+  --sidebar-primary: hsl(335 55% 44%);
+  --sidebar-primary-foreground: hsl(35 60% 97%);
+  --sidebar-accent: hsl(265 35% 92%);
+  --sidebar-accent-foreground: hsl(265 40% 30%);
+  --sidebar-border: hsl(70 43% 86%);
+  --sidebar-ring: hsl(335 55% 44%);
+}
+
+.dark {
+  --sidebar: hsl(330 20% 13%);
+  --sidebar-foreground: hsl(35 35% 92%);
+  --sidebar-primary: hsl(335 60% 65%);
+  --sidebar-primary-foreground: hsl(330 30% 9%);
+  --sidebar-accent: hsl(265 25% 16%);
+  --sidebar-accent-foreground: hsl(270 40% 78%);
+  --sidebar-border: hsl(292 22% 20%);
+  --sidebar-ring: hsl(335 60% 65%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: 1.25rem;
+}

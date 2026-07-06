@@ -1,0 +1,13 @@
+{
+  "slug": "fast-food-grill77",
+  "category": "Fast-food",
+  "themeName": "Grill 77",
+  "label": "Grill 77 — Charbon, flamme, point.",
+  "description": "Charbon, flamme, point.. registre numéroté, hero pleine image.",
+  "primary": "hsl(20 85% 36%)",
+  "fonts": {
+    "heading": "Oswald",
+    "body": "Onest"
+  },
+  "demo": "demos/home.html?t=fast-food-grill77"
+}

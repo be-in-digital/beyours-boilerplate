@@ -1,0 +1,84 @@
+/*
+ * Template « Green Wheels » (Food truck) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « food-truck-greenwheels »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 95 30% 97%;
+  --foreground: 160 28% 13%;
+  --card: 95 30% 99%;
+  --card-foreground: 160 28% 13%;
+  --popover: 95 30% 99%;
+  --popover-foreground: 160 28% 13%;
+  --primary: 15 72% 42%;
+  --primary-foreground: 95 40% 98%;
+  --secondary: 99 30% 92%;
+  --secondary-foreground: 160 28% 13%;
+  --muted: 99 30% 92%;
+  --muted-foreground: 138 29% 42%;
+  --accent: 95 40% 90%;
+  --accent-foreground: 120 35% 22%;
+  --border: 103 30% 87%;
+  --input: 103 30% 87%;
+  --ring: 15 72% 42%;
+  --chart-1: 15 72% 42%;
+  --chart-2: 165 55% 40%;
+  --chart-3: 60 70% 48%;
+  --chart-4: 215 45% 45%;
+  --chart-5: 315 50% 50%;
+}
+
+.dark {
+  --background: 160 20% 8%;
+  --foreground: 95 22% 92%;
+  --card: 160 20% 12%;
+  --card-foreground: 95 22% 92%;
+  --popover: 160 20% 12%;
+  --popover-foreground: 95 22% 92%;
+  --primary: 18 75% 62%;
+  --primary-foreground: 160 30% 8%;
+  --secondary: 154 20% 16%;
+  --secondary-foreground: 95 22% 92%;
+  --muted: 154 20% 16%;
+  --muted-foreground: 115 21% 67%;
+  --accent: 140 22% 14%;
+  --accent-foreground: 110 32% 72%;
+  --border: 152 20% 19%;
+  --input: 152 20% 19%;
+  --ring: 18 75% 62%;
+  --chart-1: 18 75% 62%;
+  --chart-2: 168 55% 52%;
+  --chart-3: 63 70% 55%;
+  --chart-4: 218 45% 55%;
+  --chart-5: 318 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(95 30% 99%);
+  --sidebar-foreground: hsl(160 28% 13%);
+  --sidebar-primary: hsl(15 72% 42%);
+  --sidebar-primary-foreground: hsl(95 40% 98%);
+  --sidebar-accent: hsl(95 40% 90%);
+  --sidebar-accent-foreground: hsl(120 35% 22%);
+  --sidebar-border: hsl(103 30% 87%);
+  --sidebar-ring: hsl(15 72% 42%);
+}
+
+.dark {
+  --sidebar: hsl(160 20% 12%);
+  --sidebar-foreground: hsl(95 22% 92%);
+  --sidebar-primary: hsl(18 75% 62%);
+  --sidebar-primary-foreground: hsl(160 30% 8%);
+  --sidebar-accent: hsl(140 22% 14%);
+  --sidebar-accent-foreground: hsl(110 32% 72%);
+  --sidebar-border: hsl(152 20% 19%);
+  --sidebar-ring: hsl(18 75% 62%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: 1.5rem;
+}

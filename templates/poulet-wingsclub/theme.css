@@ -1,0 +1,84 @@
+/*
+ * Template « Wings Club » (Poulet) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « poulet-wingsclub »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 220 25% 96%;
+  --foreground: 222 40% 13%;
+  --card: 220 25% 98%;
+  --card-foreground: 222 40% 13%;
+  --popover: 220 25% 98%;
+  --popover-foreground: 222 40% 13%;
+  --primary: 222 65% 35%;
+  --primary-foreground: 220 40% 97%;
+  --secondary: 220 26% 91%;
+  --secondary-foreground: 222 40% 13%;
+  --muted: 220 26% 91%;
+  --muted-foreground: 221 35% 41%;
+  --accent: 38 85% 88%;
+  --accent-foreground: 35 75% 26%;
+  --border: 220 27% 86%;
+  --input: 220 27% 86%;
+  --ring: 222 65% 35%;
+  --chart-1: 222 65% 35%;
+  --chart-2: 12 55% 40%;
+  --chart-3: 267 70% 48%;
+  --chart-4: 62 45% 45%;
+  --chart-5: 162 50% 50%;
+}
+
+.dark {
+  --background: 222 35% 8%;
+  --foreground: 220 20% 93%;
+  --card: 222 35% 12%;
+  --card-foreground: 220 20% 93%;
+  --popover: 222 35% 12%;
+  --popover-foreground: 220 20% 93%;
+  --primary: 38 90% 55%;
+  --primary-foreground: 222 45% 8%;
+  --secondary: 222 34% 16%;
+  --secondary-foreground: 220 20% 93%;
+  --muted: 222 34% 16%;
+  --muted-foreground: 221 25% 68%;
+  --accent: 222 30% 15%;
+  --accent-foreground: 40 80% 74%;
+  --border: 222 33% 19%;
+  --input: 222 33% 19%;
+  --ring: 38 90% 55%;
+  --chart-1: 38 90% 55%;
+  --chart-2: 188 55% 52%;
+  --chart-3: 83 70% 55%;
+  --chart-4: 238 45% 55%;
+  --chart-5: 338 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(220 25% 98%);
+  --sidebar-foreground: hsl(222 40% 13%);
+  --sidebar-primary: hsl(222 65% 35%);
+  --sidebar-primary-foreground: hsl(220 40% 97%);
+  --sidebar-accent: hsl(38 85% 88%);
+  --sidebar-accent-foreground: hsl(35 75% 26%);
+  --sidebar-border: hsl(220 27% 86%);
+  --sidebar-ring: hsl(222 65% 35%);
+}
+
+.dark {
+  --sidebar: hsl(222 35% 12%);
+  --sidebar-foreground: hsl(220 20% 93%);
+  --sidebar-primary: hsl(38 90% 55%);
+  --sidebar-primary-foreground: hsl(222 45% 8%);
+  --sidebar-accent: hsl(222 30% 15%);
+  --sidebar-accent-foreground: hsl(40 80% 74%);
+  --sidebar-border: hsl(222 33% 19%);
+  --sidebar-ring: hsl(38 90% 55%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .625rem;
+}

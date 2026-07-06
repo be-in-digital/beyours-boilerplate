@@ -1,0 +1,84 @@
+/*
+ * Template « Tokyo Night » (Asiatique) — devient site/theme.css à l'application.
+ * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
+ * --ring, --accent. Généré depuis l'identité de démo « asiatique-tokyonight »
+ * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ */
+
+:root {
+  --background: 220 20% 96%;
+  --foreground: 230 25% 12%;
+  --card: 220 20% 98%;
+  --card-foreground: 230 25% 12%;
+  --popover: 220 20% 98%;
+  --popover-foreground: 230 25% 12%;
+  --primary: 355 85% 45%;
+  --primary-foreground: 0 0% 99%;
+  --secondary: 221 20% 91%;
+  --secondary-foreground: 230 25% 12%;
+  --muted: 221 20% 91%;
+  --muted-foreground: 227 23% 41%;
+  --accent: 355 55% 94%;
+  --accent-foreground: 355 70% 32%;
+  --border: 221 21% 86%;
+  --input: 221 21% 86%;
+  --ring: 355 85% 45%;
+  --chart-1: 355 85% 45%;
+  --chart-2: 145 55% 40%;
+  --chart-3: 40 70% 48%;
+  --chart-4: 195 45% 45%;
+  --chart-5: 295 50% 50%;
+}
+
+.dark {
+  --background: 232 30% 7%;
+  --foreground: 220 15% 93%;
+  --card: 232 30% 11%;
+  --card-foreground: 220 15% 93%;
+  --popover: 232 30% 11%;
+  --popover-foreground: 220 15% 93%;
+  --primary: 355 90% 62%;
+  --primary-foreground: 232 30% 8%;
+  --secondary: 231 29% 15%;
+  --secondary-foreground: 220 15% 93%;
+  --muted: 231 29% 15%;
+  --muted-foreground: 224 20% 67%;
+  --accent: 350 40% 15%;
+  --accent-foreground: 355 80% 78%;
+  --border: 230 28% 18%;
+  --input: 230 28% 18%;
+  --ring: 355 90% 62%;
+  --chart-1: 355 90% 62%;
+  --chart-2: 145 55% 52%;
+  --chart-3: 40 70% 55%;
+  --chart-4: 195 45% 55%;
+  --chart-5: 295 50% 58%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+:root {
+  --sidebar: hsl(220 20% 98%);
+  --sidebar-foreground: hsl(230 25% 12%);
+  --sidebar-primary: hsl(355 85% 45%);
+  --sidebar-primary-foreground: hsl(0 0% 99%);
+  --sidebar-accent: hsl(355 55% 94%);
+  --sidebar-accent-foreground: hsl(355 70% 32%);
+  --sidebar-border: hsl(221 21% 86%);
+  --sidebar-ring: hsl(355 85% 45%);
+}
+
+.dark {
+  --sidebar: hsl(232 30% 11%);
+  --sidebar-foreground: hsl(220 15% 93%);
+  --sidebar-primary: hsl(355 90% 62%);
+  --sidebar-primary-foreground: hsl(232 30% 8%);
+  --sidebar-accent: hsl(350 40% 15%);
+  --sidebar-accent-foreground: hsl(355 80% 78%);
+  --sidebar-border: hsl(230 28% 18%);
+  --sidebar-ring: hsl(355 90% 62%);
+}
+
+/* Langue de formes */
+:root {
+  --radius: .375rem;
+}
