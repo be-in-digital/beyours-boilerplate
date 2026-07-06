@@ -57,12 +57,45 @@ function slugify(s) {
     .replace(/^-+|-+$/g, "")
 }
 
-function ask(rl, question, fallback) {
-  return new Promise((resolve) => {
-    rl.question(`${question}${fallback ? ` (${fallback})` : ""} : `, (a) =>
-      resolve(a.trim() || fallback || ""),
-    )
+// Prompt compatible TTY ET stdin pipé : les lignes sont mises en file dès
+// leur arrivée ; après EOF, toute question restante reçoit "" (= défaut).
+// (readline.question classique ne résout jamais une question posée après la
+// fermeture d'un pipe — le process sortait en silence, init à moitié fait.)
+// Même mécanique que scripts/env.mjs.
+function createPrompt() {
+  const rl = readline.createInterface({ input: process.stdin })
+  const queue = []
+  let pending = null
+  let closed = false
+  rl.on("line", (l) => {
+    if (pending) {
+      const resolve = pending
+      pending = null
+      resolve(l)
+    } else {
+      queue.push(l)
+    }
   })
+  rl.on("close", () => {
+    closed = true
+    if (pending) {
+      const resolve = pending
+      pending = null
+      resolve("")
+    }
+  })
+  const nextLine = () => {
+    if (queue.length > 0) return Promise.resolve(queue.shift())
+    if (closed) return Promise.resolve("")
+    return new Promise((resolve) => (pending = resolve))
+  }
+  const ask = async (question, fallback = "") => {
+    process.stdout.write(`${question}${fallback ? ` (${fallback})` : ""} : `)
+    const a = (await nextLine()).trim()
+    if (!process.stdin.isTTY) process.stdout.write(`${a}\n`)
+    return a || fallback
+  }
+  return { ask, close: () => rl.close() }
 }
 
 function replaceOnce(file, from, to, label) {
@@ -102,22 +135,17 @@ async function main() {
     !flag("yes") &&
     (!name || !description || !locale || mobile === undefined || template === undefined)
   ) {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    })
-    name = name || (await ask(rl, "Nom du restaurant / site", "Mon Restaurant"))
+    const prompt = createPrompt()
+    name = name || (await prompt.ask("Nom du restaurant / site", "Mon Restaurant"))
     description =
       description ||
-      (await ask(
-        rl,
+      (await prompt.ask(
         "Description (SEO)",
         "Commande en ligne, click & collect et livraison.",
       ))
-    locale = locale || (await ask(rl, "Locale par défaut", "fr"))
+    locale = locale || (await prompt.ask("Locale par défaut", "fr"))
     if (mobile === undefined) {
-      const answer = await ask(
-        rl,
+      const answer = await prompt.ask(
         "Configuration — 1) web seul  2) web + app mobile",
         "1",
       )
@@ -126,14 +154,14 @@ async function main() {
     if (template === undefined && templates.length > 0) {
       console.log("\nTemplate design :")
       templates.forEach((t, i) => console.log(`  ${i + 1}) ${t.label}`))
-      const answer = await ask(rl, "Template (numéro ou slug)", "1")
+      const answer = await prompt.ask("Template (numéro ou slug)", "1")
       const picked =
         templates[Number(answer) - 1] ||
         templates.find((t) => t.slug === answer.trim()) ||
         templates[0]
       template = picked.slug
     }
-    rl.close()
+    prompt.close()
   }
   mobile = mobile === true
   template = template || "default"
