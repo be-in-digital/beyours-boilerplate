@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Démos interactives · BeInDigital</title>
+<meta name="description" content="50 sites restaurant de démonstration : 5 thématiques × 10 designs, navigables, avec commande et paiement de test.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Démos de sites restaurant — BeInDigital">
+<meta property="og:description" content="5 thématiques, 10 designs chacune. Sites complets navigables, commande et paiement de test.">
+<meta property="og:image" content="/assets/shots/pizzeria-milano.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/shots/pizzeria-milano.jpg">
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -198,7 +205,10 @@
   }
   document.getElementById("lb-copy").addEventListener("click", () => {
     const t = catThemes(cur.cat)[cur.i];
-    const url = brandedUrl(t, true);
+    const customized = ovBrand.value.trim() || ovColor.dataset.touched;
+    // Sans personnalisation : lien de partage /s/<id> (aperçu OG riche).
+    // Personnalisé : lien direct home avec la marque/couleur (aperçu en direct).
+    const url = customized ? brandedUrl(t, true) : new URL(`s/${t.id}.html`, location.href).href;
     navigator.clipboard && navigator.clipboard.writeText(url);
     const b = document.getElementById("lb-copy"); const old = b.textContent;
     b.textContent = "Lien copié ✓"; setTimeout(() => (b.textContent = old), 1600);
