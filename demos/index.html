@@ -71,9 +71,17 @@
   .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 999px; border: 1px solid #ffffff2b; display: grid; place-items: center; font-size: 20px; background: #0d0c0fb8; }
   .lb-nav:hover { background: #ffffff18; }
   .lb-prev { left: 12px; } .lb-next { right: 12px; }
-  .lb-bot { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 16px 20px 22px; }
+  .lb-bot { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 20px 22px; flex-wrap: wrap; }
   .lb-open-demo { background: var(--pc, #f0803b); color: #0d0c0f; font-weight: 800; font-size: 14px; padding: 12px 22px; border-radius: 999px; }
   .lb-count { font-size: 12.5px; color: #9a96a4; }
+  .lb-brandbar { display: flex; align-items: center; gap: 8px; background: #16151b; border: 1px solid #2a2731; border-radius: 999px; padding: 5px 5px 5px 6px; }
+  .lb-brandbar input[type=text] { background: none; border: none; color: #ececf1; font: inherit; font-size: 13px; padding: 6px 8px; width: 132px; outline: none; }
+  .lb-brandbar input[type=text]::placeholder { color: #6d6a75; }
+  .ov-color { position: relative; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; cursor: pointer; border: 1px solid #ffffff28; }
+  .ov-color input { position: absolute; inset: -4px; width: 40px; height: 40px; border: none; padding: 0; cursor: pointer; }
+  .lb-copy { background: #ffffff14; color: #ececf1; font-size: 12.5px; font-weight: 650; padding: 8px 13px; border-radius: 999px; }
+  .lb-copy:hover { background: #ffffff22; }
+  @media (max-width: 640px) { .lb-brandbar input[type=text] { width: 96px; } }
   @media (max-width: 640px) { .lb-stage { padding: 0 10px; } .lb-nav { display: none; } }
 </style>
 </head>
@@ -111,7 +119,12 @@
   </div>
   <div class="lb-bot">
     <span class="lb-count" id="lb-count"></span>
-    <a class="lb-open-demo" id="lb-open" href="#">Ouvrir la démo →</a>
+    <div class="lb-brandbar">
+      <input id="ov-brand" type="text" placeholder="Nom du client" autocomplete="off" spellcheck="false">
+      <label class="ov-color" title="Couleur du client"><input id="ov-color" type="color" value="#e2661f"><span id="ov-swatch"></span></label>
+      <button class="lb-copy" id="lb-copy">Copier le lien</button>
+    </div>
+    <a class="lb-open-demo" id="lb-open" href="#" target="_blank" rel="noopener">Ouvrir la démo →</a>
   </div>
 </div>
 
@@ -156,6 +169,18 @@
         lbCount = document.getElementById("lb-count");
   let cur = { cat: null, i: 0 };
   const catThemes = (c) => X.LIST.filter((t) => t.cat === c);
+  const ovBrand = document.getElementById("ov-brand"), ovColor = document.getElementById("ov-color");
+
+  function brandedUrl(t, abs) {
+    const p = new URLSearchParams({ t: t.id });
+    const b = ovBrand.value.trim(); if (b) p.set("brand", b);
+    if (ovColor.dataset.touched) p.set("primary", ovColor.value.replace("#", ""));
+    const rel = `home.html?${p.toString()}`;
+    return abs ? new URL(rel, location.href).href : rel;
+  }
+  function refreshOv() { const t = catThemes(cur.cat)[cur.i]; if (t) lbOpen.href = brandedUrl(t, false); }
+  ovBrand.addEventListener("input", refreshOv);
+  ovColor.addEventListener("input", () => { ovColor.dataset.touched = "1"; refreshOv(); });
 
   function showLb(cat, i) {
     const list = catThemes(cat);
@@ -165,12 +190,19 @@
     lbImg.alt = `Capture du thème ${t.name}`;
     lbName.textContent = `${t.name} · ${X.CATS[cat].label}`;
     lbMeta.textContent = `${t.brand[0]}${t.brand[1]} · ${HERO_FR[t.hero]} · ${MENU_FR[t.menu]}${t.locN > 1 ? ` · ${t.locN} lieux` : ""}`;
-    lbOpen.href = demoUrl(t);
+    lbOpen.href = brandedUrl(t, false);
     lbOpen.style.setProperty("--pc", `hsl(${t.D.p})`);
     lbCount.textContent = `${cur.i + 1} / ${list.length}`;
     lb.classList.add("open");
     document.body.style.overflow = "hidden";
   }
+  document.getElementById("lb-copy").addEventListener("click", () => {
+    const t = catThemes(cur.cat)[cur.i];
+    const url = brandedUrl(t, true);
+    navigator.clipboard && navigator.clipboard.writeText(url);
+    const b = document.getElementById("lb-copy"); const old = b.textContent;
+    b.textContent = "Lien copié ✓"; setTimeout(() => (b.textContent = old), 1600);
+  });
   function closeLb() { lb.classList.remove("open"); document.body.style.overflow = ""; }
   document.getElementById("cats").addEventListener("click", (e) => {
     const s = e.target.closest("[data-lb]"); if (!s) return;

@@ -24,6 +24,9 @@
     lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
     star: '<path d="M12 2l3 6.9 7.5.6-5.7 5 1.7 7.4L12 18l-6.5 3.9 1.7-7.4-5.7-5 7.5-.6z"/>',
+    menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
   };
   const svg = (n, cls) => `<svg class="i${cls ? " " + cls : ""}" viewBox="0 0 24 24">${IC[n]}</svg>`;
 
@@ -48,9 +51,33 @@
   const PACK = X.CATS[T.cat];
   const PAIR = X.PAIRINGS[T.fonts];
   const LOCS = PACK.locations.slice(0, T.locN);
-  const href = (page) => `${page}.html?t=${tid}`;
-  const brandHtml = () => `${esc(T.brand[0])}<span class="fl">${esc(T.brand[1])}</span>`;
-  const brandTxt = () => T.brand[0] + T.brand[1];
+
+  /* ── Override « aux couleurs du prospect » (?brand / ?primary / ?accent) ──
+     Permet de rebadger n'importe quel thème en direct pendant un rendez-vous.
+     Couleurs acceptées : hex (#e63946 ou e63946) ou HSL "h s% l%". */
+  const OV = { brand: qs("brand"), primary: qs("primary"), accent: qs("accent") };
+  const KEEP = ["brand", "primary", "accent"].filter((k) => OV[k]);
+  function hexToHsl(hex) {
+    hex = hex.replace("#", "");
+    if (hex.length === 3) hex = hex.split("").map((c) => c + c).join("");
+    if (!/^[0-9a-fA-F]{6}$/.test(hex)) return null;
+    const r = parseInt(hex.slice(0, 2), 16) / 255, g = parseInt(hex.slice(2, 4), 16) / 255, b = parseInt(hex.slice(4, 6), 16) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b); let h = 0, s = 0; const l = (mx + mn) / 2;
+    if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; }
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  }
+  function toHsl(v) { if (!v) return null; const m = v.match(/^(\d+)\s+(\d+)%\s+(\d+)%$/); if (m) return { h: +m[1], s: +m[2], l: +m[3] }; return hexToHsl(v); }
+  const OV_P = toHsl(OV.primary), OV_A = toHsl(OV.accent);
+
+  const brandParts = (() => {
+    if (!OV.brand) return T.brand;
+    const w = OV.brand.trim().split(/\s+/);
+    return w.length > 1 ? [w.slice(0, -1).join(" ") + " ", w[w.length - 1]] : ["", OV.brand.trim()];
+  })();
+  const href = (page) => { const p = new URLSearchParams({ t: tid }); KEEP.forEach((k) => p.set(k, OV[k])); return `${page}.html?${p.toString()}`; };
+  const brandHtml = () => `${esc(brandParts[0])}<span class="fl">${esc(brandParts[1])}</span>`;
+  const brandTxt = () => brandParts[0] + brandParts[1];
 
   /* ── Mode clair/sombre ── */
   const MODE_KEY = "bidx-mode";
@@ -75,6 +102,16 @@
     st.setProperty("--muted-foreground", F(mix(fg, bg, dark ? 0.3 : 0.34)));
     st.setProperty("--border", F(mix(bg, fg, dark ? 0.13 : 0.12)));
     st.setProperty("--ring", C.p);
+    // Override couleurs prospect : la primaire/l'accent passent à sa charte,
+    // le texte des boutons est recalculé pour rester lisible (AA).
+    if (OV_P) {
+      const pf = OV_P.l > 62 ? "0 0% 10%" : "0 0% 100%";
+      st.setProperty("--primary", F(OV_P)); st.setProperty("--ring", F(OV_P)); st.setProperty("--primary-foreground", pf);
+      if (!OV_A) { st.setProperty("--accent", F({ h: OV_P.h, s: Math.min(OV_P.s, dark ? 40 : 55), l: dark ? 15 : 92 }));
+        st.setProperty("--accent-foreground", F({ h: OV_P.h, s: OV_P.s, l: dark ? 74 : 28 })); }
+    }
+    if (OV_A) { st.setProperty("--accent", F({ h: OV_A.h, s: OV_A.s, l: dark ? 15 : 92 }));
+      st.setProperty("--accent-foreground", F({ h: OV_A.h, s: OV_A.s, l: dark ? 74 : 28 })); }
     st.setProperty("--radius", T.radius);
     st.setProperty("--bw", (T.borderW || 1) + "px");
     st.setProperty("--heading", PAIR.h);
@@ -143,8 +180,13 @@
           ${locChip}
           <button class="ib" id="mode-t" aria-label="Basculer clair/sombre">${svg(mode() === "dark" ? "moon" : "sun")}</button>
           <button class="ib" id="cart-o" aria-label="Ouvrir le panier">${svg("cart")}<span class="cartn" id="cartn">0</span></button>
+          <button class="ib burger" id="burger" aria-label="Menu">${svg("menu")}</button>
         </div>
-      </div></header>
+      </div>
+      <nav class="mnav" id="mnav" aria-label="Menu mobile">
+        ${NAVL.map(([p, l]) => `<a href="${href(p)}"${p === page ? ' class="on"' : ""}>${l}</a>`).join("")}
+        <div class="mnav-cta"><a class="btn btn-p" href="${href("menu")}">Commander</a><a class="btn btn-g" href="${href("reserve")}">Réserver</a></div>
+      </nav></header>
       ${inner}
       <footer class="site"><div class="wrap">
         <div class="ft-in">
@@ -182,6 +224,11 @@
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
     const ob = document.getElementById("orderbar-in");
     if (ob) ob.addEventListener("click", open);
+    const burger = document.getElementById("burger"), mnav = document.getElementById("mnav");
+    if (burger) burger.addEventListener("click", () => {
+      const on = mnav.classList.toggle("open");
+      burger.innerHTML = svg(on ? "close" : "menu");
+    });
     document.getElementById("go-checkout").addEventListener("click", (e) => { if (cartN() === 0) { e.preventDefault(); toast("Votre panier est vide"); } });
     document.getElementById("app").addEventListener("click", (e) => {
       const add = e.target.closest("[data-add]"), inc = e.target.closest("[data-inc]"), dec = e.target.closest("[data-dec]"), rm = e.target.closest("[data-rm]");

@@ -101,7 +101,21 @@ header.nav { position: sticky; top: 0; z-index: 40; background: hsl(var(--backgr
 /* chip lieu actif */
 .locchip { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 650; color: hsl(var(--accent-foreground)); background: hsl(var(--accent)); padding: 7px 12px; border-radius: 999px; max-width: 210px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .locchip svg.i { width: 13px; height: 13px; flex-shrink: 0; }
-@media (max-width: 940px) { .nl { display: none; } [data-nav="center"] .nav-in { display: flex; } .locchip { display: none; } }
+/* menu mobile */
+.burger { display: none; }
+.mnav { display: none; flex-direction: column; padding: 8px 24px 20px; border-top: 1px solid hsl(var(--border)); background: hsl(var(--background)); }
+.mnav.open { display: flex; }
+.mnav a { padding: 13px 2px; font-size: 16px; font-weight: 600; border-bottom: 1px solid hsl(var(--border)); }
+.mnav a.on { color: hsl(var(--primary)); }
+.mnav-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.mnav-cta .btn { width: 100%; }
+@media (max-width: 940px) {
+  .nl { display: none; }
+  [data-nav="center"] .nav-in { display: flex; }
+  .locchip { display: none; }
+  .burger { display: grid; }
+}
+@media (min-width: 941px) { .mnav { display: none !important; } }
 
 /* ═══════════ HEROS (10 familles) ═══════════ */
 .eyebrow { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: hsl(var(--primary)); font-weight: 650; margin-bottom: 18px; }
