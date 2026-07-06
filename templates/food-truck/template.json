@@ -1,0 +1,7 @@
+{
+  "slug": "food-truck",
+  "label": "Convoi — food truck street craft",
+  "description": "Bleu pétrole émaillé sur papier kraft, condensée stencil, angles nets. L'artisanat mobile, entre carrosserie et ardoise du jour.",
+  "primary": "hsl(192 62% 27%)",
+  "fonts": { "heading": "Big Shoulders", "body": "Work Sans" }
+}

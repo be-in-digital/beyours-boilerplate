@@ -16,6 +16,8 @@
  *   --description "…"     description SEO
  *   --locale fr           locale par défaut
  *   --mobile | --web      config web + app Expo, ou web seul (défaut)
+ *   --template <slug>     template design : pizzeria, fast-food, food-truck,
+ *                         poulet, asiatique (défaut : neutre engine)
  *   --repo owner/nom      crée le repo GitHub privé (via gh) et pousse
  *   --template-url URL    boilerplate source (défaut : repo BeInDigital)
  *   --skip-install        ne pas lancer pnpm install (pas de NODE_AUTH_TOKEN)
@@ -117,8 +119,10 @@ console.log("\n④ Configuration du site")
 const setupArgs = ["scripts/init.mjs", "--yes", "--name", name]
 const description = opt("description")
 const locale = opt("locale")
+const template = opt("template")
 if (description) setupArgs.push("--description", description)
 if (locale) setupArgs.push("--locale", locale)
+if (template) setupArgs.push("--template", template)
 setupArgs.push(flag("mobile") ? "--mobile" : "--web")
 const setup = spawnSync("node", setupArgs, { cwd: target, stdio: "inherit" })
 if (setup.status !== 0) process.exit(setup.status || 1)
@@ -136,7 +140,7 @@ if (originReady) {
 
 console.log(`
 ────────────────────────────────────────────────────────
-Site « ${name} » prêt dans ${target} (${flag("mobile") ? "web + app mobile" : "web"}).
+Site « ${name} » prêt dans ${target} (${flag("mobile") ? "web + app mobile" : "web"}${template ? `, template ${template}` : ""}).
 
   cd ${targetArg}
   pnpx convex dev            # provisionne le backend
@@ -144,5 +148,6 @@ Site « ${name} » prêt dans ${target} (${flag("mobile") ? "web + app mobile" :
   pnpm dev                   # storefront + admin${flag("mobile") ? "\n  cd mobile && pnpm install && pnpm start   # app Expo" : ""}
 
 Personnalisation : site.config.ts, site/, public/ (docs/CUSTOMIZATION.md)
+Template design  : pnpm template:list / pnpm template:apply <slug>
 Mises à jour     : pnpm update:engine / pnpm update:template (docs/UPDATES.md)
 ────────────────────────────────────────────────────────`)

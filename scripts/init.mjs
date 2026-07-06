@@ -11,14 +11,18 @@
  *
  * Configuration : web seul (défaut) ou web + app mobile Expo
  * (--mobile / --web pour forcer sans question).
+ * Template design : --template <slug> (pizzeria, fast-food, food-truck,
+ * poulet, asiatique — `pnpm template:list` pour le catalogue) ; le wizard
+ * le propose, défaut : neutre engine.
  *
  * Ce que fait le script :
  *   1. Renseigne site.config.ts (nom, description, locale)
- *   2. Renomme le package (slug du site)
- *   3. Crée .env.local depuis .env.example + génère les secrets
+ *   2. Applique le template design (site/theme.css + site/fonts.ts)
+ *   3. Renomme le package (slug du site)
+ *   4. Crée .env.local depuis .env.example + génère les secrets
  *      (BETTER_AUTH_SECRET, ENCRYPTION_KEY)
- *   4. Ajoute le remote git `template` (mises à jour du boilerplate)
- *   5. Écrit le sentinel .beindigital-site.json
+ *   5. Ajoute le remote git `template` (mises à jour du boilerplate)
+ *   6. Écrit le sentinel .beindigital-site.json
  */
 
 import fs from "node:fs"
@@ -28,6 +32,7 @@ import readline from "node:readline"
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { activateMobile } from "./add-mobile.mjs"
+import { applyTemplate, listTemplates } from "./apply-template.mjs"
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..")
 const SENTINEL = path.join(ROOT, ".beindigital-site.json")
@@ -83,8 +88,20 @@ async function main() {
   let description = opt("description")
   let locale = opt("locale")
   let mobile = flag("mobile") ? true : flag("web") ? false : undefined
+  let template = opt("template")
 
-  if (!flag("yes") && (!name || !description || !locale || mobile === undefined)) {
+  const templates = listTemplates(ROOT)
+  if (template && !templates.some((t) => t.slug === template)) {
+    console.error(
+      `Template inconnu : "${template}". Disponibles : ${templates.map((t) => t.slug).join(", ")}`,
+    )
+    process.exit(1)
+  }
+
+  if (
+    !flag("yes") &&
+    (!name || !description || !locale || mobile === undefined || template === undefined)
+  ) {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -106,9 +123,20 @@ async function main() {
       )
       mobile = answer.trim() === "2"
     }
+    if (template === undefined && templates.length > 0) {
+      console.log("\nTemplate design :")
+      templates.forEach((t, i) => console.log(`  ${i + 1}) ${t.label}`))
+      const answer = await ask(rl, "Template (numéro ou slug)", "1")
+      const picked =
+        templates[Number(answer) - 1] ||
+        templates.find((t) => t.slug === answer.trim()) ||
+        templates[0]
+      template = picked.slug
+    }
     rl.close()
   }
   mobile = mobile === true
+  template = template || "default"
   name = name || "Mon Restaurant"
   description =
     description || "Commande en ligne, click & collect et livraison."
@@ -136,7 +164,15 @@ async function main() {
     "locale",
   )
 
-  console.log("\n2. package.json")
+  console.log("\n2. template design")
+  const templateMeta = applyTemplate(template, ROOT)
+  console.log(
+    template === "default"
+      ? "  = neutre engine (thème et polices d'origine)"
+      : `  ✓ ${templateMeta.label}`,
+  )
+
+  console.log("\n3. package.json")
   const pkgPath = path.join(ROOT, "package.json")
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"))
   const templateVersion = pkg.version
@@ -144,7 +180,7 @@ async function main() {
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n")
   console.log(`  ✓ name → ${slug}`)
 
-  console.log("\n3. .env.local")
+  console.log("\n4. .env.local")
   const envLocal = path.join(ROOT, ".env.local")
   if (fs.existsSync(envLocal)) {
     console.log("  = .env.local existe déjà, non modifié")
@@ -162,7 +198,7 @@ async function main() {
     console.log("  ✓ créé (secrets BETTER_AUTH_SECRET / ENCRYPTION_KEY générés)")
   }
 
-  console.log("\n4. remote git `template`")
+  console.log("\n5. remote git `template`")
   try {
     const remotes = execSync("git remote", { cwd: ROOT }).toString().split("\n")
     if (remotes.includes("template")) {
@@ -175,7 +211,7 @@ async function main() {
     console.warn("  ! pas de repo git détecté — remote template non ajouté")
   }
 
-  console.log("\n5. sentinel")
+  console.log("\n6. sentinel")
   fs.writeFileSync(
     SENTINEL,
     JSON.stringify(
@@ -183,6 +219,7 @@ async function main() {
         name,
         slug,
         mobile,
+        template,
         templateRepo: TEMPLATE_REPO,
         templateVersion,
         initializedAt: new Date().toISOString(),
@@ -194,13 +231,13 @@ async function main() {
   console.log("  ✓ .beindigital-site.json")
 
   if (mobile) {
-    console.log("\n6. app mobile")
+    console.log("\n7. app mobile")
     activateMobile({ name, slug })
   }
 
   console.log(`
 ────────────────────────────────────────────────────────
-Site "${name}" initialisé (${mobile ? "web + app mobile" : "web"}). Prochaines étapes :
+Site "${name}" initialisé (${mobile ? "web + app mobile" : "web"}, template design : ${template}). Prochaines étapes :
 
   1. pnpx convex dev          # provisionne le deployment Convex
   2. pnpm env:setup           # wizard .env (web + convex + mobile)
@@ -208,7 +245,9 @@ Site "${name}" initialisé (${mobile ? "web + app mobile" : "web"}). Prochaines 
   4. pnpm dev${mobile ? "\n  5. cd mobile && pnpm install && pnpm start   # app Expo" : ""}
 
 Personnalisation : site.config.ts, site/ (thème, polices, composants),
-public/ (logos). Voir docs/CUSTOMIZATION.md.
+public/ (logos). Couleurs client : site/theme.css (direction :
+templates/${template}/DESIGN.md). Changer de template : pnpm template:list.
+Voir docs/CUSTOMIZATION.md.
 Mises à jour : pnpm update:engine / pnpm update:template. Voir docs/UPDATES.md.
 ────────────────────────────────────────────────────────`)
 }

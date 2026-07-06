@@ -1,0 +1,7 @@
+{
+  "slug": "asiatique",
+  "label": "Izakaya — asiatique contemporain",
+  "description": "Jade profond et encre sumi sur papier washi, gothique japonaise, formes nettes. Précision calme, izakaya contemporain.",
+  "primary": "hsl(168 46% 27%)",
+  "fonts": { "heading": "Zen Kaku Gothic New", "body": "Noto Sans" }
+}

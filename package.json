@@ -30,6 +30,8 @@
     "env:setup": "node scripts/env.mjs setup",
     "env:check": "node scripts/env.mjs check",
     "env:sync": "node scripts/env.mjs sync",
+    "template:list": "node scripts/apply-template.mjs list",
+    "template:apply": "node scripts/apply-template.mjs apply",
     "update:engine": "node scripts/update-engine.mjs",
     "update:template": "node scripts/update-template.mjs",
     "sync:engine": "node scripts/sync-from-engine.mjs",

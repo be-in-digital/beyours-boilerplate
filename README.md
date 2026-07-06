@@ -47,6 +47,7 @@ Puis tout se fait au terminal :
 ```bash
 beindigital create client-luigi --name "Chez Luigi" --repo be-in-digital/client-luigi
 beindigital create client-luigi --name "Chez Luigi" --mobile   # web + app
+beindigital create client-luigi --name "Chez Luigi" --template pizzeria   # design vertical
 beindigital help · version · upgrade
 ```
 
@@ -71,7 +72,7 @@ git clone https://github.com/be-in-digital/beindigital-boilerplate.git client-lu
 cd client-luigi && git remote rename origin template
 export NODE_AUTH_TOKEN=ghp_xxx
 pnpm install
-pnpm setup            # wizard : nom, description, locale, web / web + app
+pnpm setup            # wizard : nom, description, locale, web / web + app, template design
 ```
 
 Puis provisionner le backend et les variables d'environnement :
@@ -124,6 +125,29 @@ engine :
 
 Détails et limites : [`docs/CUSTOMIZATION.md`](docs/CUSTOMIZATION.md).
 
+### Templates design (5 verticaux prêts à l'emploi)
+
+Un template pose l'identité complète (couleurs clair/sombre, polices, formes)
+dans la zone client ; il reste ensuite à ajuster les couleurs à l'image du
+client dans `site/theme.css` :
+
+| Slug | Direction |
+| --- | --- |
+| `pizzeria` | Trattoria : terracotta du four à bois, didone italienne |
+| `fast-food` | Smash : moutarde sur charbon, grotesque charnue |
+| `food-truck` | Convoi : pétrole émaillé sur kraft, condensée stencil |
+| `poulet` | Braise : rouge piment sur crème, condensée d'affiche |
+| `asiatique` | Izakaya : jade et encre sur washi, gothique japonaise |
+
+```bash
+pnpm template:list             # catalogue
+pnpm template:apply poulet     # applique (ou --template à la création)
+```
+
+Aperçu visuel : ouvrir `templates/preview.html`. Direction artistique
+détaillée (palette, imagerie, ton, adaptation client) :
+[`templates/README.md`](templates/README.md) et `templates/<slug>/DESIGN.md`.
+
 ## Mettre à jour un site
 
 Deux canaux complémentaires ([`docs/UPDATES.md`](docs/UPDATES.md)) :
@@ -158,6 +182,7 @@ pnpm engine:unlink     # retour au registre (ne jamais commiter en mode link)
 | `pnpm convex:dev` / `convex:deploy` / `convex:codegen` | Backend Convex |
 | `pnpm env:setup` / `env:check` / `env:sync` | Gestion des 3 fichiers .env (web/convex/mobile) |
 | `pnpm convex:env` | Applique `.env.convex` via `convex env set` |
+| `pnpm template:list` / `template:apply <slug>` | Templates design (5 verticaux + neutre) |
 | `pnpm update:engine` / `update:template` | Mises à jour |
 | `pnpm sync:engine` | (Mainteneur) resync du miroir depuis l'engine |
 | `pnpm engine:link` / `engine:unlink` | Dev local contre l'engine |

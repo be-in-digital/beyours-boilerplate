@@ -38,6 +38,22 @@ fixé une fois au setup du site, c'est dans la zone client.
 
 ## Recettes
 
+**Partir d'un template design** — cinq directions verticales prêtes à
+l'emploi (pizzeria, fast-food, food-truck, poulet, asiatique) posent
+couleurs, polices et formes dans la zone client :
+
+```bash
+pnpm template:list             # catalogue (aperçu : templates/preview.html)
+pnpm template:apply pizzeria   # écrase site/theme.css + site/fonts.ts
+pnpm template:apply default    # restaure le thème d'origine
+```
+
+Le choix se fait aussi à la création (`beindigital create … --template
+pizzeria`, ou question du wizard `pnpm setup`). Ensuite, ajuster les couleurs
+du client directement dans `site/theme.css` en suivant la section « Adapter
+au client » de `templates/<slug>/DESIGN.md` (garder les ratios de contraste
+AA).
+
 **Changer les couleurs** — `site/theme.css` :
 
 ```css

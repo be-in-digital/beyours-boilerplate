@@ -1,0 +1,108 @@
+/*
+ * Template « Convoi » (food truck) — devient site/theme.css à l'application.
+ * ZONE CLIENT : adapter les couleurs du client ici, en priorité --primary,
+ * --ring, --accent (voir templates/food-truck/DESIGN.md).
+ *
+ * Direction : street craft. Bleu pétrole de carrosserie émaillée sur papier
+ * kraft en clair ; service de nuit (encre bleutée, pétrole éclairci) en
+ * sombre. Angles nets, esprit stencil et ardoise du jour.
+ * Format HSL sans hsl(), contrat de app/globals.css.
+ */
+
+:root {
+  --background: 40 26% 96%;
+  --foreground: 202 28% 13%;
+  --card: 40 32% 98%;
+  --card-foreground: 202 28% 13%;
+  --popover: 40 32% 98%;
+  --popover-foreground: 202 28% 13%;
+  --primary: 192 62% 27%;
+  --primary-foreground: 42 40% 97%;
+  --secondary: 40 18% 90%;
+  --secondary-foreground: 202 28% 14%;
+  --muted: 40 18% 91%;
+  --muted-foreground: 202 11% 38%;
+  --accent: 192 38% 92%;
+  --accent-foreground: 192 65% 19%;
+  --border: 40 16% 85%;
+  --input: 40 16% 85%;
+  --ring: 192 62% 30%;
+  --chart-1: 192 62% 33%;
+  --chart-2: 32 70% 48%;
+  --chart-3: 8 65% 50%;
+  --chart-4: 130 30% 42%;
+  --chart-5: 268 30% 50%;
+}
+
+.dark {
+  --background: 202 30% 8%;
+  --foreground: 40 22% 92%;
+  --card: 202 26% 11%;
+  --card-foreground: 40 22% 92%;
+  --popover: 202 26% 11%;
+  --popover-foreground: 40 22% 92%;
+  --primary: 189 55% 47%;
+  --primary-foreground: 203 40% 8%;
+  --secondary: 202 20% 16%;
+  --secondary-foreground: 40 22% 92%;
+  --muted: 202 20% 16%;
+  --muted-foreground: 202 12% 66%;
+  --accent: 192 38% 15%;
+  --accent-foreground: 188 55% 72%;
+  --border: 202 20% 17%;
+  --input: 202 20% 17%;
+  --ring: 189 55% 47%;
+  --chart-1: 189 55% 52%;
+  --chart-2: 32 75% 58%;
+  --chart-3: 8 70% 60%;
+  --chart-4: 130 35% 52%;
+  --chart-5: 268 35% 62%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de app/globals.css) */
+:root {
+  --sidebar: hsl(40 22% 94%);
+  --sidebar-foreground: hsl(202 28% 13%);
+  --sidebar-primary: hsl(192 62% 27%);
+  --sidebar-primary-foreground: hsl(42 40% 97%);
+  --sidebar-accent: hsl(192 30% 89%);
+  --sidebar-accent-foreground: hsl(202 28% 13%);
+  --sidebar-border: hsl(40 16% 84%);
+  --sidebar-ring: hsl(192 62% 30%);
+}
+
+.dark {
+  --sidebar: hsl(202 30% 10%);
+  --sidebar-foreground: hsl(40 22% 92%);
+  --sidebar-primary: hsl(189 55% 47%);
+  --sidebar-primary-foreground: hsl(203 40% 8%);
+  --sidebar-accent: hsl(192 30% 16%);
+  --sidebar-accent-foreground: hsl(40 22% 92%);
+  --sidebar-border: hsl(202 20% 17%);
+  --sidebar-ring: hsl(189 55% 47%);
+}
+
+/* Langue de formes : angles nets, esprit stencil et caisse d'outillage */
+:root {
+  --radius: 0.375rem;
+  --radius-xs: 0.0625rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.1875rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.375rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.75rem;
+  --radius-4xl: 1rem;
+}
+
+/* Détails typographiques : la condensée respire avec un chouia de chasse */
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: 0.01em;
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.18);
+}

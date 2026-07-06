@@ -1,0 +1,7 @@
+{
+  "slug": "default",
+  "label": "Neutre (défaut engine)",
+  "description": "Thème d'origine de l'engine : accent orange, Inter + Poppins. Point de départ sans direction verticale, à personnaliser librement.",
+  "primary": "hsl(24 95% 53%)",
+  "fonts": { "heading": "Poppins", "body": "Inter" }
+}

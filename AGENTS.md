@@ -29,6 +29,11 @@ est un clone de ce repo. Le code produit vient de deux sources :
   `.beindigital-site.json`, `mobile/` (app Expo autonome, config
   « web + app » — activée par `pnpm setup` ou `pnpm add:mobile` depuis le
   snapshot `.template/mobile/`).
+- **Zone BOILERPLATE** : `templates/` (catalogue de designs verticaux :
+  pizzeria, fast-food, food-truck, poulet, asiatique + default). Jamais
+  touché par `sync:engine` ; `pnpm template:apply <slug>` copie theme.css +
+  fonts.ts vers `site/`. Règles du catalogue (contraste AA, tokens
+  sémantiques intouchés, contrat de variables engine) : `templates/README.md`.
 
 Une personnalisation impossible depuis la zone client = évolution à faire
 dans l'engine, pas un patch local.
@@ -42,7 +47,8 @@ dans l'engine, pas un patch local.
 ## Commandes
 
 `pnpm create:site <dossier>` (site complet one-shot) · `pnpm setup`
-(wizard : web / web + app) · `pnpm add:mobile` · `pnpm env:setup|check|sync`
+(wizard : web / web + app, template design) · `pnpm template:list|apply` ·
+`pnpm add:mobile` · `pnpm env:setup|check|sync`
 (les 3 fichiers .env : web/convex/mobile) · `pnpm dev` · `pnpm build` ·
 `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` ·
 `pnpm convex:dev` · `pnpm convex:deploy` · `pnpm convex:env`

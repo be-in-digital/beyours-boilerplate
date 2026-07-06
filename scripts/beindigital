@@ -35,6 +35,8 @@ USAGE
   beindigital create <dossier> [options]   Crée un site client complet
       --name "Chez Luigi"     nom du restaurant
       --mobile | --web        web + app Expo, ou web seul (défaut)
+      --template <slug>       design : pizzeria, fast-food, food-truck,
+                              poulet, asiatique (défaut : neutre)
       --repo owner/nom        crée le repo GitHub privé et pousse
       --description "…"       description SEO
       --locale fr             locale par défaut

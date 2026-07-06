@@ -1,0 +1,108 @@
+/*
+ * Template « Braise » (fast food poulet, style Master Poulet) — devient
+ * site/theme.css à l'application. ZONE CLIENT : adapter les couleurs du
+ * client ici, en priorité --primary, --ring, --accent
+ * (voir templates/poulet/DESIGN.md).
+ *
+ * Direction : rôtisserie urbaine. Rouge piment profond sur crème en clair ;
+ * braise sur noir fumé en sombre. Affiche de rôtisserie, énergie street.
+ * Format HSL sans hsl(), contrat de app/globals.css.
+ */
+
+:root {
+  --background: 42 45% 97%;
+  --foreground: 8 22% 11%;
+  --card: 42 50% 99%;
+  --card-foreground: 8 22% 11%;
+  --popover: 42 50% 99%;
+  --popover-foreground: 8 22% 11%;
+  --primary: 355 70% 42%;
+  --primary-foreground: 42 45% 97%;
+  --secondary: 42 28% 92%;
+  --secondary-foreground: 8 22% 12%;
+  --muted: 42 28% 92%;
+  --muted-foreground: 15 11% 40%;
+  --accent: 355 58% 95%;
+  --accent-foreground: 355 72% 28%;
+  --border: 40 24% 87%;
+  --input: 40 24% 87%;
+  --ring: 355 70% 42%;
+  --chart-1: 355 70% 47%;
+  --chart-2: 35 85% 52%;
+  --chart-3: 88 35% 42%;
+  --chart-4: 20 60% 45%;
+  --chart-5: 210 25% 46%;
+}
+
+.dark {
+  --background: 8 16% 7%;
+  --foreground: 40 30% 93%;
+  --card: 8 14% 10%;
+  --card-foreground: 40 30% 93%;
+  --popover: 8 14% 10%;
+  --popover-foreground: 40 30% 93%;
+  --primary: 355 70% 50%;
+  --primary-foreground: 42 45% 97%;
+  --secondary: 10 10% 16%;
+  --secondary-foreground: 40 30% 93%;
+  --muted: 10 10% 16%;
+  --muted-foreground: 30 12% 66%;
+  --accent: 355 42% 15%;
+  --accent-foreground: 355 80% 78%;
+  --border: 10 10% 17%;
+  --input: 10 10% 17%;
+  --ring: 355 70% 52%;
+  --chart-1: 355 72% 58%;
+  --chart-2: 35 88% 58%;
+  --chart-3: 88 38% 52%;
+  --chart-4: 20 65% 55%;
+  --chart-5: 210 30% 60%;
+}
+
+/* Sidebar admin (format hsl() complet, contrat de app/globals.css) */
+:root {
+  --sidebar: hsl(42 38% 95%);
+  --sidebar-foreground: hsl(8 22% 11%);
+  --sidebar-primary: hsl(355 70% 42%);
+  --sidebar-primary-foreground: hsl(42 45% 97%);
+  --sidebar-accent: hsl(355 45% 92%);
+  --sidebar-accent-foreground: hsl(8 22% 11%);
+  --sidebar-border: hsl(40 22% 86%);
+  --sidebar-ring: hsl(355 70% 42%);
+}
+
+.dark {
+  --sidebar: hsl(8 16% 9%);
+  --sidebar-foreground: hsl(40 30% 93%);
+  --sidebar-primary: hsl(355 70% 50%);
+  --sidebar-primary-foreground: hsl(42 45% 97%);
+  --sidebar-accent: hsl(355 30% 16%);
+  --sidebar-accent-foreground: hsl(40 30% 93%);
+  --sidebar-border: hsl(10 10% 17%);
+  --sidebar-ring: hsl(355 70% 52%);
+}
+
+/* Langue de formes : arrondis francs mais contenus, esprit affiche */
+:root {
+  --radius: 0.5rem;
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+}
+
+/* Détails typographiques : la condensée d'affiche prend un peu de chasse */
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: 0.01em;
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.16);
+}

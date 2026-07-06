@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Templates design — BeInDigital</title>
+<!--
+  Specimen statique du catalogue templates/. Ouvrir directement dans un
+  navigateur. Les valeurs sont recopiées des theme.css : après une retouche
+  de palette, reporter les valeurs ici (voir templates/README.md).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Bodoni:wght@400..700&family=Figtree:wght@300..900&family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Archivo:wght@100..900&family=Big+Shoulders:opsz,wght@10..72,100..900&family=Work+Sans:wght@100..900&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans:wght@100..900&display=swap">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    background: hsl(240 6% 8%);
+    color: hsl(40 10% 92%);
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 56px 24px 96px; }
+
+  /* ---- chrome du catalogue ---- */
+  header.intro { margin-bottom: 20px; }
+  header.intro h1 { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; }
+  header.intro p { color: hsl(40 6% 65%); max-width: 62ch; margin-top: 10px; font-size: 15px; }
+  header.intro code {
+    background: hsl(240 5% 14%); border: 1px solid hsl(240 5% 20%);
+    padding: 1px 6px; border-radius: 6px; font-size: 13px; color: hsl(40 10% 88%);
+  }
+  nav.index { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 48px; }
+  nav.index a {
+    color: hsl(40 10% 88%); text-decoration: none; font-size: 13px; font-weight: 550;
+    border: 1px solid hsl(240 5% 22%); border-radius: 999px; padding: 7px 14px;
+  }
+  nav.index a:hover { border-color: hsl(240 5% 40%); }
+
+  section.tpl { margin-bottom: 72px; }
+  .tpl-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 16px; margin-bottom: 6px; }
+  .tpl-head h2 { font-size: 21px; font-weight: 650; letter-spacing: -0.01em; }
+  .tpl-head .slug {
+    font-family: ui-monospace, monospace; font-size: 12.5px; color: hsl(40 6% 60%);
+    background: hsl(240 5% 13%); border-radius: 6px; padding: 2px 8px;
+  }
+  .tpl-meta { color: hsl(40 6% 62%); font-size: 13.5px; margin-bottom: 18px; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .duo { grid-template-columns: 1fr; } }
+
+  /* ---- panneaux specimen ---- */
+  .panel {
+    background: var(--bg); color: var(--fg);
+    border: 1px solid hsl(240 5% 18%);
+    border-radius: 14px; overflow: hidden;
+    font-family: var(--body);
+    display: flex; flex-direction: column;
+  }
+  .mock-nav {
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 22px; border-bottom: 1px solid var(--border);
+  }
+  .brand { font-family: var(--heading); font-weight: 700; font-size: 17px; letter-spacing: var(--track); }
+  .mock-nav .links { display: flex; gap: 14px; margin-left: auto; }
+  .mock-nav .links span { font-size: 12.5px; color: var(--muted-fg); font-weight: 500; }
+  .cart {
+    background: var(--primary); color: var(--primary-fg);
+    font-size: 12px; font-weight: 650; border-radius: var(--r-lg);
+    padding: 6px 12px;
+  }
+  .mock-hero { padding: 30px 22px 24px; }
+  .chip {
+    display: inline-block; background: var(--accent); color: var(--accent-fg);
+    font-size: 11.5px; font-weight: 600; padding: 4px 10px;
+    border-radius: var(--r-md); margin-bottom: 14px;
+  }
+  .mock-hero h3 {
+    font-family: var(--heading); font-weight: 700; letter-spacing: var(--track);
+    font-size: clamp(24px, 3.4vw, 31px); line-height: 1.12; max-width: 17ch;
+  }
+  .mock-hero p { color: var(--muted-fg); font-size: 13.5px; margin-top: 10px; max-width: 42ch; }
+  .ctas { display: flex; gap: 10px; margin-top: 18px; }
+  .btn {
+    font-family: var(--body); font-size: 13px; font-weight: 650;
+    padding: 10px 18px; border-radius: var(--r-lg); border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--primary); color: var(--primary-fg); }
+  .btn.ghost { background: transparent; color: var(--fg); border-color: var(--border); }
+  .btn:active { transform: translateY(1px); }
+
+  .mock-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 22px 22px; margin-top: auto; }
+  .pcard {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--r-xl); padding: 14px 16px;
+  }
+  .pcard .name { font-family: var(--heading); font-weight: 700; font-size: 15.5px; letter-spacing: var(--track); }
+  .pcard .desc { color: var(--muted-fg); font-size: 12px; margin-top: 4px; min-height: 2.6em; }
+  .pcard .row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .pcard .price { font-weight: 700; font-size: 14.5px; }
+  .add {
+    background: var(--primary); color: var(--primary-fg);
+    font-size: 11.5px; font-weight: 700; border-radius: var(--r-md);
+    padding: 6px 11px; border: none; cursor: pointer;
+  }
+  .mode {
+    font-size: 10.5px; font-weight: 650; color: var(--muted-fg);
+    padding: 10px 22px 12px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .dots { display: flex; gap: 5px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; border: 1px solid var(--border); }
+
+  footer.outro { color: hsl(40 6% 60%); font-size: 13.5px; border-top: 1px solid hsl(240 5% 18%); padding-top: 24px; }
+  footer.outro code {
+    background: hsl(240 5% 14%); border: 1px solid hsl(240 5% 20%);
+    padding: 1px 6px; border-radius: 6px; font-size: 12.5px; color: hsl(40 10% 88%);
+  }
+
+  /* ================= PIZZERIA — Trattoria ================= */
+  .t-pizzeria {
+    --heading: 'Libre Bodoni', serif; --body: 'Figtree', sans-serif; --track: -0.015em;
+    --r-md: 0.5rem; --r-lg: 0.625rem; --r-xl: 0.875rem;
+  }
+  .t-pizzeria.light {
+    --bg: hsl(28 33% 97%); --fg: hsl(18 38% 12%); --card: hsl(30 40% 99%);
+    --primary: hsl(14 68% 44%); --primary-fg: hsl(30 45% 98%);
+    --accent: hsl(14 58% 95%); --accent-fg: hsl(14 72% 27%);
+    --muted-fg: hsl(22 14% 40%); --border: hsl(28 22% 87%);
+  }
+  .t-pizzeria.dark {
+    --bg: hsl(20 24% 8%); --fg: hsl(30 28% 93%); --card: hsl(20 22% 11%);
+    --primary: hsl(15 74% 58%); --primary-fg: hsl(20 45% 9%);
+    --accent: hsl(15 42% 16%); --accent-fg: hsl(18 75% 74%);
+    --muted-fg: hsl(28 14% 68%); --border: hsl(22 16% 18%);
+  }
+
+  /* ================= FAST-FOOD — Smash ================= */
+  .t-fast-food {
+    --heading: 'Bricolage Grotesque', sans-serif; --body: 'Archivo', sans-serif; --track: -0.02em;
+    --r-md: 0.625rem; --r-lg: 0.75rem; --r-xl: 1rem;
+  }
+  .t-fast-food.light {
+    --bg: hsl(45 27% 97%); --fg: hsl(40 15% 9%); --card: hsl(45 35% 99%);
+    --primary: hsl(40 18% 11%); --primary-fg: hsl(45 30% 97%);
+    --accent: hsl(44 85% 90%); --accent-fg: hsl(38 82% 24%);
+    --muted-fg: hsl(40 8% 40%); --border: hsl(45 14% 86%);
+  }
+  .t-fast-food.dark {
+    --bg: hsl(40 12% 7%); --fg: hsl(45 20% 94%); --card: hsl(40 11% 10%);
+    --primary: hsl(42 96% 54%); --primary-fg: hsl(40 30% 8%);
+    --accent: hsl(42 45% 14%); --accent-fg: hsl(45 92% 68%);
+    --muted-fg: hsl(44 10% 67%); --border: hsl(40 9% 17%);
+  }
+
+  /* ================= FOOD-TRUCK — Convoi ================= */
+  .t-food-truck {
+    --heading: 'Big Shoulders', sans-serif; --body: 'Work Sans', sans-serif; --track: 0.01em;
+    --r-md: 0.1875rem; --r-lg: 0.25rem; --r-xl: 0.375rem;
+  }
+  .t-food-truck.light {
+    --bg: hsl(40 26% 96%); --fg: hsl(202 28% 13%); --card: hsl(40 32% 98%);
+    --primary: hsl(192 62% 27%); --primary-fg: hsl(42 40% 97%);
+    --accent: hsl(192 38% 92%); --accent-fg: hsl(192 65% 19%);
+    --muted-fg: hsl(202 11% 38%); --border: hsl(40 16% 85%);
+  }
+  .t-food-truck.dark {
+    --bg: hsl(202 30% 8%); --fg: hsl(40 22% 92%); --card: hsl(202 26% 11%);
+    --primary: hsl(189 55% 47%); --primary-fg: hsl(203 40% 8%);
+    --accent: hsl(192 38% 15%); --accent-fg: hsl(188 55% 72%);
+    --muted-fg: hsl(202 12% 66%); --border: hsl(202 20% 17%);
+  }
+
+  /* ================= POULET — Braise ================= */
+  .t-poulet {
+    --heading: 'Barlow Condensed', sans-serif; --body: 'Barlow', sans-serif; --track: 0.01em;
+    --r-md: 0.375rem; --r-lg: 0.5rem; --r-xl: 0.75rem;
+  }
+  .t-poulet.light {
+    --bg: hsl(42 45% 97%); --fg: hsl(8 22% 11%); --card: hsl(42 50% 99%);
+    --primary: hsl(355 70% 42%); --primary-fg: hsl(42 45% 97%);
+    --accent: hsl(355 58% 95%); --accent-fg: hsl(355 72% 28%);
+    --muted-fg: hsl(15 11% 40%); --border: hsl(40 24% 87%);
+  }
+  .t-poulet.dark {
+    --bg: hsl(8 16% 7%); --fg: hsl(40 30% 93%); --card: hsl(8 14% 10%);
+    --primary: hsl(355 70% 50%); --primary-fg: hsl(42 45% 97%);
+    --accent: hsl(355 42% 15%); --accent-fg: hsl(355 80% 78%);
+    --muted-fg: hsl(30 12% 66%); --border: hsl(10 10% 17%);
+  }
+  .t-poulet .mock-hero h3 { font-size: clamp(27px, 3.8vw, 35px); }
+
+  /* ================= ASIATIQUE — Izakaya ================= */
+  .t-asiatique {
+    --heading: 'Zen Kaku Gothic New', sans-serif; --body: 'Noto Sans', sans-serif; --track: 0.025em;
+    --r-md: 0.25rem; --r-lg: 0.375rem; --r-xl: 0.5rem;
+  }
+  .t-asiatique.light {
+    --bg: hsl(46 25% 97%); --fg: hsl(210 14% 11%); --card: hsl(46 30% 99%);
+    --primary: hsl(168 46% 27%); --primary-fg: hsl(46 30% 97%);
+    --accent: hsl(168 30% 92%); --accent-fg: hsl(168 52% 19%);
+    --muted-fg: hsl(206 9% 40%); --border: hsl(46 13% 87%);
+  }
+  .t-asiatique.dark {
+    --bg: hsl(210 20% 7%); --fg: hsl(46 18% 92%); --card: hsl(210 17% 10%);
+    --primary: hsl(166 42% 46%); --primary-fg: hsl(210 30% 7%);
+    --accent: hsl(168 30% 14%); --accent-fg: hsl(165 45% 70%);
+    --muted-fg: hsl(210 10% 66%); --border: hsl(210 14% 16%);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="intro">
+    <h1>Templates design</h1>
+    <p>
+      Cinq directions prêtes à l'emploi pour les sites restaurant BeInDigital.
+      Specimen indicatif : les vraies pages viennent de l'engine, les photos et
+      textes du CMS. Appliquer : <code>pnpm template:apply &lt;slug&gt;</code>,
+      catalogue : <code>pnpm template:list</code>.
+    </p>
+  </header>
+
+  <nav class="index">
+    <a href="#pizzeria">Trattoria</a>
+    <a href="#fast-food">Smash</a>
+    <a href="#food-truck">Convoi</a>
+    <a href="#poulet">Braise</a>
+    <a href="#asiatique">Izakaya</a>
+  </nav>
+
+  <!-- ============ PIZZERIA ============ -->
+  <section class="tpl" id="pizzeria">
+    <div class="tpl-head"><h2>Trattoria</h2><span class="slug">pizzeria</span></div>
+    <p class="tpl-meta">Néo-trattoria napolitaine. Terracotta du four à bois, Libre Bodoni et Figtree, arrondis généreux.</p>
+    <div class="duo">
+      <div class="panel t-pizzeria light">
+        <div class="mock-nav">
+          <span class="brand">Fuoco e Farina</span>
+          <span class="links"><span>La carte</span><span>Antipasti</span><span>Chi siamo</span></span>
+          <span class="cart">Panier · 2</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Four à bois</span>
+          <h3>La pâte repose 48 heures, le feu fait le reste.</h3>
+          <p>Farines italiennes, tomates San Marzano, mozzarella fior di latte. À emporter ou livrée.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">Voir la carte</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">Margherita DOP</div>
+            <div class="desc">San Marzano, fior di latte, basilic frais, huile du Cilento.</div>
+            <div class="row"><span class="price">12,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">Diavola</div>
+            <div class="desc">Spianata piquante, provola fumée, oignon rouge de Tropea.</div>
+            <div class="row"><span class="price">14,00 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE CLAIR · LA SALA</span>
+          <span class="dots"><span class="dot" style="background:hsl(14 68% 44%)"></span><span class="dot" style="background:hsl(14 58% 95%)"></span><span class="dot" style="background:hsl(28 33% 97%)"></span><span class="dot" style="background:hsl(18 38% 12%)"></span></span>
+        </div>
+      </div>
+      <div class="panel t-pizzeria dark">
+        <div class="mock-nav">
+          <span class="brand">Fuoco e Farina</span>
+          <span class="links"><span>La carte</span><span>Antipasti</span><span>Chi siamo</span></span>
+          <span class="cart">Panier · 2</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Four à bois</span>
+          <h3>La pâte repose 48 heures, le feu fait le reste.</h3>
+          <p>Farines italiennes, tomates San Marzano, mozzarella fior di latte. À emporter ou livrée.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">Voir la carte</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">Margherita DOP</div>
+            <div class="desc">San Marzano, fior di latte, basilic frais, huile du Cilento.</div>
+            <div class="row"><span class="price">12,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">Diavola</div>
+            <div class="desc">Spianata piquante, provola fumée, oignon rouge de Tropea.</div>
+            <div class="row"><span class="price">14,00 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE SOMBRE · IL FORNO</span>
+          <span class="dots"><span class="dot" style="background:hsl(15 74% 58%)"></span><span class="dot" style="background:hsl(15 42% 16%)"></span><span class="dot" style="background:hsl(20 24% 8%)"></span><span class="dot" style="background:hsl(30 28% 93%)"></span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAST-FOOD ============ -->
+  <section class="tpl" id="fast-food">
+    <div class="tpl-head"><h2>Smash</h2><span class="slug">fast-food</span></div>
+    <p class="tpl-meta">Burger premium, signature en deux temps : CTA charbon et moutarde en accents de jour, moutarde néon la nuit. Bricolage Grotesque et Archivo.</p>
+    <div class="duo">
+      <div class="panel t-fast-food light">
+        <div class="mock-nav">
+          <span class="brand">Le Comptoir Smash</span>
+          <span class="links"><span>Menu</span><span>Nos burgers</span><span>Le lieu</span></span>
+          <span class="cart">Panier · 3</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Bœuf français</span>
+          <h3>Smashé à la commande, jamais avant.</h3>
+          <p>Patties fines croustillantes, buns briochés maison, frites fraîches coupées du jour.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">Le menu</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">Double Smash</div>
+            <div class="desc">Deux patties, cheddar affiné, pickles, sauce comptoir.</div>
+            <div class="row"><span class="price">11,90 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">Frites maison</div>
+            <div class="desc">Coupées du jour, double cuisson, sel fumé.</div>
+            <div class="row"><span class="price">4,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE CLAIR · LE COMPTOIR</span>
+          <span class="dots"><span class="dot" style="background:hsl(40 18% 11%)"></span><span class="dot" style="background:hsl(44 85% 90%)"></span><span class="dot" style="background:hsl(45 27% 97%)"></span><span class="dot" style="background:hsl(42 92% 46%)"></span></span>
+        </div>
+      </div>
+      <div class="panel t-fast-food dark">
+        <div class="mock-nav">
+          <span class="brand">Le Comptoir Smash</span>
+          <span class="links"><span>Menu</span><span>Nos burgers</span><span>Le lieu</span></span>
+          <span class="cart">Panier · 3</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Bœuf français</span>
+          <h3>Smashé à la commande, jamais avant.</h3>
+          <p>Patties fines croustillantes, buns briochés maison, frites fraîches coupées du jour.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">Le menu</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">Double Smash</div>
+            <div class="desc">Deux patties, cheddar affiné, pickles, sauce comptoir.</div>
+            <div class="row"><span class="price">11,90 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">Frites maison</div>
+            <div class="desc">Coupées du jour, double cuisson, sel fumé.</div>
+            <div class="row"><span class="price">4,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE SOMBRE · LE DINER</span>
+          <span class="dots"><span class="dot" style="background:hsl(42 96% 54%)"></span><span class="dot" style="background:hsl(42 45% 14%)"></span><span class="dot" style="background:hsl(40 12% 7%)"></span><span class="dot" style="background:hsl(45 20% 94%)"></span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOD-TRUCK ============ -->
+  <section class="tpl" id="food-truck">
+    <div class="tpl-head"><h2>Convoi</h2><span class="slug">food-truck</span></div>
+    <p class="tpl-meta">Street craft. Bleu pétrole émaillé sur papier kraft, Big Shoulders et Work Sans, angles nets.</p>
+    <div class="duo">
+      <div class="panel t-food-truck light">
+        <div class="mock-nav">
+          <span class="brand">LA REMORQUE</span>
+          <span class="links"><span>La carte</span><span>Emplacements</span><span>L'équipe</span></span>
+          <span class="cart">Panier · 1</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Cette semaine</span>
+          <h3>Aujourd'hui place du marché, demain gare du Sud.</h3>
+          <p>Cuisine courte, produits du coin, tout est fait dans le camion. Commande et retrait au guichet.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">Où nous trouver</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">LE CLASSIQUE</div>
+            <div class="desc">Effiloché de porc fermier, slaw croquant, pain vapeur.</div>
+            <div class="row"><span class="price">9,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">LE VÉGÉTAL</div>
+            <div class="desc">Halloumi grillé, légumes rôtis, sauce verte maison.</div>
+            <div class="row"><span class="price">8,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE CLAIR · LE KRAFT</span>
+          <span class="dots"><span class="dot" style="background:hsl(192 62% 27%)"></span><span class="dot" style="background:hsl(192 38% 92%)"></span><span class="dot" style="background:hsl(40 26% 96%)"></span><span class="dot" style="background:hsl(202 28% 13%)"></span></span>
+        </div>
+      </div>
+      <div class="panel t-food-truck dark">
+        <div class="mock-nav">
+          <span class="brand">LA REMORQUE</span>
+          <span class="links"><span>La carte</span><span>Emplacements</span><span>L'équipe</span></span>
+          <span class="cart">Panier · 1</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Cette semaine</span>
+          <h3>Aujourd'hui place du marché, demain gare du Sud.</h3>
+          <p>Cuisine courte, produits du coin, tout est fait dans le camion. Commande et retrait au guichet.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">Où nous trouver</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">LE CLASSIQUE</div>
+            <div class="desc">Effiloché de porc fermier, slaw croquant, pain vapeur.</div>
+            <div class="row"><span class="price">9,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">LE VÉGÉTAL</div>
+            <div class="desc">Halloumi grillé, légumes rôtis, sauce verte maison.</div>
+            <div class="row"><span class="price">8,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE SOMBRE · SERVICE DE NUIT</span>
+          <span class="dots"><span class="dot" style="background:hsl(189 55% 47%)"></span><span class="dot" style="background:hsl(192 38% 15%)"></span><span class="dot" style="background:hsl(202 30% 8%)"></span><span class="dot" style="background:hsl(40 22% 92%)"></span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ POULET ============ -->
+  <section class="tpl" id="poulet">
+    <div class="tpl-head"><h2>Braise</h2><span class="slug">poulet</span></div>
+    <p class="tpl-meta">Rôtisserie urbaine. Rouge piment sur crème, Barlow Condensed et Barlow, énergie d'affiche.</p>
+    <div class="duo">
+      <div class="panel t-poulet light">
+        <div class="mock-nav">
+          <span class="brand">MASTER POULET</span>
+          <span class="links"><span>Menus</span><span>Buckets</span><span>Sauces</span></span>
+          <span class="cart">Panier · 4</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Poulet fermier</span>
+          <h3>Mariné 24 heures. Frit à la commande.</h3>
+          <p>Panure croustillante, marinades maison, sauces signature. Sur place, à emporter ou livré.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">Les menus</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">BUCKET 8 PIÈCES</div>
+            <div class="desc">Ailes et pilons marinés, deux sauces au choix.</div>
+            <div class="row"><span class="price">16,90 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">TENDERS ×5</div>
+            <div class="desc">Filets croustillants, hot honey ou sauce blanche.</div>
+            <div class="row"><span class="price">8,90 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE CLAIR · LA CRÈME</span>
+          <span class="dots"><span class="dot" style="background:hsl(355 70% 42%)"></span><span class="dot" style="background:hsl(355 58% 95%)"></span><span class="dot" style="background:hsl(42 45% 97%)"></span><span class="dot" style="background:hsl(8 22% 11%)"></span></span>
+        </div>
+      </div>
+      <div class="panel t-poulet dark">
+        <div class="mock-nav">
+          <span class="brand">MASTER POULET</span>
+          <span class="links"><span>Menus</span><span>Buckets</span><span>Sauces</span></span>
+          <span class="cart">Panier · 4</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Poulet fermier</span>
+          <h3>Mariné 24 heures. Frit à la commande.</h3>
+          <p>Panure croustillante, marinades maison, sauces signature. Sur place, à emporter ou livré.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">Les menus</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">BUCKET 8 PIÈCES</div>
+            <div class="desc">Ailes et pilons marinés, deux sauces au choix.</div>
+            <div class="row"><span class="price">16,90 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">TENDERS ×5</div>
+            <div class="desc">Filets croustillants, hot honey ou sauce blanche.</div>
+            <div class="row"><span class="price">8,90 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE SOMBRE · LA BRAISE</span>
+          <span class="dots"><span class="dot" style="background:hsl(355 70% 50%)"></span><span class="dot" style="background:hsl(355 42% 15%)"></span><span class="dot" style="background:hsl(8 16% 7%)"></span><span class="dot" style="background:hsl(40 30% 93%)"></span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ASIATIQUE ============ -->
+  <section class="tpl" id="asiatique">
+    <div class="tpl-head"><h2>Izakaya</h2><span class="slug">asiatique</span></div>
+    <p class="tpl-meta">Asiatique contemporain. Jade et encre sumi sur papier washi, Zen Kaku Gothic New et Noto Sans, formes nettes.</p>
+    <div class="duo">
+      <div class="panel t-asiatique light">
+        <div class="mock-nav">
+          <span class="brand">Kōyō</span>
+          <span class="links"><span>La carte</span><span>Le comptoir</span><span>Réserver</span></span>
+          <span class="cart">Panier · 2</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Fait maison</span>
+          <h3>Le bouillon mijote depuis ce matin.</h3>
+          <p>Ramen, donburi et petites assiettes, dressés au comptoir. Click &amp; collect ou livraison.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">La carte</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">Ramen shōyu</div>
+            <div class="desc">Bouillon clair, chashu grillé, œuf mariné, nori.</div>
+            <div class="row"><span class="price">13,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">Gyoza ×6</div>
+            <div class="desc">Porc et ciboule, plancha puis vapeur, ponzu maison.</div>
+            <div class="row"><span class="price">6,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE CLAIR · LE WASHI</span>
+          <span class="dots"><span class="dot" style="background:hsl(168 46% 27%)"></span><span class="dot" style="background:hsl(168 30% 92%)"></span><span class="dot" style="background:hsl(46 25% 97%)"></span><span class="dot" style="background:hsl(210 14% 11%)"></span></span>
+        </div>
+      </div>
+      <div class="panel t-asiatique dark">
+        <div class="mock-nav">
+          <span class="brand">Kōyō</span>
+          <span class="links"><span>La carte</span><span>Le comptoir</span><span>Réserver</span></span>
+          <span class="cart">Panier · 2</span>
+        </div>
+        <div class="mock-hero">
+          <span class="chip">Fait maison</span>
+          <h3>Le bouillon mijote depuis ce matin.</h3>
+          <p>Ramen, donburi et petites assiettes, dressés au comptoir. Click &amp; collect ou livraison.</p>
+          <div class="ctas"><button class="btn primary">Commander</button><button class="btn ghost">La carte</button></div>
+        </div>
+        <div class="mock-cards">
+          <div class="pcard">
+            <div class="name">Ramen shōyu</div>
+            <div class="desc">Bouillon clair, chashu grillé, œuf mariné, nori.</div>
+            <div class="row"><span class="price">13,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+          <div class="pcard">
+            <div class="name">Gyoza ×6</div>
+            <div class="desc">Porc et ciboule, plancha puis vapeur, ponzu maison.</div>
+            <div class="row"><span class="price">6,50 €</span><button class="add">Ajouter</button></div>
+          </div>
+        </div>
+        <div class="mode"><span>MODE SOMBRE · LA LAQUE</span>
+          <span class="dots"><span class="dot" style="background:hsl(166 42% 46%)"></span><span class="dot" style="background:hsl(168 30% 14%)"></span><span class="dot" style="background:hsl(210 20% 7%)"></span><span class="dot" style="background:hsl(46 18% 92%)"></span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="outro">
+    Appliquer un template : <code>pnpm template:apply &lt;slug&gt;</code> puis ajuster
+    les couleurs du client dans <code>site/theme.css</code>. Direction artistique
+    complète (imagerie, ton, adaptation) : <code>templates/&lt;slug&gt;/DESIGN.md</code>.
+  </footer>
+
+</div>
+</body>
+</html>
