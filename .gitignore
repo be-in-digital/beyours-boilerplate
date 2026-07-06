@@ -34,3 +34,4 @@ e2e/.auth/
 
 # Mode engine-link (pnpm engine:link) — jamais commité
 .engine-link.json
+.gstack/
