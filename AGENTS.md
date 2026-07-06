@@ -34,6 +34,11 @@ est un clone de ce repo. Le code produit vient de deux sources :
   touché par `sync:engine` ; `pnpm template:apply <slug>` copie theme.css +
   fonts.ts vers `site/`. Règles du catalogue (contraste AA, tokens
   sémantiques intouchés, contrat de variables engine) : `templates/README.md`.
+  `demos/` (outil de vente) : démos storefront navigables des 5 univers,
+  100 % pilotées par les tokens, avec paiement Stripe **de test uniquement**
+  (clé `sk_test_…` en env Vercel, jamais commitée). C'est la cible de
+  référence pour la tâche engine « tokeniser le storefront ». Voir
+  `demos/README.md`.
 
 Une personnalisation impossible depuis la zone client = évolution à faire
 dans l'engine, pas un patch local.

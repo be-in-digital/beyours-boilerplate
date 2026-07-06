@@ -19,6 +19,11 @@ Aperçu visuel : ouvrir `templates/preview.html` dans un navigateur.
 Direction détaillée (concept, imagerie, ton, adaptation client) : le
 `DESIGN.md` de chaque template.
 
+**Démos interactives** (`demos/`) : chaque univers a une boutique navigable
+avec panier et paiement Stripe de test — un prospect teste le site réel avant
+d'acheter. Ouvrir `demos/index.html` en local, ou déployer sur Vercel pour le
+paiement de test réel. Voir `demos/README.md`.
+
 ## Utilisation
 
 ```bash
