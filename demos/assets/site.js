@@ -196,7 +196,7 @@
           <div class="ft-col"><h4>${LOCS.length > 1 ? "Adresses" : "Adresse"}</h4>${LOCS.map((l) => `<p>${esc(l.addr)}</p>`).join("")}</div>
           <div class="ft-col"><h4>Contact</h4><a href="tel:${LOCS[0].phone.replace(/\s/g, "")}">${esc(LOCS[0].phone)}</a><a href="mailto:${PACK.email}">${PACK.email}</a></div>
         </div>
-        <div class="ft-note">© ${esc(brandTxt())} · démonstration BeInDigital · thème « ${esc(T.name)} », catégorie ${esc(PACK.label)}</div>
+        <div class="ft-note">© ${esc(brandTxt())} · <a href="${href("legal")}" style="text-decoration:underline">Mentions légales</a> · démonstration BeInDigital · thème « ${esc(T.name)} », catégorie ${esc(PACK.label)}</div>
       </div></footer>
 
       ${T.orderBar ? `<div class="orderbar" id="orderbar"><div class="in" id="orderbar-in"><span class="cnt" id="ob-n">0</span><span class="lbl">Voir ma commande</span><span class="tot" id="ob-t">0,00 €</span>${svg("arrow")}</div></div>` : ""}
@@ -612,22 +612,82 @@
     });
   }
 
+  const ORDER_KEY = "bidx-order-" + tid;
   function pageSuccess() {
     document.title = `Commande confirmée · ${brandTxt()} (démo)`;
+    const loc = activeLoc();
+    // Enregistre la commande (pour le suivi) avant de vider le panier
+    const items = Object.keys(cart).filter((id) => cart[id] > 0).map((id) => { const d = PACK.dishes.find((x) => x.id === id); return { name: d.name, qty: cart[id] }; });
+    const order = { ref: "C-" + Date.now().toString(36).toUpperCase().slice(-6), ts: Date.now(), locId: loc.id, items, total: cartTotal() };
+    if (items.length) localStorage.setItem(ORDER_KEY, JSON.stringify(order));
     Object.keys(cart).forEach((k) => delete cart[k]); cartSave();
     const sim = qs("sim") === "1";
-    const loc = activeLoc();
     chrome("success", `
       <div class="wrap page-head" style="padding-bottom:40px">
         <div class="resa-card" style="margin-top:10px">
           <div class="okmark">${svg("check")}</div>
           <h2>Commande confirmée</h2>
           <p class="muted" style="margin:6px 0 12px">Votre paiement de test a été accepté${sim ? " (simulation locale)" : " par Stripe"}. En production, le restaurant reçoit la commande en cuisine et le client un e-mail de confirmation.</p>
+          <span class="resa-ref">Commande ${order.ref}</span>
           <div class="resa-line"><span>Retrait</span><b>${esc(loc.name)}</b></div>
           <div class="resa-line"><span>Adresse</span><b>${esc(loc.addr)}</b></div>
-          <div class="resa-acts"><a class="btn btn-p" href="${href("menu")}">Recommander</a><a class="btn btn-g" href="${href("home")}">Accueil</a></div>
+          <div class="resa-acts"><a class="btn btn-p" href="${href("track")}">Suivre ma commande</a><a class="btn btn-g" href="${href("menu")}">Recommander</a></div>
         </div>
         <p class="helper" style="margin-top:16px">Rappel : ceci est une démonstration BeInDigital. Aucune commande réelle, aucun débit réel.</p>
+      </div>`);
+  }
+
+  function pageTrack() {
+    document.title = `Suivi de commande · ${brandTxt()} (démo)`;
+    const order = (() => { try { return JSON.parse(localStorage.getItem(ORDER_KEY)); } catch (e) { return null; } })();
+    if (!order) {
+      chrome("track", `<div class="wrap page-head"><h1>Suivi de commande</h1><p>Aucune commande en cours dans cette démo. Passez commande pour voir le suivi en direct.</p>
+        <div class="hero-actions" style="margin-top:18px"><a class="btn btn-p" href="${href("menu")}">Voir la carte ${svg("arrow")}</a></div></div><div style="height:60px"></div>`);
+      return;
+    }
+    const loc = LOCS.find((l) => l.id === order.locId) || LOCS[0];
+    const STEPS = [["Commande reçue", 0], ["En préparation", 40], ["Bientôt prête", 90], ["Prête à retirer", 150]];
+    chrome("track", `
+      <div class="wrap page-head"><h1>Suivi de commande</h1><p>Commande <b>${order.ref}</b> · retrait chez ${esc(loc.name)}. Le statut avance en direct (démo accélérée).</p></div>
+      <section class="sec" style="padding-top:22px"><div class="wrap" style="max-width:640px">
+        <div class="track-head"><div><div class="muted" style="font-size:13px">Temps estimé</div><div class="track-eta" id="track-eta">—</div></div>
+          <div class="track-badge" id="track-badge">…</div></div>
+        <div class="track-steps" id="track-steps"></div>
+        <div class="co-card" style="margin-top:20px">${order.items.map((it) => `<div class="co-line"><div class="cn">${esc(it.name)}</div><div class="cq">× ${it.qty}</div><div class="cp">&nbsp;</div></div>`).join("")}
+          <div class="co-tot" style="margin-top:12px"><span class="muted">Total payé</span><span class="amt">${eur(order.total)}</span></div></div>
+        <div class="hero-actions" style="margin-top:20px"><a class="btn btn-g" href="${href("home")}">Accueil</a></div>
+      </div></section>`);
+    const stepsEl = document.getElementById("track-steps"), etaEl = document.getElementById("track-eta"), badgeEl = document.getElementById("track-badge");
+    function tick() {
+      const el = Math.floor((Date.now() - order.ts) / 1000);
+      let idx = 0; STEPS.forEach((s, i) => { if (el >= s[1]) idx = i; });
+      const ready = idx >= STEPS.length - 1;
+      stepsEl.innerHTML = STEPS.map((s, i) => `<div class="track-step ${i < idx ? "done" : i === idx ? "cur" : ""}">
+        <span class="tk-dot">${i <= idx ? svg("check") : ""}</span><span class="tk-lbl">${s[0]}</span></div>`).join("");
+      badgeEl.textContent = ready ? "Prête" : STEPS[idx][0];
+      badgeEl.classList.toggle("ready", ready);
+      etaEl.textContent = ready ? "À retirer maintenant" : `~ ${Math.max(1, Math.ceil((STEPS[STEPS.length - 1][1] - el) / 60))} min`;
+      etaEl.innerHTML = ready ? `${svg("bell")} À retirer maintenant` : etaEl.textContent;
+    }
+    tick(); const iv = setInterval(tick, 1500);
+    window.addEventListener("beforeunload", () => clearInterval(iv));
+  }
+
+  function pageLegal() {
+    document.title = `Mentions légales · ${brandTxt()} (démo)`;
+    const loc = LOCS[0];
+    chrome("legal", `
+      <div class="wrap page-head"><h1>Mentions légales</h1><p>Page de démonstration : contenu d'exemple, à remplacer par les informations réelles du restaurant.</p></div>
+      <div class="wrap prose" style="padding:20px 0 40px">
+        <h3 style="margin:18px 0 8px">Éditeur</h3>
+        <p>${esc(brandTxt())} (nom commercial de démonstration), ${esc(loc.addr)}. Téléphone : ${esc(loc.phone)}. E-mail : ${PACK.email}.</p>
+        <h3 style="margin:18px 0 8px">Hébergement</h3>
+        <p>Site hébergé par Vercel Inc. Les paiements sont traités par Stripe. En démonstration, Stripe fonctionne en mode test : aucune transaction réelle.</p>
+        <h3 style="margin:18px 0 8px">Données personnelles</h3>
+        <p>Cette démonstration ne collecte ni ne transmet aucune donnée : réservations, panier et commandes restent dans votre navigateur (stockage local) et disparaissent à volonté.</p>
+        <h3 style="margin:18px 0 8px">Propriété</h3>
+        <p>Maquette réalisée par BeInDigital. Marques, plats, prix et photographies sont des exemples destinés à présenter le design du site.</p>
+        <div class="hero-actions" style="margin-top:24px"><a class="btn btn-p" href="${href("home")}">Retour à l'accueil</a></div>
       </div>`);
   }
 
@@ -637,6 +697,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     const page = document.body.dataset.page;
     ({ home: pageHome, menu: pageMenu, about: pageAbout, contact: pageContact,
-       locations: pageLocations, reserve: pageReserve, checkout: pageCheckout, success: pageSuccess }[page] || pageHome)();
+       locations: pageLocations, reserve: pageReserve, checkout: pageCheckout, success: pageSuccess,
+       track: pageTrack, legal: pageLegal }[page] || pageHome)();
   });
 })();

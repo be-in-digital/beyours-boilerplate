@@ -389,6 +389,25 @@ label { font-size: 13px; font-weight: 650; }
 .btn-danger:hover { background: hsl(0 60% 45% / .08); }
 .cancelled { border: var(--bw) dashed hsl(var(--border)); border-radius: var(--radius); padding: 18px 22px; max-width: 560px; color: hsl(var(--muted-foreground)); }
 
+/* suivi de commande */
+.track-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: hsl(var(--card)); border: var(--bw) solid hsl(var(--border)); border-radius: var(--radius); padding: 18px 22px; }
+.track-eta { font-family: var(--heading); font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.track-eta svg.i { width: 20px; height: 20px; color: hsl(var(--primary)); }
+.track-badge { font-size: 13px; font-weight: 700; padding: 8px 15px; border-radius: 999px; background: hsl(var(--secondary)); color: hsl(var(--foreground)); white-space: nowrap; }
+.track-badge.ready { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.track-steps { margin-top: 18px; display: grid; gap: 2px; }
+.track-step { display: flex; align-items: center; gap: 14px; padding: 14px 4px; position: relative; opacity: .5; }
+.track-step.done, .track-step.cur { opacity: 1; }
+.track-step:not(:last-child)::after { content: ""; position: absolute; left: 15px; top: 40px; bottom: -4px; width: 2px; background: hsl(var(--border)); }
+.track-step.done:not(:last-child)::after { background: hsl(var(--primary)); }
+.tk-dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid hsl(var(--border)); display: grid; place-items: center; flex-shrink: 0; z-index: 1; background: hsl(var(--background)); color: hsl(var(--primary-foreground)); }
+.track-step.done .tk-dot, .track-step.cur .tk-dot { background: hsl(var(--primary)); border-color: hsl(var(--primary)); }
+.track-step.cur .tk-dot { animation: tkpulse 1.4s infinite; }
+@keyframes tkpulse { 0% { box-shadow: 0 0 0 0 hsl(var(--primary)/.5); } 70% { box-shadow: 0 0 0 8px hsl(var(--primary)/0); } 100% { box-shadow: 0 0 0 0 hsl(var(--primary)/0); } }
+.tk-dot svg.i { width: 15px; height: 15px; stroke-width: 2.5; }
+.tk-lbl { font-family: var(--heading); font-size: 17px; font-weight: 600; }
+.track-step.cur .tk-lbl { color: hsl(var(--primary)); }
+
 /* checkout */
 .co-card { background: hsl(var(--card)); border: var(--bw) solid hsl(var(--border)); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 18px; max-width: 720px; }
 .co-line { display: flex; align-items: center; gap: 14px; padding: 11px 0; border-bottom: 1px solid hsl(var(--border)); }
