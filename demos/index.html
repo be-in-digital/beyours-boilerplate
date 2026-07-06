@@ -24,12 +24,49 @@
   button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
   .ribbon { background: #f5f4f2; color: #1a1a1a; text-align: center; font-size: 12.5px; font-weight: 650; padding: 8px 16px; }
   .ribbon b { font-weight: 800; }
-  header.top { padding: 56px 0 6px; }
   .kicker { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #f0803b; }
-  h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; letter-spacing: -0.02em; margin: 14px 0; max-width: 22ch; }
-  .intro { color: #a5a2ac; font-size: 16px; max-width: 66ch; }
+  /* hero */
+  .hero { padding: 54px 0 8px; }
+  h1 { font-size: clamp(32px, 5.4vw, 56px); font-weight: 700; letter-spacing: -0.025em; margin: 16px 0; max-width: 20ch; line-height: 1.05; }
+  h1 .hl { color: #a5a2ac; }
+  .intro { color: #a5a2ac; font-size: 17px; max-width: 62ch; }
   .intro b { color: #ececf1; font-weight: 650; }
-  .catnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 8px; }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 22px; }
+  .cta { background: #f0803b; color: #16130f; font-weight: 750; font-size: 15px; padding: 13px 24px; border-radius: 999px; }
+  .cta:hover { background: #ff9350; }
+  .cta-ghost { border: 1px solid #38343f; color: #ececf1; font-weight: 650; font-size: 15px; padding: 13px 22px; border-radius: 999px; }
+  .cta-ghost:hover { border-color: #57525f; }
+  .stats { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; color: #8f8b98; font-size: 14px; padding: 8px 0 6px; }
+  .stats b { color: #ececf1; font-weight: 700; }
+  .stats i { width: 4px; height: 4px; border-radius: 50%; background: #38343f; }
+  /* showcase */
+  .showcase { display: grid; grid-template-columns: 1.55fr 1.1fr .55fr; gap: 16px; align-items: end; padding: 30px 0 6px; }
+  .showcase figure { margin: 0; position: relative; }
+  .showcase img { width: 100%; display: block; border-radius: 14px; border: 1px solid #262330; box-shadow: 0 30px 70px -30px #000; }
+  .showcase figcaption { position: absolute; top: 12px; left: 12px; background: #000000b0; backdrop-filter: blur(4px); color: #fff; font-size: 11.5px; font-weight: 700; padding: 5px 11px; border-radius: 999px; }
+  .sc-mob img { border-radius: 20px; }
+  @media (max-width: 820px) { .showcase { grid-template-columns: 1fr 1fr; } .sc-mob { display: none; } }
+  /* features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 44px 0 8px; }
+  @media (max-width: 900px) { .features { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .features { grid-template-columns: 1fr; } }
+  .feat { border: 1px solid #221f27; background: #141318; border-radius: 14px; padding: 20px; }
+  .feat .fi { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: #f0803b1f; color: #f0803b; font-size: 18px; margin-bottom: 12px; }
+  .feat h3 { font-size: 16.5px; font-weight: 700; margin-bottom: 6px; }
+  .feat p { color: #a5a2ac; font-size: 13.5px; }
+  .feat p a { color: #f0803b; font-weight: 650; }
+  /* steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding: 40px 0 8px; }
+  @media (max-width: 720px) { .steps { grid-template-columns: 1fr; } }
+  .step { border-top: 2px solid #262330; padding-top: 16px; }
+  .step .sn { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #f0803b; color: #16130f; font-weight: 800; font-size: 15px; margin-bottom: 10px; }
+  .step h3 { font-size: 17px; font-weight: 700; margin-bottom: 5px; }
+  .step p { color: #a5a2ac; font-size: 14px; }
+  /* galeries */
+  #galleries { padding-top: 56px; }
+  .gal-head h2 { font-size: clamp(24px, 3.4vw, 32px); font-weight: 700; }
+  .gal-head p { color: #8f8b98; font-size: 14.5px; margin-top: 6px; }
+  .catnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 8px; }
   .catnav a { font-size: 13px; font-weight: 650; border: 1px solid #2a2731; border-radius: 999px; padding: 8px 15px; color: #cfccd6; }
   .catnav a:hover { border-color: #4a4655; color: #fff; }
 
@@ -95,12 +132,47 @@
 <body>
 <div class="ribbon"><b>DÉMOS INTERACTIVES</b> · sites complets navigables · paiement en mode test Stripe · aucune commande réelle</div>
 <div class="wrap">
-  <header class="top">
+  <header class="hero">
     <div class="kicker">BeInDigital · sites restaurant</div>
-    <h1>5 thématiques, 10 designs chacune. Regardez, puis testez.</h1>
-    <p class="intro">Chaque vignette est la <b>capture réelle</b> du site de démo. Cliquez une image pour la voir en grand et feuilleter la galerie, ou ouvrez la démo : <b>site complet multipage</b> (accueil, carte, adresses, réservation, contact) avec <b>commande et paiement de test</b>.</p>
-    <nav class="catnav" id="catnav"></nav>
+    <h1>Le site de votre restaurant, <span class="hl">à tester avant de le commander.</span></h1>
+    <p class="intro">50 designs prêts à l'emploi, 10 par thématique. Chacun est un <b>site complet</b> : carte, commande, réservation, plusieurs adresses, paiement de test et tableau de bord. Ouvrez-en un, cliquez partout, puis on le décline à votre marque.</p>
+    <div class="cta-row">
+      <a class="cta" href="#galleries">Voir les 50 designs</a>
+      <a class="cta-ghost" href="home.html?t=pizzeria-milano" target="_blank" rel="noopener">Tester une démo →</a>
+    </div>
+    <div class="stats">
+      <span><b>50</b> designs</span><i></i>
+      <span><b>5</b> thématiques</span><i></i>
+      <span><b>8</b> pages par site</span><i></i>
+      <span><b>Paiement</b> de test réel</span>
+    </div>
   </header>
+
+  <section class="showcase">
+    <figure class="sc-desk"><img src="assets/shots/pizzeria-trattoria.jpg" alt="Site vitrine sur ordinateur" loading="lazy"><figcaption>Site vitrine</figcaption></figure>
+    <figure class="sc-admin"><img src="assets/shots/_admin.jpg" alt="Tableau de bord restaurateur" loading="lazy"><figcaption>Tableau de bord</figcaption></figure>
+    <figure class="sc-mob"><img src="assets/shots/_mobile.jpg" alt="Site sur téléphone" loading="lazy"><figcaption>Mobile</figcaption></figure>
+  </section>
+
+  <section class="features">
+    <div class="feat"><span class="fi">▤</span><h3>Sites complets, multipage</h3><p>Accueil, carte filtrable, à propos, adresses, réservation, contact. Pas une page de vente : un vrai site.</p></div>
+    <div class="feat"><span class="fi">▦</span><h3>Commande &amp; paiement de test</h3><p>Panier, checkout et paiement Stripe en mode test. Le client teste jusqu'au bout, sans débit réel.</p></div>
+    <div class="feat"><span class="fi">◎</span><h3>Plusieurs emplacements</h3><p>Un ou plusieurs lieux : le client choisit son adresse, la commande et la réservation s'y rattachent.</p></div>
+    <div class="feat"><span class="fi">▧</span><h3>Réservation en ligne</h3><p>Réservation de table confirmée sur-le-champ et annulable, avec choix du lieu et validation.</p></div>
+    <div class="feat"><span class="fi">▥</span><h3>Tableau de bord restaurateur</h3><p>Commandes qui tombent en direct, écran cuisine, réservations, chiffres. <a href="admin.html?t=pizzeria-milano" target="_blank" rel="noopener">Voir le back-office →</a></p></div>
+    <div class="feat"><span class="fi">◑</span><h3>Responsive &amp; à vos couleurs</h3><p>Impeccable sur téléphone. Chaque design se rebadge à votre nom et votre couleur en un clic.</p></div>
+  </section>
+
+  <section class="steps">
+    <div class="step"><span class="sn">1</span><h3>Choisissez un design</h3><p>Parcourez les 50 captures, feuilletez, comparez les thématiques.</p></div>
+    <div class="step"><span class="sn">2</span><h3>Testez le vrai site</h3><p>Naviguez, commandez, réservez, payez en test, ouvrez le tableau de bord.</p></div>
+    <div class="step"><span class="sn">3</span><h3>On le décline à votre marque</h3><p>On reprend le design choisi à vos couleurs, votre carte, vos photos.</p></div>
+  </section>
+
+  <div id="galleries">
+    <div class="gal-head"><h2>Les 50 designs</h2><p>Cliquez une capture pour l'agrandir et feuilleter la thématique.</p></div>
+    <nav class="catnav" id="catnav"></nav>
+  </div>
   <div id="cats"></div>
   <div class="note">
     <div>
