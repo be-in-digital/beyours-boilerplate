@@ -58,6 +58,8 @@ import type * as kitchenTickets from "../kitchenTickets.js";
 import type * as languages from "../languages.js";
 import type * as lib_emailHtmlRenderer from "../lib/emailHtmlRenderer.js";
 import type * as lib_segmentFilter from "../lib/segmentFilter.js";
+import type * as maintenance from "../maintenance.js";
+import type * as maintenanceEmail from "../maintenanceEmail.js";
 import type * as menus from "../menus.js";
 import type * as migrations from "../migrations.js";
 import type * as migrations_index from "../migrations/index.js";
@@ -157,6 +159,8 @@ declare const fullApi: ApiFromModules<{
   languages: typeof languages;
   "lib/emailHtmlRenderer": typeof lib_emailHtmlRenderer;
   "lib/segmentFilter": typeof lib_segmentFilter;
+  maintenance: typeof maintenance;
+  maintenanceEmail: typeof maintenanceEmail;
   menus: typeof menus;
   migrations: typeof migrations;
   "migrations/index": typeof migrations_index;
