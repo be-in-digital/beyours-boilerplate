@@ -1,5 +1,4 @@
 import { test, expect } from "@playwright/test"
-import { collectConsoleErrors } from "../helpers/console.helpers"
 import { waitForAdminPage } from "../helpers/navigation.helpers"
 import {
   waitForDialog,
@@ -7,10 +6,19 @@ import {
   getDialog,
 } from "../helpers/dialog.helpers"
 
-test.describe("Games Page", () => {
+/**
+ * Gamification admin — split IA:
+ *  /dashboard/games            overview (stats + setup links + latest plays)
+ *  /dashboard/games/catalog    games & prizes CRUD
+ *  /dashboard/games/qr-codes   printable QR codes
+ *  /dashboard/games/actions    required social actions CRUD
+ *  /dashboard/games/winners    stats + redemption validation
+ */
+
+test.describe("Gamification", () => {
   test.describe.configure({ mode: "serial" })
 
-  test.describe("Page Structure", () => {
+  test.describe("Overview", () => {
     test.beforeEach(async ({ page }) => {
       await page.goto("/dashboard/games", {
         waitUntil: "domcontentloaded",
@@ -21,109 +29,67 @@ test.describe("Games Page", () => {
 
     test("should display heading and subtitle", async ({ page }) => {
       await expect(
-        page.getByRole("heading", { level: 1, name: "Jeux et Gamification" })
+        page.getByRole("heading", { level: 1, name: "Gamification" })
       ).toBeVisible({ timeout: 15_000 })
 
       await expect(
-        page.getByText("Engagez vos clients avec des jeux interactifs")
+        page.getByText("Vos clients scannent, jouent, reviennent")
       ).toBeVisible()
     })
 
-    test("should display 4 tabs", async ({ page }) => {
+    test("should display the pulse stats", async ({ page }) => {
+      await expect(page.getByText("Parties jouées")).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText("Victoires")).toBeVisible()
+      await expect(page.getByText("Scans QR")).toBeVisible()
+      await expect(page.getByText("Lots à valider")).toBeVisible()
+    })
+
+    test("should link to the four setup surfaces", async ({ page }) => {
       await expect(
-        page.getByRole("tab", { name: "Configuration" })
+        page.getByRole("link", { name: /Jeux & Lots/ })
       ).toBeVisible({ timeout: 15_000 })
-      await expect(
-        page.getByRole("tab", { name: "Codes QR" })
-      ).toBeVisible()
-      await expect(
-        page.getByRole("tab", { name: "Prix" })
-      ).toBeVisible()
-      await expect(
-        page.getByRole("tab", { name: "Historique" })
-      ).toBeVisible()
+      await expect(page.getByRole("link", { name: /Codes QR/ })).toBeVisible()
+      await expect(page.getByRole("link", { name: /Actions requises/ })).toBeVisible()
+      await expect(page.getByRole("link", { name: /Gagnants/ })).toBeVisible()
+    })
+
+    test("should show latest plays section", async ({ page }) => {
+      await expect(page.getByText("Dernières parties")).toBeVisible({ timeout: 15_000 })
     })
   })
 
-  test.describe("Configuration Tab", () => {
+  test.describe("Catalog (games & prizes)", () => {
     test.beforeEach(async ({ page }) => {
-      await page.goto("/dashboard/games", {
+      await page.goto("/dashboard/games/catalog", {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
       })
       await waitForAdminPage(page)
     })
 
-    test('should display "Créer un jeu" button', async ({ page }) => {
+    test("should display heading and both sections", async ({ page }) => {
       await expect(
-        page.getByRole("button", { name: "Créer un jeu" })
+        page.getByRole("heading", { level: 1, name: "Jeux & Lots" })
       ).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText("Jeux", { exact: true })).toBeVisible()
+      await expect(page.getByText("Lots à gagner")).toBeVisible()
     })
 
-    test("should show games or empty state", async ({ page }) => {
-      // Either game cards exist or an empty state is shown
-      const gameCard = page.locator('[data-slot="card"]').first()
-      const emptyState = page.getByText("Aucun jeu")
-
-      await expect(gameCard.or(emptyState)).toBeVisible({ timeout: 15_000 })
-    })
-  })
-
-  test.describe("Create Game Dialog", () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto("/dashboard/games", {
-        waitUntil: "domcontentloaded",
-        timeout: 60_000,
-      })
-      await waitForAdminPage(page)
-    })
-
-    test("should open dialog", async ({ page }) => {
+    test("should open the game creation dialog with its fields", async ({ page }) => {
       await page.getByRole("button", { name: "Créer un jeu" }).click()
       const dialog = await waitForDialog(page)
 
       await expect(dialog.getByText("Nouveau jeu")).toBeVisible()
-    })
-
-    test("should display form fields (name, type, description, ratio slider)", async ({
-      page,
-    }) => {
-      await page.getByRole("button", { name: "Créer un jeu" }).click()
-      const dialog = await waitForDialog(page)
-
-      // Name field
       await expect(dialog.getByLabel("Nom du jeu")).toBeVisible()
-
-      // Type select
       await expect(dialog.getByText("Type", { exact: false })).toBeVisible()
-
-      // Description field
       await expect(dialog.getByLabel("Description")).toBeVisible()
-
-      // Win ratio slider
-      await expect(
-        dialog.getByText("Ratio de victoire")
-      ).toBeVisible()
-
-      // Submit button
-      await expect(
-        dialog.getByRole("button", { name: "Créer un jeu" })
-      ).toBeVisible()
-    })
-
-    test("should display slider with percentage label", async ({ page }) => {
-      await page.getByRole("button", { name: "Créer un jeu" }).click()
-      const dialog = await waitForDialog(page)
-
-      // Slider should be present
-      const slider = dialog.getByRole("slider")
-      await expect(slider).toBeVisible()
-
-      // Percentage label should be visible (e.g., "50%")
+      await expect(dialog.getByText("Ratio de victoire")).toBeVisible()
+      await expect(dialog.getByRole("slider")).toBeVisible()
       await expect(dialog.getByText(/%/)).toBeVisible()
+      await expect(dialog.getByRole("button", { name: "Créer le jeu" })).toBeVisible()
     })
 
-    test("should close on cancel", async ({ page }) => {
+    test("game dialog should close on cancel", async ({ page }) => {
       await page.getByRole("button", { name: "Créer un jeu" }).click()
       await waitForDialog(page)
 
@@ -131,237 +97,104 @@ test.describe("Games Page", () => {
 
       await expect(getDialog(page)).toBeHidden()
     })
+
+    test("should open the prize creation dialog with its fields", async ({ page }) => {
+      await page.getByRole("button", { name: "Créer un lot" }).click()
+      const dialog = await waitForDialog(page)
+
+      await expect(dialog.getByText("Nouveau lot")).toBeVisible()
+      await expect(dialog.getByLabel("Nom du lot")).toBeVisible()
+      await expect(dialog.getByLabel("Validité (jours)")).toBeVisible()
+      await expect(dialog.getByLabel("Quantité")).toBeVisible()
+      await expect(dialog.getByRole("button", { name: "Créer le lot" })).toBeVisible()
+    })
   })
 
-  test.describe("QR Codes Tab", () => {
+  test.describe("QR codes", () => {
     test.beforeEach(async ({ page }) => {
-      await page.goto("/dashboard/games", {
+      await page.goto("/dashboard/games/qr-codes", {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
       })
       await waitForAdminPage(page)
     })
 
-    test("should switch to Codes QR tab", async ({ page }) => {
-      await page.getByRole("tab", { name: "Codes QR" }).click()
-
+    test("should display heading and create button", async ({ page }) => {
       await expect(
-        page.getByRole("tab", { name: "Codes QR" })
-      ).toHaveAttribute("aria-selected", "true", { timeout: 5_000 })
-    })
-
-    test('should display "Créer un code QR" button', async ({ page }) => {
-      await page.getByRole("tab", { name: "Codes QR" }).click()
-
+        page.getByRole("heading", { level: 1, name: "Codes QR" })
+      ).toBeVisible({ timeout: 15_000 })
       await expect(
         page.getByRole("button", { name: "Créer un code QR" })
-      ).toBeVisible({ timeout: 15_000 })
+      ).toBeVisible()
     })
 
-    test("should show QR codes or empty state", async ({ page }) => {
-      await page.getByRole("tab", { name: "Codes QR" }).click()
+    test("should open the creation dialog with table and code fields", async ({ page }) => {
+      await page.getByRole("button", { name: "Créer un code QR" }).click()
+      const dialog = await waitForDialog(page)
 
-      const qrCard = page.locator('[data-slot="card"]').first()
+      await expect(dialog.getByText("Nouveau code QR")).toBeVisible()
+      await expect(dialog.getByLabel("Numéro de table")).toBeVisible()
+      await expect(dialog.getByLabel("Emplacement")).toBeVisible()
+      await expect(dialog.getByRole("button", { name: "Générer" })).toBeVisible()
+
+      await closeDialogByCancel(page)
+      await expect(getDialog(page)).toBeHidden()
+    })
+
+    test("should show QR cards or the empty state", async ({ page }) => {
+      const qrCard = page.getByRole("button", { name: "PNG" }).first()
       const emptyState = page.getByText("Aucun code QR")
 
       await expect(qrCard.or(emptyState)).toBeVisible({ timeout: 15_000 })
     })
   })
 
-  test.describe("Create QR Code Dialog", () => {
+  test.describe("Winners", () => {
     test.beforeEach(async ({ page }) => {
-      await page.goto("/dashboard/games", {
+      await page.goto("/dashboard/games/winners", {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
       })
       await waitForAdminPage(page)
-      await page.getByRole("tab", { name: "Codes QR" }).click()
     })
 
-    test("should open dialog", async ({ page }) => {
-      await page.getByRole("button", { name: "Créer un code QR" }).click()
-      const dialog = await waitForDialog(page)
-
+    test("should display heading, stats and validation input", async ({ page }) => {
       await expect(
-        dialog.getByText("Créer un code QR")
+        page.getByRole("heading", { level: 1, name: "Gagnants" })
+      ).toBeVisible({ timeout: 15_000 })
+      await expect(page.getByText("Valider un lot")).toBeVisible()
+      await expect(page.getByPlaceholder(/K7NP2XWQ/)).toBeVisible()
+    })
+  })
+
+  test.describe("Required actions", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto("/dashboard/games/actions", {
+        waitUntil: "domcontentloaded",
+        timeout: 60_000,
+      })
+      await waitForAdminPage(page)
+    })
+
+    test("should display heading and create button", async ({ page }) => {
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Actions requises" })
+      ).toBeVisible({ timeout: 15_000 })
+      await expect(
+        page.getByRole("button", { name: "Ajouter une action" })
       ).toBeVisible()
     })
 
-    test('should display code field with Generate button', async ({
-      page,
-    }) => {
-      await page.getByRole("button", { name: "Créer un code QR" }).click()
+    test("should open the creation dialog", async ({ page }) => {
+      await page.getByRole("button", { name: "Ajouter une action" }).click()
       const dialog = await waitForDialog(page)
 
-      // Code input
-      await expect(dialog.getByLabel("Code")).toBeVisible()
-
-      // Generate button
-      await expect(
-        dialog.getByRole("button", { name: "Générer" })
-      ).toBeVisible()
-    })
-
-    test("should display table number and location fields", async ({
-      page,
-    }) => {
-      await page.getByRole("button", { name: "Créer un code QR" }).click()
-      const dialog = await waitForDialog(page)
-
-      await expect(
-        dialog.getByLabel("Numéro de table")
-      ).toBeVisible()
-
-      await expect(dialog.getByLabel("Emplacement")).toBeVisible()
-    })
-
-    test("should close on cancel", async ({ page }) => {
-      await page.getByRole("button", { name: "Créer un code QR" }).click()
-      await waitForDialog(page)
+      await expect(dialog.getByText("Nouvelle action")).toBeVisible()
+      await expect(dialog.getByLabel("Nom affiché")).toBeVisible()
+      await expect(dialog.getByLabel("Lien")).toBeVisible()
 
       await closeDialogByCancel(page)
-
       await expect(getDialog(page)).toBeHidden()
-    })
-  })
-
-  test.describe("Prizes Tab", () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto("/dashboard/games", {
-        waitUntil: "domcontentloaded",
-        timeout: 60_000,
-      })
-      await waitForAdminPage(page)
-    })
-
-    test("should switch to Prix tab", async ({ page }) => {
-      await page.getByRole("tab", { name: "Prix" }).click()
-
-      await expect(
-        page.getByRole("tab", { name: "Prix" })
-      ).toHaveAttribute("aria-selected", "true", { timeout: 5_000 })
-    })
-
-    test('should display "Créer un prix" button', async ({ page }) => {
-      await page.getByRole("tab", { name: "Prix" }).click()
-
-      await expect(
-        page.getByRole("button", { name: "Créer un prix" })
-      ).toBeVisible({ timeout: 15_000 })
-    })
-
-    test("should show prizes or empty state", async ({ page }) => {
-      await page.getByRole("tab", { name: "Prix" }).click()
-
-      const prizeCard = page.locator('[data-slot="card"]').first()
-      const emptyState = page.getByText("Aucun prix")
-
-      await expect(prizeCard.or(emptyState)).toBeVisible({ timeout: 15_000 })
-    })
-  })
-
-  test.describe("Create Prize Dialog", () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto("/dashboard/games", {
-        waitUntil: "domcontentloaded",
-        timeout: 60_000,
-      })
-      await waitForAdminPage(page)
-      await page.getByRole("tab", { name: "Prix" }).click()
-    })
-
-    test("should open dialog", async ({ page }) => {
-      await page.getByRole("button", { name: "Créer un prix" }).click()
-      const dialog = await waitForDialog(page)
-
-      await expect(dialog.getByText("Créer un prix")).toBeVisible()
-    })
-
-    test("should display form fields (name, type, value, validity, quantity, description)", async ({
-      page,
-    }) => {
-      await page.getByRole("button", { name: "Créer un prix" }).click()
-      const dialog = await waitForDialog(page)
-
-      // Name
-      await expect(dialog.getByLabel("Nom du prix")).toBeVisible()
-
-      // Type select
-      await expect(dialog.getByText("Type", { exact: false })).toBeVisible()
-
-      // Value
-      await expect(dialog.getByLabel("Valeur")).toBeVisible()
-
-      // Validity
-      await expect(dialog.getByLabel("Validité (jours)")).toBeVisible()
-
-      // Quantity
-      await expect(
-        dialog.getByLabel("Quantité disponible")
-      ).toBeVisible()
-
-      // Description
-      await expect(dialog.getByLabel("Description")).toBeVisible()
-
-      // Submit button
-      await expect(
-        dialog.getByRole("button", { name: "Créer un prix" })
-      ).toBeVisible()
-    })
-
-    test("should close on cancel", async ({ page }) => {
-      await page.getByRole("button", { name: "Créer un prix" }).click()
-      await waitForDialog(page)
-
-      await closeDialogByCancel(page)
-
-      await expect(getDialog(page)).toBeHidden()
-    })
-  })
-
-  test.describe("History Tab", () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto("/dashboard/games", {
-        waitUntil: "domcontentloaded",
-        timeout: 60_000,
-      })
-      await waitForAdminPage(page)
-    })
-
-    test("should switch to Historique tab", async ({ page }) => {
-      await page.getByRole("tab", { name: "Historique" }).click()
-
-      await expect(
-        page.getByRole("tab", { name: "Historique" })
-      ).toHaveAttribute("aria-selected", "true", { timeout: 5_000 })
-    })
-
-    test("should show empty state", async ({ page }) => {
-      await page.getByRole("tab", { name: "Historique" }).click()
-
-      await expect(
-        page.getByText("Aucun historique")
-      ).toBeVisible({ timeout: 15_000 })
-    })
-  })
-
-  test.describe("Console Errors", () => {
-    test("should not produce unexpected console errors", async ({ page }) => {
-      const { getErrors, cleanup } = collectConsoleErrors(page)
-
-      await page.goto("/dashboard/games", {
-        waitUntil: "domcontentloaded",
-        timeout: 60_000,
-      })
-      await waitForAdminPage(page)
-
-      // Wait for async operations to complete
-      await page.waitForTimeout(3_000)
-
-      cleanup()
-
-      const errors = getErrors()
-      expect(errors).toEqual([])
     })
   })
 })

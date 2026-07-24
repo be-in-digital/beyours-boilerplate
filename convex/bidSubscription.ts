@@ -18,6 +18,12 @@ import {
   resolvePriceIdFromPlan,
   buildPriceMap,
 } from "@be-in-digital/convex-functions/bidSubscription";
+import {
+  isMaintenanceSubscription,
+  extractPeriodEndMs,
+  MAINTENANCE_BID_PRODUCT,
+} from "@be-in-digital/convex-functions/maintenance";
+import { Role } from "@be-in-digital/core/auth/rbac";
 
 // ============================================================================
 // Helpers
@@ -146,6 +152,92 @@ export const createPortalSession = action({
 });
 
 // ============================================================================
+// createMaintenanceCheckoutSession — action auth (owner only)
+// ============================================================================
+
+/**
+ * Stripe Checkout for the annual maintenance renewal.
+ * Separate product from the autoBlog plans: the resulting subscription is
+ * tagged `bidProduct: "maintenance"` and lands on `maintenanceContracts`
+ * (via webhook), never on `ownerEntitlements`.
+ */
+export const createMaintenanceCheckoutSession = action({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Non authentifie");
+
+    // Contract-level action: reserved to the account owner
+    const user = await ctx.runQuery(
+      internal.systemInternal.getAuthUserInternal,
+      {}
+    );
+    if (user.role !== Role.CLIENT_ADMIN && user.role !== Role.SUPER_ADMIN) {
+      throw new Error("Action reservee au proprietaire du compte");
+    }
+
+    const priceId = process.env.STRIPE_BID_PRICE_MAINTENANCE;
+    if (!priceId) {
+      throw new Error(
+        "Le renouvellement en ligne n'est pas configure (STRIPE_BID_PRICE_MAINTENANCE). Contactez BeInDigital."
+      );
+    }
+
+    const stripe = getStripe();
+    const appUrl = getAppUrl();
+    const ownerId = identity.subject;
+
+    // Guard: renewal subscription already running
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { contract }: any = await ctx.runQuery(
+      internal.maintenance._getUpdateGatingData,
+      {}
+    );
+    if (contract?.stripeSubscriptionId && contract?.autoRenew) {
+      throw new Error(
+        "Le renouvellement automatique est deja actif. Gerez-le depuis le portail de facturation."
+      );
+    }
+
+    // Reuse the Stripe customer shared with the autoBlog subscription
+    const entitlements = await ctx.runQuery(
+      internal.bidSubscriptionInternal.getByOwnerId,
+      { ownerId }
+    );
+    let customerId = (contract?.stripeCustomerId ??
+      entitlements?.stripeCustomerId) as string | undefined;
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        metadata: { ownerId },
+        email: identity.email ?? undefined,
+      });
+      customerId = customer.id;
+
+      // Save immediately — prevents duplicate customers on checkout abandonment
+      await ctx.runMutation(
+        internal.bidSubscriptionInternal.attachStripeCustomerId,
+        { ownerId, stripeCustomerId: customerId }
+      );
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      line_items: [{ price: priceId, quantity: 1 }],
+      metadata: { ownerId, bidProduct: MAINTENANCE_BID_PRODUCT },
+      subscription_data: {
+        metadata: { ownerId, bidProduct: MAINTENANCE_BID_PRODUCT },
+      },
+      success_url: `${appUrl}/dashboard/system?maintenance=success`,
+      cancel_url: `${appUrl}/dashboard/system`,
+    });
+
+    return { url: session.url };
+  },
+});
+
+// ============================================================================
 // processWebhookEvent — internalAction "use node"
 // ============================================================================
 
@@ -191,6 +283,20 @@ export const processWebhookEvent = internalAction({
 
         // Retrieve subscription to get price ID
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+        // Maintenance renewal → contract, never ownerEntitlements
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (isMaintenanceSubscription(subscription as any, process.env as any)) {
+          await ctx.runMutation(internal.maintenance._applyStripeRenewal, {
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            periodEndMs: extractPeriodEndMs(subscription as any) ?? undefined,
+            autoRenew: !subscription.cancel_at_period_end,
+          });
+          break;
+        }
+
         const priceId = subscription.items.data[0]?.price?.id;
         const plan = priceId ? resolvePlanFromPriceId(priceId, priceMap) : undefined;
 
@@ -215,6 +321,27 @@ export const processWebhookEvent = internalAction({
             ? subscription.customer
             : subscription.customer?.id ?? "";
         const ownerId = subscription.metadata?.ownerId;
+
+        // Maintenance renewal → contract, never ownerEntitlements.
+        // Coverage extends only while the subscription is in good standing
+        // (a past_due period advance must not grant unpaid coverage).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (isMaintenanceSubscription(subscription as any, process.env as any)) {
+          const inGoodStanding = ["active", "trialing"].includes(
+            subscription.status
+          );
+          await ctx.runMutation(internal.maintenance._applyStripeRenewal, {
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            periodEndMs: inGoodStanding
+              ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                extractPeriodEndMs(subscription as any) ?? undefined
+              : undefined,
+            autoRenew: !subscription.cancel_at_period_end,
+          });
+          break;
+        }
+
         const priceId = subscription.items.data[0]?.price?.id;
         const plan = priceId ? resolvePlanFromPriceId(priceId, priceMap) : undefined;
 
@@ -239,6 +366,18 @@ export const processWebhookEvent = internalAction({
             ? subscription.customer
             : subscription.customer?.id ?? "";
         const ownerId = subscription.metadata?.ownerId;
+
+        // Maintenance: the paid coverage stays until coveredUntil,
+        // only auto-renew stops.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (isMaintenanceSubscription(subscription as any, process.env as any)) {
+          await ctx.runMutation(internal.maintenance._applyStripeRenewal, {
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            autoRenew: false,
+          });
+          break;
+        }
 
         await ctx.runMutation(
           internal.bidSubscriptionInternal.upsertFromStripe,

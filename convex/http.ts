@@ -1,3 +1,8 @@
+/**
+ * ALL provider webhooks (Stripe, Deliveroo, Uber Eats, SES) live HERE, on the
+ * Convex HTTP router — point provider dashboards to CONVEX_SITE_URL/webhooks/*.
+ * The old Next.js /api/webhooks/* tombstones were removed on 2026-07-18.
+ */
 import { httpRouter } from "convex/server";
 import { authComponent, createAuth } from "./auth";
 import { handleWebhook as uberEatsWebhook } from "./uberEatsWebhook";

@@ -7,7 +7,9 @@
  */
 
 import { v } from "convex/values"
-import { query, mutation, internalMutation } from "./_generated/server"
+import { query, internalMutation } from "./_generated/server"
+import type { QueryCtx } from "./_generated/server"
+import type { Id } from "./_generated/dataModel"
 import { internal } from "./_generated/api"
 import * as blogDefs from "@be-in-digital/convex-functions/blog"
 import {
@@ -23,7 +25,7 @@ import {
   unarchiveArticleCore,
 } from "@be-in-digital/convex-functions/blogPublish"
 import { scheduleBlogTranslation } from "./blogAutoTranslate"
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth"
+import { storeMutation, authedQuery } from "./lib/storeFunctions"
 
 // ============================================================================
 // Public Queries (storefront, no auth)
@@ -40,63 +42,77 @@ export const listTags = query(blogDefs.listTags)
 // Admin Queries (auth-protected)
 // ============================================================================
 
-export const listAdminArticles = query({
+export const listAdminArticles = authedQuery({
   args: blogDefs.listAdminArticles.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return blogDefs.listAdminArticles.handler(ctx, args)
-  },
+  handler: (ctx, args) => blogDefs.listAdminArticles.handler(ctx, args),
 })
 
-export const getAdminArticle = query({
+export const getAdminArticle = authedQuery({
   args: blogDefs.getAdminArticle.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return blogDefs.getAdminArticle.handler(ctx, args)
-  },
+  handler: (ctx, args) => blogDefs.getAdminArticle.handler(ctx, args),
 })
+
+// ============================================================================
+// Store id resolvers (documents referenced through non-`id` args)
+// ============================================================================
+
+async function storeIdFromArticle(
+  ctx: QueryCtx,
+  args: { articleId: Id<"blogArticles"> }
+): Promise<Id<"stores">> {
+  const article = await ctx.db.get(args.articleId)
+  if (!article) throw new Error("Article not found")
+  return article.storeId
+}
+
+async function storeIdFromCategory(
+  ctx: QueryCtx,
+  args: { categoryId: Id<"blogCategories"> }
+): Promise<Id<"stores">> {
+  const category = await ctx.db.get(args.categoryId)
+  if (!category) throw new Error("Category not found")
+  return category.storeId
+}
+
+async function storeIdFromTag(
+  ctx: QueryCtx,
+  args: { tagId: Id<"blogTags"> }
+): Promise<Id<"stores">> {
+  const tag = await ctx.db.get(args.tagId)
+  if (!tag) throw new Error("Tag not found")
+  return tag.storeId
+}
 
 // ============================================================================
 // Admin Mutations — Articles
 // ============================================================================
 
 /** Create a new blog article (draft) */
-export const createArticle = mutation({
+export const createArticle = storeMutation({
   args: {
     storeId: v.id("stores"),
     title: v.string(),
     categoryId: v.id("blogCategories"),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    await requireStoreAccess(ctx, args.storeId)
-    return createArticleCore(ctx, {
+  handler: (ctx, args, identity) =>
+    createArticleCore(ctx, {
       storeId: args.storeId,
       title: args.title,
       categoryId: args.categoryId,
       authorId: identity.subject,
-    })
-  },
+    }),
 })
 
 /** Save draft content for an article */
-export const saveDraft = mutation({
+export const saveDraft = storeMutation({
   args: {
     articleId: v.id("blogArticles"),
     draftContent: v.any(),
     categoryId: v.id("blogCategories"),
     tagIds: v.optional(v.array(v.id("blogTags"))),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const article = await ctx.db.get(args.articleId)
-    if (!article) throw new Error("Article not found")
-    await requireStoreAccess(ctx, article.storeId)
-
+  storeIdFrom: storeIdFromArticle,
+  handler: async (ctx, args, identity) => {
     await saveDraftCore(
       ctx,
       {
@@ -122,31 +138,21 @@ export const saveDraft = mutation({
 })
 
 /** Publish an article */
-export const publishArticle = mutation({
+export const publishArticle = storeMutation({
   args: { articleId: v.id("blogArticles") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const article = await ctx.db.get(args.articleId)
-    if (!article) throw new Error("Article not found")
-    await requireStoreAccess(ctx, article.storeId)
-    return publishArticleCore(ctx, args.articleId, identity.subject)
-  },
+  storeIdFrom: storeIdFromArticle,
+  handler: (ctx, args, identity) =>
+    publishArticleCore(ctx, args.articleId, identity.subject),
 })
 
 /** Schedule an article for future publication */
-export const scheduleArticle = mutation({
+export const scheduleArticle = storeMutation({
   args: {
     articleId: v.id("blogArticles"),
     publishAt: v.number(),
   },
+  storeIdFrom: storeIdFromArticle,
   handler: async (ctx, args): Promise<void> => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const article = await ctx.db.get(args.articleId)
-    if (!article) throw new Error("Article not found")
-    await requireStoreAccess(ctx, article.storeId)
-
     // Schedule the internal publish action
     const jobId = await ctx.scheduler.runAt(
       args.publishAt,
@@ -159,131 +165,73 @@ export const scheduleArticle = mutation({
 })
 
 /** Unschedule an article (revert to draft) */
-export const unscheduleArticle = mutation({
+export const unscheduleArticle = storeMutation({
   args: { articleId: v.id("blogArticles") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const article = await ctx.db.get(args.articleId)
-    if (!article) throw new Error("Article not found")
-    await requireStoreAccess(ctx, article.storeId)
-    return unscheduleArticleCore(ctx, args.articleId)
-  },
+  storeIdFrom: storeIdFromArticle,
+  handler: (ctx, args) => unscheduleArticleCore(ctx, args.articleId),
 })
 
 /** Archive an article */
-export const archiveArticle = mutation({
+export const archiveArticle = storeMutation({
   args: { articleId: v.id("blogArticles") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const article = await ctx.db.get(args.articleId)
-    if (!article) throw new Error("Article not found")
-    await requireStoreAccess(ctx, article.storeId)
-    return archiveArticleCore(ctx, args.articleId)
-  },
+  storeIdFrom: storeIdFromArticle,
+  handler: (ctx, args) => archiveArticleCore(ctx, args.articleId),
 })
 
 /** Unarchive an article */
-export const unarchiveArticle = mutation({
+export const unarchiveArticle = storeMutation({
   args: { articleId: v.id("blogArticles") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const article = await ctx.db.get(args.articleId)
-    if (!article) throw new Error("Article not found")
-    await requireStoreAccess(ctx, article.storeId)
-    return unarchiveArticleCore(ctx, args.articleId)
-  },
+  storeIdFrom: storeIdFromArticle,
+  handler: (ctx, args) => unarchiveArticleCore(ctx, args.articleId),
 })
 
 /** Delete an article */
-export const deleteArticle = mutation({
+export const deleteArticle = storeMutation({
   args: { articleId: v.id("blogArticles") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const article = await ctx.db.get(args.articleId)
-    if (!article) throw new Error("Article not found")
-    await requireStoreAccess(ctx, article.storeId)
-    return deleteArticleCore(ctx, args)
-  },
+  storeIdFrom: storeIdFromArticle,
+  handler: (ctx, args) => deleteArticleCore(ctx, args),
 })
 
 // ============================================================================
 // Admin Mutations — Categories
 // ============================================================================
 
-export const createCategory = mutation({
+export const createCategory = storeMutation({
   args: blogDefs.createCategory.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    await requireStoreAccess(ctx, args.storeId)
-    return blogDefs.createCategory.handler(ctx, args)
-  },
+  handler: (ctx, args) => blogDefs.createCategory.handler(ctx, args),
 })
 
-export const updateCategory = mutation({
+export const updateCategory = storeMutation({
   args: blogDefs.updateCategory.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const category = await ctx.db.get(args.categoryId)
-    if (!category) throw new Error("Category not found")
-    await requireStoreAccess(ctx, category.storeId)
-    return blogDefs.updateCategory.handler(ctx, args)
-  },
+  storeIdFrom: storeIdFromCategory,
+  handler: (ctx, args) => blogDefs.updateCategory.handler(ctx, args),
 })
 
-export const deleteCategory = mutation({
+export const deleteCategory = storeMutation({
   args: blogDefs.deleteCategory.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const category = await ctx.db.get(args.categoryId)
-    if (!category) throw new Error("Category not found")
-    await requireStoreAccess(ctx, category.storeId)
-    return blogDefs.deleteCategory.handler(ctx, args)
-  },
+  storeIdFrom: storeIdFromCategory,
+  handler: (ctx, args) => blogDefs.deleteCategory.handler(ctx, args),
 })
 
 // ============================================================================
 // Admin Mutations — Tags
 // ============================================================================
 
-export const createTag = mutation({
+export const createTag = storeMutation({
   args: blogDefs.createTag.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    await requireStoreAccess(ctx, args.storeId)
-    return blogDefs.createTag.handler(ctx, args)
-  },
+  handler: (ctx, args) => blogDefs.createTag.handler(ctx, args),
 })
 
-export const deleteTag = mutation({
+export const deleteTag = storeMutation({
   args: blogDefs.deleteTag.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const tag = await ctx.db.get(args.tagId)
-    if (!tag) throw new Error("Tag not found")
-    await requireStoreAccess(ctx, tag.storeId)
-    return blogDefs.deleteTag.handler(ctx, args)
-  },
+  storeIdFrom: storeIdFromTag,
+  handler: (ctx, args) => blogDefs.deleteTag.handler(ctx, args),
 })
 
-export const updateArticleTags = mutation({
+export const updateArticleTags = storeMutation({
   args: blogDefs.updateArticleTags.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const article = await ctx.db.get(args.articleId)
-    if (!article) throw new Error("Article not found")
-    await requireStoreAccess(ctx, article.storeId)
-    return blogDefs.updateArticleTags.handler(ctx, args)
-  },
+  storeIdFrom: storeIdFromArticle,
+  handler: (ctx, args) => blogDefs.updateArticleTags.handler(ctx, args),
 })
 
 // ============================================================================

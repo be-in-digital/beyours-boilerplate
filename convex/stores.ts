@@ -1,6 +1,8 @@
-import { query, mutation, internalQuery } from "./_generated/server";
+import { query, internalQuery } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import * as defs from "@be-in-digital/convex-functions/stores";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, storeMutation, authedMutation } from "./lib/storeFunctions";
 
 // === Queries (public for storefront) ===
 // Strip sensitive data (printConfig.apiKey) from public queries
@@ -44,110 +46,86 @@ export const getBySlug = query({
   },
 });
 
+/** The store IS the document here: `args.id` is the store id. */
+const storeIdFromIdArg = async (_ctx: QueryCtx, args: { id: Id<"stores"> }) =>
+  args.id;
+
 /** Admin-only query: returns full store data including printConfig.apiKey */
-export const getAdminById = query({
+export const getAdminById = storeQuery({
   args: defs.getById.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.getById.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.getById.handler(ctx, args),
 });
 
 // === Mutations (protected with store access) ===
 
-export const create = mutation({
+export const create = authedMutation({
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const update = mutation({
+export const update = storeMutation({
   args: defs.update.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.update.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.update.handler(ctx, args),
 });
 
-export const updateHours = mutation({
+export const updateHours = storeMutation({
   args: defs.updateHours.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.updateHours.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateHours.handler(ctx, args),
 });
 
-export const updateOverrides = mutation({
+export const updateOverrides = storeMutation({
   args: defs.updateOverrides.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.updateOverrides.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateOverrides.handler(ctx, args),
 });
 
-export const updateAddress = mutation({
+export const updateAddress = storeMutation({
   args: defs.updateAddress.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.updateAddress.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateAddress.handler(ctx, args),
 });
 
-export const updatePrintConfig = mutation({
+export const updatePrintConfig = storeMutation({
   args: defs.updatePrintConfig.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.updatePrintConfig.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updatePrintConfig.handler(ctx, args),
 });
 
-export const updateDisplayConfig = mutation({
+export const updateDisplayConfig = storeMutation({
   args: defs.updateDisplayConfig.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.updateDisplayConfig.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateDisplayConfig.handler(ctx, args),
 });
 
-export const updateSoundConfig = mutation({
+export const updateSoundConfig = storeMutation({
   args: defs.updateSoundConfig.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.updateSoundConfig.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateSoundConfig.handler(ctx, args),
 });
 
-export const updateOrderConfirmation = mutation({
+export const updateOrderConfirmation = storeMutation({
   args: defs.updateOrderConfirmation.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.updateOrderConfirmation.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateOrderConfirmation.handler(ctx, args),
 });
 
-export const updateOrderMode = mutation({
+export const updateOrderMode = storeMutation({
   args: defs.updateOrderMode.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.updateOrderMode.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateOrderMode.handler(ctx, args),
 });
 
-export const updateTrendingMode = mutation({
+export const updateTrendingMode = storeMutation({
   args: defs.updateTrendingMode.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.updateTrendingMode.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateTrendingMode.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.id);
-    return defs.remove.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });

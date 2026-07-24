@@ -1,8 +1,9 @@
-import { query, mutation } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import { query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/products";
-import { requireStorePermission } from "@be-in-digital/convex-functions/auth";
+import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
 // === Queries (public for storefront) ===
 
@@ -26,120 +27,115 @@ async function scheduleMenuSync(ctx: MutationCtx) {
   }
 }
 
-/** Resolve storeId from a product ID for authorization */
-async function getProductStoreId(ctx: MutationCtx, productId: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const product = await (ctx.db as any).get(productId);
+const productStoreId = storeIdFromDocument("Product not found");
+
+/** Resolve storeId from a `productId` arg for authorization */
+async function storeIdFromProductId(
+  ctx: QueryCtx,
+  args: { productId: Id<"products"> }
+): Promise<Id<"stores">> {
+  const product = await ctx.db.get(args.productId);
   if (!product) throw new Error("Product not found");
   return product.storeId;
 }
 
 // === Mutations (with authorization + menu sync) ===
 
-export const create = mutation({
+export const create = storeMutation({
   args: defs.create.args,
+  permission: "products:write",
   handler: async (ctx, args) => {
-    await requireStorePermission(ctx, args.storeId, "products:write");
     const result = await defs.create.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;
   },
 });
 
-export const update = mutation({
+export const update = storeMutation({
   args: defs.update.args,
+  storeIdFrom: productStoreId,
+  permission: "products:write",
   handler: async (ctx, args) => {
-    const storeId = await getProductStoreId(ctx, args.id);
-    await requireStorePermission(ctx, storeId, "products:write");
     const result = await defs.update.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;
   },
 });
 
-export const updateStock = mutation({
+export const updateStock = storeMutation({
   args: defs.updateStock.args,
+  storeIdFrom: productStoreId,
+  permission: "products:write",
   handler: async (ctx, args) => {
-    const storeId = await getProductStoreId(ctx, args.id);
-    await requireStorePermission(ctx, storeId, "products:write");
     const result = await defs.updateStock.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;
   },
 });
 
-export const toggleStatus = mutation({
+export const toggleStatus = storeMutation({
   args: defs.toggleStatus.args,
+  storeIdFrom: productStoreId,
+  permission: "products:write",
   handler: async (ctx, args) => {
-    const storeId = await getProductStoreId(ctx, args.id);
-    await requireStorePermission(ctx, storeId, "products:write");
     const result = await defs.toggleStatus.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;
   },
 });
 
-export const toggleStockTracking = mutation({
+export const toggleStockTracking = storeMutation({
   args: defs.toggleStockTracking.args,
-  handler: async (ctx, args) => {
-    const storeId = await getProductStoreId(ctx, args.id);
-    await requireStorePermission(ctx, storeId, "products:write");
-    return defs.toggleStockTracking.handler(ctx, args);
-  },
+  storeIdFrom: productStoreId,
+  permission: "products:write",
+  handler: (ctx, args) => defs.toggleStockTracking.handler(ctx, args),
 });
 
-export const updateAutoDisable = mutation({
+export const updateAutoDisable = storeMutation({
   args: defs.updateAutoDisable.args,
-  handler: async (ctx, args) => {
-    const storeId = await getProductStoreId(ctx, args.id);
-    await requireStorePermission(ctx, storeId, "products:write");
-    return defs.updateAutoDisable.handler(ctx, args);
-  },
+  storeIdFrom: productStoreId,
+  permission: "products:write",
+  handler: (ctx, args) => defs.updateAutoDisable.handler(ctx, args),
 });
 
-export const updateLowStockThreshold = mutation({
+export const updateLowStockThreshold = storeMutation({
   args: defs.updateLowStockThreshold.args,
-  handler: async (ctx, args) => {
-    const storeId = await getProductStoreId(ctx, args.id);
-    await requireStorePermission(ctx, storeId, "products:write");
-    return defs.updateLowStockThreshold.handler(ctx, args);
-  },
+  storeIdFrom: productStoreId,
+  permission: "products:write",
+  handler: (ctx, args) => defs.updateLowStockThreshold.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
   args: defs.remove.args,
+  storeIdFrom: productStoreId,
+  permission: "products:delete",
   handler: async (ctx, args) => {
-    const storeId = await getProductStoreId(ctx, args.id);
-    await requireStorePermission(ctx, storeId, "products:delete");
     const result = await defs.remove.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;
   },
 });
 
-export const updateWithPropagation = mutation({
+export const updateWithPropagation = storeMutation({
   args: defs.updateWithPropagation.args,
+  storeIdFrom: storeIdFromProductId,
+  permission: "products:write",
   handler: async (ctx, args) => {
-    const storeId = await getProductStoreId(ctx, args.productId);
-    await requireStorePermission(ctx, storeId, "products:write");
     const result = await defs.updateWithPropagation.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;
   },
 });
 
-export const duplicateCatalog = mutation({
+export const duplicateCatalog = storeMutation({
   args: defs.duplicateCatalog.args,
-  handler: async (ctx, args) => {
-    await requireStorePermission(ctx, args.sourceStoreId, "products:write");
-    return defs.duplicateCatalog.handler(ctx, args);
-  },
+  storeIdFrom: async (_ctx, args) => args.sourceStoreId,
+  permission: "products:write",
+  handler: (ctx, args) => defs.duplicateCatalog.handler(ctx, args),
 });
 
-export const setTrendingProducts = mutation({
+export const setTrendingProducts = storeMutation({
   args: defs.setTrendingProducts.args,
-  handler: async (ctx, args) => {
-    await requireStorePermission(ctx, args.storeId, "products:write");
-    return defs.setTrendingProducts.handler(ctx, args);
-  },
+  permission: "products:write",
+  handler: (ctx, args) => defs.setTrendingProducts.handler(ctx, args),
 });
