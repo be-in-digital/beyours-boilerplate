@@ -1,42 +1,28 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/teamMembers";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, authedQuery, authedMutation } from "./lib/storeFunctions";
 
 // === QUERIES ===
 
-export const list = query({
+export const list = storeQuery({
   args: defs.list.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.list.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
-export const getByUser = query({
+export const getByUser = authedQuery({
   args: defs.getByUser.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getByUser.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByUser.handler(ctx, args),
 });
 
-export const getByRole = query({
+export const getByRole = storeQuery({
   args: defs.getByRole.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getByRole.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByRole.handler(ctx, args),
 });
 
-export const getByEmail = query({
+export const getByEmail = authedQuery({
   args: defs.getByEmail.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getByEmail.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByEmail.handler(ctx, args),
 });
 
 export const getByInvitationToken = query(defs.getByInvitationToken);
@@ -51,13 +37,9 @@ export const getById = internalQuery({
 
 // === MUTATIONS ===
 
-export const invite = mutation({
+export const invite = authedMutation({
   args: defs.invite.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.invite.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.invite.handler(ctx, args),
 });
 
 // Internal version of invite (called from sendInvitationEmail action)
@@ -75,13 +57,9 @@ export const acceptInvitation = mutation({
   },
 });
 
-export const resendInvitation = mutation({
+export const resendInvitation = authedMutation({
   args: defs.resendInvitation.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.resendInvitation.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.resendInvitation.handler(ctx, args),
 });
 
 // Internal version (called from resendInvitationEmail action)
@@ -92,38 +70,22 @@ export const resendInvitationInternal = internalMutation({
   },
 });
 
-export const create = mutation({
+export const create = authedMutation({
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const update = mutation({
+export const update = authedMutation({
   args: defs.update.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.update.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.update.handler(ctx, args),
 });
 
-export const toggleActive = mutation({
+export const toggleActive = authedMutation({
   args: defs.toggleActive.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.toggleActive.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.toggleActive.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = authedMutation({
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.remove.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });

@@ -1,8 +1,8 @@
-import { query, mutation } from "./_generated/server";
+import { query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/menus";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
 // === Queries (public for storefront) ===
 
@@ -25,54 +25,41 @@ async function scheduleMenuSync(ctx: MutationCtx) {
   }
 }
 
-export const create = mutation({
+const menuStoreId = storeIdFromDocument("Menu not found");
+
+export const create = storeMutation({
   args: defs.create.args,
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    await requireStoreAccess(ctx, args.storeId);
     const result = await defs.create.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;
   },
 });
 
-export const update = mutation({
+export const update = storeMutation({
   args: defs.update.args,
+  storeIdFrom: menuStoreId,
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const menu = await ctx.db.get(args.id);
-    if (!menu) throw new Error("Menu not found");
-    await requireStoreAccess(ctx, menu.storeId);
     const result = await defs.update.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;
   },
 });
 
-export const toggleStatus = mutation({
+export const toggleStatus = storeMutation({
   args: defs.toggleStatus.args,
+  storeIdFrom: menuStoreId,
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const menu = await ctx.db.get(args.id);
-    if (!menu) throw new Error("Menu not found");
-    await requireStoreAccess(ctx, menu.storeId);
     const result = await defs.toggleStatus.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;
   },
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
   args: defs.remove.args,
+  storeIdFrom: menuStoreId,
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const menu = await ctx.db.get(args.id);
-    if (!menu) throw new Error("Menu not found");
-    await requireStoreAccess(ctx, menu.storeId);
     const result = await defs.remove.handler(ctx, args);
     await scheduleMenuSync(ctx);
     return result;

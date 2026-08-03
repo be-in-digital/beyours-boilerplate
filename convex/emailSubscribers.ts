@@ -1,96 +1,59 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { mutation, internalMutation } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/emailSubscribers";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, authedQuery, authedMutation } from "./lib/storeFunctions";
 
 // === Queries (auth-protected) ===
 
-export const list = query({
+export const list = storeQuery({
   args: defs.list.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.list.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
-export const getById = query({
+export const getById = authedQuery({
   args: defs.getById.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getById.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getById.handler(ctx, args),
 });
 
-export const getByEmail = query({
+export const getByEmail = storeQuery({
   args: defs.getByEmail.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getByEmail.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByEmail.handler(ctx, args),
 });
 
-export const countByStatus = query({
+export const countByStatus = storeQuery({
   args: defs.countByStatus.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.countByStatus.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.countByStatus.handler(ctx, args),
 });
 
 // === Mutations (auth-protected) ===
 
-export const create = mutation({
+export const create = authedMutation({
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const update = mutation({
+export const update = authedMutation({
   args: defs.update.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.update.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.update.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = authedMutation({
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.remove.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });
 
-export const addTag = mutation({
+export const addTag = authedMutation({
   args: defs.addTag.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.addTag.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.addTag.handler(ctx, args),
 });
 
-export const removeTag = mutation({
+export const removeTag = authedMutation({
   args: defs.removeTag.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.removeTag.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.removeTag.handler(ctx, args),
 });
 
-export const importBatch = mutation({
+export const importBatch = authedMutation({
   args: defs.importBatch.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.importBatch.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.importBatch.handler(ctx, args),
 });
 
 /**

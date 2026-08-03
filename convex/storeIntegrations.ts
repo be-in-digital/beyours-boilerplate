@@ -1,7 +1,7 @@
-import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/storeIntegrations";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, authedQuery, authedMutation } from "./lib/storeFunctions";
 
 // Internal (no-auth) variant for webhook handlers, which run without a user identity.
 export const internalListByPlatformEnabled = internalQuery({
@@ -11,93 +11,55 @@ export const internalListByPlatformEnabled = internalQuery({
 
 // === Queries (auth-protected where applicable) ===
 
-export const listByStore = query({
+export const listByStore = storeQuery({
   args: defs.listByStore.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.listByStore.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.listByStore.handler(ctx, args),
 });
-export const listByPlatformEnabled = query({
+export const listByPlatformEnabled = authedQuery({
   args: defs.listByPlatformEnabled.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.listByPlatformEnabled.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.listByPlatformEnabled.handler(ctx, args),
 });
 
-export const getByStorePlatform = query({
+export const getByStorePlatform = storeQuery({
   args: defs.getByStorePlatform.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getByStorePlatform.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByStorePlatform.handler(ctx, args),
 });
 
-export const getBySiteId = query({
+export const getBySiteId = authedQuery({
   args: defs.getBySiteId.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getBySiteId.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getBySiteId.handler(ctx, args),
 });
 
-export const getByBrandId = query({
+export const getByBrandId = authedQuery({
   args: defs.getByBrandId.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getByBrandId.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByBrandId.handler(ctx, args),
 });
 
 // === Mutations (protected) ===
 
-export const upsert = mutation({
+export const upsert = authedMutation({
   args: defs.upsert.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.upsert.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.upsert.handler(ctx, args),
 });
 
-export const updateMenuSyncStatus = mutation({
+export const updateMenuSyncStatus = authedMutation({
   args: defs.updateMenuSyncStatus.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.updateMenuSyncStatus.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.updateMenuSyncStatus.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = authedMutation({
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.remove.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });
 
-export const toggleAutoAccept = mutation({
+export const toggleAutoAccept = authedMutation({
   args: defs.toggleAutoAccept.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.toggleAutoAccept.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.toggleAutoAccept.handler(ctx, args),
 });
 
-export const updateOrderMode = mutation({
+export const updateOrderMode = authedMutation({
   args: defs.updateOrderMode.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.updateOrderMode.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.updateOrderMode.handler(ctx, args),
 });
 
 // === Internal Mutations (for webhooks and schedulers) ===

@@ -40,9 +40,15 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
         });
       },
     },
-    trustedOrigins: process.env.SITE_URL
-      ? [process.env.SITE_URL, "http://localhost:3000"]
-      : ["http://localhost:3000"],
+    // Conductor workspaces shift dev ports (3000 taken → 3001/3002…): trust
+    // the common localhost range so sign-in works from any of them.
+    trustedOrigins: [
+      ...(process.env.SITE_URL ? [process.env.SITE_URL] : []),
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
+      "http://localhost:3003",
+    ],
     plugins: [convex({ authConfig })],
   });
 };
