@@ -19,18 +19,33 @@ if (skip) {
   process.exit(0)
 }
 
-// Mode engine-link (overrides link: vers un clone local de l'engine) :
-// aucun paquet privé n'est téléchargé, le token est inutile.
+// Deux modes où aucun paquet privé n'est téléchargé, donc où le token est
+// inutile :
+//   - engine-link : overrides `link:` vers un clone local de l'engine ;
+//   - monorepo    : dépendances en `workspace:`, résolues depuis le workspace.
 try {
   const { readFileSync } = await import("node:fs")
   const pkg = JSON.parse(
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),
   )
   const overrides = (pkg.pnpm && pkg.pnpm.overrides) || {}
-  const allLinked = Object.keys(pkg.dependencies || {})
-    .filter((d) => d.startsWith("@be-in-digital/"))
-    .every((d) => String(overrides[d] || "").startsWith("link:"))
+  const engineDeps = Object.keys(pkg.dependencies || {}).filter((d) =>
+    d.startsWith("@be-in-digital/"),
+  )
+
+  const allLinked = engineDeps.every((d) =>
+    String(overrides[d] || "").startsWith("link:"),
+  )
   if (allLinked && Object.keys(overrides).length > 0) {
+    process.exit(0)
+  }
+
+  const allWorkspace =
+    engineDeps.length > 0 &&
+    engineDeps.every((d) =>
+      String(pkg.dependencies[d] || "").startsWith("workspace:"),
+    )
+  if (allWorkspace) {
     process.exit(0)
   }
 } catch {
