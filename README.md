@@ -1,20 +1,67 @@
-# BeYours Boilerplate
+# `apps/boilerplate` — le gabarit des sites clients
 
-Template des sites restaurant BeYours. Chaque site client est un clone de
-ce repo : il embarque le shell applicatif complet (storefront e-commerce,
-dashboard admin, CMS, jeux QR, KDS cuisine) et consomme la logique métier
-depuis les packages privés `@be-in-digital/*` publiés par
-[beyours-engine](https://github.com/be-in-digital/beyours-engine).
+Le site que chaque restaurant reçoit. Il embarque le shell applicatif complet
+— storefront e-commerce, dashboard admin, CMS, jeux QR, écran cuisine — et
+consomme la logique métier depuis les paquets `@be-in-digital/*`.
+
+Chaque client en est un **clone git**, avec son propre dépôt, son propre backend
+Convex et son propre projet Vercel.
 
 ```
-engine (packages npm @be-in-digital/*)          ← logique métier, versionnée
+packages/*  (publiés en @be-in-digital/*)        ← logique métier, versionnée
    │  publish (changesets → GitHub Packages)
    ▼
-boilerplate (ce repo)                            ← shell app + wrappers convex
+apps/boilerplate                                  ← shell app + wrappers convex
    │  clone / merge git (remote `template`)
    ▼
-site client (1 repo par restaurant)              ← site.config.ts + site/ + env
+dépôt du client (1 par restaurant)                ← site.config.ts + site/ + env
 ```
+
+> ⚠️ **Les clients ne clonent pas ce dossier, ils clonent le dépôt miroir**
+> `be-in-digital/beyours-boilerplate`. Ici les dépendances moteur sont en
+> `workspace:^` (on développe contre le moteur courant) ; là-bas elles sont en
+> versions publiées. Tant qu'un job ne pousse pas ce dossier vers le miroir en
+> réécrivant les versions, **les deux divergent**.
+
+---
+
+## En une minute
+
+| | |
+| --- | --- |
+| **Ce que c'est** | Le livrable — 98 routes, 51 templates design, 50 démos commerciales |
+| **Qui l'utilise** | Un restaurateur par clone, plus l'équipe qui crée les sites |
+| **Ce qui vient du moteur** | 9 paquets `@be-in-digital/*` — logique, schéma Convex, UI, admin |
+| **Ce qui est propre au gabarit** | La zone client, les templates, les scripts de création et de mise à jour, les démos |
+| **Isolation des données** | 1 déploiement Convex par client — structurelle, pas applicative |
+
+---
+
+## Les démos : l'outil de vente
+
+`demos/` contient **50 boutiques statiques navigables**, une par template, avec
+carte, panier et paiement Stripe en mode test. Un prospect essaie le site avant
+de l'acheter, sans qu'on provisionne quoi que ce soit.
+
+```bash
+# hors ligne, sans dépendances
+open demos/index.html
+```
+
+![Catalogue des démos](../../docs/captures/demos-catalogue.png)
+
+C'est du HTML/CSS/JS pur : pas de build, pas de serveur, pas de backend. Le
+workflow `demos.yml` les valide (contraste AA, unicité des mises en page,
+cohérence des prix) en quelques secondes.
+
+Chaque démo couvre les deux faces du produit — la boutique que voit le client
+final, et le back-office que voit le restaurateur :
+
+![Storefront](../../docs/captures/demo-storefront.png)
+
+![Back-office](../../docs/captures/demo-admin.png)
+
+---
 
 ## Stack
 
@@ -36,19 +83,23 @@ Deux configurations : **web** (storefront + admin) ou **web + app**
 Installation (une fois, `gh` authentifié) :
 
 ```bash
-gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/beindigital \
-  -H "Accept: application/vnd.github.raw" > /opt/homebrew/bin/beindigital \
-  && chmod +x /opt/homebrew/bin/beindigital
-beindigital token ghp_xxx           # PAT read:packages, stocké chmod 600
+gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/beyours \
+  -H "Accept: application/vnd.github.raw" > /opt/homebrew/bin/beyours \
+  && chmod +x /opt/homebrew/bin/beyours
+beyours token ghp_xxx           # PAT read:packages, stocké chmod 600
 ```
+
+> La CLI s'appelait `beindigital` avant août 2026. Une installation existante
+> continue de fonctionner ; réinstaller sous le nouveau nom et supprimer
+> l'ancien binaire.
 
 Puis tout se fait au terminal :
 
 ```bash
-beindigital create client-luigi --name "Chez Luigi" --repo be-in-digital/client-luigi
-beindigital create client-luigi --name "Chez Luigi" --mobile   # web + app
-beindigital create client-luigi --name "Chez Luigi" --template pizzeria   # design vertical
-beindigital help · version · upgrade
+beyours create client-luigi --name "Chez Luigi" --repo be-in-digital/client-luigi
+beyours create client-luigi --name "Chez Luigi" --mobile   # web + app
+beyours create client-luigi --name "Chez Luigi" --template pizzeria   # design vertical
+beyours help · version · upgrade
 ```
 
 La CLI va chercher les scripts sur ce repo à chaque appel — elle profite des
@@ -214,3 +265,46 @@ du miroir engine par PR). Runbook complet des secrets :
   boilerplate v2 (pourquoi single-app, pourquoi deux canaux de mise à jour)
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — design system de l'app
 - [`docs/UPDATES.md`](docs/UPDATES.md) · [`docs/CUSTOMIZATION.md`](docs/CUSTOMIZATION.md)
+
+---
+
+## Points de vigilance
+
+**`update:template` ne vérifie pas le contrat de maintenance.** Le modèle
+économique dit qu'un site expiré reste figé sur la dernière version couverte
+(`packages/convex-functions/src/maintenance.ts`). En pratique,
+`scripts/update-template.mjs` fait un `git fetch template` nu : un site expiré
+qui lance la commande reçoit tout. La garde reste à écrire.
+
+**La machinerie de miroir survit à sa raison d'être.**
+`scripts/sync-from-engine.mjs` et `.github/workflows/sync-engine.yml`
+resynchronisaient ce dossier depuis `apps/reference` quand les deux vivaient
+dans des dépôts séparés. Depuis la fusion ils n'ont plus d'objet — ils sont
+conservés tant que le job de publication vers le miroir de distribution n'existe
+pas, parce qu'on ne retire pas un mécanisme avant d'avoir livré son remplaçant.
+
+**Le `.github/` de ce dossier n'est pas inerte.** GitHub ne lit que le
+`.github/` de la racine du dépôt, donc ces workflows ne s'exécutent pas ici —
+mais ils font partie de la charge utile clonée, et s'exécutent bien dans le
+dépôt du client. Ne pas les supprimer.
+
+**Trois listes de templates coexistent** : 51 dossiers dans `templates/`, 50
+démos dans `demos/`, 52 entrées dans `apps/site/lib/templates-data.ts`. Aucun
+test ne les réconcilie.
+
+---
+
+## Pour reprendre cette app
+
+1. Le [README de la racine](../../README.md) pour le contexte monorepo, puis
+   celui-ci.
+2. Ouvrir `demos/index.html` — c'est le produit, navigable sans rien installer.
+3. [`docs/design/boilerplate-v2.md`](docs/design/boilerplate-v2.md) pour
+   comprendre pourquoi deux canaux de mise à jour, puis
+   [`docs/CUSTOMIZATION.md`](docs/CUSTOMIZATION.md) pour la frontière entre zone
+   client et zone moteur — c'est le contrat qui permet aux mises à jour de
+   passer sans conflit.
+4. `scripts/create-site.mjs` puis `scripts/init.mjs` : tout le parcours de
+   création d'un site y tient.
+5. `pnpm dev:boilerplate` depuis la racine, avec un `convex dev` dans un second
+   terminal.
