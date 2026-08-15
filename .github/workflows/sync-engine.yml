@@ -6,9 +6,9 @@ name: Sync engine
 #
 # Authentification vers l'engine, au choix (docs/SETUP-CI.md) :
 #   - ENGINE_SYNC_KEY   : clé privée SSH d'une deploy key read-only posée sur
-#                         beindigital-engine (si les deploy keys sont
+#                         beyours-engine (si les deploy keys sont
 #                         autorisées dans l'org)
-#   - ENGINE_SYNC_TOKEN : PAT fine-grained contents:read sur beindigital-engine
+#   - ENGINE_SYNC_TOKEN : PAT fine-grained contents:read sur beyours-engine
 # Sans aucun des deux, le job s'arrête proprement avec une notice.
 
 on:
@@ -90,7 +90,7 @@ jobs:
           git commit -m "chore(sync): miroir engine @ $sha"
           git push -u origin "$branch" --force
           {
-            echo "Resync automatique du shell depuis \`beindigital-engine/apps/restaurant-theme\`."
+            echo "Resync automatique du shell depuis \`beyours-engine/apps/restaurant-theme\`."
             echo ""
             echo "Avant merge :"
             echo "- [ ] Lire le rapport de dépendances dans les logs du workflow (section « Dépendances à réconcilier ») et appliquer les ajouts éventuels à \`package.json\`"

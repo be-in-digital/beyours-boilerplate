@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Mode développement : consommer les packages @be-in-digital/* depuis un
- * clone local de beindigital-engine (symlinks pnpm) au lieu du registre
+ * clone local de beyours-engine (symlinks pnpm) au lieu du registre
  * GitHub Packages. Utile pour :
  *   - développer engine + site en parallèle sans publier ;
  *   - valider le boilerplate sans NODE_AUTH_TOKEN.
@@ -10,7 +10,7 @@
  *   node scripts/engine-link.js link [chemin-du-clone-engine]
  *   node scripts/engine-link.js unlink
  *
- * Le chemin par défaut vient de BID_ENGINE_PATH, sinon ../beindigital-engine.
+ * Le chemin par défaut vient de BID_ENGINE_PATH, sinon ../beyours-engine.
  * ATTENTION : ne jamais commiter package.json/pnpm-lock.yaml en mode link
  * (des overrides `link:` y figurent). `unlink` nettoie les deux.
  */
@@ -40,7 +40,7 @@ function writePkg(pkg) {
 
 function link() {
   const enginePath = path.resolve(
-    engineArg || process.env.BID_ENGINE_PATH || path.join(ROOT, "..", "beindigital-engine"),
+    engineArg || process.env.BID_ENGINE_PATH || path.join(ROOT, "..", "beyours-engine"),
   )
   const packagesDir = path.join(enginePath, "packages")
   if (!fs.existsSync(path.join(packagesDir, "core", "package.json"))) {

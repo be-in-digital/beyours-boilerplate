@@ -4,14 +4,14 @@
 
 ```
 ┌──────────────────────────┐
-│ beindigital-engine       │  logique métier + shell de référence
+│ beyours-engine       │  logique métier + shell de référence
 │ (monorepo, changesets)   │  apps/restaurant-theme + packages/*
 └─────────┬────────────────┘
           │ ① publish npm (@be-in-digital/* → GitHub Packages)
           │ ② sync du shell (maintainer, voir § Maintenance)
           ▼
 ┌──────────────────────────┐
-│ beindigital-boilerplate  │  ce repo — template des sites
+│ beyours-boilerplate  │  ce repo — template des sites
 └─────────┬────────────────┘
           │ ③ pnpm update:engine   (canal npm)
           │ ④ pnpm update:template (canal git, remote `template`)
@@ -89,7 +89,7 @@ Tout le reste (`app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`,
 `public/`, configs de test) est un miroir exact. Chaque fichier patché porte
 un en-tête `PATCH BOILERPLATE`.
 
-## Maintenance du boilerplate (équipe BeInDigital)
+## Maintenance du boilerplate (équipe BeYours)
 
 La resync du shell depuis l'engine est **outillée et automatisée** :
 
@@ -107,7 +107,7 @@ La resync du shell depuis l'engine est **outillée et automatisée** :
 Validation avant merge d'une PR de sync :
 
 ```bash
-pnpm engine:link ../beindigital-engine && pnpm typecheck && pnpm test && pnpm build
+pnpm engine:link ../beyours-engine && pnpm typecheck && pnpm test && pnpm build
 pnpm engine:unlink
 ```
 

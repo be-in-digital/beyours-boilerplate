@@ -1,4 +1,4 @@
-# Démos interactives — BeInDigital
+# Démos interactives — BeYours
 
 **50 démos de sites complets** : 5 thématiques (catégories) × **10 thèmes
 chacune**, chaque thème avec sa **propre identité** (marque, palette

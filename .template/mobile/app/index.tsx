@@ -15,7 +15,7 @@ import { StyleSheet, Text, View } from "react-native"
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>BeInDigital</Text>
+      <Text style={styles.title}>BeYours</Text>
       <Text style={styles.subtitle}>App mobile — placeholder</Text>
       <Text style={styles.body}>
         Éditez mobile/app/index.tsx pour construire l&apos;app cliente.

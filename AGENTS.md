@@ -5,9 +5,9 @@ all differ from your training data. Read the relevant guide in
 `node_modules/next/dist/docs/` before writing any code. Heed deprecation
 notices.
 
-# Boilerplate BeInDigital — règles pour agents
+# Boilerplate BeYours — règles pour agents
 
-Ce repo est le **template** des sites restaurant BeInDigital. Un site client
+Ce repo est le **template** des sites restaurant BeYours. Un site client
 est un clone de ce repo. Le code produit vient de deux sources :
 
 1. **Packages npm `@be-in-digital/*`** (GitHub Packages privé, publiés depuis

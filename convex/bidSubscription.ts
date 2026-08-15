@@ -1,7 +1,7 @@
 "use node";
 
 /**
- * BeInDigital Subscription Actions (App Layer)
+ * BeYours Subscription Actions (App Layer)
  *
  * "use node" file — ONLY action / internalAction here.
  * No mutations, no queries — those are in bidSubscriptionInternal.ts.

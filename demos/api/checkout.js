@@ -76,7 +76,7 @@ module.exports = async (req, res) => {
         price_data: {
           currency: "eur",
           unit_amount: Math.round(entry[1] * 100),
-          product_data: { name: entry[0], description: "Démonstration BeInDigital (paiement de test)" },
+          product_data: { name: entry[0], description: "Démonstration BeYours (paiement de test)" },
         },
       });
     }
@@ -96,7 +96,7 @@ module.exports = async (req, res) => {
       locale: "fr",
       success_url: `${origin}/success.html?t=${encodeURIComponent(t)}`,
       cancel_url: `${origin}/checkout.html?t=${encodeURIComponent(t)}`,
-      metadata: { demo: t, source: "beindigital-demos" },
+      metadata: { demo: t, source: "beyours-demos" },
     });
 
     res.status(200).json({ url: session.url });

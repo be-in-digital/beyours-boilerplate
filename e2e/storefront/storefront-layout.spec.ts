@@ -6,7 +6,7 @@ test.describe("Storefront Layout", () => {
     test("should display the brand link", async ({ page }) => {
       await page.goto("/menu", { waitUntil: "domcontentloaded" })
 
-      const brandLink = page.getByRole("link", { name: "BeInDigital" })
+      const brandLink = page.getByRole("link", { name: "BeYours" })
       await expect(brandLink).toBeVisible({ timeout: 30_000 })
     })
 
@@ -25,7 +25,7 @@ test.describe("Storefront Layout", () => {
       await page.goto("/menu", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByText("Powered by BeInDigital Engine")
+        page.getByText("Powered by BeYours Engine")
       ).toBeVisible({ timeout: 30_000 })
     })
   })
@@ -36,7 +36,7 @@ test.describe("Storefront Layout", () => {
     }) => {
       await page.goto("/menu", { waitUntil: "domcontentloaded" })
 
-      const brandLink = page.getByRole("link", { name: "BeInDigital" })
+      const brandLink = page.getByRole("link", { name: "BeYours" })
       await expect(brandLink).toBeVisible({ timeout: 30_000 })
 
       await brandLink.click()

@@ -68,7 +68,7 @@ import {
 } from "@be-in-digital/convex-schema";
 
 /**
- * BeInDigital Engine - App Schema
+ * BeYours Engine - App Schema
  *
  * Auth tables (user, session, account, verification, jwks) are managed
  * by the Better Auth component and are NOT defined here.

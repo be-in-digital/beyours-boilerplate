@@ -1,5 +1,5 @@
 /**
- * BeInDigital Subscription Internal Functions (App Layer)
+ * BeYours Subscription Internal Functions (App Layer)
  *
  * NO "use node" — contains internalQuery and internalMutation only.
  * Called by the "use node" actions in bidSubscription.ts.

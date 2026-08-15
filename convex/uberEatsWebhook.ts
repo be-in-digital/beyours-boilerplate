@@ -26,7 +26,7 @@ export const handleWebhook = httpAction(async (ctx, request) => {
     const rawBody = await request.text()
     const signature = request.headers.get("x-uber-signature") ?? ""
 
-    // Read credentials from environment variables (BeInDigital platform credentials)
+    // Read credentials from environment variables (BeYours platform credentials)
     const { getPackageEnv, getSiteEnv } = await import("@be-in-digital/core/env")
     const pkg = getPackageEnv()
     const site = getSiteEnv()

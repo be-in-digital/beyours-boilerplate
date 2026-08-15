@@ -1,10 +1,10 @@
-# BeInDigital Boilerplate
+# BeYours Boilerplate
 
-Template des sites restaurant BeInDigital. Chaque site client est un clone de
+Template des sites restaurant BeYours. Chaque site client est un clone de
 ce repo : il embarque le shell applicatif complet (storefront e-commerce,
 dashboard admin, CMS, jeux QR, KDS cuisine) et consomme la logique métier
 depuis les packages privés `@be-in-digital/*` publiés par
-[beindigital-engine](https://github.com/be-in-digital/beyours-engine).
+[beyours-engine](https://github.com/be-in-digital/beyours-engine).
 
 ```
 engine (packages npm @be-in-digital/*)          ← logique métier, versionnée
@@ -31,7 +31,7 @@ site client (1 repo par restaurant)              ← site.config.ts + site/ + en
 Deux configurations : **web** (storefront + admin) ou **web + app**
 (+ app mobile Expo cliente).
 
-### La CLI `beindigital` (recommandée)
+### La CLI `beyours` (recommandée)
 
 Installation (une fois, `gh` authentifié) :
 
@@ -164,7 +164,7 @@ codegen + typecheck + tests et pointe vers les CHANGELOGs de l'engine.
 ## Développer contre un engine local (sans registre)
 
 ```bash
-git clone https://github.com/be-in-digital/beyours-engine ../beindigital-engine
+git clone https://github.com/be-in-digital/beyours-engine ../beyours-engine
 pnpm engine:link       # overrides pnpm link: vers le clone
 # … dev …
 pnpm engine:unlink     # retour au registre (ne jamais commiter en mode link)

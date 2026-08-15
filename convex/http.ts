@@ -90,7 +90,7 @@ http.route({
   handler: handleSesWebhook,
 });
 
-// BeInDigital Stripe webhook (subscription lifecycle)
+// BeYours Stripe webhook (subscription lifecycle)
 http.route({
   path: "/webhooks/stripe-bid",
   method: "POST",

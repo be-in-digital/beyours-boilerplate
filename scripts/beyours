@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# beindigital — CLI des sites restaurant BeInDigital (tout depuis le terminal).
+# beyours — CLI des sites restaurant BeYours (tout depuis le terminal).
 #
 # Install (une fois, gh authentifié requis) :
-#   gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/beindigital \
-#     -H "Accept: application/vnd.github.raw" > /usr/local/bin/beindigital \
-#     && chmod +x /usr/local/bin/beindigital
+#   gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/beyours \
+#     -H "Accept: application/vnd.github.raw" > /usr/local/bin/beyours \
+#     && chmod +x /usr/local/bin/beyours
 #
 # La CLI va chercher les scripts sur le repo boilerplate à chaque appel :
 # elle profite donc des mises à jour du template sans réinstallation
-# (`beindigital upgrade` ne met à jour que ce wrapper).
+# (`beyours upgrade` ne met à jour que ce wrapper).
 set -euo pipefail
 
 REPO="be-in-digital/beyours-boilerplate"
-REF="${BEINDIGITAL_REF:-main}"
-TOKEN_FILE="$HOME/.config/beindigital/token"
+REF="${BEYOURS_REF:-main}"
+TOKEN_FILE="$HOME/.config/beyours/token"
 
-# Token packages : env prioritaire, sinon fichier local (posé via `beindigital token`)
+# Token packages : env prioritaire, sinon fichier local (posé via `beyours token`)
 if [ -z "${NODE_AUTH_TOKEN:-}" ] && [ -f "$TOKEN_FILE" ]; then
   NODE_AUTH_TOKEN="$(cat "$TOKEN_FILE")"
   export NODE_AUTH_TOKEN
@@ -29,10 +29,10 @@ fetch() {
 
 show_help() {
   cat <<'HELP'
-beindigital — sites restaurant BeInDigital
+beyours — sites restaurant BeYours
 
 USAGE
-  beindigital create <dossier> [options]   Crée un site client complet
+  beyours create <dossier> [options]   Crée un site client complet
       --name "Chez Luigi"     nom du restaurant
       --mobile | --web        web + app Expo, ou web seul (défaut)
       --template <slug>       design : pizzeria, fast-food, food-truck,
@@ -42,11 +42,11 @@ USAGE
       --locale fr             locale par défaut
       --skip-install          sans pnpm install
 
-  beindigital token <PAT>     Enregistre le PAT read:packages
-                              (~/.config/beindigital/token, chmod 600)
-  beindigital version         Version du template (main)
-  beindigital upgrade         Met à jour cette CLI
-  beindigital help            Cette aide
+  beyours token <PAT>                 Enregistre le PAT read:packages
+                                      (~/.config/beyours/token, chmod 600)
+  beyours version                     Version du template (main)
+  beyours upgrade                     Met à jour cette CLI
+  beyours help                        Cette aide
 
 ENSUITE, DANS UN SITE CRÉÉ
   pnpx convex dev             provisionne le backend
@@ -71,19 +71,19 @@ case "$cmd" in
     need pnpm
     need git
     [ $# -ge 1 ] || {
-      echo "Usage : beindigital create <dossier> [options] (beindigital help)" >&2
+      echo "Usage : beyours create <dossier> [options] (beyours help)" >&2
       exit 1
     }
     if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-      echo "⚠ Pas de NODE_AUTH_TOKEN ni ~/.config/beindigital/token — l'install des packages privés sera sautée." >&2
-      echo "  Enregistrer un PAT read:packages : beindigital token ghp_xxx" >&2
+      echo "⚠ Pas de NODE_AUTH_TOKEN ni ~/.config/beyours/token — l'install des packages privés sera sautée." >&2
+      echo "  Enregistrer un PAT read:packages : beyours token ghp_xxx" >&2
     fi
     fetch "scripts/create-site.mjs" | node --input-type=module - "$@"
     ;;
   token)
     shift
     [ "${1:-}" ] || {
-      echo "Usage : beindigital token <PAT read:packages>" >&2
+      echo "Usage : beyours token <PAT read:packages>" >&2
       exit 1
     }
     mkdir -p "$(dirname "$TOKEN_FILE")"
@@ -93,9 +93,9 @@ case "$cmd" in
     ;;
   upgrade)
     need gh
-    dest="$(command -v beindigital || true)"
-    [ -n "$dest" ] || { echo "beindigital introuvable dans le PATH" >&2; exit 1; }
-    fetch "scripts/beindigital" > "${dest}.tmp"
+    dest="$(command -v beyours || true)"
+    [ -n "$dest" ] || { echo "beyours introuvable dans le PATH" >&2; exit 1; }
+    fetch "scripts/beyours" > "${dest}.tmp"
     chmod +x "${dest}.tmp"
     mv "${dest}.tmp" "$dest"
     echo "✓ CLI mise à jour ($dest)."
@@ -103,7 +103,7 @@ case "$cmd" in
   version | --version | -v)
     need gh
     need node
-    fetch "package.json" | node -e 'let d="";process.stdin.on("data",(c)=>d+=c).on("end",()=>console.log("boilerplate v"+JSON.parse(d).version+" (ref: "+(process.env.BEINDIGITAL_REF||"main")+")"))'
+    fetch "package.json" | node -e 'let d="";process.stdin.on("data",(c)=>d+=c).on("end",()=>console.log("boilerplate v"+JSON.parse(d).version+" (ref: "+(process.env.BEYOURS_REF||"main")+")"))'
     ;;
   help | -h | --help)
     show_help

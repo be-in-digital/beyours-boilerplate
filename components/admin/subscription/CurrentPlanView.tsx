@@ -157,7 +157,7 @@ export function CurrentPlanView({ entitlements }: CurrentPlanViewProps) {
           <div className="flex items-start justify-between">
             <div>
               <CardTitle className="text-lg">Plan actuel</CardTitle>
-              <CardDescription>Votre abonnement BeInDigital</CardDescription>
+              <CardDescription>Votre abonnement BeYours</CardDescription>
             </div>
             <Badge className={statusInfo.className}>{statusInfo.label}</Badge>
           </div>

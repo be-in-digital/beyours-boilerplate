@@ -28,17 +28,17 @@ for (const t of X.LIST) {
   const brand = t.brand[0] + t.brand[1];
   const cat = X.CATS[t.cat].label;
   const title = `${brand} — ${t.tag}`;
-  const desc = `Démo interactive d'un site restaurant : carte, commande et paiement de test, plusieurs pages. Design « ${t.name} » (${cat}). Par BeInDigital.`;
+  const desc = `Démo interactive d'un site restaurant : carte, commande et paiement de test, plusieurs pages. Design « ${t.name} » (${cat}). Par BeYours.`;
   const img = `/assets/shots/${t.id}.jpg`;
   const html = `<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)} — démo BeInDigital</title>
+<title>${esc(title)} — démo BeYours</title>
 <meta name="description" content="${esc(desc)}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Démos BeInDigital">
+<meta property="og:site_name" content="Démos BeYours">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:image" content="${img}">

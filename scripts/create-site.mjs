@@ -19,7 +19,7 @@
  *   --template <slug>     template design : pizzeria, fast-food, food-truck,
  *                         poulet, asiatique (défaut : neutre engine)
  *   --repo owner/nom      crée le repo GitHub privé (via gh) et pousse
- *   --template-url URL    boilerplate source (défaut : repo BeInDigital)
+ *   --template-url URL    boilerplate source (défaut : repo BeYours)
  *   --skip-install        ne pas lancer pnpm install (pas de NODE_AUTH_TOKEN)
  *
  * Étapes : clone du template → remote `template` → (repo GitHub) →

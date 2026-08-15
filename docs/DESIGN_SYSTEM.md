@@ -2,7 +2,7 @@
 
 ## Overview
 
-The BeInDigital Engine restaurant theme uses a comprehensive design system built on shadcn/ui and Tailwind CSS v4, providing a consistent and accessible UI across all restaurant types.
+The BeYours Engine restaurant theme uses a comprehensive design system built on shadcn/ui and Tailwind CSS v4, providing a consistent and accessible UI across all restaurant types.
 
 ## Setup
 
@@ -231,4 +231,4 @@ For data visualization (charts, graphs):
 
 **Version**: 1.0.0
 **Last Updated**: February 15, 2026
-**Maintained by**: BeInDigital Team
+**Maintained by**: BeYours Team

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ============================================================================
-# BeInDigital Engine - AWS S3 & SES Setup Script
+# BeYours Engine - AWS S3 & SES Setup Script
 #
 # Configures:
 #   1. S3 bucket with CORS, lifecycle rules, and folder structure
@@ -23,8 +23,8 @@ set -euo pipefail
 
 REGION="eu-west-3"
 DOMAIN="beindigital.fr"
-BUCKET_NAME="beindigital-engine-assets"
-IAM_USER="beindigital-engine-app"
+BUCKET_NAME="beyours-engine-assets"
+IAM_USER="beyours-engine-app"
 ENV_FILE=".env.local"
 
 # Colors for output
@@ -248,11 +248,11 @@ log_success "Sender email identity registered"
 # Create a configuration set for tracking
 log_info "Creating SES configuration set..."
 aws sesv2 create-configuration-set \
-  --configuration-set-name "beindigital-engine" \
+  --configuration-set-name "beyours-engine" \
   --sending-options '{"SendingEnabled": true}' \
   --reputation-options '{"ReputationMetricsEnabled": true}' \
   --region "$REGION" 2>/dev/null || log_warn "Configuration set already exists"
-log_success "Configuration set 'beindigital-engine' ready"
+log_success "Configuration set 'beyours-engine' ready"
 
 # ════════════════════════════════════════════════════════════════════════════
 # STEP 3: IAM USER FOR THE APP
@@ -270,7 +270,7 @@ else
 fi
 
 # Create policy with minimal permissions
-POLICY_NAME="BeInDigitalEnginePolicy"
+POLICY_NAME="BeYoursEnginePolicy"
 POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${POLICY_NAME}"
 
 POLICY_DOC=$(cat <<EOF
@@ -304,7 +304,7 @@ POLICY_DOC=$(cat <<EOF
       "Resource": [
         "arn:aws:ses:${REGION}:${ACCOUNT_ID}:identity/${DOMAIN}",
         "arn:aws:ses:${REGION}:${ACCOUNT_ID}:identity/${FROM_EMAIL}",
-        "arn:aws:ses:${REGION}:${ACCOUNT_ID}:configuration-set/beindigital-engine"
+        "arn:aws:ses:${REGION}:${ACCOUNT_ID}:configuration-set/beyours-engine"
       ]
     },
     {
@@ -408,7 +408,7 @@ if [ -n "${NEW_ACCESS_KEY:-}" ]; then
   if ! grep -q "AWS_SES_CONFIGURATION_SET" "$ENV_FILE"; then
     echo "" >> "$ENV_FILE"
     echo "# SES Configuration" >> "$ENV_FILE"
-    echo "AWS_SES_CONFIGURATION_SET=beindigital-engine" >> "$ENV_FILE"
+    echo "AWS_SES_CONFIGURATION_SET=beyours-engine" >> "$ENV_FILE"
   fi
 
   log_success ".env.local updated"
@@ -434,7 +434,7 @@ echo ""
 echo -e "${GREEN}SES:${NC}"
 echo "  Domain: $DOMAIN"
 echo "  From: $FROM_EMAIL"
-echo "  Config Set: beindigital-engine"
+echo "  Config Set: beyours-engine"
 echo "  Region: $REGION"
 echo ""
 

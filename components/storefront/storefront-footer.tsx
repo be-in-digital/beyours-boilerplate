@@ -42,7 +42,7 @@ export function StorefrontFooter() {
           {/* Column 1 — Brand + contact */}
           <div>
             <h2 className="text-2xl font-black tracking-tighter text-white mb-4">
-              {store?.name ?? "BeInDigital"}
+              {store?.name ?? "BeYours"}
             </h2>
             <p className="text-sm text-emerald-50/60 leading-relaxed mb-8">
               Commandez en ligne, retirez en magasin ou faites-vous livrer directement chez vous.

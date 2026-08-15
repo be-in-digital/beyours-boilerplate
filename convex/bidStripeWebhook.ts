@@ -1,5 +1,5 @@
 /**
- * BeInDigital Stripe Webhook Handler (httpAction entry point)
+ * BeYours Stripe Webhook Handler (httpAction entry point)
  *
  * Receives POST /webhooks/stripe-bid from Stripe.
  * Reads raw body + Stripe-Signature header, delegates to processWebhookEvent

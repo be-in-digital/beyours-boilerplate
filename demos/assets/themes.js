@@ -1,5 +1,5 @@
 /*
- * Catalogue des thèmes de démo BeInDigital — 10 thèmes par catégorie.
+ * Catalogue des thèmes de démo BeYours — 10 thèmes par catégorie.
  *
  * Chaque thème = une IDENTITÉ complète : marque, palette clair/sombre,
  * paire de polices, formes (rayons, boutons, bordures), texture, et surtout

@@ -140,7 +140,7 @@ async function signUpUser(
 // ── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log("=== BeInDigital Engine - Test User Seeding ===\n")
+  console.log("=== BeYours Engine - Test User Seeding ===\n")
   console.log(`Better Auth URL: ${BASE_URL}`)
   console.log(`Convex URL: ${CONVEX_URL}\n`)
 

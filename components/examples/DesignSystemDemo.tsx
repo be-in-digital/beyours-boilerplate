@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 /**
  * Design System Demo Component
  *
- * Demonstrates the usage of the BeInDigital Engine design system
+ * Demonstrates the usage of the BeYours Engine design system
  * including colors, typography, and UI components.
  */
 export function DesignSystemDemo() {
@@ -15,7 +15,7 @@ export function DesignSystemDemo() {
           Design System Demo
         </h1>
         <p className="text-lg text-muted-foreground font-sans">
-          This page demonstrates the BeInDigital Engine design system with
+          This page demonstrates the BeYours Engine design system with
           shadcn/ui components and Tailwind CSS v4.
         </p>
       </section>

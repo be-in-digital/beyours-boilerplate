@@ -21,7 +21,7 @@ export const handleWebhook = httpAction(async (ctx, request) => {
 
     console.log(`[Deliveroo Webhook] Received - sig: ${signature ? "present" : "missing"}, guid: ${sequenceGuid || "none"}, bodyLen: ${rawBody.length}`);
 
-    // Read signing secret from environment (BeInDigital platform credentials)
+    // Read signing secret from environment (BeYours platform credentials)
     const { getPackageEnv } = await import("@be-in-digital/core/env");
     const pkg = getPackageEnv();
     const webhookSecret = pkg.DELIVEROO_WEBHOOK_SECRET;

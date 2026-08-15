@@ -5,7 +5,7 @@
  * site client : les sites se mettent à jour via `pnpm update:template`).
  *
  * Usage :
- *   pnpm sync:engine                       # engine local : ../beindigital-engine
+ *   pnpm sync:engine                       # engine local : ../beyours-engine
  *   pnpm sync:engine -- --engine <chemin>  # autre clone
  *   pnpm sync:engine -- --check            # dry-run : exit 1 si dérive
  *
@@ -38,7 +38,7 @@ const engineIdx = args.indexOf("--engine")
 const ENGINE = path.resolve(
   engineIdx !== -1 && args[engineIdx + 1]
     ? args[engineIdx + 1]
-    : process.env.BID_ENGINE_PATH || path.join(ROOT, "..", "beindigital-engine"),
+    : process.env.BID_ENGINE_PATH || path.join(ROOT, "..", "beyours-engine"),
 )
 const APP = path.join(ENGINE, "apps", "restaurant-theme")
 

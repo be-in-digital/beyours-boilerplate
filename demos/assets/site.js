@@ -1,5 +1,5 @@
 /*
- * Moteur multipage des démos BeInDigital.
+ * Moteur multipage des démos BeYours.
  *
  * Chaque page est une coquille <body data-page="…"> ; ce moteur lit le thème
  * (?t=<themeId>), pose les tokens + polices + data-attributes de familles de
@@ -208,7 +208,7 @@
           <div class="ft-col"><h4>${LOCS.length > 1 ? "Adresses" : "Adresse"}</h4>${LOCS.map((l) => `<p>${esc(l.addr)}</p>`).join("")}</div>
           <div class="ft-col"><h4>Contact</h4><a href="tel:${LOCS[0].phone.replace(/\s/g, "")}">${esc(LOCS[0].phone)}</a><a href="mailto:${PACK.email}">${PACK.email}</a></div>
         </div>
-        <div class="ft-note">© ${esc(brandTxt())} · <a href="${href("legal")}" style="text-decoration:underline">Mentions légales</a> · démonstration BeInDigital · thème « ${esc(T.name)} », catégorie ${esc(PACK.label)}</div>
+        <div class="ft-note">© ${esc(brandTxt())} · <a href="${href("legal")}" style="text-decoration:underline">Mentions légales</a> · démonstration BeYours · thème « ${esc(T.name)} », catégorie ${esc(PACK.label)}</div>
       </div></footer>
 
       ${T.orderBar ? `<div class="orderbar" id="orderbar"><div class="in" id="orderbar-in"><span class="cnt" id="ob-n">0</span><span class="lbl">Voir ma commande</span><span class="tot" id="ob-t">0,00 €</span>${svg("arrow")}</div></div>` : ""}
@@ -648,7 +648,7 @@
           <div class="resa-line"><span>Adresse</span><b>${esc(loc.addr)}</b></div>
           <div class="resa-acts"><a class="btn btn-p" href="${href("track")}">Suivre ma commande</a><a class="btn btn-g" href="${href("menu")}">Recommander</a></div>
         </div>
-        <p class="helper" style="margin-top:16px">Rappel : ceci est une démonstration BeInDigital. Aucune commande réelle, aucun débit réel.</p>
+        <p class="helper" style="margin-top:16px">Rappel : ceci est une démonstration BeYours. Aucune commande réelle, aucun débit réel.</p>
       </div>`);
   }
 
@@ -701,7 +701,7 @@
         <h3 style="margin:18px 0 8px">Données personnelles</h3>
         <p>Cette démonstration ne collecte ni ne transmet aucune donnée : réservations, panier et commandes restent dans votre navigateur (stockage local) et disparaissent à volonté.</p>
         <h3 style="margin:18px 0 8px">Propriété</h3>
-        <p>Maquette réalisée par BeInDigital. Marques, plats, prix et photographies sont des exemples destinés à présenter le design du site.</p>
+        <p>Maquette réalisée par BeYours. Marques, plats, prix et photographies sont des exemples destinés à présenter le design du site.</p>
         <div class="hero-actions" style="margin-top:24px"><a class="btn btn-p" href="${href("home")}">Retour à l'accueil</a></div>
       </div>`);
   }

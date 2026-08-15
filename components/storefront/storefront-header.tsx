@@ -31,7 +31,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
   const itemCount = useCartStore((s) => s.getItemCount())
   const cms = useCmsPage("storefront-layout")
   const logoMedia = cms.block("branding").field("logo")
-  const brandName = cms.block("branding").field("brandName").text ?? "BeInDigital"
+  const brandName = cms.block("branding").field("brandName").text ?? "BeYours"
 
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)

@@ -7,7 +7,7 @@ votre `.env.local`).
 
 ## Statut
 
-C'est un **point de départ** (zone client) : l'engine BeInDigital ne publie
+C'est un **point de départ** (zone client) : l'engine BeYours ne publie
 pas encore de produit mobile. Le shell est volontairement minimal — un écran
 placeholder, expo-router, TypeScript strict.
 

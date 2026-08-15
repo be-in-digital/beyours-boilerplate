@@ -327,7 +327,7 @@ function buildAllPages(heroMediaId: string, ctaMediaId: string, storyMediaId: st
           signinLabel: t("Connexion"),
         },
         footer: {
-          poweredBy: t("Propulsé par BeInDigital"),
+          poweredBy: t("Propulsé par BeYours"),
           copyrightText: t("© 2026 Restaurant. Tous droits réservés."),
         },
       },

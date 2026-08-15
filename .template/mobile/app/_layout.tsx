@@ -6,7 +6,7 @@ export default function RootLayout() {
     <>
       <StatusBar style="auto" />
       <Stack>
-        <Stack.Screen name="index" options={{ title: "BeInDigital" }} />
+        <Stack.Screen name="index" options={{ title: "BeYours" }} />
       </Stack>
     </>
   )

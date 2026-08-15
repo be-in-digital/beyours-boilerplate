@@ -107,7 +107,7 @@ function buildInvitationHtml(
         <p class="expire">Ce lien est valable pendant 7 jours.</p>
       </div>
       <p class="footer">
-        Cet email a ete envoye par BeInDigital.<br>
+        Cet email a ete envoye par BeYours.<br>
         Si vous n'attendiez pas cette invitation, ignorez cet email.
       </p>
     </div>
@@ -151,7 +151,7 @@ function buildReminderHtml(
         <p class="expire">Ce lien est valable pendant 7 jours.</p>
       </div>
       <p class="footer">
-        Cet email a ete envoye par BeInDigital.<br>
+        Cet email a ete envoye par BeYours.<br>
         Si vous n'attendiez pas cette invitation, ignorez cet email.
       </p>
     </div>
@@ -220,7 +220,7 @@ export const sendInvitationEmail = action({
       "",
       "Ce lien est valable pendant 7 jours.",
       "",
-      "-- BeInDigital",
+      "-- BeYours",
     ].join("\n");
 
     // Try to send email - don't fail if email sending fails
@@ -291,7 +291,7 @@ export const resendInvitationEmail = action({
       "",
       "Ce lien est valable pendant 7 jours.",
       "",
-      "-- BeInDigital",
+      "-- BeYours",
     ].join("\n");
 
     let emailSent = false;
