@@ -1,7 +1,7 @@
 name: Sync engine
 
 # Resynchronise le miroir du shell applicatif depuis
-# be-in-digital/beindigital-engine (apps/restaurant-theme) et ouvre une PR
+# be-in-digital/beyours-engine (apps/restaurant-theme) et ouvre une PR
 # quand il y a une dérive. Voir docs/UPDATES.md et scripts/sync-from-engine.mjs.
 #
 # Authentification vers l'engine, au choix (docs/SETUP-CI.md) :
@@ -54,11 +54,11 @@ jobs:
             ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
             GIT_SSH_COMMAND="ssh -i ~/.ssh/engine_sync_key -o IdentitiesOnly=yes" \
               git clone --depth 1 \
-              "git@github.com:be-in-digital/beindigital-engine.git" \
+              "git@github.com:be-in-digital/beyours-engine.git" \
               "$RUNNER_TEMP/engine"
           else
             git clone --depth 1 \
-              "https://x-access-token:${ENGINE_TOKEN}@github.com/be-in-digital/beindigital-engine" \
+              "https://x-access-token:${ENGINE_TOKEN}@github.com/be-in-digital/beyours-engine" \
               "$RUNNER_TEMP/engine"
           fi
 

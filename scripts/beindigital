@@ -2,7 +2,7 @@
 # beindigital — CLI des sites restaurant BeInDigital (tout depuis le terminal).
 #
 # Install (une fois, gh authentifié requis) :
-#   gh api repos/be-in-digital/beindigital-boilerplate/contents/scripts/beindigital \
+#   gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/beindigital \
 #     -H "Accept: application/vnd.github.raw" > /usr/local/bin/beindigital \
 #     && chmod +x /usr/local/bin/beindigital
 #
@@ -11,7 +11,7 @@
 # (`beindigital upgrade` ne met à jour que ce wrapper).
 set -euo pipefail
 
-REPO="be-in-digital/beindigital-boilerplate"
+REPO="be-in-digital/beyours-boilerplate"
 REF="${BEINDIGITAL_REF:-main}"
 TOKEN_FILE="$HOME/.config/beindigital/token"
 
@@ -58,7 +58,7 @@ ENSUITE, DANS UN SITE CRÉÉ
   pnpm add:mobile             active l'app mobile après coup
 
 PRÉ-REQUIS : gh (authentifié), node ≥ 20, pnpm, git.
-DOCS : https://github.com/be-in-digital/beindigital-boilerplate
+DOCS : https://github.com/be-in-digital/beyours-boilerplate
 HELP
 }
 
