@@ -20,11 +20,25 @@ set -euo pipefail
 # ============================================================================
 
 # ── Configuration ────────────────────────────────────────────────────────────
+#
+# ⚠️ THE `beindigital-*` NAMES BELOW ARE AWS RESOURCES, NOT BRANDING.
+#
+# They designate infrastructure that already exists in the account: an S3
+# bucket (globally unique name), an IAM user, an IAM policy and an SES
+# configuration set. Renaming them here does not rename anything in AWS — it
+# makes the script provision a second, parallel, empty set, and points new
+# clients at a bucket that holds none of the existing media. Sending mail with
+# a configuration set that does not exist fails outright.
+#
+# This happened on 2026-08-16: the BeYours rename swept `beindigital-engine`
+# into `beyours-engine` across the repository and caught these five along the
+# way. Renaming them requires renaming the AWS resources first — which, for an
+# S3 bucket, means creating a new one and copying the objects over.
 
 REGION="eu-west-3"
 DOMAIN="beindigital.fr"
-BUCKET_NAME="beyours-engine-assets"
-IAM_USER="beyours-engine-app"
+BUCKET_NAME="beindigital-engine-assets"
+IAM_USER="beindigital-engine-app"
 ENV_FILE=".env.local"
 
 # Colors for output
@@ -248,11 +262,11 @@ log_success "Sender email identity registered"
 # Create a configuration set for tracking
 log_info "Creating SES configuration set..."
 aws sesv2 create-configuration-set \
-  --configuration-set-name "beyours-engine" \
+  --configuration-set-name "beindigital-engine" \
   --sending-options '{"SendingEnabled": true}' \
   --reputation-options '{"ReputationMetricsEnabled": true}' \
   --region "$REGION" 2>/dev/null || log_warn "Configuration set already exists"
-log_success "Configuration set 'beyours-engine' ready"
+log_success "Configuration set 'beindigital-engine' ready"
 
 # ════════════════════════════════════════════════════════════════════════════
 # STEP 3: IAM USER FOR THE APP
@@ -270,7 +284,7 @@ else
 fi
 
 # Create policy with minimal permissions
-POLICY_NAME="BeYoursEnginePolicy"
+POLICY_NAME="BeInDigitalEnginePolicy"
 POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${POLICY_NAME}"
 
 POLICY_DOC=$(cat <<EOF
@@ -304,7 +318,7 @@ POLICY_DOC=$(cat <<EOF
       "Resource": [
         "arn:aws:ses:${REGION}:${ACCOUNT_ID}:identity/${DOMAIN}",
         "arn:aws:ses:${REGION}:${ACCOUNT_ID}:identity/${FROM_EMAIL}",
-        "arn:aws:ses:${REGION}:${ACCOUNT_ID}:configuration-set/beyours-engine"
+        "arn:aws:ses:${REGION}:${ACCOUNT_ID}:configuration-set/beindigital-engine"
       ]
     },
     {
@@ -408,7 +422,7 @@ if [ -n "${NEW_ACCESS_KEY:-}" ]; then
   if ! grep -q "AWS_SES_CONFIGURATION_SET" "$ENV_FILE"; then
     echo "" >> "$ENV_FILE"
     echo "# SES Configuration" >> "$ENV_FILE"
-    echo "AWS_SES_CONFIGURATION_SET=beyours-engine" >> "$ENV_FILE"
+    echo "AWS_SES_CONFIGURATION_SET=beindigital-engine" >> "$ENV_FILE"
   fi
 
   log_success ".env.local updated"
@@ -434,7 +448,7 @@ echo ""
 echo -e "${GREEN}SES:${NC}"
 echo "  Domain: $DOMAIN"
 echo "  From: $FROM_EMAIL"
-echo "  Config Set: beyours-engine"
+echo "  Config Set: beindigital-engine"
 echo "  Region: $REGION"
 echo ""
 
