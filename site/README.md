@@ -18,6 +18,6 @@ Ne modifiez **jamais** `app/`, `components/`, `lib/`, `hooks/`, `cms/` ou
 `convex/` : ces zones appartiennent à l'engine et sont écrasées/fusionnées à
 chaque mise à jour. Si une personnalisation semble impossible depuis `site/`,
 le dashboard admin (CMS, réglages) ou `site.config.ts`, c'est une évolution à
-faire dans l'engine — ouvrez un ticket sur `be-in-digital/beyours-engine`.
+faire dans l'engine — ouvrez un ticket sur `be-in-digital/beyours`.
 
 Détails : `docs/CUSTOMIZATION.md`.

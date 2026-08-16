@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Mise à jour ENGINE (canal npm) — met à jour les packages @be-in-digital/*
- * publiés sur GitHub Packages depuis be-in-digital/beyours-engine.
+ * publiés sur GitHub Packages depuis be-in-digital/beyours.
  *
  * Usage :
  *   pnpm update:engine            # respecte les ranges (^2.x → dernier 2.x)
@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url"
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..")
 const PKG_PATH = path.join(ROOT, "package.json")
-const ENGINE_REPO = "https://github.com/be-in-digital/beyours-engine"
+const ENGINE_REPO = "https://github.com/be-in-digital/beyours"
 
 const args = process.argv.slice(2)
 const LATEST = args.includes("--latest")

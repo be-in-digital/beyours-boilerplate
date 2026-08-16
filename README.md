@@ -1,7 +1,7 @@
 <!-- Generated automatically — do not edit here. -->
 
 > ⚠️ **Generated repository.** Its contents are produced from `apps/themes` in
-> the [beyours-engine](https://github.com/be-in-digital/beyours-engine)
+> the [beyours](https://github.com/be-in-digital/beyours)
 > monorepo and replaced in full on every sync. **A commit made directly here
 > will be lost** — changes belong in the monorepo.
 >
@@ -233,7 +233,7 @@ tests and points at the engine changelogs.
 ## Developing against a local engine (no registry)
 
 ```bash
-git clone https://github.com/be-in-digital/beyours-engine ../beyours-engine
+git clone https://github.com/be-in-digital/beyours ../beyours
 pnpm engine:link       # pnpm link: overrides pointing at the clone
 # … develop …
 pnpm engine:unlink     # back to the registry (never commit in link mode)

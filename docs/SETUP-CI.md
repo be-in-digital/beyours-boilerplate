@@ -11,18 +11,20 @@ proprement (jobs sautés avec notice) mais ne rendent pas leur service.
 | Secret | Contenu | Utilisé par |
 | --- | --- | --- |
 | `GH_PACKAGES_TOKEN` | PAT `read:packages` limité à `@be-in-digital/*` | `ci.yml` (install) |
-| `ENGINE_SYNC_KEY` **ou** `ENGINE_SYNC_TOKEN` | Clé privée SSH d'une deploy key read-only sur `beyours-engine` (si l'org les autorise — désactivées à ce jour), **ou** PAT fine-grained `contents:read` sur `beyours-engine` | `sync-engine.yml` (clone engine) |
 
-Recette PAT `ENGINE_SYNC_TOKEN` : github.com/settings/personal-access-tokens/new
-→ Resource owner `be-in-digital` → Only select repositories
-`beyours-engine` → Repository permissions : Contents **Read-only** →
-expiration 90 j. Puis :
-`gh secret set ENGINE_SYNC_TOKEN -R be-in-digital/beyours-boilerplate --body "github_pat_…"`
+> `ENGINE_SYNC_KEY` / `ENGINE_SYNC_TOKEN` ne sont plus nécessaires. Ils
+> alimentaient `sync-engine.yml`, qui tirait le moteur depuis un dépôt séparé.
+> Depuis la fusion, le sens est inversé : le monorepo `beyours` pousse vers ce
+> dépôt via son propre `publish-mirror.yml`, avec un secret côté monorepo. Si
+> ces deux secrets existent encore ici, ils peuvent être supprimés.
 
-### Première installation tokénée → committer le lockfile
+### Le lockfile
 
-Le template est livré **sans** `pnpm-lock.yaml` (impossible à générer sans
-token registre). Dès que possible :
+Ce dépôt est un miroir généré : son `pnpm-lock.yaml` est régénéré à chaque
+synchronisation par `scripts/publish-mirror.mjs`, côté monorepo, et committé
+ici. Rien à faire.
+
+Dans un **site client**, en revanche, après le premier clone :
 
 ```bash
 export NODE_AUTH_TOKEN=ghp_xxx

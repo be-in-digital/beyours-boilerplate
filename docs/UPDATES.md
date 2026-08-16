@@ -4,7 +4,7 @@
 
 ```
 ┌──────────────────────────┐
-│ beyours-engine       │  logique métier + shell de référence
+│ beyours              │  logique métier + shell de référence
 │ (monorepo, changesets)   │  apps/restaurant-theme + packages/*
 └─────────┬────────────────┘
           │ ① publish npm (@be-in-digital/* → GitHub Packages)
@@ -107,7 +107,7 @@ La resync du shell depuis l'engine est **outillée et automatisée** :
 Validation avant merge d'une PR de sync :
 
 ```bash
-pnpm engine:link ../beyours-engine && pnpm typecheck && pnpm test && pnpm build
+pnpm engine:link ../beyours && pnpm typecheck && pnpm test && pnpm build
 pnpm engine:unlink
 ```
 
