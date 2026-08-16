@@ -1,129 +1,129 @@
-<!-- Généré automatiquement — ne pas éditer ici. -->
+<!-- Generated automatically — do not edit here. -->
 
-> ⚠️ **Dépôt généré.** Son contenu est produit depuis `apps/themes` du monorepo
-> [beyours-engine](https://github.com/be-in-digital/beyours-engine)
-> et remplacé intégralement à chaque synchronisation. **Un commit fait
-> directement ici sera perdu** — les modifications se font dans le monorepo.
+> ⚠️ **Generated repository.** Its contents are produced from `apps/themes` in
+> the [beyours-engine](https://github.com/be-in-digital/beyours-engine)
+> monorepo and replaced in full on every sync. **A commit made directly here
+> will be lost** — changes belong in the monorepo.
 >
-> Ce dépôt existe parce qu'un site client ne peut pas cloner un sous-dossier de
-> monorepo : c'est la découpe livrable, avec les paquets moteur en versions
-> publiées et son propre lockfile.
+> This repository exists because a client site cannot clone a subdirectory of a
+> monorepo: it is the shippable cut, with the engine packages at published
+> versions and a lockfile of its own.
 
-# `apps/themes` — le gabarit des sites clients
+# `apps/themes` — the client site template
 
-Le site que chaque restaurant reçoit. Il embarque le shell applicatif complet
-— storefront e-commerce, dashboard admin, CMS, jeux QR, écran cuisine — et
-consomme la logique métier depuis les paquets `@be-in-digital/*`.
+The site every restaurant receives. It carries the complete application shell —
+e-commerce storefront, admin dashboard, CMS, QR games, kitchen display — and
+consumes the business logic from the `@be-in-digital/*` packages.
 
-Chaque client en est un **clone git**, avec son propre dépôt, son propre backend
-Convex et son propre projet Vercel.
+Each client is a **git clone** of it, with their own repository, their own
+Convex backend and their own Vercel project.
 
 ```
-packages/*  (publiés en @be-in-digital/*)     ← logique métier, versionnée
+packages/*  (published as @be-in-digital/*)   ← business logic, versioned
    │  publish (changesets → GitHub Packages)
    ▼
-apps/themes                                   ← shell app + wrappers convex
-   │  clone / merge git (remote `template`)
+apps/themes                                   ← app shell + convex wrappers
+   │  git clone / merge (remote `template`)
    ▼
-dépôt du client (1 par restaurant)            ← site.config.ts + site/ + env
+client repository (1 per restaurant)          ← site.config.ts + site/ + env
 ```
 
-> **Pourquoi « themes ».** Ce dossier porte le catalogue : `templates/`, 51
-> directions artistiques, une par thème vendu. C'est ce que le restaurateur
-> choisit et achète. L'application autour est le moteur de rendu qui donne vie
-> au thème retenu — un client en applique un seul, décliné à sa marque.
+> **Why "themes".** This directory carries the catalogue: `templates/`, 51 art
+> directions, one per theme sold. That is what the restaurant owner picks and
+> pays for. The application around it is the rendering engine that brings the
+> chosen theme to life — a client applies exactly one, tuned to their brand.
 
-> ⚠️ **Les clients ne clonent pas ce dossier, ils clonent le dépôt miroir**
-> `be-in-digital/beyours-boilerplate`. Ici les dépendances moteur sont en
-> `workspace:^` (on développe contre le moteur courant) ; là-bas elles sont en
-> versions publiées, avec leur propre lockfile.
+> ⚠️ **Clients do not clone this directory, they clone the mirror repository**
+> `be-in-digital/beyours-boilerplate`. Here the engine dependencies are
+> `workspace:^` (we develop against the current engine); over there they are
+> published versions, with their own lockfile.
 >
-> La traversée est automatisée : `.github/workflows/publish-mirror.yml` pousse
-> ce dossier vers le miroir à chaque changement, et après chaque publication de
-> paquets. Voir [`scripts/publish-mirror.mjs`](../../scripts/publish-mirror.mjs)
-> à la racine du monorepo pour les quatre transformations appliquées.
+> The crossing is automated: `.github/workflows/publish-mirror.yml` pushes this
+> directory to the mirror on every change, and after every package
+> publication. See
+> [`scripts/publish-mirror.mjs`](../../scripts/publish-mirror.mjs) at the
+> monorepo root for the four transformations applied.
 
 ---
 
-## En une minute
+## In one minute
 
 | | |
 | --- | --- |
-| **Ce que c'est** | Le livrable — 98 routes, 51 templates design, 50 démos commerciales |
-| **Qui l'utilise** | Un restaurateur par clone, plus l'équipe qui crée les sites |
-| **Ce qui vient du moteur** | 9 paquets `@be-in-digital/*` — logique, schéma Convex, UI, admin |
-| **Ce qui est propre au gabarit** | La zone client, les templates, les scripts de création et de mise à jour, les démos |
-| **Isolation des données** | 1 déploiement Convex par client — structurelle, pas applicative |
+| **What it is** | The deliverable — 98 routes, 51 design templates, 50 sales demos |
+| **Who uses it** | One restaurant owner per clone, plus the team that creates the sites |
+| **What comes from the engine** | 9 `@be-in-digital/*` packages — logic, Convex schema, UI, admin |
+| **What is specific to the template** | The client zone, the templates, the creation and update scripts, the demos |
+| **Data isolation** | 1 Convex deployment per client — structural, not enforced in code |
 
 ---
 
-## Les démos : l'outil de vente
+## The demos: the sales tool
 
-`demos/` contient **50 boutiques statiques navigables**, une par template, avec
-carte, panier et paiement Stripe en mode test. Un prospect essaie le site avant
-de l'acheter, sans qu'on provisionne quoi que ce soit.
+`demos/` holds **50 browsable static storefronts**, one per template, with a
+menu, a cart and Stripe payments in test mode. A prospect tries the site before
+buying it, with nothing provisioned.
 
 ```bash
-# hors ligne, sans dépendances
+# offline, no dependencies
 open demos/index.html
 ```
 
-![Catalogue des démos](../../docs/captures/demos-catalogue.png)
+![Demo catalogue](../../docs/captures/demos-catalogue.png)
 
-C'est du HTML/CSS/JS pur : pas de build, pas de serveur, pas de backend. Le
-workflow `demos.yml` les valide (contraste AA, unicité des mises en page,
-cohérence des prix) en quelques secondes.
+It is plain HTML/CSS/JS: no build, no server, no backend. The `demos.yml`
+workflow validates them (AA contrast, layout uniqueness, price consistency) in a
+few seconds.
 
-Chaque démo couvre les deux faces du produit — la boutique que voit le client
-final, et le back-office que voit le restaurateur :
+Each demo covers both faces of the product — the storefront the end customer
+sees, and the back office the restaurant owner sees:
 
 ![Storefront](../../docs/captures/demo-storefront.png)
 
-![Back-office](../../docs/captures/demo-admin.png)
+![Back office](../../docs/captures/demo-admin.png)
 
 ---
 
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack), **React 19**, **Tailwind CSS v4**
-- **Convex** : backend (1 deployment par client) — schéma et fonctions
-  fournis par `@be-in-digital/convex-schema` / `convex-functions`
-- **Better Auth** (cookies web, rôles admin/customer, guest checkout)
-- **Paiements** : Stripe, PayPal, SumUp · **Plateformes** : Uber Eats, Deliveroo
-- **AWS** : S3 (médias), SES (emails) · **OpenAI** : traductions
-- **Tests** : Vitest (unit) + Playwright (e2e)
+- **Convex**: backend (1 deployment per client) — schema and functions provided
+  by `@be-in-digital/convex-schema` / `convex-functions`
+- **Better Auth** (web cookies, admin/customer roles, guest checkout)
+- **Payments**: Stripe, PayPal, SumUp · **Platforms**: Uber Eats, Deliveroo
+- **AWS**: S3 (media), SES (email) · **OpenAI**: translations
+- **Tests**: Vitest (unit) + Playwright (e2e)
 
-## Créer un nouveau site client
+## Creating a new client site
 
-Deux configurations : **web** (storefront + admin) ou **web + app**
-(+ app mobile Expo cliente).
+Two configurations: **web** (storefront + admin) or **web + app** (plus an Expo
+mobile customer app).
 
-### La CLI `beyours` (recommandée)
+### The `beyours` CLI (recommended)
 
-Installation (une fois, `gh` authentifié) :
+Install once, with `gh` authenticated:
 
 ```bash
 gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/beyours \
   -H "Accept: application/vnd.github.raw" > /opt/homebrew/bin/beyours \
   && chmod +x /opt/homebrew/bin/beyours
-beyours token ghp_xxx           # PAT read:packages, stocké chmod 600
+beyours token ghp_xxx           # read:packages PAT, stored chmod 600
 ```
 
-> La CLI s'appelait `beindigital` avant août 2026. Une installation existante
-> continue de fonctionner ; réinstaller sous le nouveau nom et supprimer
-> l'ancien binaire.
+> The CLI was called `beindigital` before August 2026. An existing installation
+> keeps working; reinstall under the new name and delete the old binary.
 
-Puis tout se fait au terminal :
+Then everything happens in the terminal:
 
 ```bash
 beyours create client-luigi --name "Chez Luigi" --repo be-in-digital/client-luigi
 beyours create client-luigi --name "Chez Luigi" --mobile   # web + app
-beyours create client-luigi --name "Chez Luigi" --template pizzeria   # design vertical
+beyours create client-luigi --name "Chez Luigi" --template pizzeria   # vertical design
 beyours help · version · upgrade
 ```
 
-La CLI va chercher les scripts sur ce repo à chaque appel — elle profite des
-mises à jour du template sans réinstallation. Équivalent sans CLI :
+The CLI fetches its scripts from the mirror repository on every call, so it
+picks up template updates without reinstalling. Equivalent without the CLI:
 
 ```bash
 gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/create-site.mjs \
@@ -131,191 +131,189 @@ gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/create-site.mjs 
   client-luigi --name "Chez Luigi" --repo be-in-digital/client-luigi
 ```
 
-La commande enchaîne : clone du template → remote `template` (mises à jour) →
-création du repo GitHub privé → `pnpm install` → configuration complète
-(`site.config.ts`, secrets générés, `.env.local`, app mobile si demandée) →
-commit initial → push. Depuis un clone existant : `pnpm create:site <dossier> [options]`.
+The command chains: clone the template → `template` remote (for updates) →
+create the private GitHub repository → `pnpm install` → full configuration
+(`site.config.ts`, generated secrets, `.env.local`, mobile app if requested) →
+initial commit → push. From an existing clone: `pnpm create:site <dir> [options]`.
 
-### À la main (équivalent)
+### By hand (equivalent)
 
 ```bash
 git clone https://github.com/be-in-digital/beyours-boilerplate.git client-luigi
 cd client-luigi && git remote rename origin template
 export NODE_AUTH_TOKEN=ghp_xxx
 pnpm install
-pnpm setup            # wizard : nom, description, locale, web / web + app, template design
+pnpm setup            # wizard: name, description, locale, web / web + app, design template
 ```
 
-Puis provisionner le backend et les variables d'environnement :
+Then provision the backend and the environment variables:
 
 ```bash
-pnpx convex dev      # crée le deployment, remplit .env.local
-pnpm env:setup       # wizard .env : requis + intégrations (Stripe, AWS, Uber…)
-pnpm convex:env      # pousse .env.convex côté Convex
+pnpx convex dev      # creates the deployment, fills .env.local
+pnpm env:setup       # .env wizard: required values + integrations (Stripe, AWS, Uber…)
+pnpm convex:env      # pushes .env.convex to Convex
 pnpm dev
 ```
 
-### Variables d'environnement — une commande pour les 3 fichiers
+### Environment variables — one command for all three files
 
-Un site a trois fichiers d'env : `.env.local` (web, source de vérité),
-`.env.convex` (backend) et `mobile/.env` (app). La commande `env` évite la
-triple saisie :
+A site has three env files: `.env.local` (web, source of truth), `.env.convex`
+(backend) and `mobile/.env` (app). The `env` command avoids entering everything
+three times:
 
-| Commande | Rôle |
+| Command | Role |
 | --- | --- |
-| `pnpm env:setup` | Wizard : secrets auto-générés, requis, puis activation intégration par intégration (Stripe, AWS, PayPal, SumUp, OpenAI, Uber Eats, Deliveroo, Maps, Sentry, Unsplash) |
-| `pnpm env:check` | État : requis manquants, intégrations incomplètes, fichiers désynchronisés (exit ≠ 0 si problème) |
-| `pnpm env:sync` | Propage `.env.local` → `.env.convex` (clés partagées) et → `mobile/.env` (URL Convex) |
+| `pnpm env:setup` | Wizard: auto-generated secrets, required values, then integration-by-integration activation (Stripe, AWS, PayPal, SumUp, OpenAI, Uber Eats, Deliveroo, Maps, Sentry, Unsplash) |
+| `pnpm env:check` | Status: missing required values, incomplete integrations, out-of-sync files (non-zero exit on problems) |
+| `pnpm env:sync` | Propagates `.env.local` → `.env.convex` (shared keys) and → `mobile/.env` (Convex URL) |
 
-`env:setup` marche aussi en mode pipé (réponses via stdin) pour
-l'automatisation. Après toute modification : `pnpm convex:env` applique
-`.env.convex` au deployment (`convex env set`).
+`env:setup` also works piped (answers on stdin) for automation. After any
+change, `pnpm convex:env` applies `.env.convex` to the deployment
+(`convex env set`).
 
-Un site web peut activer l'app mobile plus tard : `pnpm add:mobile`
-(copie `.template/mobile/` → `mobile/`, app Expo autonome branchée sur le
-même backend Convex — voir `.template/mobile/README.md`).
+A web-only site can enable the mobile app later with `pnpm add:mobile` (copies
+`.template/mobile/` → `mobile/`, a standalone Expo app wired to the same Convex
+backend — see `.template/mobile/README.md`).
 
-> Le bouton GitHub « Use this template » fonctionne aussi, mais casse
-> l'historique commun : le premier `pnpm update:template` devra être lancé
-> avec `-- --first`. Le clone (ce que fait `create-site`) est la voie
-> recommandée.
+> GitHub's "Use this template" button also works, but breaks the shared
+> history: the first `pnpm update:template` will need `-- --first`. Cloning
+> (what `create-site` does) is the recommended path.
 
-## Personnaliser le site
+## Customising the site
 
-Toute la personnalisation vit dans la **zone client** — jamais dans le code
-engine :
+All customisation lives in the **client zone** — never in engine code:
 
-| Quoi | Où |
+| What | Where |
 | --- | --- |
-| Nom, SEO, locale, hôtes d'images | `site.config.ts` |
-| Couleurs / design tokens | `site/theme.css` |
-| Polices | `site/fonts.ts` |
-| Composants custom | `site/components/` |
+| Name, SEO, locale, image hosts | `site.config.ts` |
+| Colours / design tokens | `site/theme.css` |
+| Fonts | `site/fonts.ts` |
+| Custom components | `site/components/` |
 | Logos, favicon, images | `public/` |
-| Contenus, horaires, menus, textes | Dashboard admin (CMS + réglages, stockés dans Convex) |
+| Content, opening hours, menus, copy | Admin dashboard (CMS + settings, stored in Convex) |
 
-Détails et limites : [`docs/CUSTOMIZATION.md`](docs/CUSTOMIZATION.md).
+Details and limits: [`docs/CUSTOMIZATION.md`](docs/CUSTOMIZATION.md).
 
-### Templates design (5 verticaux prêts à l'emploi)
+### Design templates (5 ready-made verticals)
 
-Un template pose l'identité complète (couleurs clair/sombre, polices, formes)
-dans la zone client ; il reste ensuite à ajuster les couleurs à l'image du
-client dans `site/theme.css` :
+A template lays down the full identity (light/dark colours, fonts, shapes) in
+the client zone; colours are then tuned to the client's brand in
+`site/theme.css`:
 
 | Slug | Direction |
 | --- | --- |
-| `pizzeria` | Trattoria : terracotta du four à bois, didone italienne |
-| `fast-food` | Smash : moutarde sur charbon, grotesque charnue |
-| `food-truck` | Convoi : pétrole émaillé sur kraft, condensée stencil |
-| `poulet` | Braise : rouge piment sur crème, condensée d'affiche |
-| `asiatique` | Izakaya : jade et encre sur washi, gothique japonaise |
+| `pizzeria` | Trattoria: wood-oven terracotta, Italian didone |
+| `fast-food` | Smash: mustard on charcoal, fleshy grotesque |
+| `food-truck` | Convoy: enamelled petrol on kraft, condensed stencil |
+| `poulet` | Embers: chilli red on cream, poster condensed |
+| `asiatique` | Izakaya: jade and ink on washi, Japanese gothic |
 
 ```bash
 pnpm template:list             # catalogue
-pnpm template:apply poulet     # applique (ou --template à la création)
+pnpm template:apply poulet     # applies it (or --template at creation time)
 ```
 
-Aperçu visuel : ouvrir `templates/preview.html`. Direction artistique
-détaillée (palette, imagerie, ton, adaptation client) :
-[`templates/README.md`](templates/README.md) et `templates/<slug>/DESIGN.md`.
+Visual preview: open `templates/preview.html`. Detailed art direction (palette,
+imagery, tone, client adaptation): [`templates/README.md`](templates/README.md)
+and `templates/<slug>/DESIGN.md`.
 
-## Mettre à jour un site
+## Updating a site
 
-Deux canaux complémentaires ([`docs/UPDATES.md`](docs/UPDATES.md)) :
+Two complementary channels ([`docs/UPDATES.md`](docs/UPDATES.md)):
 
 ```bash
-pnpm update:engine     # logique métier : bump @be-in-digital/* (npm, semver)
-pnpm update:template   # shell app : merge git depuis le remote `template`
+pnpm update:engine     # business logic: bump @be-in-digital/* (npm, semver)
+pnpm update:template   # app shell: git merge from the `template` remote
 ```
 
-`update:engine -- --check` liste les versions sans rien toucher ;
-`--latest` franchit les majeures (breaking). Chaque update enchaîne
-codegen + typecheck + tests et pointe vers les CHANGELOGs de l'engine.
+`update:engine -- --check` lists versions without touching anything; `--latest`
+crosses major versions (breaking). Each update chains codegen + typecheck +
+tests and points at the engine changelogs.
 
-## Développer contre un engine local (sans registre)
+## Developing against a local engine (no registry)
 
 ```bash
 git clone https://github.com/be-in-digital/beyours-engine ../beyours-engine
-pnpm engine:link       # overrides pnpm link: vers le clone
-# … dev …
-pnpm engine:unlink     # retour au registre (ne jamais commiter en mode link)
+pnpm engine:link       # pnpm link: overrides pointing at the clone
+# … develop …
+pnpm engine:unlink     # back to the registry (never commit in link mode)
 ```
 
 ## Scripts
 
-| Commande | Rôle |
+| Command | Role |
 | --- | --- |
-| `pnpm create:site <dossier>` | Crée un site complet (clone + repo + config) |
-| `pnpm setup` | Initialise un site client (idempotent, web / web + app) |
-| `pnpm add:mobile` | Active l'app mobile Expo sur un site web |
+| `pnpm create:site <dir>` | Creates a complete site (clone + repo + config) |
+| `pnpm setup` | Initialises a client site (idempotent, web / web + app) |
+| `pnpm add:mobile` | Enables the Expo mobile app on a web site |
 | `pnpm dev` / `build` / `start` | Next.js |
-| `pnpm lint` / `typecheck` / `test` / `test:e2e` | Qualité |
-| `pnpm convex:dev` / `convex:deploy` / `convex:codegen` | Backend Convex |
-| `pnpm env:setup` / `env:check` / `env:sync` | Gestion des 3 fichiers .env (web/convex/mobile) |
-| `pnpm convex:env` | Applique `.env.convex` via `convex env set` |
-| `pnpm template:list` / `template:apply <slug>` | Templates design (5 verticaux + neutre) |
-| `pnpm update:engine` / `update:template` | Mises à jour |
-| `pnpm engine:link` / `engine:unlink` | Dev local contre l'engine |
+| `pnpm lint` / `typecheck` / `test` / `test:e2e` | Quality |
+| `pnpm convex:dev` / `convex:deploy` / `convex:codegen` | Convex backend |
+| `pnpm env:setup` / `env:check` / `env:sync` | Managing the 3 .env files (web/convex/mobile) |
+| `pnpm convex:env` | Applies `.env.convex` through `convex env set` |
+| `pnpm template:list` / `template:apply <slug>` | Design templates (5 verticals + neutral) |
+| `pnpm update:engine` / `update:template` | Updates |
+| `pnpm engine:link` / `engine:unlink` | Local development against the engine |
 
-## Déploiement
+## Deployment
 
-**Web (Vercel)** : importer le repo, framework Next.js, racine du repo.
-Env vars : toutes les `[REQUIS]` de `.env.example` + `NODE_AUTH_TOKEN`
-(secret, pour l'install). Convex prod : `pnpm convex:deploy` puis reporter
-`NEXT_PUBLIC_CONVEX_URL` / `CONVEX_SITE_URL` de prod dans Vercel.
+**Web (Vercel)**: import the repository, Next.js framework, repository root.
+Environment variables: every `[REQUIS]` entry from `.env.example` plus
+`NODE_AUTH_TOKEN` (secret, for the install). Convex production:
+`pnpm convex:deploy`, then copy the production `NEXT_PUBLIC_CONVEX_URL` /
+`CONVEX_SITE_URL` into Vercel.
 
-**CI GitHub Actions** : `ci.yml` (lint + typecheck + tests + build, secret
-`GH_PACKAGES_TOKEN` requis ; e2e via `CONVEX_E2E_ENABLED=true` + secrets
-`E2E_*` ; job mobile conditionnel). Runbook complet des secrets :
+**GitHub Actions CI**: `ci.yml` (lint + typecheck + tests + build, requires the
+`GH_PACKAGES_TOKEN` secret; e2e through `CONVEX_E2E_ENABLED=true` plus the
+`E2E_*` secrets; conditional mobile job). Full secrets runbook:
 [`docs/SETUP-CI.md`](docs/SETUP-CI.md).
 
-## Sécurité
+## Security
 
-- **PCI SAQ-A** : jamais de numéro de carte côté serveur — Stripe Elements
-  côté client, webhooks server-side uniquement.
-- `BETTER_AUTH_SECRET` et `NODE_AUTH_TOKEN` : rotation 90 jours.
-- `ENCRYPTION_KEY` chiffre les tokens OAuth au repos (Convex).
-- CORS : les HTTP actions Convex valident l'`Origin` contre `SITE_URL`.
+- **PCI SAQ-A**: no card number ever reaches the server — Stripe Elements on the
+  client, webhooks server-side only.
+- `BETTER_AUTH_SECRET` and `NODE_AUTH_TOKEN`: 90-day rotation.
+- `ENCRYPTION_KEY` encrypts OAuth tokens at rest (Convex).
+- CORS: the Convex HTTP actions validate `Origin` against `SITE_URL`.
 
-## Architecture & décisions
+## Architecture and decisions
 
-- [`docs/design/boilerplate-v2.md`](docs/design/boilerplate-v2.md) — ADR du
-  boilerplate v2 (pourquoi single-app, pourquoi deux canaux de mise à jour)
-- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — design system de l'app
+- [`docs/design/boilerplate-v2.md`](docs/design/boilerplate-v2.md) — the
+  boilerplate v2 ADR (why single-app, why two update channels)
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — the app's design system
 - [`docs/UPDATES.md`](docs/UPDATES.md) · [`docs/CUSTOMIZATION.md`](docs/CUSTOMIZATION.md)
 
 ---
 
-## Points de vigilance
+## Things to watch
 
-**`update:template` ne vérifie pas le contrat de maintenance.** Le modèle
-économique dit qu'un site expiré reste figé sur la dernière version couverte
-(`packages/convex-functions/src/maintenance.ts`). En pratique,
-`scripts/update-template.mjs` fait un `git fetch template` nu : un site expiré
-qui lance la commande reçoit tout. La garde reste à écrire.
+**`update:template` does not check the maintenance contract.** The business
+model says an expired site stays frozen on the last covered release
+(`packages/convex-functions/src/maintenance.ts`). In practice,
+`scripts/update-template.mjs` runs a bare `git fetch template`: an expired site
+that runs the command receives everything. The guard is still to be written.
 
-**Le `.github/` de ce dossier n'est pas inerte.** GitHub ne lit que le
-`.github/` de la racine du dépôt, donc ces workflows ne s'exécutent pas ici —
-mais ils font partie de la charge utile clonée, et s'exécutent bien dans le
-dépôt du client. Ne pas les supprimer.
+**This directory's `.github/` is not inert.** GitHub only reads the `.github/`
+at the repository root, so these workflows do not run here — but they are part
+of the cloned payload, and they do run in the client's repository. Do not delete
+them.
 
-**Trois listes de templates coexistent** : 51 dossiers dans `templates/`, 50
-démos dans `demos/`, 52 entrées dans `apps/site/lib/templates-data.ts`. Aucun
-test ne les réconcilie.
+**Three template lists coexist**: 51 directories in `templates/`, 50 demos in
+`demos/`, 52 entries in `apps/site/lib/templates-data.ts`. No test reconciles
+them.
 
 ---
 
-## Pour reprendre cette app
+## Picking up this app
 
-1. Le [README de la racine](../../README.md) pour le contexte monorepo, puis
-   celui-ci.
-2. Ouvrir `demos/index.html` — c'est le produit, navigable sans rien installer.
-3. [`docs/design/boilerplate-v2.md`](docs/design/boilerplate-v2.md) pour
-   comprendre pourquoi deux canaux de mise à jour, puis
-   [`docs/CUSTOMIZATION.md`](docs/CUSTOMIZATION.md) pour la frontière entre zone
-   client et zone moteur — c'est le contrat qui permet aux mises à jour de
-   passer sans conflit.
-4. `scripts/create-site.mjs` puis `scripts/init.mjs` : tout le parcours de
-   création d'un site y tient.
-5. `pnpm dev:themes` depuis la racine, avec un `convex dev` dans un second
-   terminal.
+1. The [root README](../../README.md) for monorepo context, then this one.
+2. Open `demos/index.html` — that is the product, browsable with nothing
+   installed.
+3. [`docs/design/boilerplate-v2.md`](docs/design/boilerplate-v2.md) to
+   understand why there are two update channels, then
+   [`docs/CUSTOMIZATION.md`](docs/CUSTOMIZATION.md) for the boundary between the
+   client zone and the engine zone — that contract is what lets updates land
+   without conflicts.
+4. `scripts/create-site.mjs` then `scripts/init.mjs`: the whole site-creation
+   path lives there.
+5. `pnpm dev:themes` from the root, with `convex dev` in a second terminal.
