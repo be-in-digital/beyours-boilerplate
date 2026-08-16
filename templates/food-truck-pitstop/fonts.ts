@@ -1,10 +1,10 @@
 /**
- * Polices du template — ZONE CLIENT après application (généré depuis les
- * identités de démo, cf scripts/gen-templates.mjs).
+ * Template fonts — CLIENT ZONE once applied (generated from the demo
+ * identities, cf scripts/gen-templates.mjs).
  *
- * Titres : Saira Condensed. Texte : Onest.
- * Contrat engine : garder les variables --font-inter (texte) et
- * --font-poppins (titres), référencées par app/globals.css.
+ * Headings: Saira Condensed. Body: Onest.
+ * Engine contract: keep the --font-inter (body) and --font-poppins (headings)
+ * variables, they are referenced by app/globals.css.
  */
 import { Onest, Saira_Condensed } from "next/font/google"
 

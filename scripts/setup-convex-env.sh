@@ -2,14 +2,14 @@
 # ===========================================================================
 # scripts/setup-convex-env.sh
 # ---------------------------------------------------------------------------
-# Definit les variables d'environnement cote Convex a partir d'un fichier
-# .env.convex local (non versionne).
+# Sets the Convex-side environment variables from a local, untracked
+# .env.convex file.
 #
 # Usage:
-#   1. Copier .env.convex.example vers .env.convex et remplir les valeurs
-#   2. Lancer: bash scripts/setup-convex-env.sh
+#   1. Copy .env.convex.example to .env.convex and fill in the values
+#   2. Run: bash scripts/setup-convex-env.sh
 #
-# Le script lit chaque ligne KEY=VALUE non commentee et appelle:
+# The script reads each uncommented KEY=VALUE line and calls:
 #   pnpx convex env set <KEY> <VALUE>
 # ===========================================================================
 set -euo pipefail
@@ -25,18 +25,18 @@ fi
 echo "Lecture de $ENV_FILE..."
 count=0
 while IFS= read -r line || [[ -n "$line" ]]; do
-  # Ignorer commentaires et lignes vides
+  # Skip comments and blank lines
   [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-  # Extraire KEY=VALUE
+  # Extract KEY=VALUE
   if [[ "$line" =~ ^([A-Z_][A-Z0-9_]*)=(.*)$ ]]; then
     key="${BASH_REMATCH[1]}"
     value="${BASH_REMATCH[2]}"
-    # Trim surrounding quotes si presentes
+    # Trim surrounding quotes if present
     value="${value%\"}"
     value="${value#\"}"
     value="${value%\'}"
     value="${value#\'}"
-    # Skip si valeur vide
+    # Skip if the value is empty
     [[ -z "$value" ]] && continue
     echo "  -> set $key"
     pnpx convex env set "$key" "$value" >/dev/null

@@ -2,8 +2,8 @@
   "slug": "pizzeria-rustica",
   "category": "Pizzeria",
   "themeName": "Rustica",
-  "label": "Rustica — Pizzeria de campagne",
-  "description": "Pizzeria de campagne. tickets empilés, hero duo texte / photo.",
+  "label": "Rustica — Country pizzeria",
+  "description": "Country pizzeria. Menu stacked tickets, hero text / photo split.",
   "primary": "hsl(18 55% 38%)",
   "fonts": {
     "heading": "Libre Caslon Text",

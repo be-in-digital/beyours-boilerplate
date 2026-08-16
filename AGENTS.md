@@ -5,64 +5,64 @@ all differ from your training data. Read the relevant guide in
 `node_modules/next/dist/docs/` before writing any code. Heed deprecation
 notices.
 
-# Boilerplate BeYours — règles pour agents
+# BeYours boilerplate — rules for agents
 
-Ce repo est le **template** des sites restaurant BeYours. Un site client
-est un clone de ce repo. Le code produit vient de deux sources :
+This repo is the **template** for BeYours restaurant sites. A client site is a
+clone of this repo. The shipped code comes from two sources:
 
-1. **Packages npm `@be-in-digital/*`** (GitHub Packages privé, publiés depuis
-   [be-in-digital/beyours](https://github.com/be-in-digital/beyours)).
-   `NODE_AUTH_TOKEN` (PAT `read:packages`) est requis pour `pnpm install`.
-   Sans token : `pnpm engine:link <clone-engine>` (symlinks locaux).
-2. **Le shell applicatif** (`app/`, `components/`, `lib/`, `hooks/`, `cms/`,
-   `convex/`) : miroir de `apps/restaurant-theme` de l'engine.
+1. **The npm packages `@be-in-digital/*`** (private GitHub Packages, published
+   from [be-in-digital/beyours](https://github.com/be-in-digital/beyours)).
+   `NODE_AUTH_TOKEN` (a `read:packages` PAT) is required for `pnpm install`.
+   Without a token: `pnpm engine:link <engine-clone>` (local symlinks).
+2. **The application shell** (`app/`, `components/`, `lib/`, `hooks/`, `cms/`,
+   `convex/`): a mirror of the engine's `apps/restaurant-theme`.
 
-## Zones de propriété — règle ABSOLUE
+## Ownership zones — ABSOLUTE rule
 
-- **Zones ENGINE** (synchronisées depuis l'engine, ne pas éditer sur un site
-  client) : `app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`,
-  `public/` (fichiers d'origine), configs racine.
-  Exceptions patchées par le boilerplate (marquées `PATCH BOILERPLATE` en
-  tête de fichier) : `app/layout.tsx`, `next.config.ts`.
-- **Zones CLIENT** (personnalisation par site, jamais écrasées) :
+- **ENGINE zones** (synced from the engine, never edit them on a client
+  site): `app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`,
+  `public/` (original files), root configs.
+  Exceptions patched by the boilerplate (marked `PATCH BOILERPLATE` at the top
+  of the file): `app/layout.tsx`, `next.config.ts`.
+- **CLIENT zones** (per-site customization, never overwritten):
   `site.config.ts`, `site/` (theme.css, fonts.ts, components/), `.env*`,
-  `.beindigital-site.json`, `mobile/` (app Expo autonome, config
-  « web + app » — activée par `pnpm setup` ou `pnpm add:mobile` depuis le
-  snapshot `.template/mobile/`).
-- **Zone BOILERPLATE** : `templates/` (catalogue de designs verticaux :
-  pizzeria, fast-food, food-truck, poulet, asiatique + default). Jamais
-  touché par `sync:engine` ; `pnpm template:apply <slug>` copie theme.css +
-  fonts.ts vers `site/`. Règles du catalogue (contraste AA, tokens
-  sémantiques intouchés, contrat de variables engine) : `templates/README.md`.
-  `demos/` (outil de vente) : 50 démos de sites complets multipage
-  (5 catégories × 10 thèmes, moteur `assets/site.js` + identités
-  `assets/themes.js`), multi-emplacements, réservation annulable, paiement
-  Stripe **de test uniquement** (clé `sk_test_…` en env Vercel, jamais
-  commitée). Contraste AA et unicité des mises en page vérifiés par script.
-  Voir `demos/README.md`.
+  `.beindigital-site.json`, `mobile/` (self-contained Expo app, the
+  "web + app" setup — enabled by `pnpm setup` or `pnpm add:mobile` from the
+  `.template/mobile/` snapshot).
+- **BOILERPLATE zone**: `templates/` (catalog of vertical designs:
+  pizzeria, fast-food, food-truck, poulet, asiatique + default). Never
+  touched by `sync:engine`; `pnpm template:apply <slug>` copies theme.css +
+  fonts.ts into `site/`. Catalog rules (AA contrast, semantic tokens left
+  alone, the engine variable contract): `templates/README.md`.
+  `demos/` (sales tool): 50 full multipage site demos
+  (5 categories × 10 themes, `assets/site.js` engine + `assets/themes.js`
+  identities), multi-location, cancellable booking, **test-only** Stripe
+  payments (an `sk_test_…` key in the Vercel env, never committed). AA
+  contrast and layout uniqueness are verified by script.
+  See `demos/README.md`.
 
-Une personnalisation impossible depuis la zone client = évolution à faire
-dans l'engine, pas un patch local.
+A customization that cannot be done from the client zone is an engine change,
+not a local patch.
 
-## Mises à jour (2 canaux)
+## Updates (2 channels)
 
-- `pnpm update:engine` — bump des packages `@be-in-digital/*` (npm).
-- `pnpm update:template` — merge git depuis le remote `template`
-  (boilerplate). Voir `docs/UPDATES.md`.
+- `pnpm update:engine` — bumps the `@be-in-digital/*` packages (npm).
+- `pnpm update:template` — git merge from the `template` remote
+  (boilerplate). See `docs/UPDATES.md`.
 
-## Commandes
+## Commands
 
-`pnpm create:site <dossier>` (site complet one-shot) · `pnpm setup`
-(wizard : web / web + app, template design) · `pnpm template:list|apply` ·
+`pnpm create:site <directory>` (complete site, one shot) · `pnpm setup`
+(wizard: web / web + app, design template) · `pnpm template:list|apply` ·
 `pnpm add:mobile` · `pnpm env:setup|check|sync`
-(les 3 fichiers .env : web/convex/mobile) · `pnpm dev` · `pnpm build` ·
+(all 3 .env files: web/convex/mobile) · `pnpm dev` · `pnpm build` ·
 `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` ·
 `pnpm convex:dev` · `pnpm convex:deploy` · `pnpm convex:env`
 
 ## Convex
 
-`convex/*.ts` sont des wrappers fins : ils re-exportent les définitions de
+`convex/*.ts` are thin wrappers: they re-export the definitions from
 `@be-in-digital/convex-functions` (`export const list = query(defs.list)`).
-Le schéma compose les tables de `@be-in-digital/convex-schema`. Ne pas écrire
-de logique métier dans `convex/` — elle vit dans l'engine.
-`convex/_generated/` est commité ; régénérer avec `pnpm convex:codegen`.
+The schema composes tables from `@be-in-digital/convex-schema`. Do not write
+business logic in `convex/` — it lives in the engine.
+`convex/_generated/` is committed; regenerate it with `pnpm convex:codegen`.

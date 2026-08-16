@@ -1,30 +1,31 @@
-# Setup CI & secrets — runbook mainteneur
+# CI & secrets setup — maintainer runbook
 
-Tout ce qu'il faut configurer une fois sur le repo **boilerplate**, puis sur
-chaque repo **site client**. Sans ces réglages, les workflows se dégradent
-proprement (jobs sautés avec notice) mais ne rendent pas leur service.
+Everything that has to be configured once on the **boilerplate** repo, then on
+every **client site** repo. Without these settings the workflows degrade
+cleanly (jobs skipped with a notice) but do not do their job.
 
-## 1. Repo boilerplate
+## 1. Boilerplate repo
 
 ### Secrets (Settings → Secrets and variables → Actions → Secrets)
 
-| Secret | Contenu | Utilisé par |
+| Secret | Contents | Used by |
 | --- | --- | --- |
-| `GH_PACKAGES_TOKEN` | PAT `read:packages` limité à `@be-in-digital/*` | `ci.yml` (install) |
+| `GH_PACKAGES_TOKEN` | `read:packages` PAT scoped to `@be-in-digital/*` | `ci.yml` (install) |
 
-> `ENGINE_SYNC_KEY` / `ENGINE_SYNC_TOKEN` ne sont plus nécessaires. Ils
-> alimentaient `sync-engine.yml`, qui tirait le moteur depuis un dépôt séparé.
-> Depuis la fusion, le sens est inversé : le monorepo `beyours` pousse vers ce
-> dépôt via son propre `publish-mirror.yml`, avec un secret côté monorepo. Si
-> ces deux secrets existent encore ici, ils peuvent être supprimés.
+> `ENGINE_SYNC_KEY` / `ENGINE_SYNC_TOKEN` are no longer needed. They fed
+> `sync-engine.yml`, which pulled the engine from a separate repository.
+> Since the merge the direction is reversed: the `beyours` monorepo pushes to
+> this repository through its own `publish-mirror.yml`, using a secret held on
+> the monorepo side. If those two secrets still exist here, they can be
+> deleted.
 
-### Le lockfile
+### The lockfile
 
-Ce dépôt est un miroir généré : son `pnpm-lock.yaml` est régénéré à chaque
-synchronisation par `scripts/publish-mirror.mjs`, côté monorepo, et committé
-ici. Rien à faire.
+This repository is a generated mirror: its `pnpm-lock.yaml` is regenerated on
+every sync by `scripts/publish-mirror.mjs` on the monorepo side, and committed
+here. Nothing to do.
 
-Dans un **site client**, en revanche, après le premier clone :
+In a **client site**, however, right after the first clone:
 
 ```bash
 export NODE_AUTH_TOKEN=ghp_xxx
@@ -32,42 +33,45 @@ pnpm install
 git add pnpm-lock.yaml && git commit -m "chore: lockfile registre" && git push
 ```
 
-À partir de là le CI passe automatiquement en `--frozen-lockfile` et les
-versions transitives sont figées (on a déjà subi une dérive : plugin eslint
-plus récent que celui testé par l'engine — d'où l'override
-`eslint-plugin-react-hooks` dans `package.json`, à réévaluer une fois le
-lockfile en place).
+From then on CI switches automatically to `--frozen-lockfile` and transitive
+versions are pinned (we have already been bitten by drift: an eslint plugin
+newer than the one the engine tested against — hence the
+`eslint-plugin-react-hooks` override in `package.json`, worth revisiting once
+the lockfile is in place).
 
-### Branch protection `main`
+### `main` branch protection
 
-Status check requis : `Lint + Test + Build`. Optionnel : `E2E tests
-(Playwright)` une fois activés.
+Required status check: `Lint + Test + Build`. Optional: `E2E tests
+(Playwright)` once they are enabled.
 
-## 2. Repos sites clients
+## 2. Client site repos
 
-Mêmes réglages que le boilerplate, **sans** `ENGINE_SYNC_TOKEN` (les sites ne
-se synchronisent pas sur l'engine — ils prennent les mises à jour du template
-via `pnpm update:template`).
+Same settings as the boilerplate, **without** `ENGINE_SYNC_TOKEN` (sites do
+not sync against the engine — they take template updates through
+`pnpm update:template`).
 
-### E2E Playwright (optionnel, recommandé pré-prod)
+### Playwright E2E (optional, recommended before production)
 
-1. Créer un deployment Convex **dédié aux tests** (jamais celui de prod) :
-   `pnpx convex dev` dans un dossier jetable, ou un projet Convex séparé.
-2. Variables (Settings → … → Variables) : `CONVEX_E2E_ENABLED=true`
-3. Secrets : `E2E_NEXT_PUBLIC_CONVEX_URL`, `E2E_CONVEX_SITE_URL`,
+1. Create a Convex deployment **dedicated to tests** (never the production
+   one): `pnpx convex dev` in a throwaway directory, or a separate Convex
+   project.
+2. Variables (Settings → … → Variables): `CONVEX_E2E_ENABLED=true`
+3. Secrets: `E2E_NEXT_PUBLIC_CONVEX_URL`, `E2E_CONVEX_SITE_URL`,
    `E2E_BETTER_AUTH_SECRET` (openssl rand -base64 32)
 
-Sans `CONVEX_E2E_ENABLED`, le job e2e est sauté. Avec des URLs placeholder,
-seuls les tests « public » tournent (voir `playwright.config.ts`).
+Without `CONVEX_E2E_ENABLED` the e2e job is skipped. With placeholder URLs,
+only the "public" tests run (see `playwright.config.ts`).
 
-## 3. Vercel (par site)
+## 3. Vercel (per site)
 
-- Env vars : les `[REQUIS]` de `.env.example` + `NODE_AUTH_TOKEN` (install).
-- `pnpm convex:deploy` pour le backend prod, puis reporter
-  `NEXT_PUBLIC_CONVEX_URL` / `CONVEX_SITE_URL` de prod.
+- Env vars: the `[REQUIS]` entries from `.env.example` plus `NODE_AUTH_TOKEN`
+  (install).
+- `pnpm convex:deploy` for the production backend, then carry over the
+  production `NEXT_PUBLIC_CONVEX_URL` / `CONVEX_SITE_URL`.
 
-## 4. Routes de test en production
+## 4. Test routes in production
 
-Les routes du groupe `app/(test)/` (harnais Playwright, ex. `/address-test`)
-renvoient 404 en production via `app/(test)/layout.tsx` (garde boilerplate).
-Pour les réactiver exceptionnellement : `NEXT_PUBLIC_ENABLE_TEST_ROUTES=true`.
+The routes in the `app/(test)/` group (Playwright harnesses, e.g.
+`/address-test`) return 404 in production through `app/(test)/layout.tsx` (a
+boilerplate guard). To re-enable them exceptionally:
+`NEXT_PUBLIC_ENABLE_TEST_ROUTES=true`.

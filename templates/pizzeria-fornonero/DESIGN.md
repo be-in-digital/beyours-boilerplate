@@ -1,18 +1,18 @@
 # Forno Nero — Pizzeria
 
-Braise, cendre et farine. Marque de démonstration : **Forno Nero**.
+Embers, ash and flour. Demo brand: **Forno Nero**.
 
-Identité : titres en Space Grotesk, texte en Karla ;
-signature hsl(24 90% 36%) ; mise en page de démo « hero diagonale couleur / photo, carte registre numéroté ».
+Identity: Space Grotesk for headings, Karla for body text;
+signature hsl(24 90% 36%); demo layout "hero: color / photo diagonal / menu: numbered ledger".
 
-Aperçu interactif du design complet : `demos/home.html?t=pizzeria-fornonero` (ou la
-galerie `demos/index.html`). Ce template applique la **palette et les
-polices** ; la mise en page multipage de la démo est la cible côté engine.
+Interactive preview of the full design: `demos/home.html?t=pizzeria-fornonero` (or the
+`demos/index.html` gallery). This template ships the **palette and the
+fonts**; the demo's multi-page layout is what the engine side aims at.
 
-## Adapter au client
-1. `--primary` + `--ring` + `--sidebar-primary` : la couleur signature du
-   client (garder un contraste AA avec `--primary-foreground`).
-2. `--accent` / `--accent-foreground` : même teinte, diluée en fond, foncée
-   en texte.
-3. Tokens sémantiques (`--success`, `--warning`, `--destructive`,
-   `--status-*`) : laissés à l'engine, ne pas les redéfinir.
+## Adapting to the client
+1. `--primary` + `--ring` + `--sidebar-primary`: the client's signature
+   color (keep AA contrast against `--primary-foreground`).
+2. `--accent` / `--accent-foreground`: same hue, diluted for backgrounds,
+   darkened for text.
+3. Semantic tokens (`--success`, `--warning`, `--destructive`,
+   `--status-*`): left to the engine, do not redefine them.

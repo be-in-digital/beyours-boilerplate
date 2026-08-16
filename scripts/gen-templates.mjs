@@ -1,21 +1,29 @@
 #!/usr/bin/env node
 /*
- * Génère le catalogue templates/ à partir des identités de démo
- * (demos/assets/themes.js), pour aligner « ce qu'on montre » (50 démos) et
- * « ce qu'on installe » (templates/ appliqués à un vrai site).
+ * Generates the templates/ catalogue from the demo identities
+ * (demos/assets/themes.js), so that "what we show" (50 demos) and "what we
+ * install" (templates/ applied to a real site) stay aligned.
  *
- * Produit un dossier templates/<themeId>/ { theme.css, fonts.ts, template.json,
- * DESIGN.md } pour chaque thème qui n'est PAS le premier de sa catégorie (les
- * cinq premiers sont déjà couverts par les slugs historiques pizzeria,
- * fast-food, food-truck, poulet, asiatique — laissés intacts).
+ * Produces a templates/<themeId>/ folder { theme.css, fonts.ts, template.json,
+ * DESIGN.md } for every theme that is NOT the first of its category (those
+ * five are already covered by the historical slugs pizzeria, fast-food,
+ * food-truck, poulet, asiatique — left untouched).
  *
- * - theme.css : tokens light/dark + sidebar + radius, dérivés exactement comme
- *   le moteur des démos (card/secondary/muted/border par mélange).
- * - fonts.ts : paire next/font correcte (poids explicite pour les polices non
- *   variables), variables --font-inter (texte) / --font-poppins (titres) —
- *   contrat de l'engine. Passe `pnpm typecheck`.
+ * - theme.css: light/dark tokens + sidebar + radius, derived exactly the way
+ *   the demo engine does it (card/secondary/muted/border by mixing).
+ * - fonts.ts: the right next/font pair (explicit weights for non-variable
+ *   fonts), variables --font-inter (body) / --font-poppins (headings) — the
+ *   engine contract. Passes `pnpm typecheck`.
  *
- * Régénérer : node scripts/gen-templates.mjs
+ * Language note: everything the generator emits — theme.css and fonts.ts
+ * header comments, template.json `label`/`description`, DESIGN.md — is
+ * written in English. The source identities in demos/assets/themes.js are
+ * French and stay French (they feed the sales demos); they are translated on
+ * the way out through the *_EN tables below. The one exception is
+ * template.json `category`, which keeps the demo catalogue's own label so the
+ * two stay in step.
+ *
+ * Regenerate: node scripts/gen-templates.mjs
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -27,7 +35,7 @@ const require = createRequire(import.meta.url);
 const X = require(path.join(ROOT, "demos", "assets", "themes.js"));
 const fontData = require(path.join(ROOT, "node_modules", "next", "dist", "compiled", "@next", "font", "dist", "google", "font-data.json"));
 
-/* ── Couleur ── */
+/* ── Color ── */
 const P = (s) => { const m = s.match(/([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/); return { h: +m[1], s: +m[2], l: +m[3] }; };
 const F = (c) => `${Math.round(c.h)} ${Math.round(c.s)}% ${Math.round(c.l)}%`;
 const Fh = (c) => `hsl(${F(c)})`;
@@ -89,7 +97,7 @@ const sidebarBlock = (sel, C) => {
 }`;
 };
 
-/* ── Polices ── */
+/* ── Fonts ── */
 const family = (css) => (css.match(/'([^']+)'/) || [])[1];
 const exportName = (fam) => fam.replace(/ /g, "_");
 function fontSpec(fam) {
@@ -97,7 +105,7 @@ function fontSpec(fam) {
   const variable = d.weights.includes("variable");
   return { exp: exportName(fam), variable, weights: d.weights.filter((w) => w !== "variable") };
 }
-// Poids compacts pour les polices non variables (existent tous, cf font-data)
+// Compact weight sets for non-variable fonts (all of them exist, cf font-data)
 const FIX_WEIGHTS = {
   "Barlow Condensed": ["500", "600", "700", "800"], "Barlow": ["400", "500", "600", "700"],
   "Zen Kaku Gothic New": ["400", "500", "700", "900"], "Bebas Neue": ["400"], "Marcellus": ["400"],
@@ -116,12 +124,12 @@ function fontsTs(pairKey, pair) {
   };
   const imports = [...new Set([b.exp, h.exp])].sort().join(", ");
   return `/**
- * Polices du template — ZONE CLIENT après application (généré depuis les
- * identités de démo, cf scripts/gen-templates.mjs).
+ * Template fonts — CLIENT ZONE once applied (generated from the demo
+ * identities, cf scripts/gen-templates.mjs).
  *
- * Titres : ${hFam}. Texte : ${bFam}.
- * Contrat engine : garder les variables --font-inter (texte) et
- * --font-poppins (titres), référencées par app/globals.css.
+ * Headings: ${hFam}. Body: ${bFam}.
+ * Engine contract: keep the --font-inter (body) and --font-poppins (headings)
+ * variables, they are referenced by app/globals.css.
  */
 import { ${imports} } from "next/font/google"
 
@@ -133,37 +141,109 @@ export const fontVariables = \`\${body.variable} \${heading.variable}\`
 `;
 }
 
-/* ── Génération ── */
-const HERO_FR = { editorial: "éditorial (photo ronde, récit)", fullbleed: "pleine image", poster: "affiche typographique", split: "duo texte / photo", board: "tableau des emplacements", magazine: "magazine", zen: "épuré, aéré", banner: "bandeau direct", collage: "collage", duo: "diagonale couleur / photo" };
-const MENU_FR = { dotted: "carte typographiée (lignes de points)", tickets: "tickets empilés", cards: "cartes photo", zen: "colonne unique en filets fins", mosaic: "mosaïque photo", ledger: "registre numéroté", tabs: "onglets collants", bento: "bento" };
+/* ── Generation ── */
+
+/* Layout wording for template.json `description` and DESIGN.md, keyed by the
+ * hero / menu family ids of demos/assets/themes.js (which names them in
+ * French). Every id in use must have an entry — the fallback prints the raw
+ * id. */
+const HERO_EN = { editorial: "editorial (round photo, story)", fullbleed: "full-bleed image", poster: "typographic poster", split: "text / photo split", board: "board of locations", magazine: "magazine", zen: "pared back, airy", banner: "straight banner", collage: "collage", duo: "color / photo diagonal" };
+const MENU_EN = { dotted: "typeset with dot leaders", tickets: "stacked tickets", cards: "photo cards", zen: "single column, hairline rules", mosaic: "photo mosaic", ledger: "numbered ledger", tabs: "sticky tabs", bento: "bento" };
+
+/* Category labels, keyed by category id. The French labels in
+ * demos/assets/themes.js keep feeding template.json `category` unchanged, so
+ * the installed catalogue and the demo gallery stay in step. */
+const CAT_EN = { pizzeria: "Pizzeria", "fast-food": "Fast food", "food-truck": "Food truck", poulet: "Chicken", asiatique: "Asian" };
+
+/* Baselines. The French originals live in demos/assets/themes.js (`tag`);
+ * these are their English counterparts, keyed by theme id. A theme with no
+ * entry falls back to the French baseline. */
+const TAG_EN = {
+  "pizzeria-verace": "Neapolitan pizza, basta",
+  "pizzeria-fornonero": "Embers, ash and flour",
+  "pizzeria-milano": "Editorial, like a magazine",
+  "pizzeria-golfo": "The Amalfi coast, at the table",
+  "pizzeria-rustica": "Country pizzeria",
+  "pizzeria-doppiozero": "00 flour, zero-frills design",
+  "pizzeria-vesuvio": "The pizza that rumbles",
+  "pizzeria-basilico": "Green, fresh, vegetable-led",
+  "pizzeria-notte": "The late-night slice",
+  "fast-food-dinerclassic": "The American diner, 2026 edition",
+  "fast-food-grill77": "Charcoal, flame, full stop",
+  "fast-food-verte": "Fast food with a clear conscience",
+  "fast-food-boxx": "Burgers in a box, design in blocks",
+  "fast-food-minuit": "The burger after the party",
+  "fast-food-fermier": "From the field to the bun",
+  "fast-food-stacked": "The burger, front page",
+  "fast-food-drivein": "Orders on wheels since 1987",
+  "fast-food-prime": "The butcher's burger",
+  "food-truck-routier": "Modern roadside stop, old-school portions",
+  "food-truck-tacoloco": "Street tacos, real salsa",
+  "food-truck-seoulstreet": "Korean street food, low fire and gochujang",
+  "food-truck-greenwheels": "A 100% plant-based truck",
+  "food-truck-braisenroute": "Smoked BBQ, black trailer",
+  "food-truck-lamarina": "The sea, curbside",
+  "food-truck-pitstop": "Express refueling",
+  "food-truck-boheme": "The van that follows the sun",
+  "food-truck-nordique": "Scandinavian truck, black bread",
+  "poulet-coqdor": "Neighborhood rotisserie since 1962",
+  "poulet-krispy": "Crunch turned all the way up",
+  "poulet-seoulfried": "K-chicken, double-fried",
+  "poulet-fermierchic": "Raised outside, roasted inside",
+  "poulet-piriwest": "Piri-piri, embers and lemon",
+  "poulet-bouillon": "Poule au pot and roast poultry",
+  "poulet-wingsclub": "The wing club, game included",
+  "poulet-hotcluck": "Nashville hot, concrete edition",
+  "poulet-dimanche": "The meal that brings everyone together",
+  "asiatique-wokstreet": "High flame, a wok that cracks",
+  "asiatique-bambou": "Gentle steam, fresh bamboo",
+  "asiatique-tokyonight": "Midnight ramen bar",
+  "asiatique-hanoi": "Bowls and chopsticks from Indochina",
+  "asiatique-sichuan": "Pepper that numbs, heat that wakes",
+  "asiatique-matcha": "Tea room and small plates",
+  "asiatique-dragon": "Cantonese banquet, lacquer and gold",
+  "asiatique-banhmi": "Crisp baguette, Vietnamese heart",
+  "asiatique-omakase": "We choose for you",
+};
+
+/* Two wording warts this generator used to emit, keep them fixed:
+ * - a baseline that already ends in a period doubled the dot in `description`
+ *   ("Charcoal, flame, full stop.. numbered ledger");
+ * - a lead-in word in front of a label that starts with the same word read as
+ *   a stutter ("carte carte typographiée"). */
+const noDot = (s) => s.replace(/\s*\.\s*$/, "");
+const lead = (word, label) =>
+  label.toLowerCase().startsWith(word.toLowerCase()) ? label : `${word} ${label}`;
 
 let n = 0;
 for (const c of X.ORDER) {
   const themes = X.LIST.filter((t) => t.cat === c);
-  for (let i = 1; i < themes.length; i++) { // 0 = déjà couvert par le slug historique
+  for (let i = 1; i < themes.length; i++) { // 0 = already covered by the historical slug
     const t = themes[i];
     const dir = path.join(ROOT, "templates", t.id);
     fs.mkdirSync(dir, { recursive: true });
     const brand = t.brand[0] + t.brand[1];
     const catLabel = X.CATS[t.cat].label;
+    const catEn = CAT_EN[t.cat] || catLabel;
+    const tagEn = noDot(TAG_EN[t.id] || t.tag);
 
     const css = `/*
- * Template « ${t.name} » (${catLabel}) — devient site/theme.css à l'application.
- * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
- * --ring, --accent. Généré depuis l'identité de démo « ${t.id} »
- * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ * Template "${t.name}" (${catEn}) — becomes site/theme.css once applied.
+ * CLIENT ZONE: tune the client's colors here, --primary, --ring and --accent
+ * first. Generated from the "${t.id}" demo identity
+ * (scripts/gen-templates.mjs). HSL without hsl(), the globals.css contract.
  */
 
 ${tokenBlock(":root", t.L)}
 
 ${tokenBlock(".dark", t.D)}
 
-/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+/* Admin sidebar (full hsl() format, the globals.css contract) */
 ${sidebarBlock(":root", t.L)}
 
 ${sidebarBlock(".dark", t.D)}
 
-/* Langue de formes */
+/* Shape language */
 :root {
   --radius: ${t.radius};
 }
@@ -172,30 +252,31 @@ ${sidebarBlock(".dark", t.D)}
     fs.writeFileSync(path.join(dir, "fonts.ts"), fontsTs(t.fonts, X.PAIRINGS[t.fonts]));
     fs.writeFileSync(path.join(dir, "template.json"), JSON.stringify({
       slug: t.id, category: catLabel, themeName: t.name,
-      label: `${t.name} — ${t.tag}`, description: `${t.tag}. ${MENU_FR[t.menu] || t.menu}, hero ${HERO_FR[t.hero] || t.hero}.`,
+      label: `${t.name} — ${tagEn}`,
+      description: `${tagEn}. ${lead("Menu", MENU_EN[t.menu] || t.menu)}, ${lead("hero", HERO_EN[t.hero] || t.hero)}.`,
       primary: `hsl(${t.L.p})`, fonts: { heading: family(X.PAIRINGS[t.fonts].h), body: family(X.PAIRINGS[t.fonts].b) },
       demo: `demos/home.html?t=${t.id}`,
     }, null, 2) + "\n");
-    fs.writeFileSync(path.join(dir, "DESIGN.md"), `# ${t.name} — ${catLabel}
+    fs.writeFileSync(path.join(dir, "DESIGN.md"), `# ${t.name} — ${catEn}
 
-${t.tag}. Marque de démonstration : **${brand}**.
+${tagEn}. Demo brand: **${brand}**.
 
-Identité : titres en ${family(X.PAIRINGS[t.fonts].h)}, texte en ${family(X.PAIRINGS[t.fonts].b)} ;
-signature ${`hsl(${t.L.p})`} ; mise en page de démo « hero ${HERO_FR[t.hero] || t.hero}, carte ${MENU_FR[t.menu] || t.menu} ».
+Identity: ${family(X.PAIRINGS[t.fonts].h)} for headings, ${family(X.PAIRINGS[t.fonts].b)} for body text;
+signature ${`hsl(${t.L.p})`}; demo layout "hero: ${HERO_EN[t.hero] || t.hero} / menu: ${MENU_EN[t.menu] || t.menu}".
 
-Aperçu interactif du design complet : \`demos/home.html?t=${t.id}\` (ou la
-galerie \`demos/index.html\`). Ce template applique la **palette et les
-polices** ; la mise en page multipage de la démo est la cible côté engine.
+Interactive preview of the full design: \`demos/home.html?t=${t.id}\` (or the
+\`demos/index.html\` gallery). This template ships the **palette and the
+fonts**; the demo's multi-page layout is what the engine side aims at.
 
-## Adapter au client
-1. \`--primary\` + \`--ring\` + \`--sidebar-primary\` : la couleur signature du
-   client (garder un contraste AA avec \`--primary-foreground\`).
-2. \`--accent\` / \`--accent-foreground\` : même teinte, diluée en fond, foncée
-   en texte.
-3. Tokens sémantiques (\`--success\`, \`--warning\`, \`--destructive\`,
-   \`--status-*\`) : laissés à l'engine, ne pas les redéfinir.
+## Adapting to the client
+1. \`--primary\` + \`--ring\` + \`--sidebar-primary\`: the client's signature
+   color (keep AA contrast against \`--primary-foreground\`).
+2. \`--accent\` / \`--accent-foreground\`: same hue, diluted for backgrounds,
+   darkened for text.
+3. Semantic tokens (\`--success\`, \`--warning\`, \`--destructive\`,
+   \`--status-*\`): left to the engine, do not redefine them.
 `);
     n++;
   }
 }
-console.log(`${n} templates générés dans templates/ (les 5 historiques + default sont laissés intacts).`);
+console.log(`${n} templates generated in templates/ (the 5 historical ones + default are left untouched).`);

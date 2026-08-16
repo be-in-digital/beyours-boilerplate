@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Mise à jour ENGINE (canal npm) — met à jour les packages @be-in-digital/*
- * publiés sur GitHub Packages depuis be-in-digital/beyours.
+ * ENGINE update (npm channel) — updates the @be-in-digital/* packages
+ * published to GitHub Packages from be-in-digital/beyours.
  *
- * Usage :
- *   pnpm update:engine            # respecte les ranges (^2.x → dernier 2.x)
- *   pnpm update:engine -- --latest  # franchit les majeures (breaking !)
- *   pnpm update:engine -- --check   # affiche les versions sans rien changer
+ * Usage:
+ *   pnpm update:engine            # honors the ranges (^2.x → latest 2.x)
+ *   pnpm update:engine -- --latest  # crosses majors (breaking!)
+ *   pnpm update:engine -- --check   # prints versions without changing anything
  *
- * Après mise à jour : convex codegen + typecheck + tests, puis liens vers les
- * CHANGELOGs. Nécessite NODE_AUTH_TOKEN (registre privé).
+ * After updating: convex codegen + typecheck + tests, then links to the
+ * CHANGELOGs. Requires NODE_AUTH_TOKEN (private registry).
  */
 
 import fs from "node:fs"
@@ -59,7 +59,7 @@ try {
     }).trim()
   }
 } catch {
-  // node_modules absent : les versions "avant" restent celles du manifest
+  // No node_modules: the "before" versions stay the ones from the manifest
   for (const dep of engineDeps) before[dep] = pkg.dependencies[dep]
 }
 

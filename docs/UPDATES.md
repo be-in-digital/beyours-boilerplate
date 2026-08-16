@@ -1,6 +1,6 @@
-# Mises à jour : engine → boilerplate → sites clients
+# Updates: engine → boilerplate → client sites
 
-## Vue d'ensemble
+## Overview
 
 ```
 ┌──────────────────────────┐
@@ -21,21 +21,21 @@
 └──────────────────────────┘
 ```
 
-Pourquoi deux canaux ? Parce que le produit vit à deux endroits :
+Why two channels? Because the product lives in two places:
 
-- La **logique métier** (fonctions Convex, composants métier, intégrations)
-  est **versionnée en npm**. Mise à jour = bump semver, rollback = downgrade.
-  C'est le canal fréquent, sûr, granulaire.
-- Le **shell applicatif** (routes `app/`, wrappers `convex/`, composants
-  locaux, configs, scripts) ne peut pas vivre en npm (Next.js exige des
-  fichiers de route physiques). Il se met à jour par **merge git** depuis le
-  boilerplate. C'est le canal rare (nouvelles pages, nouveaux wrappers).
+- The **business logic** (Convex functions, domain components, integrations)
+  is **versioned on npm**. Update = semver bump, rollback = downgrade. This is
+  the frequent, safe, granular channel.
+- The **application shell** (`app/` routes, `convex/` wrappers, local
+  components, configs, scripts) cannot live on npm (Next.js requires physical
+  route files). It is updated through a **git merge** from the boilerplate.
+  This is the rare channel (new pages, new wrappers).
 
-Une release engine typique se consomme : `update:engine` d'abord ; si la
-release ajoute des routes/wrappers, le boilerplate est resynchronisé puis les
-sites font aussi `update:template`.
+A typical engine release is consumed like this: `update:engine` first; if the
+release adds routes or wrappers, the boilerplate is resynced and the sites
+then also run `update:template`.
 
-## Canal npm — `pnpm update:engine`
+## npm channel — `pnpm update:engine`
 
 ```bash
 pnpm update:engine -- --check    # versions installées vs publiées
@@ -43,80 +43,81 @@ pnpm update:engine               # update DANS les ranges (^2.x)
 pnpm update:engine -- --latest   # réécrit les ranges (franchit les majeures)
 ```
 
-Le script refuse le mode engine-link, enchaîne `convex codegen` +
-`typecheck` + `test` après install, affiche les liens CHANGELOG par package,
-et sort en erreur si une vérification échoue. Committer ensuite
-`package.json`, `pnpm-lock.yaml` et `convex/_generated/`.
+The script refuses to run in engine-link mode, chains `convex codegen` +
+`typecheck` + `test` after the install, prints the per-package CHANGELOG
+links, and exits non-zero if any check fails. Then commit `package.json`,
+`pnpm-lock.yaml` and `convex/_generated/`.
 
-Après un update qui touche le schéma : `pnpm convex:deploy` (les migrations
-Convex sont additives ; les breaking changes de schéma arrivent uniquement
-dans une majeure engine, avec notes de migration dans le CHANGELOG).
+After an update that touches the schema: `pnpm convex:deploy` (Convex
+migrations are additive; breaking schema changes only land in an engine major,
+with migration notes in the CHANGELOG).
 
-## Canal git — `pnpm update:template`
+## git channel — `pnpm update:template`
 
 ```bash
 pnpm update:template -- --dry-run   # ce qui arriverait
 pnpm update:template                # fetch + merge template/main
 ```
 
-Pré-requis : arbre git propre. Le remote `template` est créé automatiquement
-(par `pnpm setup` ou par le script).
+Prerequisite: a clean git tree. The `template` remote is created
+automatically (by `pnpm setup` or by the script).
 
-- **Site créé par clone** (recommandé) : merge incrémental standard.
-- **Site créé via « Use this template »** : pas d'ancêtre commun — premier
-  merge avec `pnpm update:template -- --first`, les suivants sont normaux.
+- **Site created by cloning** (recommended): standard incremental merge.
+- **Site created with "Use this template"**: no common ancestor — do the first
+  merge with `pnpm update:template -- --first`, subsequent ones are normal.
 
-En cas de conflit, le script affiche le guide : zones engine → `--theirs`,
-zones client → `--ours`. Par contrat, le template ne touche jamais aux zones
-client, donc les conflits n'apparaissent que si le site a modifié des zones
-engine (à éviter, cf. `docs/CUSTOMIZATION.md`).
+On a conflict the script prints the guide: engine zones → `--theirs`, client
+zones → `--ours`. By contract the template never touches client zones, so
+conflicts only appear if the site modified engine zones (avoid this, see
+`docs/CUSTOMIZATION.md`).
 
-## Fichiers patchés (delta boilerplate vs engine)
+## Patched files (boilerplate vs engine delta)
 
-Le boilerplate maintient un delta VOLONTAIREMENT minimal vs
-`apps/restaurant-theme` de l'engine :
+The boilerplate keeps a DELIBERATELY minimal delta against the engine's
+`apps/restaurant-theme`:
 
-| Fichier | Nature du patch |
+| File | Nature of the patch |
 | --- | --- |
-| `app/layout.tsx` | métadonnées/fonts/theme depuis la zone site |
-| `next.config.ts` | `transpilePackages` registre + images via `site.config.ts` |
-| `eslint.config.mjs` | ignores `mobile/**` + `.template/**` (bloc `PATCH BOILERPLATE`) |
-| `package.json` | deps `workspace:^` → versions registre `^2.x` |
-| `tsconfig.json` | base monorepo aplatie + exclude `mobile`/`.template` |
-| `.env.example` | en-tête chemins racine |
+| `app/layout.tsx` | metadata/fonts/theme from the site zone |
+| `next.config.ts` | registry `transpilePackages` + images via `site.config.ts` |
+| `eslint.config.mjs` | ignores `mobile/**` + `.template/**` (`PATCH BOILERPLATE` block) |
+| `package.json` | `workspace:^` deps → registry versions `^2.x` |
+| `tsconfig.json` | flattened monorepo base + excludes `mobile`/`.template` |
+| `.env.example` | root-path header |
 
-Tout le reste (`app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`,
-`public/`, configs de test) est un miroir exact. Chaque fichier patché porte
-un en-tête `PATCH BOILERPLATE`.
+Everything else (`app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`,
+`public/`, test configs) is an exact mirror. Every patched file carries a
+`PATCH BOILERPLATE` header.
 
-## Maintenance du boilerplate (équipe BeYours)
+## Maintaining the boilerplate (BeYours team)
 
-La resync du shell depuis l'engine est **outillée et automatisée** :
+Resyncing the shell from the engine is **tooled and automated**:
 
-- **`pnpm sync:engine`** (mainteneur, local) — miroir strict depuis
-  `apps/restaurant-theme` d'un clone engine (`--engine <chemin>`,
-  `--check` pour un dry-run). Le script protège les fichiers patchés et
-  boilerplate, ré-applique le patch d'en-tête de `.env.example`, rapporte le
-  diff de dépendances (jamais auto-appliqué) et écrit `.engine-sync.json`
-  (commit engine de référence).
-- **`.github/workflows/sync-engine.yml`** — cron jours ouvrés + déclenchement
-  manuel : clone l'engine (secret `ENGINE_SYNC_TOKEN`, cf.
-  `docs/SETUP-CI.md`), lance la resync et **ouvre une PR** `sync/engine-<sha>`
-  quand il y a une dérive, avec checklist de validation.
+- **`pnpm sync:engine`** (maintainer, local) — a strict mirror from
+  `apps/restaurant-theme` of an engine clone (`--engine <path>`, `--check`
+  for a dry run). The script protects the patched and boilerplate files,
+  re-applies the `.env.example` header patch, reports the dependency diff
+  (never auto-applied) and writes `.engine-sync.json` (the reference engine
+  commit).
+- **`.github/workflows/sync-engine.yml`** — weekday cron plus manual
+  dispatch: clones the engine (secret `ENGINE_SYNC_TOKEN`, see
+  `docs/SETUP-CI.md`), runs the resync and **opens a PR**
+  `sync/engine-<sha>` when there is drift, with a validation checklist.
 
-Validation avant merge d'une PR de sync :
+Validation before merging a sync PR:
 
 ```bash
 pnpm engine:link ../beyours && pnpm typecheck && pnpm test && pnpm build
 pnpm engine:unlink
 ```
 
-Les sites récupèrent ensuite via `update:template`.
+Sites then pick it up through `update:template`.
 
-## Rappels d'exploitation
+## Operational reminders
 
-- 1 deployment Convex par client ; storefront en ISR/statique par défaut.
-- `NODE_AUTH_TOKEN` : PAT fine-grained `read:packages` limité à
-  `@be-in-digital/*`, rotation 90 j (CI : secret `GH_PACKAGES_TOKEN`).
-- Rollback engine : `pnpm update:engine` avec la version précédente dans
-  `package.json` (git revert du commit d'update).
+- One Convex deployment per client; storefront on ISR/static by default.
+- `NODE_AUTH_TOKEN`: a fine-grained `read:packages` PAT scoped to
+  `@be-in-digital/*`, rotated every 90 days (CI: the `GH_PACKAGES_TOKEN`
+  secret).
+- Engine rollback: `pnpm update:engine` with the previous version pinned in
+  `package.json` (git revert the update commit).

@@ -1,8 +1,8 @@
 /*
- * Template « Dimanche » (Poulet) — devient site/theme.css à l'application.
- * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
- * --ring, --accent. Généré depuis l'identité de démo « poulet-dimanche »
- * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ * Template "Dimanche" (Chicken) — becomes site/theme.css once applied.
+ * CLIENT ZONE: tune the client's colors here, --primary, --ring and --accent
+ * first. Generated from the "poulet-dimanche" demo identity
+ * (scripts/gen-templates.mjs). HSL without hsl(), the globals.css contract.
  */
 
 :root {
@@ -55,7 +55,7 @@
   --chart-5: 280 50% 58%;
 }
 
-/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+/* Admin sidebar (full hsl() format, the globals.css contract) */
 :root {
   --sidebar: hsl(20 35% 99%);
   --sidebar-foreground: hsl(340 20% 16%);
@@ -78,7 +78,7 @@
   --sidebar-ring: hsl(340 50% 62%);
 }
 
-/* Langue de formes */
+/* Shape language */
 :root {
   --radius: 1rem;
 }

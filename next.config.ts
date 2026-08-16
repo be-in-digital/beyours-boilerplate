@@ -1,18 +1,18 @@
-// PATCH BOILERPLATE vs engine :
-//  1. transpilePackages étendu — les packages @be-in-digital/* sont installés
-//     depuis GitHub Packages en source TypeScript (pas en workspace), Next
-//     doit donc les transpiler explicitement.
-//  2. images.remotePatterns piloté par site.config.ts (zone client).
+// PATCH BOILERPLATE vs engine:
+//  1. transpilePackages extended — the @be-in-digital/* packages are installed
+//     from GitHub Packages as TypeScript source (not as workspace packages),
+//     so Next has to transpile them explicitly.
+//  2. images.remotePatterns driven by site.config.ts (client zone).
 import type { NextConfig } from "next";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { siteConfig } from "./site.config";
 
-// Mode engine-link (pnpm engine:link) : les packages @be-in-digital/* sont
-// des symlinks vers un clone local hors du projet. Turbopack refuse les
-// fichiers hors racine — on étend la racine de tracing à l'ancêtre commun
-// calculé par scripts/engine-link.js. Sans marqueur (mode registre normal,
-// prod, CI), ce bloc est inerte.
+// engine-link mode (pnpm engine:link): the @be-in-digital/* packages are
+// symlinks to a local clone outside the project. Turbopack rejects files
+// outside the root — so we widen the tracing root to the common ancestor
+// computed by scripts/engine-link.js. Without the marker file (normal
+// registry mode, prod, CI), this block is inert.
 const engineLinkMarker = join(__dirname, ".engine-link.json");
 const engineLink = existsSync(engineLinkMarker)
   ? (JSON.parse(readFileSync(engineLinkMarker, "utf8")) as {

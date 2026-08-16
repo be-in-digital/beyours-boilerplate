@@ -2,8 +2,8 @@
   "slug": "fast-food-drivein",
   "category": "Fast-food",
   "themeName": "Drive-In",
-  "label": "Drive-In — Commande roulante depuis 1987",
-  "description": "Commande roulante depuis 1987. cartes photo, hero tableau des emplacements.",
+  "label": "Drive-In — Orders on wheels since 1987",
+  "description": "Orders on wheels since 1987. Menu photo cards, hero board of locations.",
   "primary": "hsl(205 80% 40%)",
   "fonts": {
     "heading": "Passion One",

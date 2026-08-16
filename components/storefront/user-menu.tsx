@@ -36,9 +36,9 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
     () => false,
   )
 
-  // SSR et premier rendu client : toujours le même HTML
-  // Utilise un <button> (pas un Link) pour éviter le mismatch d'hydration
-  // quand DropdownMenuTrigger injecte un <button> côté client
+  // SSR and the first client render: always the same HTML
+  // Uses a <button> (not a Link) to avoid the hydration mismatch
+  // when DropdownMenuTrigger injects a <button> on the client
   if (!hasMounted || isPending || !session?.user) {
     return (
       <Button

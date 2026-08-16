@@ -1,13 +1,13 @@
 /*
- * Template « Smash » (fast food burger) — devient site/theme.css à
- * l'application. ZONE CLIENT : adapter les couleurs du client ici, en
- * priorité --primary, --ring, --accent (voir templates/fast-food/DESIGN.md).
+ * Template "Smash" (fast food burger) — becomes site/theme.css once applied.
+ * CLIENT ZONE: adapt the client's colors here, starting with --primary,
+ * --ring, --accent (see templates/fast-food/DESIGN.md).
  *
- * Direction : smash burger premium, signature en deux temps. En clair, les
- * CTA sont charbon et la moutarde vit dans les accents (un jaune moyen en
- * texte sur fond clair ne tient jamais le contraste AA) ; en sombre, la
- * moutarde devient le néon des CTA, avec texte foncé (jamais de blanc sur
- * jaune). Format HSL sans hsl(), contrat de app/globals.css.
+ * Direction: premium smash burger, a signature in two acts. In light mode the
+ * CTAs are charcoal and the mustard lives in the accents (a mid yellow as
+ * text on a light background never holds AA contrast); in dark mode the
+ * mustard becomes the neon of the CTAs, with dark text (never white on
+ * yellow). HSL without hsl(), the app/globals.css contract.
  */
 
 :root {
@@ -60,7 +60,7 @@
   --chart-5: 215 30% 60%;
 }
 
-/* Sidebar admin (format hsl() complet, contrat de app/globals.css) */
+/* Admin sidebar (full hsl() format, the app/globals.css contract) */
 :root {
   --sidebar: hsl(45 22% 95%);
   --sidebar-foreground: hsl(40 15% 9%);
@@ -83,7 +83,7 @@
   --sidebar-ring: hsl(42 96% 54%);
 }
 
-/* Langue de formes : arrondis larges du comptoir, boutons presque pill */
+/* Shape language: wide counter rounding, buttons close to pill */
 :root {
   --radius: 0.875rem;
   --radius-xs: 0.25rem;
@@ -96,7 +96,7 @@
   --radius-4xl: 2.5rem;
 }
 
-/* Détails typographiques : grotesque charnue, display serré */
+/* Type details: fleshy grotesque, tight display */
 h1,
 h2,
 h3,

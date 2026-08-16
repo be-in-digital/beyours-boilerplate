@@ -1,89 +1,87 @@
-# Templates design — catalogue
+# Design templates — catalogue
 
-**50 directions artistiques** (10 par vertical restaurant) + le neutre engine.
-Un template pose l'identité visuelle complète d'un site (couleurs clair/sombre,
-sidebar admin, graphiques dashboard, polices, langue de formes) dans la
-**zone client** : choisir le template à la création du site, puis ajuster les
-couleurs à l'image du client dans `site/theme.css`.
+**50 art directions** (10 per restaurant vertical) plus the engine neutral.
+A template sets the complete visual identity of a site (light/dark colors,
+admin sidebar, dashboard charts, fonts, shape language) inside the **client
+zone**: pick the template when the site is created, then tune the colors to
+the client's brand in `site/theme.css`.
 
-Les 5 directions phares (une par vertical) sont détaillées ci-dessous et
-maintenues à la main. Les 45 autres (`<catégorie>-<thème>`, ex.
-`pizzeria-milano`, `asiatique-omakase`) sont **générées depuis les identités
-de démo** (`node scripts/gen-templates.mjs`, source :
-`demos/assets/themes.js`) : chaque `template.json` pointe vers l'aperçu
-interactif `demos/home.html?t=<slug>`. `pnpm template:list` les liste tous.
+The 5 flagship directions (one per vertical) are detailed below and maintained
+by hand. The other 45 (`<category>-<theme>`, e.g. `pizzeria-milano`,
+`asiatique-omakase`) are **generated from the demo identities**
+(`node scripts/gen-templates.mjs`, source: `demos/assets/themes.js`): each
+`template.json` points at the interactive preview `demos/home.html?t=<slug>`.
+`pnpm template:list` lists them all.
 
-| Slug | Direction | Signature | Titres / Texte |
+| Slug | Direction | Signature | Headings / Body |
 | --- | --- | --- | --- |
-| `pizzeria` | Trattoria, néo-napolitaine | Terracotta sur pierre chaude | Libre Bodoni / Figtree |
-| `fast-food` | Smash, burger premium | Moutarde sur charbon (2 temps) | Bricolage Grotesque / Archivo |
-| `food-truck` | Convoi, street craft | Pétrole émaillé sur kraft | Big Shoulders / Work Sans |
-| `poulet` | Braise, rôtisserie urbaine | Piment sur crème | Barlow Condensed / Barlow |
-| `asiatique` | Izakaya, contemporain | Jade et encre sur washi | Zen Kaku Gothic New / Noto Sans |
-| `default` | Neutre engine | Orange | Poppins / Inter |
+| `pizzeria` | Trattoria, neo-Neapolitan | Terracotta on warm stone | Libre Bodoni / Figtree |
+| `fast-food` | Smash, premium burger | Mustard on charcoal (two acts) | Bricolage Grotesque / Archivo |
+| `food-truck` | Convoi, street craft | Enamelled petrol on kraft | Big Shoulders / Work Sans |
+| `poulet` | Braise, urban rotisserie | Chilli on cream | Barlow Condensed / Barlow |
+| `asiatique` | Izakaya, contemporary | Jade and ink on washi | Zen Kaku Gothic New / Noto Sans |
+| `default` | Engine neutral | Orange | Poppins / Inter |
 
-Aperçu visuel : ouvrir `templates/preview.html` dans un navigateur.
-Direction détaillée (concept, imagerie, ton, adaptation client) : le
-`DESIGN.md` de chaque template.
+Visual preview: open `templates/preview.html` in a browser.
+The direction in detail (concept, imagery, tone, adapting to the client): each
+template's `DESIGN.md`.
 
-**Démos interactives** (`demos/`) : chaque univers a une boutique navigable
-avec panier et paiement Stripe de test — un prospect teste le site réel avant
-d'acheter. Ouvrir `demos/index.html` en local, ou déployer sur Vercel pour le
-paiement de test réel. Voir `demos/README.md`.
+**Interactive demos** (`demos/`): every world has a browsable shop with a cart
+and Stripe test payments — a prospect can try the real site before buying.
+Open `demos/index.html` locally, or deploy on Vercel for real test payments.
+See `demos/README.md`.
 
-## Utilisation
+## Usage
 
 ```bash
-# à la création d'un site
+# when creating a site
 beindigital create client-luigi --name "Chez Luigi" --template pizzeria
-pnpm setup                       # le wizard propose le choix du template
+pnpm setup                       # the wizard offers the template choice
 
-# sur un site existant
+# on an existing site
 pnpm template:list               # catalogue
-pnpm template:apply poulet       # applique (écrase site/theme.css + site/fonts.ts)
-pnpm template:apply default      # restaure le thème d'origine
+pnpm template:apply poulet       # applies (overwrites site/theme.css + site/fonts.ts)
+pnpm template:apply default      # restores the original theme
 ```
 
-L'application copie `templates/<slug>/theme.css` et `fonts.ts` vers `site/`
-(zone client) et note le choix dans `.beindigital-site.json`. Rien d'autre
-n'est modifié : mêmes routes, mêmes composants, mêmes mises à jour engine.
+Applying a template copies `templates/<slug>/theme.css` and `fonts.ts` into
+`site/` (the client zone) and records the choice in `.beindigital-site.json`.
+Nothing else is touched: same routes, same components, same engine updates.
 
-## Anatomie d'un template
+## Anatomy of a template
 
 ```
 templates/<slug>/
-  template.json   # slug, label, description, signature, polices (catalogue CLI)
-  theme.css       # tokens light/dark + sidebar + échelle de rayons + détails typo
-  fonts.ts        # paire next/font (variables --font-inter / --font-poppins imposées)
-  DESIGN.md       # direction artistique : concept, palette, imagerie, ton, adaptation
+  template.json   # slug, label, description, signature, fonts (CLI catalogue)
+  theme.css       # light/dark tokens + sidebar + radius scale + type details
+  fonts.ts        # next/font pair (--font-inter / --font-poppins variables are mandatory)
+  DESIGN.md       # art direction: concept, palette, imagery, tone, adapting
 ```
 
-## Règles du catalogue
+## Catalogue rules
 
-- **Contraste AA vérifié** : chaque palette passe WCAG AA (4.5:1) sur les
-  paires texte/fond des deux modes, CTA et sidebar compris. Toute retouche
-  couleur doit maintenir ces ratios.
-- **Tokens sémantiques intouchés** : `--success`, `--warning`, `--info`,
-  `--destructive` et `--status-*` restent ceux de l'engine. Ils portent du
-  sens fonctionnel (cuisine, caisse, commandes) et ne font pas partie de
-  l'identité.
-- **Contrat engine respecté** : uniquement des surcharges prévues par
-  `app/globals.css` (tokens HSL, sidebar en `hsl()` complet, variables de
-  police) plus l'échelle `--radius-*` de Tailwind v4. Pas de sélecteurs
-  dépendants du DOM des composants engine.
-- **Photos et textes viennent du CMS** : un template ne fournit pas d'images.
-  Les directives d'imagerie du `DESIGN.md` guident ce que le client charge
-  dans le dashboard admin.
+- **AA contrast verified**: every palette passes WCAG AA (4.5:1) on the
+  text/background pairs of both modes, CTAs and sidebar included. Any color
+  tweak has to keep those ratios.
+- **Semantic tokens untouched**: `--success`, `--warning`, `--info`,
+  `--destructive` and `--status-*` stay the engine's. They carry functional
+  meaning (kitchen, till, orders) and are not part of the identity.
+- **Engine contract respected**: only the overrides `app/globals.css` provides
+  for (HSL tokens, sidebar in full `hsl()`, font variables) plus Tailwind v4's
+  `--radius-*` scale. No selectors that depend on the DOM of engine
+  components.
+- **Photos and copy come from the CMS**: a template ships no images. The
+  imagery guidance in `DESIGN.md` steers what the client uploads in the admin
+  dashboard.
 
-## Ajouter un template
+## Adding a template
 
-1. Copier un dossier existant, renommer le slug.
-2. Concevoir la palette (les deux modes + sidebar + charts), la paire de
-   polices (`next/font/google`, garder les noms de variables) et l'échelle
-   de rayons.
-3. Vérifier le contraste AA des paires listées plus haut.
-4. Documenter la direction dans `DESIGN.md`, renseigner `template.json`.
-5. Ajouter le bloc correspondant dans `preview.html`.
+1. Copy an existing folder, rename the slug.
+2. Design the palette (both modes + sidebar + charts), the font pair
+   (`next/font/google`, keep the variable names) and the radius scale.
+3. Check the AA contrast of the pairs listed above.
+4. Document the direction in `DESIGN.md`, fill in `template.json`.
+5. Add the matching block to `preview.html`.
 
-Ce dossier appartient au boilerplate (jamais touché par `sync:engine`) et
-descend sur les sites via `pnpm update:template`.
+This folder belongs to the boilerplate (never touched by `sync:engine`) and
+reaches sites through `pnpm update:template`.

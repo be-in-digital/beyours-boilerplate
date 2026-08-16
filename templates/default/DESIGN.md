@@ -1,17 +1,17 @@
-# Neutre (défaut engine)
+# Neutral (engine default)
 
-Le thème d'origine de l'engine, tel quel : accent orange (`24 95% 53%`),
-neutres froids, Inter pour le texte et Poppins pour les titres.
+The engine's original theme, exactly as it ships: orange accent
+(`24 95% 53%`), cold neutrals, Inter for body text and Poppins for headings.
 
-Ce « template » sert à deux choses :
+This "template" serves two purposes:
 
-1. **Point de départ vierge** pour un site dont l'identité sera construite
-   entièrement sur mesure dans `site/theme.css`.
-2. **Restauration** : `pnpm template:apply default` remet `site/theme.css` et
-   `site/fonts.ts` dans leur état d'origine si un template appliqué ne
-   convient pas.
+1. **A blank starting point** for a site whose identity will be built entirely
+   by hand in `site/theme.css`.
+2. **Restoration**: `pnpm template:apply default` puts `site/theme.css` and
+   `site/fonts.ts` back in their original state if an applied template turns
+   out to be wrong.
 
-Aucune direction artistique n'est imposée ici. Pour un site client réel,
-préférer un des templates verticaux (`pizzeria`, `fast-food`, `food-truck`,
-`poulet`, `asiatique`) puis ajuster les couleurs, ou repartir de ce neutre en
-suivant les recettes de `docs/CUSTOMIZATION.md`.
+No art direction is imposed here. For a real client site, prefer one of the
+vertical templates (`pizzeria`, `fast-food`, `food-truck`, `poulet`,
+`asiatique`) and then adjust the colors, or start again from this neutral one
+following the recipes in `docs/CUSTOMIZATION.md`.

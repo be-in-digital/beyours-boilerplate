@@ -2,8 +2,8 @@
   "slug": "fast-food-fermier",
   "category": "Fast-food",
   "themeName": "Le Fermier",
-  "label": "Le Fermier — Du champ au bun",
-  "description": "Du champ au bun. tickets empilés, hero duo texte / photo.",
+  "label": "Le Fermier — From the field to the bun",
+  "description": "From the field to the bun. Menu stacked tickets, hero text / photo split.",
   "primary": "hsl(355 55% 40%)",
   "fonts": {
     "heading": "Libre Caslon Text",

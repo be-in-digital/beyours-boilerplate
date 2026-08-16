@@ -1,16 +1,16 @@
 import { StyleSheet, Text, View } from "react-native"
 
 /**
- * Écran d'accueil placeholder.
+ * Placeholder home screen.
  *
- * L'app mobile est le compagnon client du storefront web : elle consomme le
- * MÊME backend Convex (EXPO_PUBLIC_CONVEX_URL, renseignée dans mobile/.env
- * par `pnpm setup` / `pnpm add:mobile`). L'authentification utilise Better
- * Auth en mode bearer token (`@better-auth/expo` + `expo-secure-store`) —
- * la même instance Better Auth que le web (qui, lui, est en cookies).
+ * The mobile app is the customer companion to the web storefront: it talks to
+ * the SAME Convex backend (EXPO_PUBLIC_CONVEX_URL, filled into mobile/.env by
+ * `pnpm setup` / `pnpm add:mobile`). Authentication uses Better Auth in bearer
+ * token mode (`@better-auth/expo` + `expo-secure-store`) — the same Better
+ * Auth instance as the web app, which uses cookies instead.
  *
- * Remplacer cet écran par les vrais flux (catalogue / panier / fidélité)
- * au démarrage d'un vrai projet mobile client. Voir mobile/README.md.
+ * Replace this screen with the real flows (catalog / cart / loyalty) when
+ * starting an actual client mobile project. See mobile/README.md.
  */
 export default function HomeScreen() {
   return (

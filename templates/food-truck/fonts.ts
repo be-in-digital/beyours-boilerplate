@@ -1,13 +1,13 @@
 /**
- * Polices du template « Convoi » (food truck) — ZONE CLIENT après application.
+ * Fonts for the "Convoi" template (food truck) — CLIENT ZONE once applied.
  *
- * Titres : Big Shoulders, condensée à l'énergie street et industrielle,
- * l'esprit lettrage de carrosserie et ardoise du jour.
- * Texte : Work Sans, grotesque sobre et robuste, très lisible dehors comme
- * sur mobile.
+ * Headings: Big Shoulders, a condensed with street and industrial energy —
+ * the spirit of bodywork lettering and the daily chalkboard.
+ * Body: Work Sans, a plain sturdy grotesque, very readable outdoors and on
+ * mobile alike.
  *
- * Contrat engine : les variables CSS doivent rester --font-inter (texte) et
- * --font-poppins (titres), elles sont référencées par app/globals.css.
+ * Engine contract: the CSS variables must stay --font-inter (body) and
+ * --font-poppins (headings), they are referenced by app/globals.css.
  */
 import { Big_Shoulders, Work_Sans } from "next/font/google"
 

@@ -1,8 +1,8 @@
 /*
- * Template « Braise en Route » (Food truck) — devient site/theme.css à l'application.
- * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
- * --ring, --accent. Généré depuis l'identité de démo « food-truck-braisenroute »
- * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ * Template "Braise en Route" (Food truck) — becomes site/theme.css once applied.
+ * CLIENT ZONE: tune the client's colors here, --primary, --ring and --accent
+ * first. Generated from the "food-truck-braisenroute" demo identity
+ * (scripts/gen-templates.mjs). HSL without hsl(), the globals.css contract.
  */
 
 :root {
@@ -55,7 +55,7 @@
   --chart-5: 318 50% 58%;
 }
 
-/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+/* Admin sidebar (full hsl() format, the globals.css contract) */
 :root {
   --sidebar: hsl(30 15% 96%);
   --sidebar-foreground: hsl(15 20% 9%);
@@ -78,7 +78,7 @@
   --sidebar-ring: hsl(18 80% 52%);
 }
 
-/* Langue de formes */
+/* Shape language */
 :root {
   --radius: .25rem;
 }

@@ -1,10 +1,10 @@
 /**
- * Polices du template — ZONE CLIENT après application (généré depuis les
- * identités de démo, cf scripts/gen-templates.mjs).
+ * Template fonts — CLIENT ZONE once applied (generated from the demo
+ * identities, cf scripts/gen-templates.mjs).
  *
- * Titres : Libre Caslon Text. Texte : Instrument Sans.
- * Contrat engine : garder les variables --font-inter (texte) et
- * --font-poppins (titres), référencées par app/globals.css.
+ * Headings: Libre Caslon Text. Body: Instrument Sans.
+ * Engine contract: keep the --font-inter (body) and --font-poppins (headings)
+ * variables, they are referenced by app/globals.css.
  */
 import { Instrument_Sans, Libre_Caslon_Text } from "next/font/google"
 

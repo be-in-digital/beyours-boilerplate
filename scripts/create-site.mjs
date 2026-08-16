@@ -1,29 +1,29 @@
 #!/usr/bin/env node
 /**
- * Commande one-shot : crée un site client complet (clone + config) en un
- * appel. Auto-suffisante — elle peut tourner depuis un clone du boilerplate
- * OU être pipée sans rien cloner d'avance :
+ * One-shot command: creates a complete client site (clone + config) in a
+ * single call. Self-contained — it can run from a clone of the boilerplate OR
+ * be piped in without cloning anything first:
  *
  *   gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/create-site.mjs \
  *     -H "Accept: application/vnd.github.raw" | node --input-type=module - \
  *     client-luigi --name "Chez Luigi" --mobile
  *
- * Usage :
- *   node scripts/create-site.mjs <dossier> [options]
+ * Usage:
+ *   node scripts/create-site.mjs <directory> [options]
  *
- * Options :
- *   --name "X"            nom du restaurant (défaut : dérivé du dossier)
- *   --description "…"     description SEO
- *   --locale fr           locale par défaut
- *   --mobile | --web      config web + app Expo, ou web seul (défaut)
- *   --template <slug>     template design : pizzeria, fast-food, food-truck,
- *                         poulet, asiatique (défaut : neutre engine)
- *   --repo owner/nom      crée le repo GitHub privé (via gh) et pousse
- *   --template-url URL    boilerplate source (défaut : repo BeYours)
- *   --skip-install        ne pas lancer pnpm install (pas de NODE_AUTH_TOKEN)
+ * Options:
+ *   --name "X"            restaurant name (default: derived from the directory)
+ *   --description "…"     SEO description
+ *   --locale fr           default locale
+ *   --mobile | --web      web + Expo app, or web only (default)
+ *   --template <slug>     design template: pizzeria, fast-food, food-truck,
+ *                         poulet, asiatique (default: neutral engine look)
+ *   --repo owner/name     creates the private GitHub repo (via gh) and pushes
+ *   --template-url URL    source boilerplate (default: the BeYours repo)
+ *   --skip-install        skip pnpm install (no NODE_AUTH_TOKEN)
  *
- * Étapes : clone du template → remote `template` → (repo GitHub) →
- * pnpm install → pnpm setup --yes → commit initial → (push).
+ * Steps: clone the template → `template` remote → (GitHub repo) →
+ * pnpm install → pnpm setup --yes → initial commit → (push).
  */
 
 import fs from "node:fs"

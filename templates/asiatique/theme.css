@@ -1,11 +1,11 @@
 /*
- * Template « Izakaya » (asiatique contemporain) — devient site/theme.css à
- * l'application. ZONE CLIENT : adapter les couleurs du client ici, en
- * priorité --primary, --ring, --accent (voir templates/asiatique/DESIGN.md).
+ * Template "Izakaya" (contemporary Asian) — becomes site/theme.css once
+ * applied. CLIENT ZONE: adapt the client's colors here, starting with
+ * --primary, --ring, --accent (see templates/asiatique/DESIGN.md).
  *
- * Direction : izakaya contemporain. Jade profond et encre sumi sur papier
- * washi en clair ; laque sombre en mode nuit. Précision calme, formes nettes.
- * Format HSL sans hsl(), contrat de app/globals.css.
+ * Direction: contemporary izakaya. Deep jade and sumi ink on washi paper in
+ * light mode; dark lacquer in night mode. Calm precision, sharp shapes.
+ * HSL without hsl(), the app/globals.css contract.
  */
 
 :root {
@@ -58,7 +58,7 @@
   --chart-5: 315 35% 60%;
 }
 
-/* Sidebar admin (format hsl() complet, contrat de app/globals.css) */
+/* Admin sidebar (full hsl() format, the app/globals.css contract) */
 :root {
   --sidebar: hsl(46 20% 95%);
   --sidebar-foreground: hsl(210 14% 11%);
@@ -81,7 +81,7 @@
   --sidebar-ring: hsl(166 42% 46%);
 }
 
-/* Langue de formes : nettes et précises, presque au carré */
+/* Shape language: sharp and precise, almost square */
 :root {
   --radius: 0.375rem;
   --radius-xs: 0.0625rem;
@@ -94,7 +94,7 @@
   --radius-4xl: 1.5rem;
 }
 
-/* Détails typographiques : l'air du zen, chasse légèrement ouverte */
+/* Type details: the air of zen, tracking slightly opened */
 h1,
 h2,
 h3,

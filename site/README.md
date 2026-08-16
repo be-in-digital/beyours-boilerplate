@@ -1,23 +1,23 @@
-# `site/` — la zone du client
+# `site/` — the client zone
 
-Tout ce qui est spécifique à CE site vit ici (plus `site.config.ts` et les
-fichiers `.env*` à la racine). **Rien dans ce dossier n'est touché par les
-mises à jour du template ou de l'engine.**
+Everything specific to THIS site lives here (plus `site.config.ts` and the
+`.env*` files at the root). **Nothing in this directory is touched by template
+or engine updates.**
 
-| Fichier / dossier   | Rôle                                                             |
+| File / directory    | Role                                                             |
 | ------------------- | ---------------------------------------------------------------- |
-| `../site.config.ts` | Identité build-time : nom, SEO, locale par défaut, hôtes d'images |
-| `theme.css`         | Surcharge des design tokens (couleurs, radius…)                   |
-| `fonts.ts`          | Polices du site (next/font)                                       |
-| `components/`       | Composants custom du site                                         |
-| `public/` (racine)  | Logos, favicon, images — remplacez les fichiers existants         |
+| `../site.config.ts` | Build-time identity: name, SEO, default locale, image hosts       |
+| `theme.css`         | Design token overrides (colors, radius, and so on)                |
+| `fonts.ts`          | Site fonts (next/font)                                            |
+| `components/`       | Custom components for this site                                   |
+| `public/` (root)    | Logos, favicon, images — replace the existing files               |
 
-## Règle d'or
+## Golden rule
 
-Ne modifiez **jamais** `app/`, `components/`, `lib/`, `hooks/`, `cms/` ou
-`convex/` : ces zones appartiennent à l'engine et sont écrasées/fusionnées à
-chaque mise à jour. Si une personnalisation semble impossible depuis `site/`,
-le dashboard admin (CMS, réglages) ou `site.config.ts`, c'est une évolution à
-faire dans l'engine — ouvrez un ticket sur `be-in-digital/beyours`.
+**Never** modify `app/`, `components/`, `lib/`, `hooks/`, `cms/` or
+`convex/`: those areas belong to the engine and are overwritten or merged on
+every update. If a customization looks impossible from `site/`, the admin
+dashboard (CMS, settings) or `site.config.ts`, then it is an engine change —
+open a ticket on `be-in-digital/beyours`.
 
-Détails : `docs/CUSTOMIZATION.md`.
+Details: `docs/CUSTOMIZATION.md`.

@@ -1,70 +1,71 @@
-# Trattoria — pizzeria napolitaine
+# Trattoria — Neapolitan pizzeria
 
-Direction pour une pizzeria artisanale premium : four à bois, pâte maturée,
-produits DOP. Le registre de la néo-trattoria (généreux, italien, soigné),
-pas celui de la chaîne de livraison.
+Direction for a premium artisan pizzeria: wood-fired oven, matured dough,
+DOP ingredients. The neo-trattoria register (generous, Italian, well kept),
+not the delivery-chain one.
 
 ## Concept
 
-Le four est le centre. La palette part des matières réelles de la pizzeria
-napolitaine : terre cuite des fours, pierre claire des plans de travail,
-braise le soir. C'est une direction chaude assumée parce que c'est le code
-chromatique authentique de ce vertical, pas un défaut « premium beige ».
+The oven is the center of everything. The palette starts from the real
+materials of a Neapolitan pizzeria: terracotta from the ovens, pale stone from
+the worktops, embers in the evening. It is an openly warm direction because
+that is the authentic color code of this vertical, not a "premium beige"
+default.
 
 ## Palette
 
-| Token | Valeur (clair) | Rôle |
+| Token | Value (light) | Role |
 | --- | --- | --- |
-| `--primary` | `14 68% 44%` terracotta | CTA, prix, liens forts. La couleur du four. |
-| `--background` | `28 33% 97%` pierre chaude | Fond général, jamais blanc pur. |
-| `--foreground` | `18 38% 12%` brun profond | Texte. Un noir chaud, pas un noir bleu. |
-| `--accent` | `14 58% 95%` | Fonds de badge, survols, zones mises en avant. |
-| `--secondary` / `--muted` | `28 26% 92-93%` | Fonds secondaires, tags, filtres. |
+| `--primary` | `14 68% 44%` terracotta | CTAs, prices, strong links. The color of the oven. |
+| `--background` | `28 33% 97%` warm stone | General background, never pure white. |
+| `--foreground` | `18 38% 12%` deep brown | Text. A warm black, not a blue one. |
+| `--accent` | `14 58% 95%` | Badge backgrounds, hovers, highlighted areas. |
+| `--secondary` / `--muted` | `28 26% 92-93%` | Secondary backgrounds, tags, filters. |
 
-Le mode sombre est « le four le soir » : brun brûlé très sombre (pas de gris
-neutre), terracotta éclairci en braise (`15 74% 58%`) avec texte foncé sur
-les CTA. Les tokens sémantiques (statuts de commande, succès, alerte) restent
-ceux de l'engine : ils portent du sens fonctionnel en cuisine et en caisse.
+Dark mode is "the oven at night": very dark burnt brown (no neutral gray),
+terracotta lifted to ember (`15 74% 58%`) with dark text on the CTAs. The
+semantic tokens (order statuses, success, warning) stay the engine's: they
+carry functional meaning in the kitchen and at the till.
 
-## Typographie
+## Typography
 
-- **Titres : Libre Bodoni.** Didone italienne, forte personnalité éditoriale,
-  contraste élevé. Resserrée de -0.015em en display (déjà dans le thème).
-- **Texte : Figtree.** Ronde et claire, elle laisse la didone porter le
-  caractère. Ne jamais mettre la didone en petit corps utilitaire.
+- **Headings: Libre Bodoni.** Italian didone, strong editorial personality,
+  high contrast. Tracked in by -0.015em at display sizes (already in the theme).
+- **Body: Figtree.** Round and clear, it lets the didone carry the character.
+  Never set the didone at small utilitarian sizes.
 
-## Formes
+## Shapes
 
-Arrondis généreux (`--radius-*` élargis, base 0.75rem) : cartes et boutons
-conviviaux, proches de l'assiette et de la nappe, sans tomber dans le bubbly.
+Generous rounding (`--radius-*` widened, 0.75rem base): cards and buttons feel
+convivial, close to the plate and the tablecloth, without tipping into bubbly.
 
-## Imagerie (photos à charger dans le CMS)
+## Imagery (photos to upload in the CMS)
 
-- **Hero** : pizza entière juste sortie du four, cadrage serré 3/4, lumière
-  chaude directionnelle (fin de journée), fond sombre ou table bois. Vapeur
-  et leopard spotting visibles : la preuve du four à bois.
-- **Produits** : fond uni pierre/bois chaud, ombres douces, tranche coupée ou
-  ingrédient signature visible (burrata, basilic). Cohérence de lumière sur
-  toute la grille.
-- **À propos** : le pizzaiolo au four, farine en suspension, mains dans la
-  pâte. Reportage, pas banque d'images.
-- À éviter : photos plates éclairées au flash, stock générique avec drapeaux
-  italiens, mozzarella filante en gros plan cliché.
+- **Hero**: a whole pizza straight out of the oven, tight 3/4 framing, warm
+  directional light (end of day), dark background or wooden table. Steam and
+  leopard spotting visible: the proof of the wood-fired oven.
+- **Products**: plain warm stone or wood background, soft shadows, a cut slice
+  or a signature ingredient in view (burrata, basil). Consistent lighting
+  across the whole grid.
+- **About**: the pizzaiolo at the oven, flour in the air, hands in the dough.
+  Reportage, not a stock library.
+- Avoid: flat flash-lit photos, generic stock with Italian flags, the clichéd
+  close-up of stretching mozzarella.
 
-## Ton éditorial (textes CMS)
+## Editorial tone (CMS copy)
 
-Direct et gourmand, vocabulaire du produit (maturation 48 h, San Marzano,
-fior di latte). Phrases courtes. Pas de superlatifs vides (« le meilleur de
-la ville »), la précision artisanale fait le premium.
+Direct and appetizing, product vocabulary (48-hour maturation, San Marzano,
+fior di latte). Short sentences. No empty superlatives ("the best in town") —
+craft precision is what makes it premium.
 
-## Adapter au client
+## Adapting to the client
 
-1. `--primary` + `--ring` (et `--sidebar-primary`) : la couleur signature du
-   client, en gardant une luminosité ≤ 48 % en clair pour tenir le contraste
-   AA avec le texte blanc des boutons.
-2. `--accent` / `--accent-foreground` : décliner la même teinte (saturation
-   basse pour le fond, foncée pour le texte).
-3. Les neutres (`--background`, `--border`, `--muted`) peuvent rester : ils
-   sont dessinés pour porter n'importe quelle signature chaude. Pour un
-   client à identité froide, partir plutôt du template `asiatique` ou
-   `food-truck` et garder ces neutres-ci pour les verticaux chauds.
+1. `--primary` + `--ring` (and `--sidebar-primary`): the client's signature
+   color, keeping lightness ≤ 48% in light mode so it holds AA contrast with
+   the white text on buttons.
+2. `--accent` / `--accent-foreground`: work the same hue (low saturation for
+   the background, darkened for the text).
+3. The neutrals (`--background`, `--border`, `--muted`) can stay as they are:
+   they are drawn to carry any warm signature. For a client with a cold
+   identity, start from the `asiatique` or `food-truck` template instead and
+   keep these neutrals for the warm verticals.

@@ -34,9 +34,9 @@ type AddressesStore = AddressesState & AddressesActions
 /**
  * Addresses Zustand store — V1 localStorage persistence
  *
- * Stockage simple sans validation de zone.
- * V2: valider compatibilite adresse/zone de livraison du store selectionne.
- * V2: sync Convex par user authentifie.
+ * Plain storage, with no delivery-zone validation.
+ * V2: validate the address against the selected store's delivery zone.
+ * V2: sync to Convex per authenticated user.
  */
 export const useAddressesStore = create<AddressesStore>()(
   persist(

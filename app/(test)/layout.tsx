@@ -1,8 +1,8 @@
-// FICHIER BOILERPLATE (n'existe pas dans l'engine — jamais écrasé par la
-// resync). Les routes du groupe (test) sont des harnais Playwright
-// (ex. /address-test) : utiles en dev et en e2e (serveur `pnpm dev`),
-// elles n'ont rien à faire sur un site client en production.
-// Issue engine ouverte pour adopter cette garde upstream.
+// BOILERPLATE FILE (does not exist in the engine — never overwritten by the
+// resync). Routes in the (test) group are Playwright harnesses
+// (e.g. /address-test): useful in dev and e2e (the `pnpm dev` server), but
+// they have no business being on a client site in production.
+// An engine issue is open to adopt this guard upstream.
 import { notFound } from "next/navigation";
 
 export default function TestRoutesLayout({

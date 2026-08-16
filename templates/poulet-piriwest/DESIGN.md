@@ -1,18 +1,18 @@
-# Piri West — Poulet
+# Piri West — Chicken
 
-Piri-piri braise et citron. Marque de démonstration : **Piri West**.
+Piri-piri, embers and lemon. Demo brand: **Piri West**.
 
-Identité : titres en Staatliches, texte en Be Vietnam Pro ;
-signature hsl(8 80% 46%) ; mise en page de démo « hero diagonale couleur / photo, carte bento ».
+Identity: Staatliches for headings, Be Vietnam Pro for body text;
+signature hsl(8 80% 46%); demo layout "hero: color / photo diagonal / menu: bento".
 
-Aperçu interactif du design complet : `demos/home.html?t=poulet-piriwest` (ou la
-galerie `demos/index.html`). Ce template applique la **palette et les
-polices** ; la mise en page multipage de la démo est la cible côté engine.
+Interactive preview of the full design: `demos/home.html?t=poulet-piriwest` (or the
+`demos/index.html` gallery). This template ships the **palette and the
+fonts**; the demo's multi-page layout is what the engine side aims at.
 
-## Adapter au client
-1. `--primary` + `--ring` + `--sidebar-primary` : la couleur signature du
-   client (garder un contraste AA avec `--primary-foreground`).
-2. `--accent` / `--accent-foreground` : même teinte, diluée en fond, foncée
-   en texte.
-3. Tokens sémantiques (`--success`, `--warning`, `--destructive`,
-   `--status-*`) : laissés à l'engine, ne pas les redéfinir.
+## Adapting to the client
+1. `--primary` + `--ring` + `--sidebar-primary`: the client's signature
+   color (keep AA contrast against `--primary-foreground`).
+2. `--accent` / `--accent-foreground`: same hue, diluted for backgrounds,
+   darkened for text.
+3. Semantic tokens (`--success`, `--warning`, `--destructive`,
+   `--status-*`): left to the engine, do not redefine them.

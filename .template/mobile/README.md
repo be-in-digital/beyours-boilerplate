@@ -1,17 +1,17 @@
-# `mobile/` — app Expo (React Native)
+# `mobile/` — Expo app (React Native)
 
-App cliente compagnon du storefront web (commande / fidélité). Elle consomme
-le **même backend Convex** que le web : l'URL est lue depuis
-`EXPO_PUBLIC_CONVEX_URL` (fichier `mobile/.env`, rempli à l'activation depuis
-votre `.env.local`).
+Customer companion app to the web storefront (ordering / loyalty). It talks to
+the **same Convex backend** as the web app: the URL is read from
+`EXPO_PUBLIC_CONVEX_URL` (`mobile/.env`, filled in at activation time from
+your `.env.local`).
 
-## Statut
+## Status
 
-C'est un **point de départ** (zone client) : l'engine BeYours ne publie
-pas encore de produit mobile. Le shell est volontairement minimal — un écran
-placeholder, expo-router, TypeScript strict.
+This is a **starting point** (client zone): the BeYours engine does not ship a
+mobile product yet. The shell is deliberately minimal — one placeholder
+screen, expo-router, TypeScript strict.
 
-## Développement
+## Development
 
 ```bash
 cd mobile
@@ -19,20 +19,20 @@ pnpm install          # install indépendant (pas de workspace)
 pnpm start            # Expo dev server (i = iOS, a = Android)
 ```
 
-## Brancher le backend
+## Wiring up the backend
 
-- Convex : `ConvexProvider` + `ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL)`
-  dans `app/_layout.tsx` (`convex/react` fonctionne en React Native).
-  Les types `api` se génèrent côté racine (`pnpm convex:codegen`) et
-  s'importent via un chemin relatif `../convex/_generated/api`.
-- Auth : Better Auth en mode **bearer token** — ajouter `@better-auth/expo`
-  (même version que `better-auth`) + `expo-secure-store`. Le web reste en
-  cookies ; les deux partagent la même instance Better Auth (TTL access 1 h,
-  refresh 30 j).
+- Convex: `ConvexProvider` + `ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL)`
+  in `app/_layout.tsx` (`convex/react` works under React Native).
+  The `api` types are generated at the root (`pnpm convex:codegen`) and
+  imported through the relative path `../convex/_generated/api`.
+- Auth: Better Auth in **bearer token** mode — add `@better-auth/expo`
+  (same version as `better-auth`) plus `expo-secure-store`. The web app stays
+  on cookies; both share the same Better Auth instance (access TTL 1 h,
+  refresh 30 d).
 
 ## Builds (EAS)
 
-`eas.json` est créé à l'activation depuis `eas.json.template`.
+`eas.json` is created at activation time from `eas.json.template`.
 
 ```bash
 eas init
@@ -40,5 +40,5 @@ eas secret:create --scope project --name NODE_AUTH_TOKEN --value <PAT read:packa
 eas build --profile production --platform ios|android
 ```
 
-Icônes : ajouter `assets/icon.png` (1024×1024) et `assets/adaptive-icon.png`,
-puis référencer dans `app.json` (`expo.icon`, `expo.android.adaptiveIcon`).
+Icons: add `assets/icon.png` (1024×1024) and `assets/adaptive-icon.png`, then
+reference them in `app.json` (`expo.icon`, `expo.android.adaptiveIcon`).

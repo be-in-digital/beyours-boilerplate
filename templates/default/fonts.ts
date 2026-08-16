@@ -1,10 +1,10 @@
 /**
- * Polices du site — ZONE CLIENT.
+ * Site fonts — CLIENT ZONE.
  *
- * Remplacer librement les polices ici (next/font/google ou next/font/local).
- * `fontVariables` est appliqué sur <html> par app/layout.tsx ; les variables
- * CSS --font-inter / --font-poppins sont référencées par le thème engine —
- * si vous changez de police, gardez les mêmes noms de variables.
+ * Swap the fonts freely here (next/font/google or next/font/local).
+ * `fontVariables` is applied to <html> by app/layout.tsx; the CSS variables
+ * --font-inter / --font-poppins are referenced by the engine theme — if you
+ * change the typeface, keep the same variable names.
  */
 import { Inter, Poppins } from "next/font/google"
 

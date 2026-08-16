@@ -36,8 +36,8 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
-        # --frozen-lockfile dès que le lockfile est commité ; sinon install
-        # simple (premier commit du template, avant le premier install tokené)
+        # --frozen-lockfile as soon as the lockfile is committed; otherwise a
+        # plain install (first template commit, before the first tokened install)
         run: |
           if [ -f pnpm-lock.yaml ]; then
             pnpm install --frozen-lockfile
@@ -93,7 +93,7 @@ jobs:
         with:
           node-version: 22
 
-      # L'app mobile est autonome (aucun package privé) : pas de token requis
+      # The mobile app is self-contained (no private packages): no token needed
       - name: Install mobile dependencies
         working-directory: mobile
         run: pnpm install
@@ -111,8 +111,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: web
-    # Activer en définissant la repo variable CONVEX_E2E_ENABLED=true
-    # + les secrets E2E_* (deployment Convex de test dédié)
+    # Enable by setting the repo variable CONVEX_E2E_ENABLED=true
+    # plus the E2E_* secrets (dedicated test Convex deployment)
     if: vars.CONVEX_E2E_ENABLED == 'true'
     env:
       NEXT_PUBLIC_CONVEX_URL: ${{ secrets.E2E_NEXT_PUBLIC_CONVEX_URL || 'https://placeholder.convex.cloud' }}

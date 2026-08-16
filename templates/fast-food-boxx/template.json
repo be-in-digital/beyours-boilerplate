@@ -2,8 +2,8 @@
   "slug": "fast-food-boxx",
   "category": "Fast-food",
   "themeName": "BOXX",
-  "label": "BOXX — Burgers en boîte, design en briques",
-  "description": "Burgers en boîte, design en briques. bento, hero affiche typographique.",
+  "label": "BOXX — Burgers in a box, design in blocks",
+  "description": "Burgers in a box, design in blocks. Menu bento, hero typographic poster.",
   "primary": "hsl(0 0% 9%)",
   "fonts": {
     "heading": "League Spartan",

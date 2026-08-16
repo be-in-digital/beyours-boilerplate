@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 /**
- * Gestion des variables d'environnement du site — les 3 fichiers d'un coup :
+ * Site environment variable management — all 3 files at once:
  *
- *   .env.local    (web Next.js)      ← source de vérité
- *   .env.convex   (backend Convex)   ← sous-ensemble partagé, poussé via
+ *   .env.local    (Next.js web)      ← source of truth
+ *   .env.convex   (Convex backend)   ← shared subset, pushed with
  *                                      `pnpm convex:env`
- *   mobile/.env   (app Expo)         ← EXPO_PUBLIC_CONVEX_URL
+ *   mobile/.env   (Expo app)         ← EXPO_PUBLIC_CONVEX_URL
  *
- * Usage :
- *   pnpm env:setup    # wizard : requis + intégrations (Stripe, AWS, Uber…)
- *   pnpm env:check    # état : requis manquants, intégrations incomplètes
- *   pnpm env:sync     # propage .env.local → .env.convex + mobile/.env
+ * Usage:
+ *   pnpm env:setup    # wizard: required vars + integrations (Stripe, AWS, Uber…)
+ *   pnpm env:check    # status: missing required vars, incomplete integrations
+ *   pnpm env:sync     # propagates .env.local → .env.convex + mobile/.env
  *
- * Les listes REQUIRED / GROUPS / CONVEX_KEYS suivent les schémas Zod de
- * @be-in-digital/core (src/env/schemas.ts) — à tenir alignées lors des
- * mises à jour engine.
+ * The REQUIRED / GROUPS / CONVEX_KEYS lists mirror the Zod schemas in
+ * @be-in-digital/core (src/env/schemas.ts) — keep them in sync when the
+ * engine is updated.
  */
 
 import fs from "node:fs"
@@ -28,7 +28,7 @@ const ENV_LOCAL = path.join(ROOT, ".env.local")
 const ENV_CONVEX = path.join(ROOT, ".env.convex")
 const ENV_MOBILE = path.join(ROOT, "mobile", ".env")
 
-/** Requis pour que le site démarre (validés par instrumentation.ts). */
+/** Required for the site to boot (validated by instrumentation.ts). */
 const REQUIRED = [
   "NEXT_PUBLIC_CONVEX_URL",
   "CONVEX_SITE_URL",
@@ -40,13 +40,13 @@ const REQUIRED = [
   "ENCRYPTION_KEY",
 ]
 
-/** Générateurs automatiques quand la valeur est vide. */
+/** Automatic generators used when the value is empty. */
 const GENERATORS = {
   BETTER_AUTH_SECRET: () => crypto.randomBytes(32).toString("base64"),
   ENCRYPTION_KEY: () => crypto.randomBytes(32).toString("hex"),
 }
 
-/** Intégrations optionnelles, activables une par une dans le wizard. */
+/** Optional integrations, enabled one by one in the wizard. */
 const GROUPS = [
   { name: "AWS (S3 médias + SES emails) — requis en prod (plateforme)", keys: ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_BUCKET_NAME", "AWS_SES_FROM_EMAIL", "AWS_SES_FROM_NAME", "AWS_SES_REPLY_TO_EMAIL", "AWS_SES_CONFIGURATION_SET"] },
   { name: "Stripe (paiement CB)", keys: ["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY", "STRIPE_WEBHOOK_SECRET"] },
@@ -60,7 +60,7 @@ const GROUPS = [
   { name: "Unsplash (médias CMS)", keys: ["UNSPLASH_ACCESS_KEY"] },
 ]
 
-/** Clés à répliquer côté Convex (fonctions backend). */
+/** Keys to replicate on the Convex side (backend functions). */
 const CONVEX_KEYS = [
   "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "SITE_URL", "ENCRYPTION_KEY",
   "AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
@@ -90,7 +90,7 @@ function parse(file) {
   return vars
 }
 
-/** Pose KEY=VALUE dans `file` : remplace la ligne existante, sinon ajoute. */
+/** Writes KEY=VALUE into `file`: replaces the existing line, or appends it. */
 function upsert(file, updates, { headerForNew } = {}) {
   let src = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : ""
   const missing = []
@@ -119,9 +119,8 @@ const isSet = (v) =>
   !/your-deployment|sk_test_\.\.\.|pk_test_\.\.\.|whsec_\.\.\.|sk-\.\.\./.test(v)
 
 /**
- * Clés pré-remplies par le template avec une valeur sûre : elles ne
- * signalent PAS qu'une intégration est activée et ne comptent pas comme
- * manquantes.
+ * Keys the template pre-fills with a safe value: they do NOT indicate that
+ * an integration is enabled, and they never count as missing.
  */
 const DEFAULT_KEYS = new Set([
   "AWS_REGION",
@@ -195,8 +194,8 @@ async function check({ quiet } = {}) {
     }
   }
 
-  // Validation officielle engine (schémas Zod de @be-in-digital/core) —
-  // couche d'autorité quand node_modules est installé ; sinon silencieux.
+  // Official engine validation (Zod schemas from @be-in-digital/core) — the
+  // authoritative layer when node_modules is installed; silent otherwise.
   try {
     for (const [k, v] of Object.entries(web)) {
       if (process.env[k] === undefined) process.env[k] = v
@@ -260,7 +259,7 @@ async function setup() {
   if (created) console.log("✓ .env.local créé depuis .env.example")
   const web = parse(ENV_LOCAL)
 
-  // 1. Secrets auto-générés
+  // 1. Auto-generated secrets
   const generated = {}
   for (const [key, gen] of Object.entries(GENERATORS)) {
     if (!isSet(web[key])) {
@@ -273,10 +272,10 @@ async function setup() {
     console.log(`✓ secrets générés : ${Object.keys(generated).join(", ")}`)
   }
 
-  // Prompt compatible TTY ET stdin pipé : les lignes sont mises en file dès
-  // leur arrivée ; après EOF, toute question restante reçoit "" (= défaut).
-  // (readline.question classique ne résout jamais une question posée après
-  // la fermeture d'un pipe.)
+  // Prompt that works with both a TTY AND piped stdin: lines are queued as
+  // they arrive; after EOF, any remaining question resolves to "" (= default).
+  // (Plain readline.question never resolves a question asked after the pipe
+  // has closed.)
   const rl = readline.createInterface({ input: process.stdin })
   const queue = []
   let pending = null
@@ -310,7 +309,7 @@ async function setup() {
     return a || fallback
   }
 
-  // 2. Requis manquants
+  // 2. Missing required vars
   console.log("\n— Variables requises (Entrée = laisser vide / garder) —")
   const updates = {}
   for (const key of REQUIRED) {
@@ -330,7 +329,7 @@ async function setup() {
     }
   }
 
-  // 3. Intégrations
+  // 3. Integrations
   console.log("\n— Intégrations (activer ? y/N ; Entrée = garder la valeur) —")
   for (const group of GROUPS) {
     const st = groupStatus(web, group)
@@ -349,7 +348,7 @@ async function setup() {
   if (Object.keys(updates).length) upsert(ENV_LOCAL, updates)
   console.log(`\n✓ .env.local à jour (${Object.keys(updates).length} clés modifiées)`)
 
-  // 4. Propagation convex + mobile, puis état final
+  // 4. Propagate to convex + mobile, then report the final state
   sync()
   console.log("")
   await check({ quiet: true })

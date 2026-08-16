@@ -28,7 +28,7 @@ type FavoritesStore = FavoritesState & FavoritesActions
  * Favorites Zustand store — V1 localStorage persistence
  *
  * Each favorite stores { productId, storeId } to support multi-store filtering.
- * Sync Convex par user authentifie prevu en V2.
+ * Sync to Convex per authenticated user is planned for V2.
  */
 export const useFavoritesStore = create<FavoritesStore>()(
   persist(

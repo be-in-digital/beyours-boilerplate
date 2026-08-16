@@ -1,18 +1,18 @@
-# Drive-In — Fast-food
+# Drive-In — Fast food
 
-Commande roulante depuis 1987. Marque de démonstration : **Drive-In**.
+Orders on wheels since 1987. Demo brand: **Drive-In**.
 
-Identité : titres en Passion One, texte en Gabarito ;
-signature hsl(205 80% 40%) ; mise en page de démo « hero tableau des emplacements, carte cartes photo ».
+Identity: Passion One for headings, Gabarito for body text;
+signature hsl(205 80% 40%); demo layout "hero: board of locations / menu: photo cards".
 
-Aperçu interactif du design complet : `demos/home.html?t=fast-food-drivein` (ou la
-galerie `demos/index.html`). Ce template applique la **palette et les
-polices** ; la mise en page multipage de la démo est la cible côté engine.
+Interactive preview of the full design: `demos/home.html?t=fast-food-drivein` (or the
+`demos/index.html` gallery). This template ships the **palette and the
+fonts**; the demo's multi-page layout is what the engine side aims at.
 
-## Adapter au client
-1. `--primary` + `--ring` + `--sidebar-primary` : la couleur signature du
-   client (garder un contraste AA avec `--primary-foreground`).
-2. `--accent` / `--accent-foreground` : même teinte, diluée en fond, foncée
-   en texte.
-3. Tokens sémantiques (`--success`, `--warning`, `--destructive`,
-   `--status-*`) : laissés à l'engine, ne pas les redéfinir.
+## Adapting to the client
+1. `--primary` + `--ring` + `--sidebar-primary`: the client's signature
+   color (keep AA contrast against `--primary-foreground`).
+2. `--accent` / `--accent-foreground`: same hue, diluted for backgrounds,
+   darkened for text.
+3. Semantic tokens (`--success`, `--warning`, `--destructive`,
+   `--status-*`): left to the engine, do not redefine them.

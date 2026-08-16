@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * Mise à jour TEMPLATE (canal git) — récupère les évolutions structurelles du
- * boilerplate (routes, wrappers convex/, scripts, configs) via un merge git
- * depuis le remote `template`.
+ * TEMPLATE update (git channel) — pulls the boilerplate's structural changes
+ * (routes, convex/ wrappers, scripts, configs) through a git merge from the
+ * `template` remote.
  *
- * Usage :
+ * Usage:
  *   pnpm update:template              # fetch + merge template/main
- *   pnpm update:template -- --dry-run # liste les commits sans merger
- *   pnpm update:template -- --first   # premier sync d'un repo créé via
- *                                     # "Use this template" (historiques
- *                                     # indépendants)
+ *   pnpm update:template -- --dry-run # lists the commits without merging
+ *   pnpm update:template -- --first   # first sync of a repo created with
+ *                                     # "Use this template" (unrelated
+ *                                     # histories)
  *
- * Les zones client (site/, site.config.ts, .env*, public/ modifiés) ne sont
- * en conflit que si le template les a touchées — ce qu'il ne fait pas, par
- * contrat (docs/CUSTOMIZATION.md).
+ * Client zones (site/, site.config.ts, .env*, modified public/) only conflict
+ * if the template touched them — which, by contract, it never does
+ * (docs/CUSTOMIZATION.md).
  */
 
 import fs from "node:fs"
@@ -38,7 +38,7 @@ function shInherit(command) {
   execSync(command, { cwd: ROOT, stdio: "inherit" })
 }
 
-// 1. Arbre propre obligatoire (un merge sur un arbre sale est irrécupérable)
+// 1. A clean tree is mandatory (merging into a dirty tree is unrecoverable)
 if (sh("git status --porcelain").trim() !== "") {
   console.error(
     "Arbre de travail non propre. Commiter ou stasher avant update:template.",
@@ -62,7 +62,7 @@ if (!remotes.includes("template")) {
 console.log("Fetch du template…")
 shInherit("git fetch template")
 
-// 3. Quoi de neuf ?
+// 3. What's new?
 let range = `HEAD..template/${BRANCH}`
 let unrelated = false
 try {

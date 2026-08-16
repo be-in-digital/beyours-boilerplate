@@ -2,8 +2,8 @@
   "slug": "poulet",
   "category": "Poulet",
   "themeName": "Braise",
-  "label": "Braise — rôtisserie urbaine",
-  "description": "Rouge piment sur crème, condensée d'affiche, énergie de rôtisserie urbaine. Le poulet croustillant assumé, exécuté premium.",
+  "label": "Braise — urban rotisserie",
+  "description": "Chilli red on cream, poster condensed, urban rotisserie energy. Crispy chicken owned outright, executed premium.",
   "primary": "hsl(355 70% 42%)",
   "fonts": { "heading": "Barlow Condensed", "body": "Barlow" }
 }

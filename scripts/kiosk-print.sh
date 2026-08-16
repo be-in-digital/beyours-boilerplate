@@ -43,14 +43,14 @@ PROFILE_DIR=""
 KIOSK_MODE=false
 PRINTER_NAME=""
 
-# --- Couleurs ----------------------------------------------------------------
+# --- Colors ------------------------------------------------------------------
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# --- Fonctions ---------------------------------------------------------------
+# --- Functions ---------------------------------------------------------------
 
 print_help() {
   head -42 "$0" | tail -40 | sed 's/^# //' | sed 's/^#//'
@@ -72,7 +72,7 @@ log_error() {
   echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# --- Detecter Chrome ---------------------------------------------------------
+# --- Detect Chrome -------------------------------------------------------------
 
 detect_chrome() {
   local chrome_path=""
@@ -87,7 +87,7 @@ detect_chrome() {
       fi
       ;;
     Linux)
-      # Linux — chercher dans les chemins standards
+      # Linux — look in the standard paths
       for bin in google-chrome google-chrome-stable chromium-browser chromium; do
         if command -v "$bin" &>/dev/null; then
           chrome_path="$(command -v "$bin")"
@@ -110,7 +110,7 @@ detect_chrome() {
   echo "$chrome_path"
 }
 
-# --- Lister les imprimantes --------------------------------------------------
+# --- List printers -------------------------------------------------------------
 
 list_printers() {
   case "$(uname -s)" in
@@ -134,7 +134,7 @@ get_default_printer() {
   esac
 }
 
-# --- Parser les arguments ----------------------------------------------------
+# --- Parse arguments -----------------------------------------------------------
 
 URL="$DEFAULT_URL"
 
@@ -173,13 +173,13 @@ done
 CHROME="$(detect_chrome)"
 log_success "Chrome detecte: $CHROME"
 
-# Profil dedie pour eviter les conflits
+# Dedicated profile, to avoid conflicts with the user's own session
 if [ -z "$PROFILE_DIR" ]; then
   PROFILE_DIR="$HOME/.chrome-kiosk-print"
 fi
 log_info "Profil Chrome: $PROFILE_DIR"
 
-# Verifier l'imprimante
+# Check the printer
 DEFAULT_PRINTER="$(get_default_printer)"
 if [ -n "$PRINTER_NAME" ]; then
   log_info "Imprimante ciblee: $PRINTER_NAME"
@@ -191,7 +191,7 @@ else
   list_printers | while read -r p; do echo "  - $p"; done
 fi
 
-# Construire les flags Chrome
+# Build the Chrome flags
 CHROME_FLAGS=(
   "--kiosk-printing"
   "--user-data-dir=$PROFILE_DIR"
@@ -205,7 +205,7 @@ CHROME_FLAGS=(
   "--autoplay-policy=no-user-gesture-required"
 )
 
-# Mode kiosk complet (plein ecran tablette)
+# Full kiosk mode (tablet fullscreen)
 if [ "$KIOSK_MODE" = true ]; then
   CHROME_FLAGS+=("--kiosk")
   log_info "Mode kiosk (plein ecran) active"
@@ -223,5 +223,5 @@ echo ""
 echo -e "Pour arreter: ${RED}Ctrl+C${NC} ou fermez Chrome."
 echo ""
 
-# Lancer Chrome
+# Launch Chrome
 exec "$CHROME" "${CHROME_FLAGS[@]}" "$URL"

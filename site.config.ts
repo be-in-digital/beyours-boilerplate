@@ -1,38 +1,38 @@
 /**
- * Configuration du site — ZONE CLIENT.
+ * Site configuration — CLIENT ZONE.
  *
- * Ce fichier appartient au site : il n'est JAMAIS écrasé par une mise à jour
- * du template ou de l'engine. C'est le point d'entrée unique pour l'identité
- * build-time du site (métadonnées, locale par défaut, hôtes d'images).
+ * This file belongs to the site: it is NEVER overwritten by a template or
+ * engine update. It is the single entry point for the site's build-time
+ * identity (metadata, default locale, image hosts).
  *
- * Tout ce qui est modifiable par le restaurateur en production (horaires,
- * menus, textes, couleurs de sections CMS…) vit dans Convex (globalSettings /
- * CMS) et s'édite depuis le dashboard admin — pas ici.
+ * Everything the restaurant owner can change in production (opening hours,
+ * menus, copy, CMS section colors, and so on) lives in Convex (globalSettings /
+ * CMS) and is edited from the admin dashboard — not here.
  */
 
 export const siteConfig = {
-  /** Nom public du restaurant / du site. Utilisé dans <title>, OG, emails de base. */
+  /** Public name of the restaurant / site. Used in <title>, OG tags, base emails. */
   name: "Mon Restaurant",
 
-  /** Description par défaut (SEO / Open Graph). */
+  /** Default description (SEO / Open Graph). */
   description: "Commande en ligne, click & collect et livraison.",
 
-  /** Template de titre pour les pages internes. `%s` = titre de la page. */
+  /** Title template for inner pages. `%s` = the page title. */
   titleTemplate: "%s — Mon Restaurant",
 
   /**
-   * URL canonique du site en production.
-   * En local, NEXT_PUBLIC_APP_URL prime (définie dans .env.local).
+   * Canonical site URL in production.
+   * Locally, NEXT_PUBLIC_APP_URL takes precedence (set in .env.local).
    */
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 
-  /** Locale par défaut quand le visiteur n'a pas encore choisi (cookie beid_locale). */
+  /** Default locale before the visitor has picked one (beid_locale cookie). */
   defaultLocale: "fr",
 
   images: {
     /**
-     * Hôtes distants autorisés pour next/image.
-     * Ajouter ici le bucket S3 du client et tout CDN utilisé.
+     * Remote hosts allowed for next/image.
+     * Add the client's S3 bucket and any CDN in use here.
      */
     remoteHosts: [
       "images.unsplash.com",

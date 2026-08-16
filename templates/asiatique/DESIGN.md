@@ -1,71 +1,71 @@
-# Izakaya — asiatique contemporain
+# Izakaya — contemporary Asian
 
-Direction pour un restaurant asiatique contemporain : izakaya, ramen-ya,
-comptoir coréen ou pan-asiatique de quartier. Le registre de la précision
-calme, pas le folklore lanternes-et-dragons.
+Direction for a contemporary Asian restaurant: izakaya, ramen-ya, Korean
+counter or neighborhood pan-Asian. The register of calm precision, not the
+lanterns-and-dragons folklore.
 
 ## Concept
 
-L'encre et le jade sur papier. Un fond washi (papier japonais, chaud et mat),
-un texte encre sumi légèrement bleuté, et une seule couleur : un jade profond,
-celui de la céramique et du thé. Le rouge vermillon, code attendu du vertical,
-est volontairement réservé aux graphiques et aux touches secondaires : c'est
-la retenue qui distingue un izakaya premium d'un buffet.
+Ink and jade on paper. A washi background (Japanese paper, warm and matte),
+sumi ink text with a slight blue cast, and a single color: a deep jade, the
+one of ceramic and tea. Vermilion red, the expected code of the vertical, is
+deliberately kept for the charts and secondary touches: restraint is what
+separates a premium izakaya from a buffet.
 
 ## Palette
 
-| Token | Valeur (clair) | Rôle |
+| Token | Value (light) | Role |
 | --- | --- | --- |
-| `--primary` | `168 46% 27%` jade profond | CTA, prix, navigation active. Céramique et thé. |
-| `--background` | `46 25% 97%` washi | Fond général, papier chaud et mat. |
-| `--foreground` | `210 14% 11%` encre sumi | Texte, noir bleuté d'encre. |
-| `--accent` | `168 30% 92%` | Fonds de badge et survols, jade dilué. |
-| `--secondary` / `--muted` | `46 14% 92%` | Fonds secondaires côté papier. |
-| `--chart-2` | `8 72% 52%` vermillon | Deuxième série de données : le sceau rouge, à sa place. |
+| `--primary` | `168 46% 27%` deep jade | CTAs, prices, active navigation. Ceramic and tea. |
+| `--background` | `46 25% 97%` washi | General background, warm matte paper. |
+| `--foreground` | `210 14% 11%` sumi ink | Text, the blued black of ink. |
+| `--accent` | `168 30% 92%` | Badge backgrounds and hovers, diluted jade. |
+| `--secondary` / `--muted` | `46 14% 92%` | Secondary backgrounds on the paper side. |
+| `--chart-2` | `8 72% 52%` vermilion | Second data series: the red seal, in its right place. |
 
-Mode sombre : « la laque ». Bleu-noir laqué (`210 20% 7%`), cartes à peine
-plus claires, jade éclairci (`166 42% 46%`) avec texte sombre sur les CTA.
-Les tokens sémantiques (statuts, succès, alerte) restent ceux de l'engine.
+Dark mode: "the lacquer". Lacquered blue-black (`210 20% 7%`), cards barely
+lighter, jade lifted (`166 42% 46%`) with dark text on the CTAs. The semantic
+tokens (statuses, success, warning) stay the engine's.
 
-## Typographie
+## Typography
 
-- **Titres : Zen Kaku Gothic New.** Gothique dessinée au Japon, chasse
-  légèrement ouverte (+0.025em, déjà dans le thème) : l'air des enseignes
-  japonaises contemporaines. Graisses 700-900 en display.
-- **Texte : Noto Sans.** Sobre, et surtout couvrant tous les systèmes
-  d'écriture : si la carte affiche du japonais, du chinois, du coréen ou du
-  thaï, ajouter les subsets dans `site/fonts.ts` sans changer de famille.
+- **Headings: Zen Kaku Gothic New.** A gothic drawn in Japan, tracking opened
+  slightly (+0.025em, already in the theme): the air of contemporary Japanese
+  signage. Weights 700-900 at display sizes.
+- **Body: Noto Sans.** Sober, and above all covering every writing system: if
+  the menu shows Japanese, Chinese, Korean or Thai, add the subsets in
+  `site/fonts.ts` without changing family.
 
-## Formes
+## Shapes
 
-Nettes, presque au carré (base 0.375rem, échelle resserrée) : le plateau
-laqué, la céramique aux angles francs. Deuxième template le plus anguleux
-après `food-truck`.
+Crisp, close to square (0.375rem base, tightened scale): the lacquered tray,
+ceramic with honest corners. Second most angular template after `food-truck`.
 
-## Imagerie (photos à charger dans le CMS)
+## Imagery (photos to upload in the CMS)
 
-- **Hero** : un plat unique vu de haut sur céramique sombre ou table bois,
-  composition aérée avec beaucoup de vide autour, lumière douce latérale.
-  Le vide fait le premium.
-- **Produits** : vaisselle réelle (bols, plateaux), fond uni washi ou ardoise,
-  vapeur visible sur les plats chauds, baguettes posées, jamais plantées.
-- **À propos** : le comptoir, les gestes (découpe, dressage, service du thé),
-  les ingrédients bruts en caisses.
-- À éviter : lanternes rouges décoratives, dragons, caractères utilisés comme
-  décor sans sens, photos surchargées d'accessoires « zen ».
+- **Hero**: a single dish seen from above on dark ceramic or a wooden table,
+  an airy composition with plenty of empty space around it, soft side light.
+  The emptiness is what makes it premium.
+- **Products**: real tableware (bowls, trays), plain washi or slate
+  background, visible steam on hot dishes, chopsticks laid down, never stuck
+  upright.
+- **About**: the counter, the gestures (slicing, plating, pouring tea), raw
+  ingredients in crates.
+- Avoid: decorative red lanterns, dragons, characters used as decoration
+  without meaning, photos overloaded with "zen" props.
 
-## Ton éditorial (textes CMS)
+## Editorial tone (CMS copy)
 
-Sobre et précis : nommer les plats correctement (donburi, gyoza, bao) avec
-une ligne de description concrète (bouillon, cuisson, accompagnement).
-Pas de mystique orientale plaquée, pas d'italiques exotisants.
+Sober and precise: name the dishes correctly (donburi, gyoza, bao) with one
+concrete line of description (broth, cooking method, side). No bolted-on
+Oriental mystique, no exoticizing italics.
 
-## Adapter au client
+## Adapting to the client
 
-1. `--primary` + `--ring` + `--sidebar-primary` : la signature du client.
-   Un vermillon, un indigo ou un prune profond fonctionnent aussi bien que
-   le jade ; rester ≤ 30 % de luminosité en clair pour le texte clair des CTA.
-2. `--accent` / `--accent-foreground` : même teinte diluée en fond, foncée
-   en texte.
-3. Si le client passe au vermillon en `--primary`, remplacer `--chart-2` par
-   le jade (`168 46% 33%`) pour garder deux séries distinctes en dashboard.
+1. `--primary` + `--ring` + `--sidebar-primary`: the client's signature.
+   A vermilion, an indigo or a deep plum work as well as the jade; stay at
+   ≤ 30% lightness in light mode for the light text on the CTAs.
+2. `--accent` / `--accent-foreground`: the same hue diluted for the
+   background, darkened for the text.
+3. If the client moves to vermilion for `--primary`, swap `--chart-2` for the
+   jade (`168 46% 33%`) to keep two distinct series in the dashboard.

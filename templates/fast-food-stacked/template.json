@@ -2,8 +2,8 @@
   "slug": "fast-food-stacked",
   "category": "Fast-food",
   "themeName": "Stacked",
-  "label": "Stacked — Le burger en une",
-  "description": "Le burger en une. mosaïque photo, hero magazine.",
+  "label": "Stacked — The burger, front page",
+  "description": "The burger, front page. Menu photo mosaic, hero magazine.",
   "primary": "hsl(220 90% 50%)",
   "fonts": {
     "heading": "Playfair Display",

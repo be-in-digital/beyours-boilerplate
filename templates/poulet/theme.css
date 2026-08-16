@@ -1,12 +1,12 @@
 /*
- * Template « Braise » (fast food poulet, style Master Poulet) — devient
- * site/theme.css à l'application. ZONE CLIENT : adapter les couleurs du
- * client ici, en priorité --primary, --ring, --accent
- * (voir templates/poulet/DESIGN.md).
+ * Template "Braise" (fast food chicken, Master Poulet register) — becomes
+ * site/theme.css once applied. CLIENT ZONE: adapt the client's colors here,
+ * starting with --primary, --ring, --accent
+ * (see templates/poulet/DESIGN.md).
  *
- * Direction : rôtisserie urbaine. Rouge piment profond sur crème en clair ;
- * braise sur noir fumé en sombre. Affiche de rôtisserie, énergie street.
- * Format HSL sans hsl(), contrat de app/globals.css.
+ * Direction: urban rotisserie. Deep chilli red on cream in light mode; embers
+ * on smoked black in dark. Rotisserie poster, street energy.
+ * HSL without hsl(), the app/globals.css contract.
  */
 
 :root {
@@ -59,7 +59,7 @@
   --chart-5: 210 30% 60%;
 }
 
-/* Sidebar admin (format hsl() complet, contrat de app/globals.css) */
+/* Admin sidebar (full hsl() format, the app/globals.css contract) */
 :root {
   --sidebar: hsl(42 38% 95%);
   --sidebar-foreground: hsl(8 22% 11%);
@@ -82,7 +82,7 @@
   --sidebar-ring: hsl(355 70% 52%);
 }
 
-/* Langue de formes : arrondis francs mais contenus, esprit affiche */
+/* Shape language: frank but contained rounding, poster spirit */
 :root {
   --radius: 0.5rem;
   --radius-xs: 0.125rem;
@@ -95,7 +95,7 @@
   --radius-4xl: 2rem;
 }
 
-/* Détails typographiques : la condensée d'affiche prend un peu de chasse */
+/* Type details: the poster condensed takes a little tracking */
 h1,
 h2,
 h3,

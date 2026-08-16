@@ -1,8 +1,8 @@
 /**
- * Config ESLint flat minimale pour le placeholder Expo.
+ * Minimal flat ESLint config for the Expo placeholder.
  *
- * Quand l'app mobile démarre vraiment, remplacer par la config Expo
- * complète :
+ * Once the mobile app really gets going, replace this with the full Expo
+ * config:
  *
  *   import expoConfig from "eslint-config-expo/flat.js"
  *   export default expoConfig

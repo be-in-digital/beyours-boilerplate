@@ -1,8 +1,8 @@
 /*
- * Template « Le Fermier » (Poulet) — devient site/theme.css à l'application.
- * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
- * --ring, --accent. Généré depuis l'identité de démo « poulet-fermierchic »
- * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ * Template "Le Fermier" (Chicken) — becomes site/theme.css once applied.
+ * CLIENT ZONE: tune the client's colors here, --primary, --ring and --accent
+ * first. Generated from the "poulet-fermierchic" demo identity
+ * (scripts/gen-templates.mjs). HSL without hsl(), the globals.css contract.
  */
 
 :root {
@@ -55,7 +55,7 @@
   --chart-5: 30 50% 58%;
 }
 
-/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+/* Admin sidebar (full hsl() format, the globals.css contract) */
 :root {
   --sidebar: hsl(48 40% 98%);
   --sidebar-foreground: hsl(95 25% 13%);
@@ -78,7 +78,7 @@
   --sidebar-ring: hsl(90 35% 50%);
 }
 
-/* Langue de formes */
+/* Shape language */
 :root {
   --radius: .5rem;
 }

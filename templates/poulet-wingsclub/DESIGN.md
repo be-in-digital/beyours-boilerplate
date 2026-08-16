@@ -1,18 +1,18 @@
-# Wings Club — Poulet
+# Wings Club — Chicken
 
-Le club des ailes, match compris. Marque de démonstration : **Wings Club**.
+The wing club, game included. Demo brand: **Wings Club**.
 
-Identité : titres en Saira Condensed, texte en Onest ;
-signature hsl(222 65% 35%) ; mise en page de démo « hero tableau des emplacements, carte onglets collants ».
+Identity: Saira Condensed for headings, Onest for body text;
+signature hsl(222 65% 35%); demo layout "hero: board of locations / menu: sticky tabs".
 
-Aperçu interactif du design complet : `demos/home.html?t=poulet-wingsclub` (ou la
-galerie `demos/index.html`). Ce template applique la **palette et les
-polices** ; la mise en page multipage de la démo est la cible côté engine.
+Interactive preview of the full design: `demos/home.html?t=poulet-wingsclub` (or the
+`demos/index.html` gallery). This template ships the **palette and the
+fonts**; the demo's multi-page layout is what the engine side aims at.
 
-## Adapter au client
-1. `--primary` + `--ring` + `--sidebar-primary` : la couleur signature du
-   client (garder un contraste AA avec `--primary-foreground`).
-2. `--accent` / `--accent-foreground` : même teinte, diluée en fond, foncée
-   en texte.
-3. Tokens sémantiques (`--success`, `--warning`, `--destructive`,
-   `--status-*`) : laissés à l'engine, ne pas les redéfinir.
+## Adapting to the client
+1. `--primary` + `--ring` + `--sidebar-primary`: the client's signature
+   color (keep AA contrast against `--primary-foreground`).
+2. `--accent` / `--accent-foreground`: same hue, diluted for backgrounds,
+   darkened for text.
+3. Semantic tokens (`--success`, `--warning`, `--destructive`,
+   `--status-*`): left to the engine, do not redefine them.

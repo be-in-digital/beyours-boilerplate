@@ -1,8 +1,8 @@
 /*
- * Template « Basilico » (Pizzeria) — devient site/theme.css à l'application.
- * ZONE CLIENT : ajuster les couleurs du client ici, en priorité --primary,
- * --ring, --accent. Généré depuis l'identité de démo « pizzeria-basilico »
- * (scripts/gen-templates.mjs). Format HSL sans hsl(), contrat de globals.css.
+ * Template "Basilico" (Pizzeria) — becomes site/theme.css once applied.
+ * CLIENT ZONE: tune the client's colors here, --primary, --ring and --accent
+ * first. Generated from the "pizzeria-basilico" demo identity
+ * (scripts/gen-templates.mjs). HSL without hsl(), the globals.css contract.
  */
 
 :root {
@@ -55,7 +55,7 @@
   --chart-5: 50 50% 58%;
 }
 
-/* Sidebar admin (format hsl() complet, contrat de globals.css) */
+/* Admin sidebar (full hsl() format, the globals.css contract) */
 :root {
   --sidebar: hsl(90 30% 99%);
   --sidebar-foreground: hsl(120 30% 12%);
@@ -78,7 +78,7 @@
   --sidebar-ring: hsl(110 35% 52%);
 }
 
-/* Langue de formes */
+/* Shape language */
 :root {
   --radius: 1.25rem;
 }

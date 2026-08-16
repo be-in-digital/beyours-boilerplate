@@ -1,28 +1,28 @@
 #!/usr/bin/env node
 /**
- * Initialisation d'un nouveau site client à partir du boilerplate.
+ * Initializes a new client site from the boilerplate.
  *
- * Usage :
- *   pnpm setup                        # interactif
- *   pnpm setup -- --name "Chez Luigi" --yes   # non-interactif
+ * Usage:
+ *   pnpm setup                        # interactive
+ *   pnpm setup -- --name "Chez Luigi" --yes   # non-interactive
  *
- * Idempotent : la présence de .beindigital-site.json marque un site déjà
- * initialisé (relancer avec --force pour ré-exécuter).
+ * Idempotent: the presence of .beindigital-site.json marks a site as already
+ * initialized (re-run with --force to execute again).
  *
- * Configuration : web seul (défaut) ou web + app mobile Expo
- * (--mobile / --web pour forcer sans question).
- * Template design : --template <slug> (pizzeria, fast-food, food-truck,
- * poulet, asiatique — `pnpm template:list` pour le catalogue) ; le wizard
- * le propose, défaut : neutre engine.
+ * Configuration: web only (default) or web + Expo mobile app
+ * (--mobile / --web to force one without being asked).
+ * Design template: --template <slug> (pizzeria, fast-food, food-truck,
+ * poulet, asiatique — `pnpm template:list` for the catalog); the wizard
+ * offers it, defaulting to the neutral engine look.
  *
- * Ce que fait le script :
- *   1. Renseigne site.config.ts (nom, description, locale)
- *   2. Applique le template design (site/theme.css + site/fonts.ts)
- *   3. Renomme le package (slug du site)
- *   4. Crée .env.local depuis .env.example + génère les secrets
+ * What the script does:
+ *   1. Fills in site.config.ts (name, description, locale)
+ *   2. Applies the design template (site/theme.css + site/fonts.ts)
+ *   3. Renames the package (site slug)
+ *   4. Creates .env.local from .env.example and generates the secrets
  *      (BETTER_AUTH_SECRET, ENCRYPTION_KEY)
- *   5. Ajoute le remote git `template` (mises à jour du boilerplate)
- *   6. Écrit le sentinel .beindigital-site.json
+ *   5. Adds the `template` git remote (boilerplate updates)
+ *   6. Writes the .beindigital-site.json sentinel
  */
 
 import fs from "node:fs"
@@ -57,11 +57,11 @@ function slugify(s) {
     .replace(/^-+|-+$/g, "")
 }
 
-// Prompt compatible TTY ET stdin pipé : les lignes sont mises en file dès
-// leur arrivée ; après EOF, toute question restante reçoit "" (= défaut).
-// (readline.question classique ne résout jamais une question posée après la
-// fermeture d'un pipe — le process sortait en silence, init à moitié fait.)
-// Même mécanique que scripts/env.mjs.
+// Prompt that works with both a TTY AND piped stdin: lines are queued as they
+// arrive; after EOF, any remaining question resolves to "" (= default).
+// (Plain readline.question never resolves a question asked after the pipe has
+// closed — the process exited silently, leaving init half done.)
+// Same mechanism as scripts/env.mjs.
 function createPrompt() {
   const rl = readline.createInterface({ input: process.stdin })
   const queue = []

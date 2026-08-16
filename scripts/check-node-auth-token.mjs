@@ -19,10 +19,10 @@ if (skip) {
   process.exit(0)
 }
 
-// Deux modes où aucun paquet privé n'est téléchargé, donc où le token est
-// inutile :
-//   - engine-link : overrides `link:` vers un clone local de l'engine ;
-//   - monorepo    : dépendances en `workspace:`, résolues depuis le workspace.
+// Two modes where no private package is downloaded, so the token is not
+// needed:
+//   - engine-link: `link:` overrides pointing at a local clone of the engine;
+//   - monorepo   : `workspace:` dependencies, resolved from the workspace.
 try {
   const { readFileSync } = await import("node:fs")
   const pkg = JSON.parse(
@@ -49,7 +49,7 @@ try {
     process.exit(0)
   }
 } catch {
-  // package.json illisible : on laisse la vérification standard se faire
+  // package.json unreadable: fall through to the standard check
 }
 
 const token = process.env.NODE_AUTH_TOKEN

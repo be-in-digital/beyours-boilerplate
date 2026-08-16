@@ -1,12 +1,12 @@
 /*
- * Template « Convoi » (food truck) — devient site/theme.css à l'application.
- * ZONE CLIENT : adapter les couleurs du client ici, en priorité --primary,
- * --ring, --accent (voir templates/food-truck/DESIGN.md).
+ * Template "Convoi" (food truck) — becomes site/theme.css once applied.
+ * CLIENT ZONE: adapt the client's colors here, starting with --primary,
+ * --ring, --accent (see templates/food-truck/DESIGN.md).
  *
- * Direction : street craft. Bleu pétrole de carrosserie émaillée sur papier
- * kraft en clair ; service de nuit (encre bleutée, pétrole éclairci) en
- * sombre. Angles nets, esprit stencil et ardoise du jour.
- * Format HSL sans hsl(), contrat de app/globals.css.
+ * Direction: street craft. Enamelled bodywork petrol blue on kraft paper in
+ * light mode; night service (blued ink, lightened petrol) in dark. Sharp
+ * angles, stencil and daily-chalkboard spirit.
+ * HSL without hsl(), the app/globals.css contract.
  */
 
 :root {
@@ -59,7 +59,7 @@
   --chart-5: 268 35% 62%;
 }
 
-/* Sidebar admin (format hsl() complet, contrat de app/globals.css) */
+/* Admin sidebar (full hsl() format, the app/globals.css contract) */
 :root {
   --sidebar: hsl(40 22% 94%);
   --sidebar-foreground: hsl(202 28% 13%);
@@ -82,7 +82,7 @@
   --sidebar-ring: hsl(189 55% 47%);
 }
 
-/* Langue de formes : angles nets, esprit stencil et caisse d'outillage */
+/* Shape language: sharp angles, stencil and toolbox spirit */
 :root {
   --radius: 0.375rem;
   --radius-xs: 0.0625rem;
@@ -95,7 +95,7 @@
   --radius-4xl: 1rem;
 }
 
-/* Détails typographiques : la condensée respire avec un chouia de chasse */
+/* Type details: the condensed breathes with a touch of tracking */
 h1,
 h2,
 h3,

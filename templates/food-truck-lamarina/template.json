@@ -2,8 +2,8 @@
   "slug": "food-truck-lamarina",
   "category": "Food truck",
   "themeName": "La Marina",
-  "label": "La Marina — La mer au bord du trottoir",
-  "description": "La mer au bord du trottoir. carte typographiée (lignes de points), hero éditorial (photo ronde, récit).",
+  "label": "La Marina — The sea, curbside",
+  "description": "The sea, curbside. Menu typeset with dot leaders, hero editorial (round photo, story).",
   "primary": "hsl(210 70% 35%)",
   "fonts": {
     "heading": "Marcellus",

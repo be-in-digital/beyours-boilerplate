@@ -2,8 +2,8 @@
   "slug": "pizzeria-milano",
   "category": "Pizzeria",
   "themeName": "Milano",
-  "label": "Milano — Éditoriale, comme un magazine",
-  "description": "Éditoriale, comme un magazine. mosaïque photo, hero magazine.",
+  "label": "Milano — Editorial, like a magazine",
+  "description": "Editorial, like a magazine. Menu photo mosaic, hero magazine.",
   "primary": "hsl(352 78% 40%)",
   "fonts": {
     "heading": "Playfair Display",

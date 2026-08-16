@@ -2,8 +2,8 @@
   "slug": "food-truck-pitstop",
   "category": "Food truck",
   "themeName": "Pit Stop",
-  "label": "Pit Stop — Ravitaillement express",
-  "description": "Ravitaillement express. bento, hero affiche typographique.",
+  "label": "Pit Stop — Express refueling",
+  "description": "Express refueling. Menu bento, hero typographic poster.",
   "primary": "hsl(0 85% 45%)",
   "fonts": {
     "heading": "Saira Condensed",

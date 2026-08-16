@@ -1,6 +1,6 @@
-// PATCH BOILERPLATE vs engine : métadonnées + polices + thème via la zone
-// site (site.config.ts, site/fonts.ts, site/theme.css). Toute autre logique
-// doit rester identique à l'engine (voir docs/UPDATES.md § fichiers patchés).
+// PATCH BOILERPLATE vs engine: metadata + fonts + theme come from the site
+// zone (site.config.ts, site/fonts.ts, site/theme.css). All other logic must
+// stay identical to the engine (see docs/UPDATES.md § Patched files).
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import "./globals.css";

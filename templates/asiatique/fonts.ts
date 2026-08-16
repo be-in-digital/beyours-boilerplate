@@ -1,14 +1,14 @@
 /**
- * Polices du template « Izakaya » (asiatique contemporain) — ZONE CLIENT
- * après application.
+ * Fonts for the "Izakaya" template (contemporary Asian) — CLIENT ZONE once
+ * applied.
  *
- * Titres : Zen Kaku Gothic New, gothique dessinée au Japon (latin inclus),
- * la précision calme des enseignes japonaises contemporaines.
- * Texte : Noto Sans, sobre et couvrant tous les alphabets : si la carte
- * mélange latin et idéogrammes, ajouter les subsets nécessaires ici.
+ * Headings: Zen Kaku Gothic New, a gothic drawn in Japan (latin included),
+ * the calm precision of contemporary Japanese signage.
+ * Body: Noto Sans, plain and covering every alphabet: if the menu mixes latin
+ * and ideograms, add the subsets you need here.
  *
- * Contrat engine : les variables CSS doivent rester --font-inter (texte) et
- * --font-poppins (titres), elles sont référencées par app/globals.css.
+ * Engine contract: the CSS variables must stay --font-inter (body) and
+ * --font-poppins (headings), they are referenced by app/globals.css.
  */
 import { Noto_Sans, Zen_Kaku_Gothic_New } from "next/font/google"
 

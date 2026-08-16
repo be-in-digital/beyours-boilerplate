@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * Active l'app mobile (Expo) sur un site : copie `.template/mobile/` vers
- * `mobile/`, personnalise app.json (nom, slug, bundle id), crée mobile/.env
- * (EXPO_PUBLIC_CONVEX_URL reprise de .env.local) et eas.json.
+ * Enables the mobile (Expo) app on a site: copies `.template/mobile/` to
+ * `mobile/`, customizes app.json (name, slug, bundle id), and creates
+ * mobile/.env (EXPO_PUBLIC_CONVEX_URL taken from .env.local) and eas.json.
  *
- * Usage :
- *   pnpm add:mobile             # sur un site déjà initialisé
- *   (appelé aussi par `pnpm setup` quand la config « web + app » est choisie)
+ * Usage:
+ *   pnpm add:mobile             # on an already-initialized site
+ *   (also called by `pnpm setup` when the "web + app" option is chosen)
  *
- * Refuse de tourner si mobile/ existe déjà (pas d'écrasement).
+ * Refuses to run if mobile/ already exists (never overwrites).
  */
 
 import fs from "node:fs"
@@ -20,8 +20,8 @@ const ROOT = path.join(HERE, "..")
 const TEMPLATE = path.join(ROOT, ".template", "mobile")
 const TARGET = path.join(ROOT, "mobile")
 
-// Date du snapshot — mise à jour à chaque refresh de .template/mobile.
-// Au-delà de 6 mois, avertir : les versions Expo bougent vite.
+// Snapshot date — bumped on every refresh of .template/mobile.
+// Past 6 months, warn: Expo versions move fast.
 const SNAPSHOT_DATE = "2026-07-04"
 
 function slugify(s) {
@@ -54,7 +54,7 @@ export function activateMobile({ name, slug } = {}) {
     )
   }
 
-  // Identité du site : arguments > sentinel > package.json
+  // Site identity: arguments > sentinel > package.json
   const sentinelPath = path.join(ROOT, ".beindigital-site.json")
   if (!name && fs.existsSync(sentinelPath)) {
     const info = JSON.parse(fs.readFileSync(sentinelPath, "utf8"))
@@ -73,7 +73,7 @@ export function activateMobile({ name, slug } = {}) {
   console.log(`Activation de l'app mobile pour « ${name} »…`)
   fs.cpSync(TEMPLATE, TARGET, { recursive: true })
 
-  // app.json : templating nom / slug / bundle id
+  // app.json: template in the name / slug / bundle id
   const appJsonPath = path.join(TARGET, "app.json")
   fs.writeFileSync(
     appJsonPath,
@@ -84,19 +84,19 @@ export function activateMobile({ name, slug } = {}) {
       .replaceAll("__SITE_SLUG_COMPACT__", slugCompact),
   )
 
-  // package.json : nom du package mobile
+  // package.json: name of the mobile package
   const pkgPath = path.join(TARGET, "package.json")
   const mobilePkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"))
   mobilePkg.name = `${slug}-mobile`
   fs.writeFileSync(pkgPath, JSON.stringify(mobilePkg, null, 2) + "\n")
 
-  // eas.json depuis le template
+  // eas.json from the template
   const easTemplate = path.join(TARGET, "eas.json.template")
   if (fs.existsSync(easTemplate)) {
     fs.renameSync(easTemplate, path.join(TARGET, "eas.json"))
   }
 
-  // mobile/.env : reprendre l'URL Convex du web si déjà provisionnée
+  // mobile/.env: reuse the web Convex URL if it is already provisioned
   let convexUrl = ""
   const envLocal = path.join(ROOT, ".env.local")
   if (fs.existsSync(envLocal)) {
@@ -110,7 +110,7 @@ export function activateMobile({ name, slug } = {}) {
     `# Backend Convex partagé avec le web (gitignoré)\nEXPO_PUBLIC_CONVEX_URL=${convexUrl}\n`,
   )
 
-  // Sentinel : mémoriser l'activation
+  // Sentinel: record the activation
   if (fs.existsSync(sentinelPath)) {
     const info = JSON.parse(fs.readFileSync(sentinelPath, "utf8"))
     info.mobile = true
@@ -125,7 +125,7 @@ Voir mobile/README.md (backend, auth bearer, builds EAS).`)
   return true
 }
 
-// Exécution directe (pnpm add:mobile)
+// Direct execution (pnpm add:mobile)
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(fs.realpathSync(process.argv[1])).href

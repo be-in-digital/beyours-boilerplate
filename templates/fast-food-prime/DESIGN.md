@@ -1,18 +1,18 @@
-# Prime — Fast-food
+# Prime — Fast food
 
-Le burger de boucher. Marque de démonstration : **Prime**.
+The butcher's burger. Demo brand: **Prime**.
 
-Identité : titres en Cormorant Garamond, texte en Outfit ;
-signature hsl(30 45% 32%) ; mise en page de démo « hero diagonale couleur / photo, carte registre numéroté ».
+Identity: Cormorant Garamond for headings, Outfit for body text;
+signature hsl(30 45% 32%); demo layout "hero: color / photo diagonal / menu: numbered ledger".
 
-Aperçu interactif du design complet : `demos/home.html?t=fast-food-prime` (ou la
-galerie `demos/index.html`). Ce template applique la **palette et les
-polices** ; la mise en page multipage de la démo est la cible côté engine.
+Interactive preview of the full design: `demos/home.html?t=fast-food-prime` (or the
+`demos/index.html` gallery). This template ships the **palette and the
+fonts**; the demo's multi-page layout is what the engine side aims at.
 
-## Adapter au client
-1. `--primary` + `--ring` + `--sidebar-primary` : la couleur signature du
-   client (garder un contraste AA avec `--primary-foreground`).
-2. `--accent` / `--accent-foreground` : même teinte, diluée en fond, foncée
-   en texte.
-3. Tokens sémantiques (`--success`, `--warning`, `--destructive`,
-   `--status-*`) : laissés à l'engine, ne pas les redéfinir.
+## Adapting to the client
+1. `--primary` + `--ring` + `--sidebar-primary`: the client's signature
+   color (keep AA contrast against `--primary-foreground`).
+2. `--accent` / `--accent-foreground`: same hue, diluted for backgrounds,
+   darkened for text.
+3. Semantic tokens (`--success`, `--warning`, `--destructive`,
+   `--status-*`): left to the engine, do not redefine them.

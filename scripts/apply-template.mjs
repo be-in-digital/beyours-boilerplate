@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * Templates design — catalogue et application.
+ * Design templates — catalog and application.
  *
- * Usage :
- *   pnpm template:list                # catalogue des templates disponibles
- *   pnpm template:apply <slug>        # applique un template au site
- *   pnpm template:apply default       # restaure le thème d'origine
+ * Usage:
+ *   pnpm template:list                # catalog of available templates
+ *   pnpm template:apply <slug>        # applies a template to the site
+ *   pnpm template:apply default       # restores the original theme
  *
- * Appliquer un template copie templates/<slug>/theme.css et fonts.ts vers
- * site/ (zone client) et note le choix dans .beindigital-site.json si le
- * site est initialisé. site/theme.css et site/fonts.ts sont ÉCRASÉS :
- * relire `git diff site/` avant de committer si le site avait déjà des
- * personnalisations.
+ * Applying a template copies templates/<slug>/theme.css and fonts.ts into
+ * site/ (client zone) and records the choice in .beindigital-site.json if the
+ * site is initialized. site/theme.css and site/fonts.ts are OVERWRITTEN:
+ * review `git diff site/` before committing if the site already had
+ * customizations.
  *
- * Détail des directions : templates/<slug>/DESIGN.md et templates/README.md.
+ * Art direction details: templates/<slug>/DESIGN.md and templates/README.md.
  */
 
 import fs from "node:fs"
@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url"
 
 const DEFAULT_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..")
 
-/** Templates disponibles : dossiers de templates/ portant un template.json. */
+/** Available templates: directories under templates/ that carry a template.json. */
 export function listTemplates(root = DEFAULT_ROOT) {
   const dir = path.join(root, "templates")
   if (!fs.existsSync(dir)) return []
@@ -37,15 +37,15 @@ export function listTemplates(root = DEFAULT_ROOT) {
       console.warn(`  ! templates/${entry.name}/template.json illisible, ignoré`)
     }
   }
-  // Le neutre d'abord, puis l'ordre alphabétique
+  // Neutral first, then alphabetical order
   return templates.sort((a, b) =>
     a.slug === "default" ? -1 : b.slug === "default" ? 1 : a.slug.localeCompare(b.slug),
   )
 }
 
 /**
- * Applique un template : copie theme.css + fonts.ts vers site/ et met à jour
- * le sentinel .beindigital-site.json s'il existe. Retourne les métadonnées.
+ * Applies a template: copies theme.css + fonts.ts into site/ and updates the
+ * .beindigital-site.json sentinel if it exists. Returns the metadata.
  */
 export function applyTemplate(slug, root = DEFAULT_ROOT) {
   const dir = path.join(root, "templates", slug)

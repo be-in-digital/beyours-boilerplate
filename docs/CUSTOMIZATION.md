@@ -1,46 +1,47 @@
-# Personnalisation d'un site client
+# Customizing a client site
 
-## Le contrat de zones
+## The zone contract
 
-Le repo est découpé en deux zones. C'est ce qui rend les mises à jour
-possibles sans conflit :
+The repo is split into two zones. That split is what makes conflict-free
+updates possible:
 
-**Zone CLIENT — à vous, jamais écrasée :**
+**CLIENT zone — yours, never overwritten:**
 
-| Emplacement | Contenu |
+| Location | Contents |
 | --- | --- |
-| `site.config.ts` | Identité build-time : nom, description, template de titre, locale par défaut, hôtes d'images autorisés |
-| `site/theme.css` | Surcharge des design tokens (chargé après `app/globals.css`) |
-| `site/fonts.ts` | Polices (`next/font`), exposées via `fontVariables` |
-| `site/components/` | Composants spécifiques au site |
-| `public/` | Logos, favicon, images statiques (remplacer les fichiers) |
-| `.env.local`, `.env.convex` | Secrets et endpoints du client (gitignorés) |
-| `.beindigital-site.json` | Sentinel d'init (métadonnées du site) |
-| `mobile/` | App Expo (config « web + app ») — zone client tant que l'engine ne publie pas de produit mobile |
+| `site.config.ts` | Build-time identity: name, description, title template, default locale, allowed image hosts |
+| `site/theme.css` | Design token overrides (loaded after `app/globals.css`) |
+| `site/fonts.ts` | Fonts (`next/font`), exposed through `fontVariables` |
+| `site/components/` | Components specific to this site |
+| `public/` | Logos, favicon, static images (replace the files) |
+| `.env.local`, `.env.convex` | Client secrets and endpoints (gitignored) |
+| `.beindigital-site.json` | Init sentinel (site metadata) |
+| `mobile/` | Expo app ("web + app" setup) — a client zone for as long as the engine ships no mobile product |
 
-**Zone ENGINE — synchronisée, ne pas éditer :**
+**ENGINE zone — synced, do not edit:**
 
-`app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`, configs racine
+`app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`, root configs
 (`tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`,
 `playwright.config.ts`, `vitest.config.ts`, `components.json`).
 
-Deux fichiers engine portent un patch boilerplate assumé (en-tête
-`PATCH BOILERPLATE`) : `app/layout.tsx` (branche la zone site) et
-`next.config.ts` (transpilePackages + images depuis `site.config.ts`).
+Two engine files carry a deliberate boilerplate patch (with a
+`PATCH BOILERPLATE` header): `app/layout.tsx` (wires up the site zone) and
+`next.config.ts` (transpilePackages + images from `site.config.ts`).
 
-## Personnalisation runtime (dashboard admin)
+## Runtime customization (admin dashboard)
 
-Une grande partie de la personnalisation ne passe PAS par le code : le CMS et
-les réglages (`globalSettings`, langues, promotions, emails…) vivent dans
-Convex et s'éditent depuis le dashboard `(admin)`. Réflexe : si le
-restaurateur doit pouvoir le changer seul, c'est dans le dashboard ; si c'est
-fixé une fois au setup du site, c'est dans la zone client.
+A large part of the customization does NOT go through code: the CMS and the
+settings (`globalSettings`, languages, promotions, emails, and so on) live in
+Convex and are edited from the `(admin)` dashboard. Rule of thumb: if the
+restaurant owner has to be able to change it on their own, it belongs in the
+dashboard; if it is set once when the site is created, it belongs in the
+client zone.
 
-## Recettes
+## Recipes
 
-**Partir d'un template design** — cinq directions verticales prêtes à
-l'emploi (pizzeria, fast-food, food-truck, poulet, asiatique) posent
-couleurs, polices et formes dans la zone client :
+**Start from a design template** — five ready-made vertical directions
+(pizzeria, fast-food, food-truck, poulet, asiatique) lay down colors, fonts
+and shapes in the client zone:
 
 ```bash
 pnpm template:list             # catalogue (aperçu : templates/preview.html)
@@ -48,13 +49,12 @@ pnpm template:apply pizzeria   # écrase site/theme.css + site/fonts.ts
 pnpm template:apply default    # restaure le thème d'origine
 ```
 
-Le choix se fait aussi à la création (`beindigital create … --template
-pizzeria`, ou question du wizard `pnpm setup`). Ensuite, ajuster les couleurs
-du client directement dans `site/theme.css` en suivant la section « Adapter
-au client » de `templates/<slug>/DESIGN.md` (garder les ratios de contraste
-AA).
+You can also pick one at creation time (`beindigital create … --template
+pizzeria`, or the `pnpm setup` wizard question). After that, tune the client's
+colors directly in `site/theme.css`, following the "Adapting to the client"
+section of `templates/<slug>/DESIGN.md` (keep the AA contrast ratios).
 
-**Changer les couleurs** — `site/theme.css` :
+**Change the colors** — `site/theme.css`:
 
 ```css
 :root {
@@ -66,28 +66,26 @@ AA).
 }
 ```
 
-**Changer les polices** — `site/fonts.ts` : remplacer Inter/Poppins par
-n'importe quel `next/font`, en conservant les variables CSS `--font-inter`
-et `--font-poppins` (référencées par le thème engine).
+**Change the fonts** — `site/fonts.ts`: swap Inter/Poppins for any
+`next/font`, keeping the CSS variables `--font-inter` and `--font-poppins`
+(they are referenced by the engine theme).
 
-**Ajouter une page custom** — créer la route dans `app/(storefront)/…` ?
-Non : les routes appartiennent à l'engine. Créer le composant dans
-`site/components/` et demander l'exposition d'un slot/route à l'engine si
-nécessaire. Pour une page totalement hors produit (mentions légales riches,
-landing événementielle), l'ajout d'un fichier route NOUVEAU (qui n'existe pas
-dans l'engine) est toléré : un fichier nouveau ne peut pas entrer en conflit
-de merge. Préfixez-le d'un commentaire `// SITE-SPECIFIC` et importez le
-contenu depuis `site/components/`.
+**Add a custom page** — create the route under `app/(storefront)/…`?
+No: routes belong to the engine. Create the component in `site/components/`
+and ask the engine for a slot or route if you need one. For a page that is
+entirely outside the product (rich legal notices, an event landing page),
+adding a NEW route file (one that does not exist in the engine) is tolerated:
+a brand-new file cannot cause a merge conflict. Prefix it with a
+`// SITE-SPECIFIC` comment and import the content from `site/components/`.
 
-**Autoriser un nouveau CDN d'images** — `site.config.ts` →
-`images.remoteHosts`.
+**Allow a new image CDN** — `site.config.ts` → `images.remoteHosts`.
 
-## Ce qu'il ne faut PAS faire
+## What NOT to do
 
-- Modifier un composant dans `components/` « juste pour ce client » → fork
-  silencieux : la prochaine mise à jour du template écrase ou entre en
-  conflit. Si le besoin est légitime, il remonte dans l'engine (feature flag,
-  prop, slot) et redescend par `pnpm update:engine`.
-- Écrire de la logique métier dans `convex/` (wrappers fins uniquement).
-- Committer `.env.local`, `.env.convex` ou un `package.json` en mode
-  engine-link (`link:`) — le CI le bloque.
+- Modifying a component in `components/` "just for this client" → a silent
+  fork: the next template update overwrites it or conflicts with it. If the
+  need is legitimate, it goes up into the engine (feature flag, prop, slot)
+  and comes back down through `pnpm update:engine`.
+- Writing business logic in `convex/` (thin wrappers only).
+- Committing `.env.local`, `.env.convex`, or a `package.json` in engine-link
+  mode (`link:`) — CI blocks it.

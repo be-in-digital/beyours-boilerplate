@@ -1,10 +1,10 @@
 /**
- * Polices du template — ZONE CLIENT après application (généré depuis les
- * identités de démo, cf scripts/gen-templates.mjs).
+ * Template fonts — CLIENT ZONE once applied (generated from the demo
+ * identities, cf scripts/gen-templates.mjs).
  *
- * Titres : Space Grotesk. Texte : Karla.
- * Contrat engine : garder les variables --font-inter (texte) et
- * --font-poppins (titres), référencées par app/globals.css.
+ * Headings: Space Grotesk. Body: Karla.
+ * Engine contract: keep the --font-inter (body) and --font-poppins (headings)
+ * variables, they are referenced by app/globals.css.
  */
 import { Karla, Space_Grotesk } from "next/font/google"
 

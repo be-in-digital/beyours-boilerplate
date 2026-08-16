@@ -1,11 +1,11 @@
 /*
- * Template « Trattoria » (pizzeria) — devient site/theme.css à l'application.
- * ZONE CLIENT : adapter les couleurs du client ici, en priorité --primary,
- * --ring, --accent et --accent-foreground (voir templates/pizzeria/DESIGN.md).
+ * Template "Trattoria" (pizzeria) — becomes site/theme.css once applied.
+ * CLIENT ZONE: adapt the client's colors here, starting with --primary,
+ * --ring, --accent and --accent-foreground (see templates/pizzeria/DESIGN.md).
  *
- * Direction : néo-trattoria napolitaine. Terracotta du four à bois sur pierre
- * chaude en clair ; braise et bois brûlé en sombre. Format HSL sans hsl(),
- * contrat de app/globals.css.
+ * Direction: neo-Neapolitan trattoria. Wood-fired terracotta on warm stone in
+ * light mode; embers and burnt wood in dark. HSL without hsl(), the
+ * app/globals.css contract.
  */
 
 :root {
@@ -58,7 +58,7 @@
   --chart-5: 202 48% 58%;
 }
 
-/* Sidebar admin (format hsl() complet, contrat de app/globals.css) */
+/* Admin sidebar (full hsl() format, the app/globals.css contract) */
 :root {
   --sidebar: hsl(28 30% 95%);
   --sidebar-foreground: hsl(18 38% 12%);
@@ -81,7 +81,7 @@
   --sidebar-ring: hsl(15 74% 58%);
 }
 
-/* Langue de formes : arrondis généreux de trattoria (échelle Tailwind v4) */
+/* Shape language: generous trattoria rounding (Tailwind v4 scale) */
 :root {
   --radius: 0.75rem;
   --radius-xs: 0.1875rem;
@@ -94,7 +94,7 @@
   --radius-4xl: 2.25rem;
 }
 
-/* Détails typographiques : la didone se resserre légèrement en display */
+/* Type details: the didone tightens slightly at display sizes */
 h1,
 h2,
 h3 {

@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# beyours — CLI des sites restaurant BeYours (tout depuis le terminal).
+# beyours — CLI for BeYours restaurant sites (everything from the terminal).
 #
-# Install (une fois, gh authentifié requis) :
+# Install (once; requires an authenticated gh):
 #   gh api repos/be-in-digital/beyours-boilerplate/contents/scripts/beyours \
 #     -H "Accept: application/vnd.github.raw" > /usr/local/bin/beyours \
 #     && chmod +x /usr/local/bin/beyours
 #
-# La CLI va chercher les scripts sur le repo boilerplate à chaque appel :
-# elle profite donc des mises à jour du template sans réinstallation
-# (`beyours upgrade` ne met à jour que ce wrapper).
+# The CLI fetches its scripts from the boilerplate repo on every call, so it
+# picks up template updates without being reinstalled
+# (`beyours upgrade` only updates this wrapper).
 set -euo pipefail
 
 REPO="be-in-digital/beyours-boilerplate"
 REF="${BEYOURS_REF:-main}"
 TOKEN_FILE="$HOME/.config/beyours/token"
 
-# Token packages : env prioritaire, sinon fichier local (posé via `beyours token`)
+# Packages token: env wins, otherwise the local file (written by `beyours token`)
 if [ -z "${NODE_AUTH_TOKEN:-}" ] && [ -f "$TOKEN_FILE" ]; then
   NODE_AUTH_TOKEN="$(cat "$TOKEN_FILE")"
   export NODE_AUTH_TOKEN

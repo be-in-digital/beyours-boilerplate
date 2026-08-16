@@ -2,8 +2,8 @@
   "slug": "pizzeria",
   "category": "Pizzeria",
   "themeName": "Trattoria",
-  "label": "Trattoria — pizzeria napolitaine",
-  "description": "Terracotta du four à bois sur pierre chaude, didone italienne, arrondis généreux. Néo-trattoria premium, chaleureuse et artisanale.",
+  "label": "Trattoria — Neapolitan pizzeria",
+  "description": "Wood-fired terracotta on warm stone, Italian didone, generous rounding. Premium neo-trattoria, warm and artisanal.",
   "primary": "hsl(14 68% 44%)",
   "fonts": { "heading": "Libre Bodoni", "body": "Figtree" }
 }

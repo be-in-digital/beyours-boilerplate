@@ -2,8 +2,8 @@
   "slug": "poulet-fermierchic",
   "category": "Poulet",
   "themeName": "Le Fermier",
-  "label": "Le Fermier — Élevé dehors, rôti dedans",
-  "description": "Élevé dehors, rôti dedans. tickets empilés, hero duo texte / photo.",
+  "label": "Le Fermier — Raised outside, roasted inside",
+  "description": "Raised outside, roasted inside. Menu stacked tickets, hero text / photo split.",
   "primary": "hsl(95 40% 30%)",
   "fonts": {
     "heading": "Libre Caslon Text",

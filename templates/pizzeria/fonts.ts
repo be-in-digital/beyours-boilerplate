@@ -1,12 +1,12 @@
 /**
- * Polices du template « Trattoria » (pizzeria) — ZONE CLIENT après application.
+ * Fonts for the "Trattoria" template (pizzeria) — CLIENT ZONE once applied.
  *
- * Titres : Libre Bodoni, didone italienne (héritage Bodoni, Parme) — l'ADN
- * typographique des enseignes et menus italiens, en version premium.
- * Texte : Figtree, humaniste géométrique chaleureuse et très lisible.
+ * Headings: Libre Bodoni, an Italian didone (Bodoni heritage, Parma) — the
+ * typographic DNA of Italian signs and menus, in a premium cut.
+ * Body: Figtree, a warm geometric humanist that stays very readable.
  *
- * Contrat engine : les variables CSS doivent rester --font-inter (texte) et
- * --font-poppins (titres), elles sont référencées par app/globals.css.
+ * Engine contract: the CSS variables must stay --font-inter (body) and
+ * --font-poppins (headings), they are referenced by app/globals.css.
  */
 import { Figtree, Libre_Bodoni } from "next/font/google"
 

@@ -2,8 +2,8 @@
   "slug": "poulet-wingsclub",
   "category": "Poulet",
   "themeName": "Wings Club",
-  "label": "Wings Club — Le club des ailes, match compris",
-  "description": "Le club des ailes, match compris. onglets collants, hero tableau des emplacements.",
+  "label": "Wings Club — The wing club, game included",
+  "description": "The wing club, game included. Menu sticky tabs, hero board of locations.",
   "primary": "hsl(222 65% 35%)",
   "fonts": {
     "heading": "Saira Condensed",

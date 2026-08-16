@@ -1,14 +1,14 @@
 /**
- * Polices du template « Smash » (fast food burger) — ZONE CLIENT après
- * application.
+ * Fonts for the "Smash" template (fast food burger) — CLIENT ZONE once
+ * applied.
  *
- * Titres : Bricolage Grotesque, grotesque charnue et expressive, l'énergie
- * du comptoir sans tomber dans la caricature fast-food.
- * Texte : Archivo, grotesque utilitaire robuste, très lisible en petits corps
- * (prix, options, tickets).
+ * Headings: Bricolage Grotesque, a fleshy expressive grotesque — counter
+ * energy without falling into fast-food caricature.
+ * Body: Archivo, a sturdy utilitarian grotesque, very readable at small sizes
+ * (prices, options, tickets).
  *
- * Contrat engine : les variables CSS doivent rester --font-inter (texte) et
- * --font-poppins (titres), elles sont référencées par app/globals.css.
+ * Engine contract: the CSS variables must stay --font-inter (body) and
+ * --font-poppins (headings), they are referenced by app/globals.css.
  */
 import { Archivo, Bricolage_Grotesque } from "next/font/google"
 

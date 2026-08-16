@@ -15,12 +15,12 @@ const eslintConfig = defineConfig([
     // Convex auto-generated files:
     "convex/_generated/**",
     ".convex-build/**",
-    // PATCH BOILERPLATE : zones hors app web — l'app Expo a sa propre
-    // config ESLint, le snapshot dormant n'est jamais linté.
+    // PATCH BOILERPLATE: areas outside the web app — the Expo app has its own
+    // ESLint config, and the dormant snapshot is never linted.
     "mobile/**",
     ".template/**",
-    // PATCH BOILERPLATE : démos de vente statiques (JS navigateur + fonction
-    // serverless CommonJS), hors périmètre de la config Next/TS.
+    // PATCH BOILERPLATE: static sales demos (browser JS + a CommonJS
+    // serverless function), outside the scope of the Next/TS config.
     "demos/**",
   ]),
   {

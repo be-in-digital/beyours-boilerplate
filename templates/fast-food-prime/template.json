@@ -2,8 +2,8 @@
   "slug": "fast-food-prime",
   "category": "Fast-food",
   "themeName": "Prime",
-  "label": "Prime — Le burger de boucher",
-  "description": "Le burger de boucher. registre numéroté, hero diagonale couleur / photo.",
+  "label": "Prime — The butcher's burger",
+  "description": "The butcher's burger. Menu numbered ledger, hero color / photo diagonal.",
   "primary": "hsl(30 45% 32%)",
   "fonts": {
     "heading": "Cormorant Garamond",

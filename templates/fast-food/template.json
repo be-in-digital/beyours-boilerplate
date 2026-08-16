@@ -2,8 +2,8 @@
   "slug": "fast-food",
   "category": "Fast-food",
   "themeName": "Smash",
-  "label": "Smash — burger premium",
-  "description": "Moutarde sur charbon, grotesque charnue, arrondis larges. L'énergie du comptoir smash burger, exécutée premium.",
+  "label": "Smash — premium burger",
+  "description": "Mustard on charcoal, fleshy grotesque, wide rounding. Smash-burger counter energy, executed premium.",
   "primary": "hsl(42 96% 50%)",
   "fonts": { "heading": "Bricolage Grotesque", "body": "Archivo" }
 }

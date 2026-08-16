@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 /**
- * Mode développement : consommer les packages @be-in-digital/* depuis un
- * clone local de beyours (symlinks pnpm) au lieu du registre
- * GitHub Packages. Utile pour :
- *   - développer engine + site en parallèle sans publier ;
- *   - valider le boilerplate sans NODE_AUTH_TOKEN.
+ * Development mode: consume the @be-in-digital/* packages from a local clone
+ * of beyours (pnpm symlinks) instead of the GitHub Packages registry.
+ * Useful to:
+ *   - develop the engine and a site side by side without publishing;
+ *   - validate the boilerplate without a NODE_AUTH_TOKEN.
  *
- * Usage :
- *   node scripts/engine-link.js link [chemin-du-clone-engine]
+ * Usage:
+ *   node scripts/engine-link.js link [path-to-engine-clone]
  *   node scripts/engine-link.js unlink
  *
- * Le chemin par défaut vient de BID_ENGINE_PATH, sinon ../beyours.
- * ATTENTION : ne jamais commiter package.json/pnpm-lock.yaml en mode link
- * (des overrides `link:` y figurent). `unlink` nettoie les deux.
+ * The default path comes from BID_ENGINE_PATH, falling back to ../beyours.
+ * WARNING: never commit package.json/pnpm-lock.yaml while in link mode
+ * (they carry `link:` overrides). `unlink` cleans up both.
  */
 
 import fs from "node:fs"
@@ -51,17 +51,16 @@ function link() {
     process.exit(1)
   }
 
-  // Les packages engine s'importent entre eux (workspace:*). En mode link,
-  // leurs imports se résolvent dans le clone — le clone doit donc être
-  // installé.
+  // The engine packages import each other (workspace:*). In link mode their
+  // imports resolve inside the clone, so the clone has to be installed.
   if (!fs.existsSync(path.join(enginePath, "node_modules"))) {
     console.log(`Installation du clone engine (${enginePath})…`)
     run("pnpm install", { cwd: enginePath })
   }
 
-  // Une partie des packages est publiée buildée (exports → dist/) : sur le
-  // registre le dist est produit au publish, dans un clone brut il manque.
-  // On builde tout package qui déclare un script build sans avoir son dist.
+  // Some packages ship built (exports → dist/): on the registry dist is
+  // produced at publish time, but a raw clone has none. So build every
+  // package that declares a build script and has no dist yet.
   const needBuild = fs.readdirSync(packagesDir).some((dir) => {
     const pkgJson = path.join(packagesDir, dir, "package.json")
     if (!fs.existsSync(pkgJson)) return false
@@ -100,12 +99,12 @@ function link() {
     },
   })
 
-  // Alignement des types React : les sources TS des packages linkés (et les
-  // .d.ts de leurs deps peer comme radix) résolvent @types/react dans le
-  // clone engine → deux copies nominalement incompatibles côté tsc (problème
-  // inexistant en mode registre, où tout vit dans le node_modules du site).
-  // On remplace la copie RÉELLE du store .pnpm du clone par un symlink vers
-  // celle du site : toutes les chaînes de liens convergent alors dessus.
+  // React type alignment: the TS sources of the linked packages (and the
+  // .d.ts of their peer deps such as radix) resolve @types/react inside the
+  // engine clone → two copies that tsc considers nominally incompatible (a
+  // non-issue in registry mode, where everything lives in the site's
+  // node_modules). So replace the REAL copy in the clone's .pnpm store with a
+  // symlink to the site's copy: every link chain then converges on it.
   const pnpmStore = path.join(enginePath, "node_modules", ".pnpm")
   for (const typesPkg of ["react", "react-dom"]) {
     const target = path.join(ROOT, "node_modules", "@types", typesPkg)
@@ -120,10 +119,10 @@ function link() {
     }
   }
 
-  // Marqueur pour next.config.ts : en mode link, Turbopack doit voir un root
-  // qui englobe le clone engine (sinon "Module not found" sur les sources TS
-  // hors projet). On calcule l'ancêtre commun et next.config l'applique via
-  // outputFileTracingRoot tant que le marqueur existe.
+  // Marker for next.config.ts: in link mode Turbopack needs a root that
+  // encloses the engine clone (otherwise "Module not found" on TS sources
+  // outside the project). Compute the common ancestor; next.config applies it
+  // through outputFileTracingRoot for as long as the marker exists.
   let commonRoot = path.dirname(ROOT)
   while (!path.resolve(enginePath).startsWith(commonRoot + path.sep)) {
     const parent = path.dirname(commonRoot)
@@ -150,7 +149,7 @@ function unlink() {
     if (Object.keys(pkg.pnpm.overrides).length === 0) delete pkg.pnpm.overrides
     if (Object.keys(pkg.pnpm).length === 0) delete pkg.pnpm
   }
-  // onlyBuiltDependencies vit aussi sous pnpm : le restaurer s'il a sauté
+  // onlyBuiltDependencies also lives under pnpm: restore it if it got dropped
   pkg.pnpm = pkg.pnpm || {}
   pkg.pnpm.onlyBuiltDependencies = pkg.pnpm.onlyBuiltDependencies || [
     "esbuild",

@@ -2,8 +2,8 @@
   "slug": "poulet-coqdor",
   "category": "Poulet",
   "themeName": "Coq d'Or",
-  "label": "Coq d'Or — Rôtisserie de quartier depuis 1962",
-  "description": "Rôtisserie de quartier depuis 1962. carte typographiée (lignes de points), hero éditorial (photo ronde, récit).",
+  "label": "Coq d'Or — Neighborhood rotisserie since 1962",
+  "description": "Neighborhood rotisserie since 1962. Menu typeset with dot leaders, hero editorial (round photo, story).",
   "primary": "hsl(150 40% 26%)",
   "fonts": {
     "heading": "Playfair Display",

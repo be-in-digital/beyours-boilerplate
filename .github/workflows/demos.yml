@@ -1,8 +1,8 @@
 name: Démos
 
-# Valide l'outil de vente demos/ : 50 thèmes, contraste AA, unicité des mises
-# en page, présence des captures / pages de partage, cohérence des prix.
-# Hermétique (node pur, sans navigateur ni dépendances), donc rapide.
+# Validates the demos/ sales tool: 50 themes, AA contrast, layout uniqueness,
+# presence of screenshots and share pages, price consistency.
+# Hermetic (plain node, no browser, no dependencies), so it stays fast.
 
 on:
   push:
