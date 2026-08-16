@@ -1,4 +1,15 @@
-# `apps/boilerplate` — le gabarit des sites clients
+<!-- Généré automatiquement — ne pas éditer ici. -->
+
+> ⚠️ **Dépôt généré.** Son contenu est produit depuis `apps/themes` du monorepo
+> [beyours-engine](https://github.com/be-in-digital/beyours-engine)
+> et remplacé intégralement à chaque synchronisation. **Un commit fait
+> directement ici sera perdu** — les modifications se font dans le monorepo.
+>
+> Ce dépôt existe parce qu'un site client ne peut pas cloner un sous-dossier de
+> monorepo : c'est la découpe livrable, avec les paquets moteur en versions
+> publiées et son propre lockfile.
+
+# `apps/themes` — le gabarit des sites clients
 
 Le site que chaque restaurant reçoit. Il embarque le shell applicatif complet
 — storefront e-commerce, dashboard admin, CMS, jeux QR, écran cuisine — et
@@ -8,20 +19,29 @@ Chaque client en est un **clone git**, avec son propre dépôt, son propre backe
 Convex et son propre projet Vercel.
 
 ```
-packages/*  (publiés en @be-in-digital/*)        ← logique métier, versionnée
+packages/*  (publiés en @be-in-digital/*)     ← logique métier, versionnée
    │  publish (changesets → GitHub Packages)
    ▼
-apps/boilerplate                                  ← shell app + wrappers convex
+apps/themes                                   ← shell app + wrappers convex
    │  clone / merge git (remote `template`)
    ▼
-dépôt du client (1 par restaurant)                ← site.config.ts + site/ + env
+dépôt du client (1 par restaurant)            ← site.config.ts + site/ + env
 ```
+
+> **Pourquoi « themes ».** Ce dossier porte le catalogue : `templates/`, 51
+> directions artistiques, une par thème vendu. C'est ce que le restaurateur
+> choisit et achète. L'application autour est le moteur de rendu qui donne vie
+> au thème retenu — un client en applique un seul, décliné à sa marque.
 
 > ⚠️ **Les clients ne clonent pas ce dossier, ils clonent le dépôt miroir**
 > `be-in-digital/beyours-boilerplate`. Ici les dépendances moteur sont en
 > `workspace:^` (on développe contre le moteur courant) ; là-bas elles sont en
-> versions publiées. Tant qu'un job ne pousse pas ce dossier vers le miroir en
-> réécrivant les versions, **les deux divergent**.
+> versions publiées, avec leur propre lockfile.
+>
+> La traversée est automatisée : `.github/workflows/publish-mirror.yml` pousse
+> ce dossier vers le miroir à chaque changement, et après chaque publication de
+> paquets. Voir [`scripts/publish-mirror.mjs`](../../scripts/publish-mirror.mjs)
+> à la racine du monorepo pour les quatre transformations appliquées.
 
 ---
 
@@ -235,7 +255,6 @@ pnpm engine:unlink     # retour au registre (ne jamais commiter en mode link)
 | `pnpm convex:env` | Applique `.env.convex` via `convex env set` |
 | `pnpm template:list` / `template:apply <slug>` | Templates design (5 verticaux + neutre) |
 | `pnpm update:engine` / `update:template` | Mises à jour |
-| `pnpm sync:engine` | (Mainteneur) resync du miroir depuis l'engine |
 | `pnpm engine:link` / `engine:unlink` | Dev local contre l'engine |
 
 ## Déploiement
@@ -247,8 +266,7 @@ Env vars : toutes les `[REQUIS]` de `.env.example` + `NODE_AUTH_TOKEN`
 
 **CI GitHub Actions** : `ci.yml` (lint + typecheck + tests + build, secret
 `GH_PACKAGES_TOKEN` requis ; e2e via `CONVEX_E2E_ENABLED=true` + secrets
-`E2E_*` ; job mobile conditionnel) et `sync-engine.yml` (resync automatique
-du miroir engine par PR). Runbook complet des secrets :
+`E2E_*` ; job mobile conditionnel). Runbook complet des secrets :
 [`docs/SETUP-CI.md`](docs/SETUP-CI.md).
 
 ## Sécurité
@@ -276,13 +294,6 @@ du miroir engine par PR). Runbook complet des secrets :
 `scripts/update-template.mjs` fait un `git fetch template` nu : un site expiré
 qui lance la commande reçoit tout. La garde reste à écrire.
 
-**La machinerie de miroir survit à sa raison d'être.**
-`scripts/sync-from-engine.mjs` et `.github/workflows/sync-engine.yml`
-resynchronisaient ce dossier depuis `apps/reference` quand les deux vivaient
-dans des dépôts séparés. Depuis la fusion ils n'ont plus d'objet — ils sont
-conservés tant que le job de publication vers le miroir de distribution n'existe
-pas, parce qu'on ne retire pas un mécanisme avant d'avoir livré son remplaçant.
-
 **Le `.github/` de ce dossier n'est pas inerte.** GitHub ne lit que le
 `.github/` de la racine du dépôt, donc ces workflows ne s'exécutent pas ici —
 mais ils font partie de la charge utile clonée, et s'exécutent bien dans le
@@ -306,5 +317,5 @@ test ne les réconcilie.
    passer sans conflit.
 4. `scripts/create-site.mjs` puis `scripts/init.mjs` : tout le parcours de
    création d'un site y tient.
-5. `pnpm dev:boilerplate` depuis la racine, avec un `convex dev` dans un second
+5. `pnpm dev:themes` depuis la racine, avec un `convex dev` dans un second
    terminal.
