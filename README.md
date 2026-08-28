@@ -167,6 +167,9 @@ three times:
 | `pnpm env:check` | Status: missing required values, incomplete integrations, out-of-sync files (non-zero exit on problems) |
 | `pnpm env:sync` | Propagates `.env.local` → `.env.convex` (shared keys) and → `mobile/.env` (Convex URL) |
 
+Monitoring is per client: each site reports to **its own Sentry project**, and
+reports nothing until its DSN is set — [`docs/SENTRY.md`](docs/SENTRY.md).
+
 `env:setup` also works piped (answers on stdin) for automation. After any
 change, `pnpm convex:env` applies `.env.convex` to the deployment
 (`convex env set`).

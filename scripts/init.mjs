@@ -284,6 +284,11 @@ Site "${name}" initialisé (${mobile ? "web + app mobile" : "web"}, template des
   3. pnpm convex:env          # pousse .env.convex côté backend
   4. pnpm dev${mobile ? "\n  5. cd mobile && pnpm install && pnpm start   # app Expo" : ""}
 
+Avant la mise en prod : créer le projet Sentry DU CLIENT (1 projet par client,
+sous SON compte), coller le DSN dans NEXT_PUBLIC_SENTRY_DSN, et le déclarer
+aussi sur l'hébergeur — c'est une variable NEXT_PUBLIC_, donc figée au build.
+Procédure : docs/SENTRY.md
+
 Personnalisation : site.config.ts, site/ (thème, polices, composants),
 public/ (logos). Couleurs client : site/theme.css (direction :
 templates/${template}/DESIGN.md). Changer de template : pnpm template:list.

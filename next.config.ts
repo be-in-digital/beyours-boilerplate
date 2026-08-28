@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { siteConfig } from "./site.config";
 import { buildContentSecurityPolicy } from "./lib/security/content-security-policy";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const contentSecurityPolicy = buildContentSecurityPolicy({
   isDevelopment: process.env.NODE_ENV !== "production",
@@ -101,4 +102,44 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * Sentry wraps the config even when this deployment has no Sentry project.
+ *
+ * The wrapper is what instruments the server build and injects the release
+ * into the client bundle; `Sentry.init` alone does not. With no DSN nothing is
+ * sent anyway, so the cost of leaving it on is a slightly longer build — and
+ * the benefit is that a client who fills in their DSN gets a working setup
+ * without editing this file.
+ *
+ * Source-map upload is the part that needs credentials, and it is switched off
+ * unless all three are present. Without them a build would otherwise emit maps
+ * it cannot upload and warn about it on every CI run.
+ */
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  sourcemaps: {
+    disable: !(
+      process.env.SENTRY_ORG &&
+      process.env.SENTRY_PROJECT &&
+      process.env.SENTRY_AUTH_TOKEN
+    ),
+  },
+
+  // Client chunks are code-split; without this the maps for a lazily loaded
+  // route are left behind and its stack traces stay minified.
+  widenClientFileUpload: true,
+
+  // Nothing about this repo leaves the build host unless a client opts in.
+  telemetry: false,
+  // The plugin is chatty on every build; keep it to CI, where a failed upload
+  // is worth reading.
+  silent: !process.env.CI,
+
+  // `disableLogger` is deliberately absent. The SDK deprecates it in favour of
+  // `webpack.treeshake.removeDebugLogging`, and Next 16 builds with Turbopack,
+  // where no `webpack.*` option applies — so setting either one only prints a
+  // deprecation notice on every build of every client site, and shakes nothing.
+});

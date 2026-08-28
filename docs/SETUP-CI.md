@@ -68,6 +68,11 @@ only the "public" tests run (see `playwright.config.ts`).
   (install).
 - `pnpm convex:deploy` for the production backend, then carry over the
   production `NEXT_PUBLIC_CONVEX_URL` / `CONVEX_SITE_URL`.
+- `NEXT_PUBLIC_SENTRY_DSN` — the client's **own** Sentry project, one per site.
+  Left empty, production errors are reported to nobody. It is a `NEXT_PUBLIC_`
+  variable, so it takes effect at the next build, not at the next request.
+  Optionally `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` for readable
+  stack traces — all three or none. See [`SENTRY.md`](SENTRY.md).
 
 ## 4. Test routes in production
 

@@ -147,6 +147,10 @@ Site « ${name} » prêt dans ${target} (${flag("mobile") ? "web + app mobile" :
   pnpm env:setup             # wizard .env (requis + intégrations), puis pnpm convex:env
   pnpm dev                   # storefront + admin${flag("mobile") ? "\n  cd mobile && pnpm install && pnpm start   # app Expo" : ""}
 
+Avant la mise en prod : créer le projet Sentry DU CLIENT (1 projet par client,
+sous SON compte) et coller le DSN dans NEXT_PUBLIC_SENTRY_DSN — sinon aucune
+erreur de production n'est remontée. Procédure : docs/SENTRY.md
+
 Personnalisation : site.config.ts, site/, public/ (docs/CUSTOMIZATION.md)
 Template design  : pnpm template:list / pnpm template:apply <slug>
 Mises à jour     : pnpm update:engine / pnpm update:template (docs/UPDATES.md)

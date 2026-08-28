@@ -56,7 +56,14 @@ const GROUPS = [
   { name: "Uber Eats", keys: ["UBER_EATS_CLIENT_ID", "UBER_EATS_CLIENT_SECRET", "UBER_EATS_WEBHOOK_SECRET", "UBER_EATS_SANDBOX_MODE"] },
   { name: "Deliveroo", keys: ["DELIVEROO_CLIENT_ID", "DELIVEROO_CLIENT_SECRET", "DELIVEROO_WEBHOOK_SECRET", "DELIVEROO_BRAND_ID", "DELIVEROO_SITE_ID", "DELIVEROO_IS_SANDBOX"] },
   { name: "Google Maps (adresses)", keys: ["NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"] },
-  { name: "Sentry (monitoring)", keys: ["NEXT_PUBLIC_SENTRY_DSN"] },
+  // Le DSN seul est une configuration complète : les erreurs remontent, seules
+  // les stack traces restent minifiées. Il reste donc seul dans son groupe —
+  // l'ajouter aux trois clés d'upload rendrait le groupe « partiel » et ferait
+  // échouer `env:check` sur une installation qui marche.
+  { name: "Sentry (monitoring) — 1 projet Sentry par client", keys: ["NEXT_PUBLIC_SENTRY_DSN"] },
+  // Tout ou rien, comme SITE_FEATURE_GROUPS côté schéma : la moitié de ce
+  // groupe n'uploade rien et laisse chaque trace de prod minifiée.
+  { name: "Sentry source maps (build) — traces lisibles en prod", keys: ["SENTRY_ORG", "SENTRY_PROJECT", "SENTRY_AUTH_TOKEN"] },
   { name: "Unsplash (médias CMS)", keys: ["UNSPLASH_ACCESS_KEY"] },
 ]
 
