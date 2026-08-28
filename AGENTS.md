@@ -57,7 +57,10 @@ not a local patch.
 `pnpm add:mobile` · `pnpm env:setup|check|sync`
 (all 3 .env files: web/convex/mobile) · `pnpm dev` · `pnpm build` ·
 `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` ·
-`pnpm convex:dev` · `pnpm convex:deploy` · `pnpm convex:env`
+`pnpm convex:dev` · `pnpm convex:deploy` · `pnpm convex:env` ·
+`pnpm ses:check` (is this AWS account out of the SES sandbox yet? — the
+one onboarding step that waits on an AWS review, see
+`tasks/client-aws-onboarding-runbook.md`)
 
 ## Convex
 
