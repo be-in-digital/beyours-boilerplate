@@ -15,7 +15,12 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      '**/e2e/**',
+      // Playwright owns the *.spec.ts files under e2e/. The *.test.ts files
+      // there are Vitest suites (the Deliveroo scenarios) and must stay
+      // visible: excluding all of e2e/ hid eleven of them from both runners.
+      // `reference` fixed exactly this and the fix was never carried over.
+      '**/e2e/**/*.spec.ts',
+      '**/e2e/**/*.setup.ts',
       '**/.{idea,git,cache,output,temp}/**',
     ],
   },

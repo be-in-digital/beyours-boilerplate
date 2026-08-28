@@ -8,9 +8,9 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { deliveroo } from "@be-in-digital/integrations";
 
-const { fetchDeliveroo, getAccessToken } = deliveroo;
+const { fetchDeliveroo, getAccessToken, clearTokenCache } = deliveroo;
 type DeliverooCredentials = Parameters<typeof getAccessToken>[0];
-import { config, log } from "../test-config";
+import { config, hasDeliverooSandbox, log } from "../test-config";
 
 // ============================================================================
 // Credentials for sandbox
@@ -21,6 +21,43 @@ const credentials: DeliverooCredentials = {
   clientSecret: config.CLIENT_SECRET,
   sandboxMode: config.IS_SANDBOX,
 };
+
+const itWithDeliverooSandbox = it.runIf(hasDeliverooSandbox);
+
+// ============================================================================
+// Fetch mocking
+// ============================================================================
+
+/** Build a JSON Response the way the Deliveroo API would. */
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+/**
+ * Run `body` with global fetch replaced by `handler`.
+ *
+ * The client caches tokens in a module-level Map, so the cache is cleared on
+ * both sides: a token minted here must not leak into the live suites above,
+ * and a live token must not satisfy the mocked ones.
+ */
+async function withMockedFetch(
+  handler: (url: string, init?: RequestInit) => Response | Promise<Response>,
+  body: () => Promise<void>,
+): Promise<void> {
+  const realFetch = globalThis.fetch;
+  clearTokenCache();
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
+    Promise.resolve(handler(String(input), init))) as typeof fetch;
+  try {
+    await body();
+  } finally {
+    globalThis.fetch = realFetch;
+    clearTokenCache();
+  }
+}
 
 // ============================================================================
 // Test Suite
@@ -38,7 +75,7 @@ describe("Deliveroo Menu - Scenario 1: Fetch Brand ID", () => {
   // Test 1: OAuth Token Retrieval
   // ========================================================================
 
-  it("should obtain OAuth access token with valid credentials", async () => {
+  itWithDeliverooSandbox("should obtain OAuth access token with valid credentials", async () => {
     log.test("Test 1: Obtaining OAuth access token");
 
     const token = await getAccessToken(credentials);
@@ -59,7 +96,7 @@ describe("Deliveroo Menu - Scenario 1: Fetch Brand ID", () => {
   // Test 2: Fetch Brand ID via Site API
   // ========================================================================
 
-  it("should fetch brand ID successfully with valid site location ID", async () => {
+  itWithDeliverooSandbox("should fetch brand ID successfully with valid site location ID", async () => {
     log.test("Test 2: Fetching brand ID via site API");
 
     // Use the site API to list brands/sites
@@ -91,7 +128,7 @@ describe("Deliveroo Menu - Scenario 1: Fetch Brand ID", () => {
   // Test 3: Brand ID Format Validation
   // ========================================================================
 
-  it("should validate brand ID follows UUID format", async () => {
+  itWithDeliverooSandbox("should validate brand ID follows UUID format", async () => {
     log.test("Test 3: Validating brand ID format");
 
     const brandId = config.BRAND_ID;
@@ -108,7 +145,7 @@ describe("Deliveroo Menu - Scenario 1: Fetch Brand ID", () => {
   // Test 4: Consistent Token for Same Credentials
   // ========================================================================
 
-  it("should return valid tokens for same credentials", async () => {
+  itWithDeliverooSandbox("should return valid tokens for same credentials", async () => {
     log.test("Test 4: Validating token retrieval consistency");
 
     // Both calls should return valid tokens
@@ -167,7 +204,7 @@ describe("Deliveroo Menu - Scenario 1: Fetch Brand ID", () => {
   // Test 7: API Types Distinction
   // ========================================================================
 
-  it("should support different API types (order, menu, site)", async () => {
+  itWithDeliverooSandbox("should support different API types (order, menu, site)", async () => {
     log.test("Test 7: Validating API type routing");
 
     // The fetchDeliveroo function supports different API types
@@ -230,15 +267,54 @@ describe("Deliveroo Menu - Brand ID Error Handling", () => {
   // Test 2: Handle 401 Unauthorized
   // ========================================================================
 
-  it("should handle 401 Unauthorized (invalid token)", async () => {
+  it("should retry once with a fresh token when the API answers 401", async () => {
     log.test("Error Test 2: Handling 401 Unauthorized");
 
-    // This would require mocking the OAuth token generation
-    // to return an invalid token
-    // For now, we test the error path exists
-    expect(true).toBe(true);
+    // Deliveroo's gateway answers 401/403 for an expired token. The client is
+    // expected to drop the cached token, mint a new one and replay the request
+    // exactly once — so a stale token must not surface as a failed call.
+    const calls: Array<{ url: string; auth?: string }> = [];
+    let tokensIssued = 0;
 
-    log.success("401 error handling path validated");
+    await withMockedFetch(
+      (url, init) => {
+        const headers = (init?.headers ?? {}) as Record<string, string>;
+        calls.push({ url, auth: headers.Authorization });
+
+        if (url.endsWith("/oauth2/token")) {
+          tokensIssued += 1;
+          return jsonResponse(
+            { access_token: `token-${tokensIssued}`, token_type: "Bearer", expires_in: 3600 },
+            200,
+          );
+        }
+
+        const apiCalls = calls.filter((c) => !c.url.endsWith("/oauth2/token"));
+        return apiCalls.length === 1
+          ? new Response("token expired", { status: 401 })
+          : jsonResponse({ ok: true }, 200);
+      },
+      async () => {
+        const response = await fetchDeliveroo(
+          credentials,
+          "/v1/brands/brand-1/sites/site-1/status",
+          { method: "GET" },
+          "site",
+        );
+
+        expect(response.status).toBe(200);
+      },
+    );
+
+    const apiCalls = calls.filter((c) => !c.url.endsWith("/oauth2/token"));
+    expect(tokensIssued).toBe(2);
+    // Exactly one replay, and it must carry the new token, not the rejected one.
+    expect(apiCalls.map((c) => c.auth)).toEqual([
+      "Bearer token-1",
+      "Bearer token-2",
+    ]);
+
+    log.success("401 triggers exactly one retry with a refreshed token");
   });
 
   // ========================================================================
@@ -280,13 +356,63 @@ describe("Deliveroo Menu - Brand ID Error Handling", () => {
   // Test 4: Handle 500 Server Error
   // ========================================================================
 
-  it("should handle 500 Server Error", async () => {
+  it("should surface 500 Server Error without retrying", async () => {
     log.test("Error Test 4: Handling 500 Server Error");
 
-    // Server errors should be caught and re-thrown with context
-    // Actual testing would require mocking the API response
-    expect(true).toBe(true);
+    // A 500 is the upstream's problem, not a stale token: the client must hand
+    // it back untouched instead of burning a retry and a fresh token on it.
+    const calls: string[] = [];
 
-    log.success("500 error handling path validated");
+    await withMockedFetch(
+      (url) => {
+        calls.push(url);
+        return url.endsWith("/oauth2/token")
+          ? jsonResponse({ access_token: "token-1", token_type: "Bearer", expires_in: 3600 }, 200)
+          : new Response("upstream exploded", { status: 500 });
+      },
+      async () => {
+        const response = await fetchDeliveroo(
+          credentials,
+          "/v1/brands/brand-1/sites/site-1/status",
+          { method: "GET" },
+          "site",
+        );
+
+        expect(response.status).toBe(500);
+        expect(await response.text()).toBe("upstream exploded");
+      },
+    );
+
+    expect(calls.filter((u) => !u.endsWith("/oauth2/token"))).toHaveLength(1);
+
+    log.success("500 is returned as-is, with no retry");
+  });
+
+  it("should raise an IntegrationError when the OAuth endpoint fails", async () => {
+    log.test("Error Test 5: OAuth endpoint failure");
+
+    // A failing token endpoint must not leak as a bare fetch error: the client
+    // wraps it so callers can read the status and the platform.
+    await withMockedFetch(
+      () => new Response("service unavailable", { status: 500 }),
+      async () => {
+        const error = await getAccessToken(credentials).then(
+          () => null,
+          (e: unknown) => e,
+        );
+
+        expect(error).toBeInstanceOf(Error);
+        const integrationError = error as Error & {
+          statusCode?: number;
+          platform?: string;
+        };
+        expect(integrationError.name).toBe("IntegrationError");
+        expect(integrationError.message).toBe("Deliveroo OAuth failed");
+        expect(integrationError.statusCode).toBe(500);
+        expect(integrationError.platform).toBe("deliveroo");
+      },
+    );
+
+    log.success("OAuth failure surfaces as IntegrationError");
   });
 });

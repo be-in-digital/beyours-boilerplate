@@ -27,16 +27,36 @@ export const config = {
 };
 
 // ============================================================================
-// Utilities
+// Live-run Gates
 // ============================================================================
 
-// NOTE: unlike apps/reference, this copy has no `hasWebhookTarget` /
-// `hasDeliverooSandbox` gate, and none of the scenario suites here wrap their
-// cases in `it.runIf(...)`. Today that is dormant: `vitest.config.ts` excludes
-// `**/e2e/**` outright and the Playwright projects only match `*.spec.ts`, so
-// these suites run in neither runner. If the exclude is ever narrowed the way
-// apps/reference narrowed its own, port the gate across at the same time —
-// otherwise these tests go from never running to running unconditionally.
+/**
+ * Whether a webhook target is configured.
+ *
+ * CONVEX_SITE_URL is read from the environment directly rather than through
+ * `config`, so this stays honest even if a default is ever reintroduced there.
+ * It used to be one: `config.CONVEX_SITE_URL` fell back to a real dev
+ * deployment, which would have made an unconfigured run fire signed payloads at
+ * a backend nobody asked for. The fallback is gone and `sendWebhook()` now
+ * refuses an empty target, so this gate and that guard agree.
+ */
+export const hasWebhookTarget = Boolean(
+  process.env.CONVEX_SITE_URL &&
+    (process.env.DELIVEROO_WEBHOOK_SECRET || process.env.DELIVEROO_CLIENT_SECRET),
+);
+
+/** Whether Deliveroo sandbox credentials are available for direct API calls. */
+export const hasDeliverooSandbox = Boolean(
+  config.CLIENT_ID && config.CLIENT_SECRET && config.BRAND_ID,
+);
+
+// Only the booleans are exported. Wrapping them in `it.runIf(...)` here and
+// exporting that would give the export an inferred type TypeScript cannot
+// name (TS2742/TS4023) — each suite declares its own local wrapper instead.
+
+// ============================================================================
+// Utilities
+// ============================================================================
 
 /**
  * Create HMAC SHA256 signature for webhook authentication

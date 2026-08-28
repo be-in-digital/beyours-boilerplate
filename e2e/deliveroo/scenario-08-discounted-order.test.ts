@@ -25,9 +25,12 @@ import {
   config,
   createNewOrderWebhook,
   generateOrderId,
+  hasWebhookTarget,
   log,
   sendWebhook,
 } from "./test-config";
+
+const itWithWebhookTarget = it.runIf(hasWebhookTarget);
 
 // ============================================================================
 // Test Suite
@@ -80,7 +83,7 @@ describe("Scenario 8: Discounted Order", () => {
   // Test 2: Price Calculation with Discount (sends actual webhook)
   // ========================================================================
 
-  it("should calculate prices correctly with discount", async () => {
+  itWithWebhookTarget("should calculate prices correctly with discount", async () => {
     log.test("Test 2: Validating price calculations");
 
     const originalPrice = 2500; // EUR 25.00
@@ -351,7 +354,7 @@ describe("Scenario 8: Discounted Order", () => {
   // Test 8: Sync Status Requirement (sends actual webhook)
   // ========================================================================
 
-  it("should require sync_status after acceptance", async () => {
+  itWithWebhookTarget("should require sync_status after acceptance", async () => {
     log.test("Test 8: Validating sync_status requirement");
 
     // Discounted orders must send sync_status after acceptance

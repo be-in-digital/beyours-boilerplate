@@ -18,6 +18,8 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { canTransitionTo } from "@be-in-digital/restaurant";
+import { mapDeliverooStatus } from "../../convex/deliverooWebhook";
 import {
   config,
   createNewOrderWebhook,
@@ -136,28 +138,37 @@ describe("Scenario 7: Cancelled Order", () => {
   // Test 4: Cancellation Restrictions
   // ========================================================================
 
-  it("should understand cancellation restrictions", async () => {
+  it("should refuse cancellation once the order is being prepared", () => {
     log.test("Test 4: Validating cancellation restrictions");
 
-    // Orders CANNOT be cancelled if:
-    // 1. Already being made (started_preparing)
-    // 2. Ready for collection
-    // 3. With a rider (out_for_delivery)
-
-    // Valid cancellation points:
-    // - After placement (placed -> cancelled)
-    // - Shortly after acceptance (accepted -> cancelled, within 1 min)
-
-    const _validCancellationStatuses = ["placed", "accepted"];
-    const _invalidCancellationStatuses = [
+    // Deliveroo forbids cancelling an order that is already being made, ready
+    // for collection, or with a rider. The internal status machine has to say
+    // the same thing — asserted here against the production mapper and the
+    // production transition table, not against a restatement of either.
+    const cancellable = ["placed", "accepted"];
+    const notCancellable = [
       "started_preparing",
       "ready_for_collection",
       "out_for_delivery",
     ];
 
-    log.success("Cancellation restrictions understood");
-    log.info("  Can cancel: placed, accepted (within 1 min)");
-    log.info("  Cannot cancel: preparing, ready, with rider");
+    for (const deliverooStatus of cancellable) {
+      const internal = mapDeliverooStatus(deliverooStatus);
+      expect(
+        canTransitionTo(internal, "cancelled"),
+        `${deliverooStatus} (${internal}) should be cancellable`,
+      ).toBe(true);
+    }
+
+    for (const deliverooStatus of notCancellable) {
+      const internal = mapDeliverooStatus(deliverooStatus);
+      expect(
+        canTransitionTo(internal, "cancelled"),
+        `${deliverooStatus} (${internal}) must not be cancellable`,
+      ).toBe(false);
+    }
+
+    log.success("Cancellation restrictions validated against the status machine");
   });
 
   // ========================================================================

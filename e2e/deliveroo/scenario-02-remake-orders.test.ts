@@ -27,10 +27,13 @@ import {
   createRemakeOrderWebhook,
   createStatusUpdateWebhook,
   generateOrderId,
+  hasWebhookTarget,
   log,
   sendWebhook,
   wait,
 } from "./test-config";
+
+const itWithWebhookTarget = it.runIf(hasWebhookTarget);
 
 // ============================================================================
 // Test Suite
@@ -57,7 +60,7 @@ describe("Scenario 2: Remake Orders", () => {
   // Test 1: Original Order Creation
   // ========================================================================
 
-  it("should create original order successfully", async () => {
+  itWithWebhookTarget("should create original order successfully", async () => {
     log.test("Test 1: Creating original order");
 
     originalOrderId = generateOrderId("original");
@@ -73,7 +76,7 @@ describe("Scenario 2: Remake Orders", () => {
   // Test 2: Remake Order (Deliveroo Fault - Full Price)
   // ========================================================================
 
-  it("should create remake order with Deliveroo fault (full price)", async () => {
+  itWithWebhookTarget("should create remake order with Deliveroo fault (full price)", async () => {
     log.test("Test 2: Creating remake order (Deliveroo fault)");
 
     const webhook = createRemakeOrderWebhook(originalOrderId, "deliveroo");
@@ -96,7 +99,7 @@ describe("Scenario 2: Remake Orders", () => {
   // Test 3: Remake Order (Restaurant Fault - Zero Price)
   // ========================================================================
 
-  it("should create remake order with Restaurant fault (zero price)", async () => {
+  itWithWebhookTarget("should create remake order with Restaurant fault (zero price)", async () => {
     log.test("Test 3: Creating remake order (Restaurant fault)");
 
     const webhook = createRemakeOrderWebhook(originalOrderId, "restaurant");
@@ -119,7 +122,7 @@ describe("Scenario 2: Remake Orders", () => {
   // Test 4: Sync Status Timing (Wait for Accepted Webhook)
   // ========================================================================
 
-  it("should send sync_status AFTER receiving accepted webhook", async () => {
+  itWithWebhookTarget("should send sync_status AFTER receiving accepted webhook", async () => {
     log.test("Test 4: Testing sync_status timing");
 
     // Step 1: Create new remake order
@@ -157,7 +160,7 @@ describe("Scenario 2: Remake Orders", () => {
   // Test 5: Multiple Remake Orders for Same Parent
   // ========================================================================
 
-  it("should handle multiple remake orders for same parent", async () => {
+  itWithWebhookTarget("should handle multiple remake orders for same parent", async () => {
     log.test("Test 5: Creating multiple remake orders");
 
     // First remake
@@ -235,7 +238,7 @@ describe("Scenario 2: Remake Orders", () => {
   // Test 8: Order Flow Validation
   // ========================================================================
 
-  it("should follow complete remake order flow", async () => {
+  itWithWebhookTarget("should follow complete remake order flow", async () => {
     log.test("Test 8: Testing complete remake flow");
 
     // Create remake order
