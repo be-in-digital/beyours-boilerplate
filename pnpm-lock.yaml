@@ -21,8 +21,8 @@ importers:
         specifier: ^3.1024.0
         version: 3.1079.0
       '@be-in-digital/admin':
-        specifier: ^6.0.0
-        version: 6.0.0(debd454bb1d9c85e92fdfd0b98d86f9c)
+        specifier: ^7.0.0
+        version: 7.0.0(82dafb062e09aa5fe70b9d7e45c6f0b1)
       '@be-in-digital/cms':
         specifier: ^3.0.0
         version: 3.0.0(@noble/hashes@2.2.0)
@@ -36,17 +36,17 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0
       '@be-in-digital/integrations':
-        specifier: ^2.0.2
-        version: 2.0.2
+        specifier: ^2.1.0
+        version: 2.1.0
       '@be-in-digital/marketing':
-        specifier: ^2.0.2
-        version: 2.0.2
+        specifier: ^2.1.0
+        version: 2.1.0
       '@be-in-digital/restaurant':
         specifier: ^2.0.3
         version: 2.0.3(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
       '@be-in-digital/ui':
-        specifier: ^2.0.2
-        version: 2.0.2(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)
+        specifier: ^2.0.3
+        version: 2.0.3(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)
       '@convex-dev/better-auth':
         specifier: ^0.12.5
         version: 0.12.5(@standard-schema/spec@1.1.0)(better-auth@1.6.17(@opentelemetry/api@1.9.1)(next@16.2.12(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@3.2.7(@types/node@20.19.43)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.2.0))(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.0)))(convex@1.31.7(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -454,15 +454,15 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@be-in-digital/admin@6.0.0':
-    resolution: {integrity: sha512-YR9MEeNUoxZeWhX2Y77eI2DkzjhC4rIdP1kiDV+FKBLRvZ+JGcnHyKh8VkWlkMBXz+y3n47aCsnLwjf08Ku8nA==, tarball: https://npm.pkg.github.com/download/@be-in-digital/admin/6.0.0/31d95ee440b4065e9ce12315d24de93f0fb33411}
+  '@be-in-digital/admin@7.0.0':
+    resolution: {integrity: sha512-eUTmcoxOraqF1H/h2DC/CtdY3TGV0D5DtAw+GobUsFrx6eTt319xPPGjN46CP6kSILxCCDsQ5opsLzAXRA2OLA==, tarball: https://npm.pkg.github.com/download/@be-in-digital/admin/7.0.0/b8e837f9e7f63606d541085b3d27d402059b3ca4}
     peerDependencies:
       '@be-in-digital/convex-functions': ^2.2.2
       '@be-in-digital/convex-schema': ^2.2.0
       '@be-in-digital/core': ^2.2.0
-      '@be-in-digital/marketing': ^2.0.2
+      '@be-in-digital/marketing': ^2.1.0
       '@be-in-digital/restaurant': ^2.0.3
-      '@be-in-digital/ui': ^2.0.2
+      '@be-in-digital/ui': ^2.0.3
       '@hookform/resolvers': '>=5.0.0'
       convex: '>=1.0.0'
       framer-motion: '>=12.0.0'
@@ -485,19 +485,19 @@ packages:
   '@be-in-digital/core@2.2.0':
     resolution: {integrity: sha512-KC7S40sxS7wAWQTL4vJeD+Y4/nF+BHZ8R+FjR8LsMtrSjJ4L4p6F6LCfLnn3gyDhvU1+u1btIVDJDrdM7XLwqw==, tarball: https://npm.pkg.github.com/download/@be-in-digital/core/2.2.0/750c2cbcf13740098fcf18582d99f1da5918d866}
 
-  '@be-in-digital/integrations@2.0.2':
-    resolution: {integrity: sha512-IcJsc2rwxZvnFkMWp+eAf1z9uSnc17NwOgqhTNwLKdI2buvg12KIRwT9tJXNrA2REQM02a08iyZtcgCRmbQUiw==, tarball: https://npm.pkg.github.com/download/@be-in-digital/integrations/2.0.2/b0eaf009ed1a9880129767377721e56986d2076e}
+  '@be-in-digital/integrations@2.1.0':
+    resolution: {integrity: sha512-LyzMtFvXrLBvZrKIvhfE8eohxPzxfeU4FiE6L3Mt4yjw2loym6+/67DpaSl3ARVnFeRn2E983k4qV8+fnxq/jA==, tarball: https://npm.pkg.github.com/download/@be-in-digital/integrations/2.1.0/014fc3bc76ea6bb68f993a32b3bdecea51f9ad79}
 
-  '@be-in-digital/marketing@2.0.2':
-    resolution: {integrity: sha512-t/LttpvM36S+jMx2mdiHkFHSnePeKWGbCYmEp4o53bRGnIACX9yhCJxTQRnzo92vNwkDYCmkbKCEL5FXnzodMQ==, tarball: https://npm.pkg.github.com/download/@be-in-digital/marketing/2.0.2/09e91486a0507b4b2382b0cf64a69f22326c750f}
+  '@be-in-digital/marketing@2.1.0':
+    resolution: {integrity: sha512-MCoHvThhHQ0vYMBeZzBTOKDWt1SzylUlbmybxGyqEPMQS19F8leO/zJpZK2jMB75+FJoOvuWdrW9Wj1G0w9G8Q==, tarball: https://npm.pkg.github.com/download/@be-in-digital/marketing/2.1.0/ec2daf43eb9d61981348c5455787ac0f83b5545d}
 
   '@be-in-digital/restaurant@2.0.3':
     resolution: {integrity: sha512-BWwTI++pMVeraGT4UalGxZ92OvycBpMdtlIF65wZYxUNEaCHDZtpB6et2pa/IWB9ywmWZocnC+ls1sibhjRXCw==, tarball: https://npm.pkg.github.com/download/@be-in-digital/restaurant/2.0.3/8ec59a56ca158959ac68e0a501fdaa36d24c5d6b}
     peerDependencies:
       react: ^19.0.0
 
-  '@be-in-digital/ui@2.0.2':
-    resolution: {integrity: sha512-C2yf2wHshurO//CEhqab/DFXFRpn5vm1k7GCv4aP+Cgwoxss6ekZF+eWjn93lGJ0disWfcYKKi2HTyKl5KGLUA==, tarball: https://npm.pkg.github.com/download/@be-in-digital/ui/2.0.2/65ed454d6a0afedf1e0a51f6dc90525e06ffc5a7}
+  '@be-in-digital/ui@2.0.3':
+    resolution: {integrity: sha512-FuijIUmGOuFMg2/itpa7eZQzsGa+ofTpyCKKuhKrNsV1El5IuU9L00x/2xhIxBioz5XzFCOIQcwSATjzxRIpiQ==, tarball: https://npm.pkg.github.com/download/@be-in-digital/ui/2.0.3/03248c5eabc0d104e5b3071a91f6a6403987a613}
     peerDependencies:
       '@hookform/resolvers': ^3.0.0
       react: ^19.0.0
@@ -2843,6 +2843,9 @@ packages:
 
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
+
+  '@types/qrcode@1.5.6':
+    resolution: {integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -5964,16 +5967,17 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@be-in-digital/admin@6.0.0(debd454bb1d9c85e92fdfd0b98d86f9c)':
+  '@be-in-digital/admin@7.0.0(82dafb062e09aa5fe70b9d7e45c6f0b1)':
     dependencies:
       '@be-in-digital/convex-functions': 2.2.2(@noble/hashes@2.2.0)(react@19.2.4)
       '@be-in-digital/convex-schema': 2.2.0(react@19.2.4)
       '@be-in-digital/core': 2.2.0
-      '@be-in-digital/marketing': 2.0.2
+      '@be-in-digital/marketing': 2.1.0
       '@be-in-digital/restaurant': 2.0.3(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
-      '@be-in-digital/ui': 2.0.2(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)
+      '@be-in-digital/ui': 2.0.3(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)
       '@hookform/resolvers': 5.4.0(react-hook-form@7.80.0(react@19.2.4))
       '@reactour/tour': 3.8.0(react@19.2.4)
+      '@types/qrcode': 1.5.6
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       convex: 1.31.7(react@19.2.4)
@@ -6031,9 +6035,9 @@ snapshots:
       '@aws-sdk/client-sesv2': 3.1079.0
       zod: 4.4.3
 
-  '@be-in-digital/integrations@2.0.2': {}
+  '@be-in-digital/integrations@2.1.0': {}
 
-  '@be-in-digital/marketing@2.0.2': {}
+  '@be-in-digital/marketing@2.1.0': {}
 
   '@be-in-digital/restaurant@2.0.3(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))':
     dependencies:
@@ -6049,7 +6053,7 @@ snapshots:
       - immer
       - use-sync-external-store
 
-  '@be-in-digital/ui@2.0.2(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)':
+  '@be-in-digital/ui@2.0.3(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@hookform/resolvers': 5.4.0(react-hook-form@7.80.0(react@19.2.4))
       class-variance-authority: 0.7.1
@@ -8184,6 +8188,10 @@ snapshots:
   '@types/node@20.19.43':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/qrcode@1.5.6':
+    dependencies:
+      '@types/node': 20.19.43
 
   '@types/react-dom@19.2.3(@types/react@19.2.14)':
     dependencies:
