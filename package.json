@@ -87,7 +87,7 @@
     "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "convex": "1.31.7",
+    "convex": "1.44.0",
     "convex-helpers": "0.1.112",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.38.0",

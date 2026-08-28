@@ -54,11 +54,18 @@ install + config + push).
 
 ### D3 — Versions aligned with the engine, never ahead
 
-next 16.1.6, convex 1.31.7 (exact), better-auth 1.4.9 (exact),
-@convex-dev/better-auth ^0.10.10: the combination the engine tests against.
-v1 had bumped ahead (Next 16.2, convex 1.34) at the cost of workarounds (a
-custom auth proxy, `ignoreBuildErrors: true`). Version bumps come from the
-engine; the boilerplate follows.
+next 16.2.12, convex 1.44.0 (exact), better-auth 1.6.17 (exact),
+@convex-dev/better-auth ^0.12.5: the combination the engine tests against.
+v1 had bumped ahead at the cost of workarounds (a custom auth proxy,
+`ignoreBuildErrors: true`). Version bumps come from the engine; the boilerplate
+follows.
+
+The rule is *aligned*, not *frozen*. `convex` was held at 1.31.7 after an
+incident where two copies of it produced two React contexts and crashed the
+admin. That is now prevented differently — **every manifest in the monorepo
+declares the same exact `convex`**, so no resolution can pick a second copy.
+When the engine moves, `.template/mobile/package.json` moves with it; it was
+missed the last time and handed clients a stale client library.
 
 ### D4 — Two update channels
 
