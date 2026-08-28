@@ -5,18 +5,28 @@ set -euo pipefail
 # BeYours Engine - AWS S3 & SES Setup Script
 #
 # Configures:
-#   1. S3 bucket with CORS, lifecycle rules, and folder structure
+#   1. A PRIVATE S3 bucket, with PUT-only CORS, lifecycle rules and folders
 #   2. SES domain identity with DKIM verification
 #   3. SES email sending configuration
 #   4. IAM user with minimal permissions for the app
 #
+# The bucket is private and nothing here makes it public. Media reaches the
+# browser through the app's /api/files proxy, or through a CDN with an origin
+# access control - see apps/docs/deployment/s3-bucket-policy.md. An earlier
+# version of this script relaxed the public access block and attached a
+# public-read policy; it now removes such a policy if it finds one (issue #198).
+#
 # Usage:
 #   chmod +x scripts/setup-aws.sh
 #   ./scripts/setup-aws.sh
+#   SITE_ORIGIN=https://restaurant.example ./scripts/setup-aws.sh
 #
 # Prerequisites:
 #   - AWS CLI configured (aws configure)
 #   - Sufficient IAM permissions (S3, SES, IAM, Route53 optional)
+#   - node on PATH, to classify an existing bucket policy. Without it the
+#     script still blocks all public access; it just leaves any existing
+#     policy in place and tells you to check it.
 # ============================================================================
 
 # ── Configuration ────────────────────────────────────────────────────────────
@@ -94,13 +104,73 @@ else
   log_success "Bucket created"
 fi
 
-# Block ACL-based public access but allow bucket policy public reads
-log_info "Configuring public access block..."
+# ── The bucket is PRIVATE ────────────────────────────────────────────────────
+# No object is readable without credentials. Media reaches the browser through
+# the app's own /api/files proxy, or through a CDN with an origin access
+# control. See apps/docs/deployment/s3-bucket-policy.md.
+#
+# This script used to do the opposite: it relaxed the public access block and
+# attached a "PublicReadAssets" policy granting s3:GetObject to "*". Running it
+# re-opened the bucket that #185/#187 had closed, so it now also REMEDIATES a
+# bucket an earlier run may already have opened.
+
+log_info "Checking for a pre-existing public bucket policy..."
+EXISTING_POLICY=$(aws s3api get-bucket-policy --bucket "$BUCKET_NAME" \
+  --query Policy --output text 2>/dev/null || true)
+
+# Classifying this needs a real JSON parse, not a grep: a hardening policy that
+# DENIES non-TLS access also carries "Principal": "*", and deleting it would
+# remove a control rather than an exposure. Only Effect=Allow to * is public.
+# Node is already a prerequisite of this repo; if it is missing we say so and
+# leave the policy alone - the public access block set below is the actual
+# control, and it closes the exposure either way.
+classify_bucket_policy() {
+  if ! command -v node >/dev/null 2>&1; then
+    echo "unknown"
+    return
+  fi
+  printf '%s' "$1" | node -e '
+    let s = "";
+    process.stdin.on("data", (d) => (s += d)).on("end", () => {
+      try {
+        const stmts = [].concat(JSON.parse(s).Statement || []);
+        const isStar = (pr) =>
+          pr === "*" ||
+          (pr && typeof pr === "object" && [].concat(pr.AWS || []).includes("*"));
+        const open = stmts.some((st) => st.Effect === "Allow" && isStar(st.Principal));
+        process.stdout.write(open ? "yes" : "no");
+      } catch {
+        process.stdout.write("unknown");
+      }
+    });
+  ' 2>/dev/null || echo "unknown"
+}
+
+if [ -n "$EXISTING_POLICY" ] && [ "$EXISTING_POLICY" != "None" ]; then
+  case "$(classify_bucket_policy "$EXISTING_POLICY")" in
+    yes)
+      log_warn "Bucket policy grants read to \"*\" - removing it (issue #198)."
+      aws s3api delete-bucket-policy --bucket "$BUCKET_NAME"
+      log_success "Public bucket policy removed"
+      ;;
+    no)
+      log_success "A bucket policy exists and grants nothing to \"*\" - left untouched."
+      ;;
+    *)
+      log_warn "Could not parse the existing bucket policy - left untouched."
+      log_warn "Check it by hand: aws s3api get-bucket-policy --bucket $BUCKET_NAME"
+      ;;
+  esac
+else
+  log_success "No bucket policy attached - this is the expected state"
+fi
+
+log_info "Blocking all public access..."
 aws s3api put-public-access-block \
   --bucket "$BUCKET_NAME" \
   --public-access-block-configuration \
-    "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=false,RestrictPublicBuckets=false"
-log_success "Public access configured (ACLs blocked, policy-based reads allowed)"
+    "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+log_success "All public access blocked"
 
 # Enable versioning
 log_info "Enabling versioning..."
@@ -123,42 +193,36 @@ aws s3api put-bucket-encryption \
   }'
 log_success "Encryption enabled (AES256)"
 
-# CORS configuration for Next.js uploads
-log_info "Setting CORS policy..."
+# CORS is only needed for the presigned-PUT upload path (the CMS media library),
+# and only for PUT: reads go through the app's own origin via /api/files, which
+# is not a cross-origin request. See apps/docs/deployment/s3-bucket-policy.md.
+#
+# A client served from its own domain needs that domain here, or its media
+# library cannot upload. Override it:
+#   SITE_ORIGIN=https://restaurant.example ./scripts/setup-aws.sh
+SITE_ORIGIN="${SITE_ORIGIN:-https://*.beindigital.fr}"
+log_info "Setting CORS policy (PUT only, origin: $SITE_ORIGIN)..."
 aws s3api put-bucket-cors \
   --bucket "$BUCKET_NAME" \
-  --cors-configuration '{
-    "CORSRules": [{
-      "AllowedHeaders": ["*"],
-      "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
-      "AllowedOrigins": ["http://localhost:3000", "https://*.beindigital.fr"],
-      "ExposeHeaders": ["ETag", "x-amz-request-id"],
-      "MaxAgeSeconds": 3600
-    }]
-  }'
-log_success "CORS configured"
-
-# Bucket policy: allow public reads on asset folders
-log_info "Setting bucket policy for public reads..."
-aws s3api put-bucket-policy \
-  --bucket "$BUCKET_NAME" \
-  --policy "{
-    \"Version\": \"2012-10-17\",
-    \"Statement\": [{
-      \"Sid\": \"PublicReadAssets\",
-      \"Effect\": \"Allow\",
-      \"Principal\": \"*\",
-      \"Action\": \"s3:GetObject\",
-      \"Resource\": [
-        \"arn:aws:s3:::${BUCKET_NAME}/cms/*\",
-        \"arn:aws:s3:::${BUCKET_NAME}/products/*\",
-        \"arn:aws:s3:::${BUCKET_NAME}/branding/*\",
-        \"arn:aws:s3:::${BUCKET_NAME}/stores/*\",
-        \"arn:aws:s3:::${BUCKET_NAME}/email/*\"
-      ]
+  --cors-configuration "{
+    \"CORSRules\": [{
+      \"AllowedHeaders\": [\"content-type\"],
+      \"AllowedMethods\": [\"PUT\"],
+      \"AllowedOrigins\": [\"http://localhost:3000\", \"$SITE_ORIGIN\"],
+      \"MaxAgeSeconds\": 3000
     }]
   }"
-log_success "Bucket policy set (public read on asset folders)"
+log_success "CORS configured (PUT only)"
+
+# No bucket policy is attached, deliberately. The IAM user created in step 4
+# carries s3:GetObject / s3:PutObject / s3:DeleteObject on this bucket, which is
+# all the app needs. Adding a policy that grants s3:GetObject to "*" would make
+# every uploaded file world-readable and permanently un-revocable - including a
+# file uploaded by a hostile account. That is what #185/#187 closed.
+#
+# A CDN is the supported way to serve media without the proxy: give CloudFront
+# an origin access control and let it write its own bucket policy, then set
+# AWS_S3_PUBLIC_BASE_URL. The bucket stays closed to the public internet.
 
 # Lifecycle rules: delete incomplete multipart uploads after 7 days
 log_info "Setting lifecycle rules..."
