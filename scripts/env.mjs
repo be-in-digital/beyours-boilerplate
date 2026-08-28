@@ -48,7 +48,7 @@ const GENERATORS = {
 
 /** Optional integrations, enabled one by one in the wizard. */
 const GROUPS = [
-  { name: "AWS (S3 médias + SES emails) — requis en prod (plateforme)", keys: ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_BUCKET_NAME", "AWS_SES_FROM_EMAIL", "AWS_SES_FROM_NAME", "AWS_SES_REPLY_TO_EMAIL", "AWS_SES_CONFIGURATION_SET"] },
+  { name: "AWS (S3 médias + SES emails) — requis en prod (compte du client)", keys: ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_BUCKET_NAME", "AWS_SES_FROM_EMAIL", "AWS_SES_FROM_NAME", "AWS_SES_REPLY_TO_EMAIL", "AWS_SES_CONFIGURATION_SET"] },
   { name: "Stripe (paiement CB)", keys: ["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY", "STRIPE_WEBHOOK_SECRET"] },
   { name: "PayPal", keys: ["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET"] },
   { name: "SumUp", keys: ["SUMUP_CLIENT_ID", "SUMUP_CLIENT_SECRET"] },

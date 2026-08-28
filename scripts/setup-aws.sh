@@ -45,11 +45,41 @@ set -euo pipefail
 # way. Renaming them requires renaming the AWS resources first — which, for an
 # S3 bucket, means creating a new one and copying the objects over.
 
-REGION="eu-west-3"
-DOMAIN="beindigital.fr"
-BUCKET_NAME="beindigital-engine-assets"
-IAM_USER="beindigital-engine-app"
-ENV_FILE=".env.local"
+# ── Per-client mode ──
+# One AWS account per client (apps/docs/deployment/aws-ownership.md). Give a
+# site slug and the client's sending domain, and every resource is named for
+# that client inside whatever account the AWS CLI is pointed at:
+#
+#   SITE_SLUG=chez-mario DOMAIN=chez-mario.fr ./scripts/setup-aws.sh
+#
+# With no SITE_SLUG the script keeps the fleet-wide names above, unchanged,
+# because they designate resources that already exist in the shared account.
+# That is the legacy model; new clients should not be provisioned into it.
+
+SITE_SLUG="${SITE_SLUG:-}"
+REGION="${AWS_REGION:-eu-west-3}"
+ENV_FILE="${ENV_FILE:-.env.local}"
+
+if [ -n "$SITE_SLUG" ]; then
+  if ! printf '%s' "$SITE_SLUG" | grep -qE '^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$'; then
+    echo "SITE_SLUG must be lowercase letters, digits and hyphens (3-50 chars)." >&2
+    exit 1
+  fi
+  if [ -z "${DOMAIN:-}" ]; then
+    echo "DOMAIN is required with SITE_SLUG - the client's sending domain." >&2
+    exit 1
+  fi
+  BUCKET_NAME="${BUCKET_NAME:-beyours-${SITE_SLUG}-assets}"
+  IAM_USER="${IAM_USER:-beyours-${SITE_SLUG}-app}"
+  SES_CONFIG_SET="${SES_CONFIG_SET:-beyours-${SITE_SLUG}}"
+  POLICY_NAME="${POLICY_NAME:-BeYours-${SITE_SLUG}-policy}"
+else
+  DOMAIN="${DOMAIN:-beindigital.fr}"
+  BUCKET_NAME="beindigital-engine-assets"
+  IAM_USER="beindigital-engine-app"
+  SES_CONFIG_SET="beindigital-engine"
+  POLICY_NAME="BeInDigitalEnginePolicy"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -80,6 +110,22 @@ if [ -z "$ACCOUNT_ID" ]; then
 fi
 
 log_success "AWS CLI authenticated - Account: $ACCOUNT_ID"
+
+# Provisioning into the wrong account is the failure mode that per-client
+# ownership creates: the CLI silently uses whatever profile is default. Pin it
+# with EXPECTED_ACCOUNT_ID=123456789012 to turn that into a refusal.
+if [ -n "${EXPECTED_ACCOUNT_ID:-}" ] && [ "$EXPECTED_ACCOUNT_ID" != "$ACCOUNT_ID" ]; then
+  log_error "Wrong AWS account: expected $EXPECTED_ACCOUNT_ID, got $ACCOUNT_ID."
+  log_error "Check your AWS profile (AWS_PROFILE) before re-running."
+  exit 1
+fi
+
+if [ -n "$SITE_SLUG" ]; then
+  log_info "Mode: per-client - site '$SITE_SLUG'"
+else
+  log_warn "Mode: legacy fleet-wide (no SITE_SLUG) - shared bucket and IAM user."
+  log_warn "New clients get their own account: apps/docs/deployment/aws-ownership.md"
+fi
 log_info "Region: $REGION"
 log_info "Domain: $DOMAIN"
 log_info "Bucket: $BUCKET_NAME"
@@ -326,11 +372,11 @@ log_success "Sender email identity registered"
 # Create a configuration set for tracking
 log_info "Creating SES configuration set..."
 aws sesv2 create-configuration-set \
-  --configuration-set-name "beindigital-engine" \
+  --configuration-set-name "$SES_CONFIG_SET" \
   --sending-options '{"SendingEnabled": true}' \
   --reputation-options '{"ReputationMetricsEnabled": true}' \
   --region "$REGION" 2>/dev/null || log_warn "Configuration set already exists"
-log_success "Configuration set 'beindigital-engine' ready"
+log_success "Configuration set '$SES_CONFIG_SET' ready"
 
 # ════════════════════════════════════════════════════════════════════════════
 # STEP 3: IAM USER FOR THE APP
@@ -348,7 +394,6 @@ else
 fi
 
 # Create policy with minimal permissions
-POLICY_NAME="BeInDigitalEnginePolicy"
 POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${POLICY_NAME}"
 
 POLICY_DOC=$(cat <<EOF
@@ -382,7 +427,7 @@ POLICY_DOC=$(cat <<EOF
       "Resource": [
         "arn:aws:ses:${REGION}:${ACCOUNT_ID}:identity/${DOMAIN}",
         "arn:aws:ses:${REGION}:${ACCOUNT_ID}:identity/${FROM_EMAIL}",
-        "arn:aws:ses:${REGION}:${ACCOUNT_ID}:configuration-set/beindigital-engine"
+        "arn:aws:ses:${REGION}:${ACCOUNT_ID}:configuration-set/${SES_CONFIG_SET}"
       ]
     },
     {
@@ -486,7 +531,7 @@ if [ -n "${NEW_ACCESS_KEY:-}" ]; then
   if ! grep -q "AWS_SES_CONFIGURATION_SET" "$ENV_FILE"; then
     echo "" >> "$ENV_FILE"
     echo "# SES Configuration" >> "$ENV_FILE"
-    echo "AWS_SES_CONFIGURATION_SET=beindigital-engine" >> "$ENV_FILE"
+    echo "AWS_SES_CONFIGURATION_SET=$SES_CONFIG_SET" >> "$ENV_FILE"
   fi
 
   log_success ".env.local updated"
@@ -512,7 +557,7 @@ echo ""
 echo -e "${GREEN}SES:${NC}"
 echo "  Domain: $DOMAIN"
 echo "  From: $FROM_EMAIL"
-echo "  Config Set: beindigital-engine"
+echo "  Config Set: $SES_CONFIG_SET"
 echo "  Region: $REGION"
 echo ""
 
