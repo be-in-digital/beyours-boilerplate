@@ -530,7 +530,6 @@ export default function CheckoutPage() {
                 deliveryFee={estimatedDeliveryFee}
                 hasDeliveryAddress={hasDeliveryAddress}
                 taxRatePercent={resolveTaxRatePercent({
-                  storeTaxRate: store?.settings?.taxRate,
                   globalTaxRate: globalSettings?.taxRate,
                 })}
               />
