@@ -20,6 +20,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
+import { assertMaintenanceCurrent } from "./lib/maintenance.mjs"
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..")
 const DEFAULT_REPO =
@@ -83,6 +84,11 @@ console.log(`\nCommits template à intégrer${unrelated ? " (premier sync)" : ""
 console.log(log || "  (historique complet — premier sync)")
 
 if (DRY) process.exit(0)
+
+/* Gate placed AFTER the dry run on purpose: a client whose maintenance has
+   lapsed can still see what they are missing — that list is the argument for
+   renewing. What stops is the merge. */
+await assertMaintenanceCurrent({ root: ROOT, channel: "template" })
 
 if (unrelated && !FIRST) {
   console.error(`

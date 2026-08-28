@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { Input, Separator } from "@be-in-digital/ui/components"
 import { useCartStore, formatPrice } from "@be-in-digital/restaurant"
+import { computeOrderTotals } from "@be-in-digital/convex-functions/orderTotals"
 
 interface AppliedPromo {
   id: string
@@ -27,6 +28,12 @@ interface OrderSummaryProps {
   onRemovePromo?: () => void
   deliveryFee?: number | null // number = calculated, null = can't calculate yet, undefined = not delivery
   hasDeliveryAddress?: boolean
+  /**
+   * Applicable tax rate as a percentage, resolved the same way the server does.
+   * The summary used to omit tax entirely while labelling the total "Taxes
+   * incluses" — a 20 € basket at 10 % displayed 20 € and was charged 22 €.
+   */
+  taxRatePercent?: number
 }
 
 export function OrderSummary({
@@ -37,6 +44,7 @@ export function OrderSummary({
   onRemovePromo,
   deliveryFee,
   hasDeliveryAddress,
+  taxRatePercent = 0,
 }: OrderSummaryProps) {
   const items = useCartStore((s) => s.items)
   const orderType = useCartStore((s) => s.orderType)
@@ -47,9 +55,16 @@ export function OrderSummary({
 
   const subtotal = getSubtotal()
   const itemCount = getItemCount()
-  const discount = appliedPromo?.discountAmount ?? 0
-  const fee = deliveryFee ?? 0
-  const displayTotal = Math.max(0, subtotal + fee - discount)
+
+  // Same function the server bills with, so the two cannot drift apart again.
+  const totals = computeOrderTotals({
+    subtotal,
+    taxRatePercent,
+    deliveryFee: deliveryFee ?? 0,
+    discount: appliedPromo?.discountAmount ?? 0,
+  })
+  const discount = totals.discount
+  const displayTotal = totals.total
 
   const handleApplyPromo = () => {
     const code = promoInput.trim()
@@ -228,6 +243,17 @@ export function OrderSummary({
             )}
           </div>
 
+          {totals.taxAmount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-bold uppercase tracking-widest text-zinc-400">
+                TVA ({taxRatePercent} %)
+              </span>
+              <span className="text-zinc-800">
+                {formatPrice(totals.taxAmount)}
+              </span>
+            </div>
+          )}
+
           <Separator className="bg-zinc-100" />
 
           <div className="flex items-center justify-between pt-2">
@@ -239,7 +265,7 @@ export function OrderSummary({
                 {formatPrice(displayTotal)}
               </p>
               <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                Taxes incluses
+                {totals.taxAmount > 0 ? "TVA incluse" : "Hors taxes"}
               </p>
             </div>
           </div>

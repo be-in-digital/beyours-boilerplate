@@ -2,7 +2,7 @@ import { createAuthClient } from "better-auth/react";
 import { convexClient } from "@convex-dev/better-auth/client/plugins";
 
 /**
- * Better Auth client for the restaurant-theme app.
+ * Better Auth client for the themes app.
  *
  * For RBAC (roles and permissions), import from @/lib/rbac:
  * - Role enum, Permission type

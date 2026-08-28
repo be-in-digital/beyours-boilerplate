@@ -7,7 +7,8 @@
 
 import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { requireStorePermission } from "@be-in-digital/convex-functions/auth";
+import { requireStorePermission, getAuthUser } from "@be-in-digital/convex-functions/auth";
+import { hasPermission, type Permission } from "@be-in-digital/core/auth/rbac";
 import { checkImageToProductAccess } from "@be-in-digital/convex-functions/blogAutoGuards";
 import { incrementImageToProductUsageCore } from "@be-in-digital/convex-functions/blogAutoGenerate";
 
@@ -46,5 +47,28 @@ export const incrementImageToProductUsage = internalMutation({
   args: { ownerId: v.string() },
   handler: async (ctx, { ownerId }) => {
     await incrementImageToProductUsageCore(ctx, ownerId);
+  },
+});
+
+/**
+ * Verify the caller holds a permission by role, independently of any store.
+ *
+ * For deployment-wide operations that have no storeId to check against:
+ * connecting a payment provider, starting an Uber Eats OAuth flow, asking S3
+ * for an upload URL. `checkStorePermission` cannot express those — there is no
+ * store — and "is logged in" is not an answer either, because that includes
+ * every customer who has ever ordered a pizza.
+ *
+ * `hasPermission` fails closed on an unknown role or permission string, so a
+ * typo denies rather than grants.
+ */
+export const checkPermission = internalQuery({
+  args: { permission: v.string() },
+  handler: async (ctx, args) => {
+    const user = await getAuthUser(ctx);
+    if (!hasPermission(user.role, args.permission as Permission)) {
+      throw new Error("Vous n'avez pas les droits nécessaires pour cette opération.");
+    }
+    return true;
   },
 });

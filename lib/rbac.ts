@@ -2,7 +2,7 @@
  * RBAC (Role-Based Access Control) integration
  *
  * Re-exports RBAC utilities from @be-in-digital/core
- * for easy use throughout the restaurant-theme app.
+ * for easy use throughout the themes app.
  *
  * @example
  * ```ts

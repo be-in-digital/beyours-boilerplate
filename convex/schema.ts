@@ -17,6 +17,7 @@ import {
   paymentConnectionsTable,
   uberEatsConnectionsTable,
   oauthStatesTable,
+  deliveryQuotesTable,
   languagesTable,
   translationsTable,
   translationJobsTable,
@@ -26,6 +27,7 @@ import {
   prizesTable,
   gamePlaysTable,
   prizeRedemptionsTable,
+  gameReferralsTable,
   promotionsTable,
   promotionUsagesTable,
   emailSubscribersTable,
@@ -47,6 +49,7 @@ import {
   blogAutoQueueTable,
   blogAutoUsageTable,
   favoritesTable,
+  customerAddressesTable,
   contactMessagesTable,
   cmsTable,
   cmsHomeTable,
@@ -65,7 +68,10 @@ import {
   cmsMaintenanceTable,
   cmsAccountTable,
   systemAuditLogTable,
-} from "@be-in-digital/convex-schema";
+  maintenanceContractsTable,
+  platformReleasesTable,
+  migrationRequestsTable,
+} from "@be-in-digital/convex-schema/tables";
 
 /**
  * BeYours Engine - App Schema
@@ -73,7 +79,10 @@ import {
  * Auth tables (user, session, account, verification, jwks) are managed
  * by the Better Auth component and are NOT defined here.
  *
- * Business tables are imported from @be-in-digital/convex-schema.
+ * Business tables come from @be-in-digital/convex-schema/tables, the subpath
+ * rather than the package root. The root also re-exports the zod validators,
+ * and Convex evaluates a schema module under a one-second budget: pulling zod
+ * into that graph has been enough to blow it and fail the push.
  */
 export default defineSchema({
   userProfiles: userProfilesTable,
@@ -93,6 +102,7 @@ export default defineSchema({
   paymentConnections: paymentConnectionsTable,
   uberEatsConnections: uberEatsConnectionsTable,
   oauthStates: oauthStatesTable,
+  deliveryQuotes: deliveryQuotesTable,
   languages: languagesTable,
   translations: translationsTable,
   translationJobs: translationJobsTable,
@@ -102,6 +112,7 @@ export default defineSchema({
   prizes: prizesTable,
   gamePlays: gamePlaysTable,
   prizeRedemptions: prizeRedemptionsTable,
+  gameReferrals: gameReferralsTable,
   promotions: promotionsTable,
   promotionUsages: promotionUsagesTable,
   emailSubscribers: emailSubscribersTable,
@@ -123,6 +134,7 @@ export default defineSchema({
   blogAutoQueue: blogAutoQueueTable,
   blogAutoUsage: blogAutoUsageTable,
   favorites: favoritesTable,
+  customerAddresses: customerAddressesTable,
   contactMessages: contactMessagesTable,
   // CMS (storefront page tables)
   cms: cmsTable,
@@ -143,6 +155,10 @@ export default defineSchema({
   cmsAccount: cmsAccountTable,
   // System
   systemAuditLog: systemAuditLogTable,
+  // Maintenance & migration
+  maintenanceContracts: maintenanceContractsTable,
+  platformReleases: platformReleasesTable,
+  migrationRequests: migrationRequestsTable,
 }, {
   // Re-enabled 2026-07-04 after backfilling drifted rows (see convex/migrations.ts
   // and tasks/uber-eats-go-live-runbook.md §0). Run migrations:backfillSchemaDrift

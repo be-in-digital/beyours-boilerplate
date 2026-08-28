@@ -33,13 +33,17 @@ test.describe("Store Detail Page", () => {
       page.getByRole("heading", { name: "Établissements", level: 1 })
     ).toBeVisible({ timeout: 30_000 })
 
-    // Check if there are any store rows in the table
-    const rows = page.locator("tbody tr")
-    const rowCount = await rows.count().catch(() => 0)
+    // Click the store's LINK, not the row.
+    //
+    // `TableRow` carries no onClick — navigation lives in an anchor inside the
+    // name cell. Clicking the row's centre lands on whatever cell happens to be
+    // there and goes nowhere, which is why all seventeen tests in this file
+    // failed on the same "still on /dashboard/stores".
+    const storeLinks = page.locator('tbody tr a[href^="/dashboard/stores/"]')
+    const rowCount = await storeLinks.count().catch(() => 0)
 
     if (rowCount > 0) {
-      // Click the first row to navigate to store detail
-      await rows.first().click()
+      await storeLinks.first().click()
       await page.waitForLoadState("domcontentloaded")
 
       // Wait for the store detail page to load

@@ -14,6 +14,11 @@ export interface SavedAddress {
   postalCode: string
   country: string
   isDefault: boolean
+  /** Filled by the autocomplete when the address is first saved. Absent on
+   *  addresses saved before Uber Direct quoting existed — the checkout falls
+   *  back to asking for the address again rather than guessing a location. */
+  latitude?: number
+  longitude?: number
 }
 
 interface AddressesState {

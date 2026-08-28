@@ -1,15 +1,13 @@
-import { query, mutation } from "./_generated/server"
+import { mutation } from "./_generated/server"
 import * as defs from "@be-in-digital/convex-functions/contactMessages"
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth"
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
 // === Queries (admin, auth-protected) ===
 
-export const list = query({
+export const list = storeQuery({
+  permission: "customers:read",
   args: defs.list.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId)
-    return defs.list.handler(ctx, args)
-  },
+  handler: (ctx, args) => defs.list.handler(ctx, args),
 })
 
 // === Mutations ===
@@ -17,6 +15,7 @@ export const list = query({
 /**
  * Public mutation — allows unauthenticated storefront visitors to submit a contact message.
  */
+// @public-by-design: the contact form is filled in by visitors (rate limiting tracked as S3-7)
 export const create = mutation({
   args: defs.create.args,
   handler: async (ctx, args) => {
@@ -27,15 +26,9 @@ export const create = mutation({
 /**
  * Admin mutation — update message status (read, archived).
  */
-export const updateStatus = mutation({
+export const updateStatus = storeMutation({
+  permission: "customers:write",
   args: defs.updateStatus.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    // Verify store ownership before allowing status update
-    const message = await ctx.db.get(args.id)
-    if (!message) throw new Error("Message not found")
-    await requireStoreAccess(ctx, message.storeId)
-    return defs.updateStatus.handler(ctx, args)
-  },
+  storeIdFrom: storeIdFromDocument("Message not found"),
+  handler: (ctx, args) => defs.updateStatus.handler(ctx, args),
 })

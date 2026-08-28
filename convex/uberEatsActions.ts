@@ -2,6 +2,8 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
+import type { ActionCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
 
 /**
@@ -34,15 +36,29 @@ function readCredentials(): UberCreds {
   };
 }
 
-async function requireAuth(ctx: { auth: { getUserIdentity: () => Promise<unknown> } }): Promise<void> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new Error("Not authenticated");
+/**
+ * Guard for every action in this file.
+ *
+ * It used to check only that someone was logged in, which let any customer
+ * account activate integrations, rewrite menu items, create promotions and
+ * mark orders ready on Uber Eats.
+ *
+ * The identifiers these actions take (`storeId`, `orderId`) are Uber Eats'
+ * own UUIDs, not Convex ids, so there is no tenant to scope against — the
+ * check has to be by role. These are integration-administration operations,
+ * hence `settings:write`.
+ */
+async function requireAuth(ctx: ActionCtx): Promise<void> {
+  await ctx.runQuery(internal.authHelpers.checkPermission, {
+    permission: "settings:write",
+  });
 }
 
 // ============================================================
 // Integration Config
 // ============================================================
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const activateIntegration = action({
   args: {
     storeId: v.string(),
@@ -64,6 +80,7 @@ export const activateIntegration = action({
   },
 });
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const getIntegrationDetails = action({
   args: { storeId: v.string() },
   handler: async (ctx, args) => {
@@ -76,6 +93,7 @@ export const getIntegrationDetails = action({
   },
 });
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const getStoresForUser = action({
   args: { limit: v.optional(v.number()), pageToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
@@ -94,6 +112,7 @@ export const getStoresForUser = action({
 // Menu
 // ============================================================
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const updateMenuItem = action({
   args: {
     storeId: v.string(),
@@ -109,6 +128,7 @@ export const updateMenuItem = action({
   },
 });
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const updateModifierGroup = action({
   args: {
     storeId: v.string(),
@@ -128,6 +148,7 @@ export const updateModifierGroup = action({
 // Promotions
 // ============================================================
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const createPromotion = action({
   args: { storeId: v.string(), payload: v.any() },
   handler: async (ctx, args) => {
@@ -142,6 +163,7 @@ export const createPromotion = action({
 // Reporting
 // ============================================================
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const requestReport = action({
   args: {
     reportType: v.string(),
@@ -166,6 +188,7 @@ export const requestReport = action({
 // Order — Resolve Fulfillment Issues (recommended)
 // ============================================================
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const resolveFulfillmentIssues = action({
   args: { orderId: v.string(), payload: v.any() },
   handler: async (ctx, args) => {
@@ -182,6 +205,7 @@ export const resolveFulfillmentIssues = action({
 // exposed here for direct testing during Uber validation)
 // ============================================================
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const markOrderAsReady = action({
   args: { orderId: v.string() },
   handler: async (ctx, args) => {
@@ -216,6 +240,7 @@ async function runStep(
   }
 }
 
+// @guarded-inline: requireAuth checks settings:write by role
 export const runValidation = action({
   args: {
     testStoreUuid: v.string(),

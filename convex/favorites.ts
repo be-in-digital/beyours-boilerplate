@@ -6,6 +6,7 @@ import * as defs from "@be-in-digital/convex-functions/favorites";
 /**
  * List all favorites for the authenticated user
  */
+// @guarded-inline: derives the user from the session; never takes a userId
 export const myFavorites = query({
   args: {},
   handler: async (ctx) => {
@@ -21,6 +22,7 @@ export const myFavorites = query({
 /**
  * Toggle a product favorite for the authenticated user
  */
+// @guarded-inline: derives the user from the session; never takes a userId
 export const toggleFavorite = mutation({
   args: {
     productId: defs.toggle.args.productId,
@@ -40,6 +42,7 @@ export const toggleFavorite = mutation({
 /**
  * Clear all favorites for the authenticated user
  */
+// @guarded-inline: derives the user from the session; never takes a userId
 export const clearAll = mutation({
   args: {},
   handler: async (ctx) => {

@@ -42,11 +42,18 @@ async function readCredentials() {
  * The redirect URI ({CONVEX_SITE_URL}/connect/uber-eats/callback) MUST be
  * registered in the Uber developer portal for this app.
  */
+// @guarded-inline: checks settings:write by role — no store to scope against
 export const generateAuthorizeUrl = action({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    // Deployment-wide operation with no store to scope against. "Logged in"
+    // included every customer account, so the check is by role.
+    await ctx.runQuery(internal.authHelpers.checkPermission, {
+      permission: "settings:write",
+    });
 
     const { credentials, siteUrl } = await readCredentials();
     if (!siteUrl) throw new Error("CONVEX_SITE_URL is not configured");
@@ -171,6 +178,7 @@ export const activateAndListStoresCore = internalAction({
 /**
  * Public wrapper: enforces admin auth, then runs the validation flow.
  */
+// @guarded-inline: checks settings:write by role — no store to scope against
 export const activateAndListStores = action({
   args: {
     storeId: v.string(),
@@ -181,6 +189,12 @@ export const activateAndListStores = action({
   handler: async (ctx, args): Promise<{ success: boolean; storesCount: number; stores: Array<Record<string, unknown>>; activatedStoreId: string }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    // Deployment-wide operation with no store to scope against. "Logged in"
+    // included every customer account, so the check is by role.
+    await ctx.runQuery(internal.authHelpers.checkPermission, {
+      permission: "settings:write",
+    });
     return await ctx.runAction(internal.uberEatsOAuth.activateAndListStoresCore, args);
   },
 });

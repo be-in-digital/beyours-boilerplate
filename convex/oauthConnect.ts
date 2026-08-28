@@ -81,6 +81,7 @@ async function encrypt(plaintext: string): Promise<string> {
  *
  * The client redirects the browser to the returned URL.
  */
+// @guarded-inline: checks settings:write by role — no store to scope against
 export const generateOAuthUrl = action({
   args: {
     provider: v.union(
@@ -91,6 +92,12 @@ export const generateOAuthUrl = action({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    // Deployment-wide operation with no store to scope against. "Logged in"
+    // included every customer account, so the check is by role.
+    await ctx.runQuery(internal.authHelpers.checkPermission, {
+      permission: "settings:write",
+    });
 
     const { getSiteEnv } = await import("@be-in-digital/core/env");
     const site = getSiteEnv();

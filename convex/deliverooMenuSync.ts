@@ -30,15 +30,41 @@ import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
  * 10. Call deliveroo.pushMenu() from integrations package
  * 11. Update menuSyncStatus to "success" or "error"
  */
+/**
+ * Push this store's menu to Deliveroo, on a human's request.
+ *
+ * Guarded — and deliberately a thin shell. The scheduled sweep runs without a
+ * session, so it must NOT come through here: `syncAllStores` used to call this
+ * very action, and adding the permission check killed the nightly push. The
+ * work now lives in `internalSyncStore`, which the scheduler calls directly.
+ */
+// @guarded-inline: checks products:write on the store being synced
 export const syncStore = action({
   args: { storeId: v.id("stores") },
-  handler: async (ctx, args) => {
-    // Note: No auth check here — syncStore is also scheduled by syncAllStores (no user context).
-    // Protection: syncAllStores is an internalAction, and direct calls only trigger a harmless menu push.
+  handler: async (ctx, args): Promise<unknown> => {
+    await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+      storeId: args.storeId,
+      permission: "products:write",
+    });
+    return ctx.runAction(internal.deliverooMenuSync.internalSyncStore, {
+      storeId: args.storeId,
+    });
+  },
+});
 
-    // 1. Get the store integration for deliveroo
+/**
+ * The push itself, with no authorisation of its own.
+ *
+ * Reachable only from the guarded action above and from the scheduled sweep —
+ * an `internalAction` cannot be called from a browser.
+ */
+export const internalSyncStore = internalAction({
+  args: { storeId: v.id("stores") },
+  handler: async (ctx, args) => {
+    // `getByStorePlatform` is store-scoped and needs a session; the scheduler
+    // has none, so the sweep died here before reaching Deliveroo at all.
     const integration = await ctx.runQuery(
-      api.storeIntegrations.getByStorePlatform,
+      internal.storeIntegrations.internalGetByStorePlatform,
       { storeId: args.storeId, platform: "deliveroo" }
     ) as StoreIntegrationRecord | null;
 
@@ -148,9 +174,17 @@ export const syncStore = action({
  * Fetch the current menu from Deliveroo to verify sync results.
  * Temporary diagnostic action — can be removed after verification.
  */
+// @guarded-inline: checks products:write on the store being synced
 export const checkMenu = action({
   args: { storeId: v.id("stores") },
   handler: async (ctx, args) => {
+    // Pushing a menu to a delivery platform is a write on the restaurant's
+    // catalogue. Nothing checked the caller at all before.
+    await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+      storeId: args.storeId,
+      permission: "products:write",
+    });
+
     const integration = await ctx.runQuery(
       api.storeIntegrations.getByStorePlatform,
       { storeId: args.storeId, platform: "deliveroo" }
@@ -222,7 +256,7 @@ export const syncAllStores = internalAction({
   handler: async (ctx) => {
     // Query all enabled Deliveroo integrations
     const allIntegrations = await ctx.runQuery(
-      api.storeIntegrations.listByPlatformEnabled,
+      internal.storeIntegrations.internalListByPlatformEnabled,
       { platform: "deliveroo" }
     ) as StoreIntegrationRecord[];
 
@@ -240,7 +274,7 @@ export const syncAllStores = internalAction({
     for (const integration of syncableIntegrations) {
       await ctx.scheduler.runAfter(
         0,
-        api.deliverooMenuSync.syncStore,
+        internal.deliverooMenuSync.internalSyncStore,
         { storeId: integration.storeId as Id<"stores"> }
       );
     }

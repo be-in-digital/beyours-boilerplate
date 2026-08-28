@@ -9,6 +9,7 @@
 
 import { v } from "convex/values"
 import { action } from "./_generated/server"
+import { internal } from "./_generated/api"
 
 interface UnsplashPhotoRaw {
   id: string
@@ -18,6 +19,7 @@ interface UnsplashPhotoRaw {
   links: { download_location: string }
 }
 
+// @guarded-inline: checks content:write by role — no store to scope against
 export const searchPhotos = action({
   args: {
     query: v.string(),
@@ -26,6 +28,12 @@ export const searchPhotos = action({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error("Not authenticated")
+
+    // Deployment-wide operation with no store to scope against. "Logged in"
+    // included every customer account, so the check is by role.
+    await ctx.runQuery(internal.authHelpers.checkPermission, {
+      permission: "content:write",
+    });
 
     const accessKey = process.env.UNSPLASH_ACCESS_KEY
     if (!accessKey) {
@@ -71,6 +79,7 @@ export const searchPhotos = action({
   },
 })
 
+// @guarded-inline: checks content:write by role — no store to scope against
 export const triggerDownload = action({
   args: {
     downloadLocation: v.string(),
@@ -78,6 +87,12 @@ export const triggerDownload = action({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error("Not authenticated")
+
+    // Deployment-wide operation with no store to scope against. "Logged in"
+    // included every customer account, so the check is by role.
+    await ctx.runQuery(internal.authHelpers.checkPermission, {
+      permission: "content:write",
+    });
 
     const accessKey = process.env.UNSPLASH_ACCESS_KEY
     if (!accessKey) return

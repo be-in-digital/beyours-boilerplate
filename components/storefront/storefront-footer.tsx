@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Facebook, Twitter, Instagram, MapPin, Phone, Clock, Mail } from "lucide-react"
 import { Button } from "@be-in-digital/ui/components"
 import { Input } from "@be-in-digital/ui/components"
-import { useCurrentStore } from "@be-in-digital/restaurant"
+import { useStoreId } from "@/lib/hooks"
 import { toast } from "sonner"
 
 const productLinks = [
@@ -22,7 +22,7 @@ const quickLinks = [
 ]
 
 export function StorefrontFooter() {
-  const store = useCurrentStore()
+  const { store } = useStoreId()
   const [email, setEmail] = useState("")
   const inputId = useId()
 

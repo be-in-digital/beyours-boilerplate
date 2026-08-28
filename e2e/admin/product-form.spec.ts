@@ -3,7 +3,17 @@ import { collectConsoleErrors } from "../helpers/console.helpers"
 import { waitForAdminPage } from "../helpers/navigation.helpers"
 
 test.describe("Product Form", () => {
-  test.describe.configure({ mode: "serial" })
+  // Not serial.
+  //
+  // These tests share nothing: no `beforeAll`, no describe-scope variables, and
+  // not one of them submits a form — the delete tests open the confirmation and
+  // cancel it. Each re-navigates in its own `beforeEach`.
+  //
+  // Serial mode arrived in a bulk monorepo-wiring commit, unexplained, and cost
+  // far more than it gave: the first failure abandons the whole block, so four
+  // failures were hiding 52 tests across these four files. Independent tests
+  // each fail for their own reason, which is the only kind of failure worth
+  // reading.
 
   test.describe("New Product Page", () => {
     test.beforeEach(async ({ page }) => {
@@ -22,9 +32,13 @@ test.describe("Product Form", () => {
 
     test("should display back button to /products", async ({ page }) => {
       // The back button/link should navigate to /products
-      const backLink = page.getByRole("link", { name: /retour|produits/i }).or(
-        page.locator('a[href="/dashboard/products"]')
-      )
+      // Scoped to the page content: the sidebar also links to
+      // /dashboard/products, so an unscoped lookup matched both it and the
+      // breadcrumb. First test of a `serial` block — sixteen others never ran.
+      const backLink = page
+        .locator('[data-tour="main-content"]')
+        .locator('a[href="/dashboard/products"]')
+        .first()
 
       await expect(backLink).toBeVisible({ timeout: 15_000 })
     })
@@ -71,7 +85,7 @@ test.describe("Product Form", () => {
 
       // Price field
       await expect(
-        page.getByLabel("Prix (EUR)")
+        page.getByLabel(/Prix \(€\)/)  // le formulaire affiche « Prix (€) », jamais « Prix (EUR) »
       ).toBeVisible()
     })
 
@@ -179,15 +193,11 @@ test.describe("Product Form", () => {
 
       // Scheduling fields for availability dates
       await expect(
-        page
-          .getByText("Disponible à partir de")
-          .or(page.getByLabel("Disponible à partir de"))
+        page.getByText("Disponible à partir de").first()
       ).toBeVisible({ timeout: 15_000 })
 
       await expect(
-        page
-          .getByText("Disponible jusqu'à")
-          .or(page.getByLabel("Disponible jusqu'à"))
+        page.getByText("Disponible jusqu'à").first()
       ).toBeVisible()
     })
   })
@@ -304,14 +314,20 @@ test.describe("Product Form", () => {
     }) => {
       // Find and enable the stock tracking toggle
       const stockToggle = page
-        .getByRole("switch", { name: /stock/i })
-        .or(page.getByRole("switch").first())
+        // The input is `sr-only` — visually hidden by design, the visible
+        // toggle being drawn by the wrapping label. Playwright never reports an
+        // sr-only element as visible, so asserting on the control could not
+        // work whatever its ARIA role. Target what the user sees and clicks,
+        // exactly as the sibling test at :168 already does.
+        .getByText("Suivre le stock de ce produit")
 
       await expect(stockToggle).toBeVisible({ timeout: 15_000 })
 
-      // Enable stock tracking if not already enabled
-      const isChecked = await stockToggle.getAttribute("aria-checked")
-      if (isChecked !== "true") {
+      // State read from the input, not the label: `getAttribute` on a label
+      // always returns null, so this branch was decorative — it clicked every
+      // time and merely happened to be right.
+      const stockInput = page.locator("#stock-tracked")
+      if (!(await stockInput.isChecked())) {
         await stockToggle.click()
       }
 
@@ -334,14 +350,19 @@ test.describe("Product Form", () => {
     }) => {
       // Find the stock tracking toggle
       const stockToggle = page
-        .getByRole("switch", { name: /stock/i })
-        .or(page.getByRole("switch").first())
+        // The input is `sr-only` — visually hidden by design, the visible
+        // toggle being drawn by the wrapping label. Playwright never reports an
+        // sr-only element as visible, so asserting on the control could not
+        // work whatever its ARIA role. Target what the user sees and clicks,
+        // exactly as the sibling test at :168 already does.
+        .getByText("Suivre le stock de ce produit")
 
       await expect(stockToggle).toBeVisible({ timeout: 15_000 })
 
-      // Enable tracking first to ensure fields appear
-      const isChecked = await stockToggle.getAttribute("aria-checked")
-      if (isChecked !== "true") {
+      // Enable tracking first so the fields appear. State read from the input,
+      // not the label — see the sibling test above.
+      const stockInput = page.locator("#stock-tracked")
+      if (!(await stockInput.isChecked())) {
         await stockToggle.click()
         await page.waitForTimeout(500)
       }

@@ -6,11 +6,21 @@ import { expect } from "@playwright/test"
  * The admin layout includes a sidebar and a store selector.
  */
 export async function waitForAdminPage(page: Page, timeout = 30_000) {
-  // Wait for the sidebar to be visible (admin layout indicator)
-  // Use .first() to avoid strict mode violation when multiple sidebar elements exist
-  await expect(
-    page.locator('[data-slot="sidebar"]').first()
-  ).toBeVisible({ timeout })
+  // What proves the admin layout mounted depends on the viewport.
+  //
+  // On a narrow screen the sidebar lives inside a Sheet — a drawer shut until
+  // the user opens it — so `[data-slot="sidebar"]` is simply not there. Waiting
+  // for it could never succeed, which is why every mobile test in
+  // `admin-responsive.spec.ts` failed on the same missing locator. The drawer's
+  // trigger is the equivalent landmark: it exists only once the layout is up.
+  const viewport = page.viewportSize()
+  const isMobile = (viewport?.width ?? 1280) < 768
+
+  const landmark = isMobile
+    ? page.locator('[data-slot="sidebar-trigger"]').first()
+    : page.locator('[data-slot="sidebar"]').first()
+
+  await expect(landmark).toBeVisible({ timeout })
 
   // Wait for loading spinners/skeletons to disappear
   await waitForConvexData(page, timeout)

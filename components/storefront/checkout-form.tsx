@@ -66,7 +66,15 @@ interface CheckoutFormProps {
   addresses: SavedAddress[]
   isAuthenticated: boolean
   user?: UserInfo
-  onAddressChange?: (hasAddress: boolean) => void
+  /**
+   * Reports the delivery address as it changes. Coordinates are included when
+   * known — the checkout needs them to request an Uber Direct quote before the
+   * order is submitted, since the server now reads the delivery fee from that
+   * quote instead of trusting a client-supplied number.
+   */
+  onAddressChange?: (
+    address: { latitude?: number; longitude?: number } | null
+  ) => void
 }
 
 const fulfillmentOptions = [
@@ -145,19 +153,30 @@ export function CheckoutForm({
     }
   }, [user?.name, user?.email, user?.phone, reset])
 
-  // Notify parent when address availability changes
+  // Notify parent when the delivery address changes
   useEffect(() => {
     if (!onAddressChange || !isDelivery) {
-      onAddressChange?.(false)
+      onAddressChange?.(null)
       return
     }
     if (selectedAddressId !== "manual") {
-      onAddressChange(true)
+      const saved = addresses.find((a) => a.id === selectedAddressId)
+      // Saved addresses carry no coordinates today, so a percentage-mode quote
+      // cannot be requested for them — the summary says so rather than failing
+      // at submit time.
+      onAddressChange(saved ? {} : null)
     } else {
       const hasManual = !!(manualAddress.street.trim() && manualAddress.city.trim() && manualAddress.postalCode.trim())
-      onAddressChange(hasManual)
+      onAddressChange(
+        hasManual
+          ? {
+              latitude: manualAddress.latitude,
+              longitude: manualAddress.longitude,
+            }
+          : null
+      )
     }
-  }, [isDelivery, selectedAddressId, manualAddress, onAddressChange])
+  }, [isDelivery, selectedAddressId, manualAddress, addresses, onAddressChange])
 
   const handleFormSubmit = (data: CheckoutFormData) => {
     let deliveryAddress:
@@ -180,6 +199,8 @@ export function CheckoutForm({
             city: saved.city,
             postalCode: saved.postalCode,
             country: saved.country,
+            latitude: saved.latitude,
+            longitude: saved.longitude,
           }
         }
       } else {

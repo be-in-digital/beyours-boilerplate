@@ -150,7 +150,7 @@ import { cn } from "@/lib/utils"
 To add new shadcn/ui components:
 
 ```bash
-cd apps/restaurant-theme
+cd apps/themes
 npx shadcn@latest add button
 npx shadcn@latest add card
 npx shadcn@latest add input

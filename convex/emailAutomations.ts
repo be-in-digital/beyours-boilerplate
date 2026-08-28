@@ -1,79 +1,64 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/emailAutomations";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
+
+const emailAutomationsStoreId = storeIdFromDocument("Automation not found");
 
 // === Queries (auth-protected) ===
 
-export const list = query({
+export const list = storeQuery({
+  permission: "marketing:read",
   args: defs.list.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.list.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
-export const getById = query({
+export const getById = storeQuery({
+  permission: "marketing:read",
+  storeIdFrom: emailAutomationsStoreId,
   args: defs.getById.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getById.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getById.handler(ctx, args),
 });
 
-export const listActive = query({
+export const listActive = storeQuery({
+  permission: "marketing:read",
   args: defs.listActive.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.listActive.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.listActive.handler(ctx, args),
 });
 
 // === Mutations (auth-protected) ===
 
-export const create = mutation({
+export const create = storeMutation({
+  permission: "marketing:write",
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const update = mutation({
+export const update = storeMutation({
+  permission: "marketing:write",
+  storeIdFrom: emailAutomationsStoreId,
   args: defs.update.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.update.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.update.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
+  permission: "marketing:write",
+  storeIdFrom: emailAutomationsStoreId,
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.remove.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });
 
-export const activate = mutation({
+export const activate = storeMutation({
+  permission: "marketing:write",
+  storeIdFrom: emailAutomationsStoreId,
   args: defs.activate.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.activate.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.activate.handler(ctx, args),
 });
 
-export const pause = mutation({
+export const pause = storeMutation({
+  permission: "marketing:write",
+  storeIdFrom: emailAutomationsStoreId,
   args: defs.pause.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.pause.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.pause.handler(ctx, args),
 });
 
 // === Internal mutations ===

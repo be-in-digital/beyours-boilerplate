@@ -130,8 +130,11 @@ async function getDeliverooCredentials() {
 
 /**
  * Map Deliveroo status to internal order status
+ *
+ * Exported so tests can assert the Deliveroo vocabulary against the internal
+ * status machine rather than restating the mapping and letting it drift.
  */
-function mapDeliverooStatus(
+export function mapDeliverooStatus(
   deliverooStatus: string
 ): "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "completed" | "cancelled" {
   switch (deliverooStatus) {
@@ -186,7 +189,7 @@ export const processOrderWebhook = internalAction({
 
       // Find store integration
       const allIntegrations = (await ctx.runQuery(
-        api.storeIntegrations.listByPlatformEnabled,
+        internal.storeIntegrations.internalListByPlatformEnabled,
         { platform: "deliveroo" }
       )) as StoreIntegrationRecord[];
 
@@ -522,7 +525,7 @@ async function handleStatusUpdate(
         for (const item of itemsWithPLU) {
           try {
             const mapping = await ctx.runQuery(
-              api.externalProductMappings.getByExternal,
+              internal.externalProductMappings.internalGetByExternal,
               { externalId: item.pos_item_id!, platform: "deliveroo" }
             );
             if (!mapping) {
@@ -612,7 +615,7 @@ export const processMenuWebhook = internalAction({
   handler: async (ctx, args) => {
     try {
       const allIntegrations = (await ctx.runQuery(
-        api.storeIntegrations.listByPlatformEnabled,
+        internal.storeIntegrations.internalListByPlatformEnabled,
         { platform: "deliveroo" }
       )) as StoreIntegrationRecord[];
 

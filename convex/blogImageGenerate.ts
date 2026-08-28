@@ -14,6 +14,7 @@ import { action } from "./_generated/server"
 import { internal } from "./_generated/api"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 import type { Id } from "./_generated/dataModel"
+import { buildMediaUrl } from "@be-in-digital/core/aws/media-url"
 
 // ============================================================================
 // S3 Helpers (same pattern as blogAutoGenerate.ts / cmsMediaProcess.ts)
@@ -29,11 +30,12 @@ function createS3Client() {
   })
 }
 
+/**
+ * The bucket is private: a key becomes either a CDN URL or a path on this
+ * app's own `/api/files` proxy. One policy, in `@be-in-digital/core`.
+ */
 function buildPublicUrl(key: string): string {
-  const bucketName = process.env.AWS_S3_BUCKET_NAME!
-  const region = process.env.AWS_REGION ?? "eu-west-3"
-  const base = process.env.AWS_S3_PUBLIC_BASE_URL
-  return base ? `${base}/${key}` : `https://${bucketName}.s3.${region}.amazonaws.com/${key}`
+  return buildMediaUrl(key, process.env.AWS_S3_PUBLIC_BASE_URL)
 }
 
 // ============================================================================
@@ -48,6 +50,7 @@ function buildPublicUrl(key: string): string {
  * 4. Schedule image processing (thumb + card variants)
  * 5. Increment image usage (after S3 success)
  */
+// @guarded-inline: runs _checkImageAccess, which enforces the store quota and rights
 export const generateImage = action({
   args: {
     storeId: v.id("stores"),

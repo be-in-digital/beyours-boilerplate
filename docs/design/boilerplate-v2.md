@@ -14,7 +14,7 @@ customizable, and able to receive updates from the engine repo**.
 
 ## Decisions
 
-### D1 — The boilerplate mirrors `apps/restaurant-theme`
+### D1 — The boilerplate mirrors `apps/reference`
 
 The engine's reference app is thick (~440 TS files: 128 routes, 160 local
 components, 94 convex wrappers). A 100% npm "thin" shell is not possible

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useMutation } from "convex/react"
+import { useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Payment } from "@/lib/admin/types"
 import { toast } from "sonner"
@@ -27,7 +27,10 @@ interface RefundDialogProps {
 }
 
 export function RefundDialog({ payment, open, onOpenChange }: RefundDialogProps) {
-  const refundMutation = useMutation(api.payments.refund)
+  // An action, not a mutation: the refund calls the payment provider before
+  // anything is recorded. `payments.refund` was a database-only patch that
+  // reported success while the customer was never paid back.
+  const refundPayment = useAction(api.payments.refundPayment)
 
   const maxRefundAmount = payment.amount - (payment.refundedAmount || 0)
   const [refundAmount, setRefundAmount] = useState(maxRefundAmount)
@@ -51,7 +54,7 @@ export function RefundDialog({ payment, open, onOpenChange }: RefundDialogProps)
     setIsSubmitting(true)
 
     try {
-      await refundMutation({
+      await refundPayment({
         id: payment._id,
         amount: refundAmount,
         reason: reason.trim() || undefined,

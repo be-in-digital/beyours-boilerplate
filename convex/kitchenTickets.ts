@@ -1,8 +1,11 @@
-import { query, mutation, internalMutation, internalQuery, action } from "./_generated/server";
+import { query, internalMutation, internalQuery, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/kitchenTickets";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, storeMutation, storeIdFromDocument, storeIdFromField } from "./lib/storeFunctions";
+
+const kitchenTicketsStoreId = storeIdFromDocument("Ticket not found");
+const kitchenTickets_getByOrderStoreId = storeIdFromField("orderId", "Order not found");
 
 // === INTERNAL QUERIES (no auth, called from actions) ===
 
@@ -49,155 +52,122 @@ export const internalUpdateStatus = internalMutation({
 
 // === QUERIES ===
 
-export const getByStore = query({
+export const getByStore = storeQuery({
+  permission: "kitchen:read",
   args: defs.getByStore.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getByStore.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByStore.handler(ctx, args),
 });
-export const getByStatus = query({
+export const getByStatus = storeQuery({
+  permission: "kitchen:read",
   args: defs.getByStatus.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getByStatus.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByStatus.handler(ctx, args),
 });
 
-export const getByStation = query({
+export const getByStation = storeQuery({
+  permission: "kitchen:read",
   args: defs.getByStation.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getByStation.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByStation.handler(ctx, args),
 });
 
-export const getByOrder = query({
+export const getByOrder = storeQuery({
+  permission: "kitchen:read",
+  storeIdFrom: kitchenTickets_getByOrderStoreId,
   args: defs.getByOrder.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getByOrder.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByOrder.handler(ctx, args),
 });
 
-export const getPrintQueue = query({
+export const getPrintQueue = storeQuery({
+  permission: "kitchen:read",
   args: defs.getPrintQueue.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getPrintQueue.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getPrintQueue.handler(ctx, args),
 });
 
-export const getOverdueCount = query({
+export const getOverdueCount = storeQuery({
+  permission: "kitchen:read",
   args: defs.getOverdueCount.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getOverdueCount.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getOverdueCount.handler(ctx, args),
 });
 
-export const getPrintStuckCount = query({
+export const getPrintStuckCount = storeQuery({
+  permission: "kitchen:read",
   args: defs.getPrintStuckCount.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getPrintStuckCount.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getPrintStuckCount.handler(ctx, args),
 });
 
-export const getForDisplay = query({
+export const getForDisplay = storeQuery({
+  permission: "kitchen:read",
   args: defs.getForDisplay.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getForDisplay.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getForDisplay.handler(ctx, args),
 });
 
 // Public: token-based access for customer order tracking
+// @public-by-design: order tracking by opaque token. The payload carries
+// preparation state only — no customer details.
 export const getByTrackingToken = query(defs.getByTrackingToken);
 
 // === MUTATIONS (authenticated) ===
 
-export const create = mutation({
+export const create = storeMutation({
+  permission: "kitchen:write",
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const updateStatus = mutation({
+export const updateStatus = storeMutation({
+  permission: "kitchen:write",
+  storeIdFrom: kitchenTicketsStoreId,
   args: defs.updateStatus.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.updateStatus.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.updateStatus.handler(ctx, args),
 });
 
-export const markPickedUp = mutation({
+export const markPickedUp = storeMutation({
+  permission: "kitchen:write",
+  storeIdFrom: kitchenTicketsStoreId,
   args: defs.markPickedUp.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.markPickedUp.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.markPickedUp.handler(ctx, args),
 });
 
-export const markPrintSent = mutation({
+export const markPrintSent = storeMutation({
+  permission: "kitchen:write",
+  storeIdFrom: kitchenTicketsStoreId,
   args: defs.markPrintSent.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.markPrintSent.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.markPrintSent.handler(ctx, args),
 });
 
-export const markPrintFailed = mutation({
+export const markPrintFailed = storeMutation({
+  permission: "kitchen:write",
+  storeIdFrom: kitchenTicketsStoreId,
   args: defs.markPrintFailed.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.markPrintFailed.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.markPrintFailed.handler(ctx, args),
 });
 
-export const requestReprint = mutation({
+export const requestReprint = storeMutation({
+  permission: "kitchen:write",
+  storeIdFrom: kitchenTicketsStoreId,
   args: defs.requestReprint.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.requestReprint.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.requestReprint.handler(ctx, args),
 });
 
-export const assignStation = mutation({
+export const assignStation = storeMutation({
+  permission: "kitchen:write",
+  storeIdFrom: kitchenTicketsStoreId,
   args: defs.assignStation.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.assignStation.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.assignStation.handler(ctx, args),
 });
 
-export const assignTo = mutation({
+export const assignTo = storeMutation({
+  permission: "kitchen:write",
+  storeIdFrom: kitchenTicketsStoreId,
   args: defs.assignTo.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.assignTo.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.assignTo.handler(ctx, args),
 });
 
 /** @deprecated Use markPrintSent instead */
-export const incrementPrintCount = mutation({
+export const incrementPrintCount = storeMutation({
+  permission: "kitchen:write",
+  storeIdFrom: kitchenTicketsStoreId,
   args: defs.incrementPrintCount.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.incrementPrintCount.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.incrementPrintCount.handler(ctx, args),
 });
 
 // === ACTIONS (authenticated, can call external APIs) ===
@@ -233,6 +203,7 @@ async function getDeliverooCredentials() {
 /**
  * Accept a kitchen ticket: update status + notify platform (Uber Eats / Deliveroo).
  */
+// @guarded-inline: checks kitchen:write on the ticket's own store
 export const acceptTicket = action({
   args: { id: v.id("kitchenTickets") },
   handler: async (ctx, args) => {
@@ -241,6 +212,14 @@ export const acceptTicket = action({
 
     const ticket = await ctx.runQuery(internal.kitchenTickets.internalGetById, { id: args.id });
     if (!ticket) throw new Error("Kitchen ticket not found");
+
+    // The ticket carries the restaurant; check the caller may work its kitchen.
+    // Being logged in was the only requirement before, so any customer account
+    // could accept, ready, complete or cancel tickets in any restaurant.
+    await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+      storeId: ticket.storeId,
+      permission: "kitchen:write",
+    });
 
     // 1. Update ticket status to in_progress
     await ctx.runMutation(internal.kitchenTickets.internalUpdateStatus, {
@@ -296,6 +275,7 @@ export const acceptTicket = action({
  * - Deliveroo: POST /order/v2/orders/{id}/prep_stage { stage: "ready" }
  * - Uber Eats: POST /v1/eats/orders/{id}/mark_order_as_ready_for_pickup
  */
+// @guarded-inline: checks kitchen:write on the ticket's own store
 export const readyTicket = action({
   args: { id: v.id("kitchenTickets") },
   handler: async (ctx, args) => {
@@ -304,6 +284,14 @@ export const readyTicket = action({
 
     const ticket = await ctx.runQuery(internal.kitchenTickets.internalGetById, { id: args.id });
     if (!ticket) throw new Error("Kitchen ticket not found");
+
+    // The ticket carries the restaurant; check the caller may work its kitchen.
+    // Being logged in was the only requirement before, so any customer account
+    // could accept, ready, complete or cancel tickets in any restaurant.
+    await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+      storeId: ticket.storeId,
+      permission: "kitchen:write",
+    });
 
     // 1. Update ticket status to ready
     await ctx.runMutation(internal.kitchenTickets.internalUpdateStatus, {
@@ -366,6 +354,7 @@ export const readyTicket = action({
  * Mark a kitchen ticket as completed (picked up by driver/customer).
  * Updates ticket + order status. Pickup is tracked by the driver's app on platforms.
  */
+// @guarded-inline: checks kitchen:write on the ticket's own store
 export const completeTicket = action({
   args: { id: v.id("kitchenTickets") },
   handler: async (ctx, args) => {
@@ -374,6 +363,14 @@ export const completeTicket = action({
 
     const ticket = await ctx.runQuery(internal.kitchenTickets.internalGetById, { id: args.id });
     if (!ticket) throw new Error("Kitchen ticket not found");
+
+    // The ticket carries the restaurant; check the caller may work its kitchen.
+    // Being logged in was the only requirement before, so any customer account
+    // could accept, ready, complete or cancel tickets in any restaurant.
+    await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+      storeId: ticket.storeId,
+      permission: "kitchen:write",
+    });
 
     // 1. Mark picked up
     try {
@@ -410,6 +407,7 @@ export const completeTicket = action({
  * - Deliveroo: reject (pre-accept only). Post-accept cancel not available via API.
  * - Website: orders.internalUpdateStatus already marks payments as refunded at DB level.
  */
+// @guarded-inline: checks kitchen:write on the ticket's own store
 export const cancelTicket = action({
   args: {
     id: v.id("kitchenTickets"),
@@ -421,6 +419,14 @@ export const cancelTicket = action({
 
     const ticket = await ctx.runQuery(internal.kitchenTickets.internalGetById, { id: args.id });
     if (!ticket) throw new Error("Kitchen ticket not found");
+
+    // The ticket carries the restaurant; check the caller may work its kitchen.
+    // Being logged in was the only requirement before, so any customer account
+    // could accept, ready, complete or cancel tickets in any restaurant.
+    await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+      storeId: ticket.storeId,
+      permission: "kitchen:write",
+    });
 
     const wasAccepted = ticket.status !== "pending";
     const cancelReason = args.reason ?? "Commande annulée par le restaurant";

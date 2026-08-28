@@ -8,12 +8,12 @@
  * NOTE: No "use node" here — actions live in separate files (cmsMediaConfirmUpload.ts, cmsMediaProcess.ts).
  */
 
+import { internalMutation, internalQuery } from "./_generated/server"
 import {
-  query,
-  mutation,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server"
+  storeQuery,
+  storeMutation,
+  storeIdFromField,
+} from "./lib/storeFunctions"
 import { v } from "convex/values"
 import * as mediaDefs from "@be-in-digital/convex-functions/cmsMedia"
 
@@ -21,24 +21,20 @@ import * as mediaDefs from "@be-in-digital/convex-functions/cmsMedia"
 // Queries
 // ============================================================================
 
-/** List media for a store (auth-protected) */
-export const listMedia = query({
+// The media library is per-restaurant. These were auth-only with a client
+// `storeId`, so any account could browse — and delete — another restaurant's
+// assets.
+export const listMedia = storeQuery({
+  permission: "content:read",
   args: mediaDefs.listMedia.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return mediaDefs.listMedia.handler(ctx, args)
-  },
+  handler: (ctx, args) => mediaDefs.listMedia.handler(ctx, args),
 })
 
-/** Get a single media item (auth-protected) */
-export const getMedia = query({
+export const getMedia = storeQuery({
+  permission: "content:read",
   args: mediaDefs.getMedia.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return mediaDefs.getMedia.handler(ctx, args)
-  },
+  storeIdFrom: storeIdFromField("mediaId", "Media not found"),
+  handler: (ctx, args) => mediaDefs.getMedia.handler(ctx, args),
 })
 
 // ============================================================================
@@ -46,23 +42,17 @@ export const getMedia = query({
 // ============================================================================
 
 /** Reserve a media record before upload (status=processing) */
-export const createMedia = mutation({
+export const createMedia = storeMutation({
+  permission: "content:write",
   args: mediaDefs.createMedia.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return mediaDefs.createMedia.handler(ctx, args)
-  },
+  handler: (ctx, args) => mediaDefs.createMedia.handler(ctx, args),
 })
 
 /** Delete a media item (blocked if referenced) */
-export const deleteMedia = mutation({
+export const deleteMedia = storeMutation({
+  permission: "content:delete",
   args: mediaDefs.deleteMedia.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return mediaDefs.deleteMedia.handler(ctx, args)
-  },
+  handler: (ctx, args) => mediaDefs.deleteMedia.handler(ctx, args),
 })
 
 // ============================================================================

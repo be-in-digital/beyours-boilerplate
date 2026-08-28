@@ -13,10 +13,15 @@ import {
 } from "lucide-react"
 import { Button } from "@be-in-digital/ui/components"
 import { useCartStore, formatPrice } from "@be-in-digital/restaurant"
+import { resolveTaxRatePercent } from "@be-in-digital/convex-functions/orderTotals"
 import { authClient } from "@/lib/auth-client"
+import {
+  decideOrderQuote,
+  type OrderQuote,
+} from "@/lib/checkout/order-quote"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 import { useStoreStatus } from "@/lib/hooks/use-store-status"
-import { useAddressesStore } from "@/lib/stores/addresses-store"
+import { useAddresses } from "@/lib/hooks/use-addresses"
 import { CheckoutForm } from "@/components/storefront/checkout-form"
 import { OrderSummary } from "@/components/storefront/order-summary"
 import { SignInDialog } from "@/components/storefront/sign-in-dialog"
@@ -39,15 +44,17 @@ export default function CheckoutPage() {
   const orderType = useCartStore((s) => s.orderType)
   const clearCart = useCartStore((s) => s.clearCart)
   const getSubtotal = useCartStore((s) => s.getSubtotal)
-  const addresses = useAddressesStore(
-    (s: { addresses: import("@/lib/stores/addresses-store").SavedAddress[] }) =>
-      s.addresses
-  )
+  const { addresses } = useAddresses(!!session?.user)
 
   const createOrder = useMutation(api.orders.create)
   const createStripeSession = useAction(api.stripe.createCheckoutSession)
   const createSumUpCheckout = useAction(api.sumup.createCheckout)
   const createPayPalOrder = useAction(api.paypal.createPayPalOrder)
+  const getDeliveryQuote = useAction(api.uberDirect.getDeliveryQuote)
+  const store = useQuery(
+    api.stores.getById,
+    storeId ? { id: storeId as Id<"stores"> } : "skip"
+  )
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -55,7 +62,19 @@ export default function CheckoutPage() {
   const [formEmail, setFormEmail] = useState("")
 
   // Delivery fee state
-  const [hasDeliveryAddress, setHasDeliveryAddress] = useState(false)
+  const [deliveryCoords, setDeliveryCoords] = useState<{
+    latitude?: number
+    longitude?: number
+  } | null>(null)
+  const hasDeliveryAddress = deliveryCoords !== null
+  // Percentage fee mode bills a share of the Uber Direct quote. The server
+  // reads that quote from its own records, so the checkout has to request one
+  // and pass back its id — it can no longer just send a number.
+  const [uberQuote, setUberQuote] = useState<{
+    estimateId: string
+    fee: number
+  } | null>(null)
+  const [quoteError, setQuoteError] = useState<string | null>(null)
   const globalSettings = useQuery(api.globalSettings.get)
 
   // Promo state
@@ -161,13 +180,58 @@ export default function CheckoutPage() {
       return fee
     }
 
-    // percentage mode depends on Uber Direct estimate — can't calculate client-side
-    return null
+    // percentage mode: a share of the quote the server issued and stored
+    if (!uberQuote) return null
+    const percentage = deliveryConfig.percentage ?? 100
+    const fee = Math.round((uberQuote.fee * percentage) / 100)
+    return deliveryConfig.maxFee !== undefined && fee > deliveryConfig.maxFee
+      ? deliveryConfig.maxFee
+      : fee
   })()
 
-  const handleAddressChange = useCallback((hasAddress: boolean) => {
-    setHasDeliveryAddress(hasAddress)
-  }, [])
+  // Request an Uber Direct quote when the fee depends on one. Skipped in every
+  // other mode so a fixed-fee store never touches the Uber API.
+  const feeMode = globalSettings?.delivery?.feeMode ?? "fixed"
+  const needsQuote =
+    orderType === "delivery" && feeMode === "percentage" && !!storeId
+
+  useEffect(() => {
+    if (!needsQuote || uberQuote) return
+    const lat = deliveryCoords?.latitude
+    const lng = deliveryCoords?.longitude
+    if (lat === undefined || lng === undefined) return
+
+    let cancelled = false
+    getDeliveryQuote({
+      storeId: storeId as Id<"stores">,
+      dropoffLatitude: lat,
+      dropoffLongitude: lng,
+    })
+      .then((quote) => {
+        if (!cancelled) setUberQuote({ estimateId: quote.estimateId, fee: quote.fee })
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return
+        setQuoteError(
+          error instanceof Error && error.message.includes("UNDELIVERABLE_ZONE")
+            ? "Cette adresse n'est pas desservie."
+            : "Les frais de livraison n'ont pas pu être calculés."
+        )
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [needsQuote, uberQuote, deliveryCoords, storeId, getDeliveryQuote])
+
+  const handleAddressChange = useCallback(
+    (address: { latitude?: number; longitude?: number } | null) => {
+      setDeliveryCoords(address)
+      setUberQuote(null)
+      setQuoteError(null)
+    },
+    []
+  )
 
   const handleApplyPromo = useCallback((code: string) => {
     setPromoError("")
@@ -260,6 +324,8 @@ export default function CheckoutPage() {
       city: string
       postalCode: string
       country: string
+      latitude?: number
+      longitude?: number
     }
   }) => {
     if (!isOpen) {
@@ -271,7 +337,49 @@ export default function CheckoutPage() {
     setFormEmail(data.email ?? "")
 
     try {
-      // 1. Create order with paymentStatus "pending"
+      // 1. Settle the courier quote before creating the order. The decision
+      // itself lives in lib/checkout/order-quote.ts, where it is tested.
+      const decision = decideOrderQuote({
+        orderType,
+        feeMode: globalSettings?.delivery?.feeMode,
+        uberDirectEnabled: globalSettings?.integrations?.uberDirect?.enabled,
+        displayedQuote: uberQuote,
+        deliveryAddress: data.deliveryAddress,
+      })
+
+      if (decision.kind === "address-incomplete") {
+        toast.error(
+          "Merci de resaisir votre adresse dans le champ de recherche : nous en avons besoin pour calculer les frais de livraison."
+        )
+        setIsSubmitting(false)
+        return
+      }
+
+      let orderQuote: OrderQuote | undefined =
+        decision.kind === "reuse" ? decision.quote : undefined
+
+      if (decision.kind === "fetch") {
+        try {
+          const quote = await getDeliveryQuote({
+            storeId: storeId as Id<"stores">,
+            dropoffLatitude: decision.latitude,
+            dropoffLongitude: decision.longitude,
+            dropoffAddress: decision.dropoffAddress,
+          })
+          orderQuote = { estimateId: quote.estimateId, fee: quote.fee }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : ""
+          toast.error(
+            message.includes("UNDELIVERABLE_ZONE")
+              ? "Cette adresse est hors de notre zone de livraison. Essayez le retrait sur place."
+              : "Impossible de calculer les frais de livraison pour le moment. Réessayez dans un instant."
+          )
+          setIsSubmitting(false)
+          return
+        }
+      }
+
+      // 2. Create order with paymentStatus "pending"
       const orderId = await createOrder({
         storeId: storeId as Id<"stores">,
         customerId: session?.user?.id,
@@ -297,17 +405,21 @@ export default function CheckoutPage() {
         })),
         type: orderType,
         paymentMethod: data.paymentMethod,
+        // The server recomputes the discount from this promotion. The
+        // `appliedPromo.discountAmount` computed above is for display only and
+        // is deliberately not sent — it used to be, and was trusted verbatim.
         promotionId: appliedPromo
           ? (appliedPromo.id as Id<"promotions">)
           : undefined,
-        discountAmount: appliedPromo?.discountAmount ?? undefined,
         deliveryAddress:
           orderType === "delivery" ? data.deliveryAddress : undefined,
+        // Only the id: the server reads the fee from the quote it stored.
+        uberDirectEstimateId: orderQuote?.estimateId,
       })
 
       const origin = window.location.origin
 
-      // 2. Route based on payment method
+      // 3. Route based on payment method
       if (data.paymentMethod === "cash") {
         // Cash: immediate confirmation
         setLastOrderId(orderId)
@@ -320,6 +432,9 @@ export default function CheckoutPage() {
           // SumUp: create checkout → redirect to local widget page
           const result = await createSumUpCheckout({
             orderId: orderId as Id<"orders">,
+            // The checkout id cannot go in here — it does not exist until this
+            // call returns. `/checkout/pay` carries it forward to the success
+            // page instead, which is where the payment gets verified.
             redirectUrl: `${origin}/checkout/success?orderId=${orderId}`,
           })
           window.location.href = `/checkout/pay?orderId=${orderId}&checkoutId=${result.checkoutId}`
@@ -414,7 +529,16 @@ export default function CheckoutPage() {
                 onRemovePromo={handleRemovePromo}
                 deliveryFee={estimatedDeliveryFee}
                 hasDeliveryAddress={hasDeliveryAddress}
+                taxRatePercent={resolveTaxRatePercent({
+                  storeTaxRate: store?.settings?.taxRate,
+                  globalTaxRate: globalSettings?.taxRate,
+                })}
               />
+              {quoteError && (
+                <p className="px-4 text-center text-sm text-red-600">
+                  {quoteError}
+                </p>
+              )}
 
               {/* Security badge */}
               <div className="flex items-center gap-4 rounded-[2rem] border border-emerald-100 bg-emerald-50 p-8">

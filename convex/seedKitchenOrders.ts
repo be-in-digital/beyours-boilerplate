@@ -1,5 +1,6 @@
-import { mutation } from "./_generated/server"
+import {  } from "./_generated/server"
 import { v } from "convex/values"
+import { storeMutation } from "./lib/storeFunctions"
 
 /**
  * Seed mutation: creates demo orders + kitchen tickets for testing KDS.
@@ -63,11 +64,13 @@ function generateNanoid(): string {
   return result
 }
 
-export const seedKitchenOrders = mutation({
+// Demo fixtures, deployed with the backend. Auth-only with a client `storeId`
+// meant any account could inject fake orders into any restaurant's kitchen.
+// `kitchen:manage` is held by super admins only.
+export const seedKitchenOrders = storeMutation({
+  permission: "kitchen:manage",
   args: { storeId: v.id("stores") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
 
     const now = Date.now()
 
@@ -207,11 +210,10 @@ export const seedKitchenOrders = mutation({
 /**
  * Clean up: remove all TEST- orders and their kitchen tickets
  */
-export const cleanKitchenSeed = mutation({
+export const cleanKitchenSeed = storeMutation({
+  permission: "kitchen:manage",
   args: { storeId: v.id("stores") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
 
     // Find all test kitchen tickets
     const tickets = await ctx.db

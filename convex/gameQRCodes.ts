@@ -1,22 +1,24 @@
-import { query, mutation } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/gameQRCodes";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
-export const list = query(defs.list);
-
-export const create = mutation({
-  args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.create.handler(ctx, args);
-  },
+// `list` returns every QR code of a store. Exposed publicly, it handed an
+// attacker the codes for all of a competitor's tables — enough to play their
+// game remotely, without ever setting foot in the restaurant.
+export const list = storeQuery({
+  permission: "games:read",
+  args: defs.list.args,
+  handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const create = storeMutation({
+  permission: "games:write",
+  args: defs.create.args,
+  handler: (ctx, args) => defs.create.handler(ctx, args),
+});
+
+export const remove = storeMutation({
+  permission: "games:write",
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.remove.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromDocument("QR code not found"),
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });

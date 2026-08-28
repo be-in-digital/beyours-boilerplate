@@ -2,7 +2,7 @@
  * i18n (Internationalization) integration
  *
  * Re-exports i18n utilities from @be-in-digital/core
- * for multilingual support in the restaurant-theme app.
+ * for multilingual support in the themes app.
  *
  * @example
  * ```ts

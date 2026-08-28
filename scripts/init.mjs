@@ -23,6 +23,11 @@
  *      (BETTER_AUTH_SECRET, ENCRYPTION_KEY)
  *   5. Adds the `template` git remote (boilerplate updates)
  *   6. Writes the .beindigital-site.json sentinel
+ *
+ * Maintenance contract: --license-key <clé> --license-api <url> record what the
+ * update scripts present to check the contract still covers this site
+ * (scripts/lib/maintenance.mjs). Both come from the deployment created in the
+ * BeYours console. Omitted, the site simply updates unchecked.
  */
 
 import fs from "node:fs"
@@ -122,6 +127,8 @@ async function main() {
   let locale = opt("locale")
   let mobile = flag("mobile") ? true : flag("web") ? false : undefined
   let template = opt("template")
+  const licenseKey = opt("license-key")
+  const licenseApi = opt("license-api")
 
   const templates = listTemplates(ROOT)
   if (template && !templates.some((t) => t.slug === template)) {
@@ -250,6 +257,11 @@ async function main() {
         template,
         templateRepo: TEMPLATE_REPO,
         templateVersion,
+        /* Maintenance contract — read by scripts/lib/maintenance.mjs before an
+           update. Absent on a site provisioned outside the console: it then
+           updates unchecked rather than being blocked by our bookkeeping. */
+        ...(licenseKey ? { licenseKey } : {}),
+        ...(licenseApi ? { licenseApi } : {}),
         initializedAt: new Date().toISOString(),
       },
       null,

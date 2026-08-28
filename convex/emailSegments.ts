@@ -1,77 +1,61 @@
-import { query, mutation } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/emailSegments";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
+
+const emailSegmentsStoreId = storeIdFromDocument("Segment not found");
 
 // === Queries (auth-protected) ===
 
-export const list = query({
+export const list = storeQuery({
+  permission: "marketing:read",
   args: defs.list.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.list.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
-export const getById = query({
+export const getById = storeQuery({
+  permission: "marketing:read",
+  storeIdFrom: emailSegmentsStoreId,
   args: defs.getById.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getById.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getById.handler(ctx, args),
 });
 
-export const countMatchingSubscribers = query({
+export const countMatchingSubscribers = storeQuery({
+  permission: "marketing:read",
   args: defs.countMatchingSubscribers.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.countMatchingSubscribers.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.countMatchingSubscribers.handler(ctx, args),
 });
 
 // === Mutations (auth-protected) ===
 
-export const create = mutation({
+export const create = storeMutation({
+  permission: "marketing:write",
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const update = mutation({
+export const update = storeMutation({
+  permission: "marketing:write",
+  storeIdFrom: emailSegmentsStoreId,
   args: defs.update.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.update.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.update.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
+  permission: "marketing:write",
+  storeIdFrom: emailSegmentsStoreId,
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.remove.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });
 
-export const duplicate = mutation({
+export const duplicate = storeMutation({
+  permission: "marketing:write",
+  storeIdFrom: emailSegmentsStoreId,
   args: defs.duplicate.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.duplicate.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.duplicate.handler(ctx, args),
 });
 
-export const refreshCount = mutation({
+export const refreshCount = storeMutation({
+  permission: "marketing:write",
+  storeIdFrom: emailSegmentsStoreId,
   args: defs.refreshCount.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.refreshCount.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.refreshCount.handler(ctx, args),
 });

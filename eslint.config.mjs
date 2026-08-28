@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import convexAuth from "@be-in-digital/convex-functions/eslint/convex-auth";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -29,6 +30,21 @@ const eslintConfig = defineConfig([
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+    },
+  },
+  {
+    // The authorisation seam only applies where a Convex function becomes
+    // publicly callable: the app's own `convex/` wrappers. `lib/` holds the
+    // seam itself and `_generated/` is machine-written.
+    //
+    // This is the same rule `apps/reference` runs, imported from the package
+    // that owns the seam. A client site is cloned from HERE, so the guard has
+    // to travel with the template, not stay behind in the test bench.
+    files: ["convex/*.ts"],
+    plugins: { convex: convexAuth },
+    rules: {
+      "convex/no-unguarded-convex-function": "error",
+      "convex/require-convex-permission": "error",
     },
   },
 ]);

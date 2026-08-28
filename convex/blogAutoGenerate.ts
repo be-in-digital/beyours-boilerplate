@@ -19,6 +19,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 import sanitizeHtml from "sanitize-html"
 import type { ActionCtx } from "./_generated/server"
 import type { Id } from "./_generated/dataModel"
+import { buildMediaUrl } from "@be-in-digital/core/aws/media-url"
 
 // ============================================================================
 // S3 Helpers (same pattern as cmsMediaProcess.ts)
@@ -34,11 +35,12 @@ function createS3Client() {
   })
 }
 
+/**
+ * The bucket is private: a key becomes either a CDN URL or a path on this
+ * app's own `/api/files` proxy. One policy, in `@be-in-digital/core`.
+ */
 function buildPublicUrl(key: string): string {
-  const bucketName = process.env.AWS_S3_BUCKET_NAME!
-  const region = process.env.AWS_REGION ?? "eu-west-3"
-  const base = process.env.AWS_S3_PUBLIC_BASE_URL
-  return base ? `${base}/${key}` : `https://${bucketName}.s3.${region}.amazonaws.com/${key}`
+  return buildMediaUrl(key, process.env.AWS_S3_PUBLIC_BASE_URL)
 }
 
 // ============================================================================
@@ -330,6 +332,7 @@ function sanitizeContent(html: string): string {
  * 2. For each keyword: Unsplash (priority) → GPT Image (fallback)
  * 3. Inject images, sanitize HTML, save draft
  */
+// @guarded-inline: runs _checkAccess, which enforces the store quota and rights
 export const generateArticle = action({
   args: {
     storeId: v.id("stores"),

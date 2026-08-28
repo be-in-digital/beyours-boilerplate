@@ -30,7 +30,18 @@ export async function selectFilter(
   optionText: string
 ) {
   await page.getByRole("combobox").filter({ hasText: currentText }).click()
-  await page.getByRole("option", { name: optionText }).click()
+
+  // Scoped to the open listbox.
+  //
+  // Radix renders each item twice — the styled one the user sees, and a hidden
+  // native option it keeps for accessibility — so an unscoped
+  // `getByRole("option")` matches both and Playwright refuses to guess. The
+  // listbox is the popup that just opened, which is the one being clicked.
+  await page
+    .getByRole("listbox")
+    .getByRole("option", { name: optionText })
+    .first()
+    .click()
 }
 
 /**

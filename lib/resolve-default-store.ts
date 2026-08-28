@@ -1,7 +1,7 @@
 /**
  * Resolve the default store slug for legacy redirects.
  *
- * Priority: cookie storeSlug > first active store from Convex.
+ * Priority: cookie storeSlug > first published store from Convex.
  * Used only in legacy redirect pages (NOT in /s/[storeSlug]/ pages).
  */
 
@@ -11,6 +11,7 @@ import { cookies } from "next/headers"
 import { ConvexHttpClient } from "convex/browser"
 import { api } from "@/convex/_generated/api"
 import { getStoreBySlug } from "@/lib/convex-server"
+import { isPublishedStore } from "@be-in-digital/convex-schema"
 
 /** Module-level cached Convex client (deduped across a single render pass) */
 const getClient = cache(() => {
@@ -23,14 +24,19 @@ const getClient = cache(() => {
  * Returns the default store slug, or null if no store exists.
  */
 export async function resolveDefaultStoreSlug(): Promise<string | null> {
-  // 1. Try cookie-based store slug
+  // 1. Try cookie-based store slug.
+  //
+  // `getBySlug` answers for a draft too — that is how the admin opens one — so
+  // the publication check belongs here. A cookie written while the place was
+  // published must not keep redirecting visitors into it afterwards.
   const cookieSlug = (await cookies()).get("storeSlug")?.value
   if (cookieSlug) {
     const store = await getStoreBySlug(cookieSlug)
-    if (store) return store.slug
+    if (store && isPublishedStore(store)) return store.slug
   }
 
-  // 2. Fallback: query first active store
+  // 2. Fallback: the first published store. `stores.list` has already dropped
+  // the drafts, so `stores[0]` is a real storefront and not a half-built one.
   const stores = await getClient().query(api.stores.list, {})
   if (!stores || stores.length === 0) return null
 

@@ -51,6 +51,14 @@ test.describe("Route Protection", () => {
   })
 
   test.describe("Public Access", () => {
+    // These tests are about what an ANONYMOUS visitor can reach, and they were
+    // running with the admin session loaded — the one thing they must not have.
+    // The sign-in assertion also failed for a second, independent reason: it
+    // waited for a heading "Connexion" that has never existed on this page,
+    // whose h1 reads "Bon retour parmi nous". `auth.setup.ts` already knew,
+    // and accepted either.
+    test.use({ storageState: { cookies: [], origins: [] } })
+
     test("should allow access to /sign-in without authentication", async ({
       page,
     }) => {
@@ -61,7 +69,7 @@ test.describe("Route Protection", () => {
 
       expect(response?.status()).toBeLessThan(500)
       await expect(
-        page.getByRole("heading", { name: "Connexion" })
+        page.getByRole("heading", { name: /Bon retour|Connexion/ })
       ).toBeVisible({ timeout: 15_000 })
     })
 

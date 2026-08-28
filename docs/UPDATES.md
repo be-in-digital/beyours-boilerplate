@@ -5,7 +5,7 @@
 ```
 ┌──────────────────────────┐
 │ beyours              │  logique métier + shell de référence
-│ (monorepo, changesets)   │  apps/restaurant-theme + packages/*
+│ (monorepo, changesets)   │  apps/reference + packages/*
 └─────────┬────────────────┘
           │ ① publish npm (@be-in-digital/* → GitHub Packages)
           │ ② sync du shell (maintainer, voir § Maintenance)
@@ -74,7 +74,7 @@ conflicts only appear if the site modified engine zones (avoid this, see
 ## Patched files (boilerplate vs engine delta)
 
 The boilerplate keeps a DELIBERATELY minimal delta against the engine's
-`apps/restaurant-theme`:
+`apps/reference`:
 
 | File | Nature of the patch |
 | --- | --- |
@@ -94,7 +94,7 @@ Everything else (`app/`, `components/`, `lib/`, `hooks/`, `cms/`, `convex/`,
 Resyncing the shell from the engine is **tooled and automated**:
 
 - **`pnpm sync:engine`** (maintainer, local) — a strict mirror from
-  `apps/restaurant-theme` of an engine clone (`--engine <path>`, `--check`
+  `apps/reference` of an engine clone (`--engine <path>`, `--check`
   for a dry run). The script protects the patched and boilerplate files,
   re-applies the `.env.example` header patch, reports the dependency diff
   (never auto-applied) and writes `.engine-sync.json` (the reference engine
@@ -112,6 +112,57 @@ pnpm engine:unlink
 ```
 
 Sites then pick it up through `update:template`.
+
+## Maintenance gate (« gel de version »)
+
+A site is sold with one year of maintenance, renewable annually. Renewing is
+what pays for the engine work, so a site that stops renewing keeps running but
+stops receiving updates.
+
+Both channels check the contract before pulling anything
+(`scripts/lib/maintenance.mjs`). The check reads `licenseKey` and `licenseApi`
+from `.beindigital-site.json`, asks
+`GET {licenseApi}/maintenance/status?key=…` on the beyours.fr Convex
+deployment, and refuses the update when the contract has lapsed — naming the
+reason and the way to resume. `--check` and `--dry-run` stay open on purpose:
+a lapsed client can still see what they are missing, which is the argument for
+renewing.
+
+Three ways the check stays silent, all deliberate:
+
+| Situation | Behaviour |
+|---|---|
+| No sentinel (this repo, the engine monorepo) | Skipped, no network call |
+| A sentinel with no `licenseKey` (site provisioned before the gate) | Skipped |
+| API unreachable, timeout, or unknown key | Warns, **update proceeds** |
+
+The last one is the important one. An outage on our side must never cost a
+paying client their update.
+
+**This gate is a courtesy, not a lock.** Anyone holding the repo can run
+`git merge template/main` by hand or bump a version in `package.json`. What
+actually freezes a lapsed site is revoking its access to the two private
+sources:
+
+1. **git channel** — remove the client from `be-in-digital/beyours-boilerplate`
+2. **npm channel** — revoke the `read:packages` PAT in their `NODE_AUTH_TOKEN`
+   (and their access to the `@be-in-digital/*` packages)
+
+Do those, and the client hits a raw `403` with no explanation. The gate exists
+so they read a sentence about their contract first.
+
+### Issuing a key
+
+The key is stamped on the deployment when it is created in the BeYours console
+(`saDeployments.licenseKey`). For a site provisioned before the gate existed,
+run `saFleet.issueLicenseKey` and write the result into the site's
+`.beindigital-site.json`, or pass it at init:
+
+```bash
+pnpm setup -- --license-key bys_… --license-api https://<deployment>.convex.site
+```
+
+Rotating a key invalidates the one the site holds — it has to be written back.
 
 ## Operational reminders
 

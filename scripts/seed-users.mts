@@ -8,15 +8,14 @@
  *   - Convex dev running (pnpx convex dev)
  *
  * Usage:
- *   cd apps/restaurant-theme
+ *   cd apps/reference
  *   npx tsx scripts/seed-users.mts
  */
 
-import { ConvexHttpClient } from "convex/browser"
-import { anyApi } from "convex/server"
-import type { FunctionReference } from "convex/server"
+import { execFile } from "node:child_process"
+import { promisify } from "node:util"
 
-const api = anyApi as Record<string, Record<string, FunctionReference<"mutation" | "query" | "action", "public", Record<string, unknown>, unknown>>>
+const run = promisify(execFile)
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -137,6 +136,49 @@ async function signUpUser(
   }
 }
 
+/**
+ * Recover an existing account's id by signing in.
+ *
+ * Seeding has to be repeatable. The script used to stop at "No users were
+ * created. They may already exist." — which meant that after a partial run, the
+ * accounts existed, their profiles did not, and no amount of re-running could
+ * ever repair it. Step 2 is independent of step 1 and must be reached either
+ * way.
+ */
+async function signInUser(
+  user: SeedUser
+): Promise<{ id: string; email: string; name: string } | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email, password: user.password }),
+    })
+
+    const data = await res.json()
+    if (!res.ok || !data?.user?.id) {
+      // Report what the server said. An earlier version guessed "wrong
+      // password", and the real answer was EMAIL_NOT_VERIFIED — a guess in an
+      // error message sends whoever reads it down the wrong path.
+      const detail = data?.code ?? data?.message ?? `HTTP ${res.status}`
+      console.error(`  [ERR]  ${user.email} exists but cannot be opened: ${detail}`)
+      if (data?.code === "EMAIL_NOT_VERIFIED") {
+        console.error(
+          "         Seeded accounts have no mailbox. Set AUTH_ALLOW_UNVERIFIED_EMAIL=true" +
+            " on the TEST deployment (npx convex env set), never on a client one."
+        )
+      }
+      return null
+    }
+
+    console.log(`  [SAME] ${user.email} -> id: ${data.user.id} (already existed)`)
+    return { id: data.user.id, email: data.user.email, name: data.user.name }
+  } catch (err) {
+    console.error(`  [ERR]  ${user.email} -`, err)
+    return null
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -150,7 +192,9 @@ async function main() {
   const createdUsers: { user: { id: string; email: string; name: string }; role: UserRole }[] = []
 
   for (const seedUser of SEED_USERS) {
-    const user = await signUpUser(seedUser)
+    // An account that already exists is not a reason to stop: its profile may
+    // still be missing, and step 2 is what carries the role.
+    const user = (await signUpUser(seedUser)) ?? (await signInUser(seedUser))
     if (user) {
       createdUsers.push({ user, role: seedUser.role })
     }
@@ -159,38 +203,93 @@ async function main() {
   }
 
   if (createdUsers.length === 0) {
-    console.log("\nNo users were created. They may already exist. Exiting.")
+    console.error("\nNo account could be created or opened. Nothing to seed.")
+    process.exitCode = 1
     return
   }
 
-  console.log(`\n${createdUsers.length}/${SEED_USERS.length} users created.\n`)
+  console.log(`\n${createdUsers.length}/${SEED_USERS.length} accounts ready.\n`)
 
   // Step 2: Create userProfiles in Convex
   console.log("Step 2: Creating userProfiles in Convex...\n")
 
-  const convex = new ConvexHttpClient(CONVEX_URL)
-
-  const userProfilesApi = api.userProfiles
-  if (!userProfilesApi || !userProfilesApi.upsert) {
-    console.error("userProfiles API not available")
-    return
-  }
+  // Profiles go through `internalUpsert`, run by the Convex CLI.
+  //
+  // The public `userProfiles.upsert` demands an authenticated actor with the
+  // right to hand out roles — that is the whole point of it. This script has no
+  // session, so it used to fail with "Not authenticated" on every user while
+  // still printing "Seeding complete!": the accounts existed, none of them had
+  // a role, and the e2e suite then failed on an admin screen for reasons that
+  // pointed nowhere near here.
+  //
+  // `npx convex run` authenticates as the deployment itself, which is the
+  // correct authority for provisioning — and is not reachable from a browser.
+  let failed = 0
 
   for (const { user, role } of createdUsers) {
     try {
-      // Type assertion needed for dynamically loaded API
-      await convex.mutation(userProfilesApi.upsert as FunctionReference<"mutation">, {
-        userId: user.id,
-        role,
-        storeIds: [],
-        permissions: [],
-        language: "fr",
-      })
+      await run("npx", [
+        "convex",
+        "run",
+        "userProfiles:internalUpsert",
+        JSON.stringify({
+          userId: user.id,
+          role,
+          storeIds: [],
+          permissions: [],
+          language: "fr",
+        }),
+      ])
       console.log(`  [OK]   Profile for ${user.email} (${role})`)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err)
-      console.error(`  [ERR]  Profile for ${user.email}:`, message)
+      failed += 1
+      const message =
+        err && typeof err === "object" && "stderr" in err
+          ? String((err as { stderr: unknown }).stderr).trim()
+          : err instanceof Error
+            ? err.message
+            : String(err)
+      console.error(`  [ERR]  Profile for ${user.email}: ${message}`)
     }
+  }
+
+  if (failed > 0) {
+    // Say so, and exit non-zero. A seed script that announces success while
+    // leaving every account role-less is worse than one that crashes.
+    console.error(
+      `\n=== Seeding FAILED: ${failed}/${createdUsers.length} profiles were not created ===\n`
+    )
+    process.exitCode = 1
+    return
+  }
+
+  // Step 3: the restaurant the staff will administer.
+  //
+  // Accounts alone are not a usable fixture: with an empty `stores` table every
+  // profile carries `storeIds: []`, so authentication succeeds and every admin
+  // screen still renders nothing.
+  console.log("\nStep 3: Seeding the test restaurant...\n")
+
+  try {
+    const { stdout } = await run("npx", [
+      "convex",
+      "run",
+      "seedFixture:internalSeedFixture",
+      "{}",
+    ])
+    const summary = stdout.trim().split("\n").pop() ?? ""
+    console.log(`  [OK]   ${summary}`)
+  } catch (err: unknown) {
+    const message =
+      err && typeof err === "object" && "stderr" in err
+        ? String((err as { stderr: unknown }).stderr).trim()
+        : String(err)
+    console.error(`  [ERR]  Restaurant fixture: ${message}`)
+    console.error(
+      "\n=== Seeding FAILED: accounts exist but there is no restaurant to administer ===\n"
+    )
+    process.exitCode = 1
+    return
   }
 
   console.log("\n=== Seeding complete! ===\n")

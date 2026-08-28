@@ -44,13 +44,15 @@ function OrderConfirmationContent() {
     viewToken,
   })
 
-  // Get kitchen ticket to retrieve tracking token
-  const kitchenTickets = useQuery(
-    api.kitchenTickets.getByOrder,
-    orderId ? { orderId: orderId as Id<"orders"> } : "skip"
-  )
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query result shape
-  const trackingToken = (kitchenTickets as any)?.[0]?.trackingToken as string | undefined
+  // The tracking token used to come from `kitchenTickets.getByOrder`, which is
+  // guarded by `kitchen:read` — so a guest was refused and the "Suivre ma
+  // commande" button never appeared for the only people who needed it. It now
+  // comes from the order's own read path, under the same rule as the order
+  // itself: the view token, or the customer who placed it.
+  const trackingToken = useQuery(
+    api.orders.getTrackingToken,
+    orderId ? { orderId: orderId as Id<"orders">, viewToken } : "skip"
+  ) ?? undefined
 
   // Loading
   if (order === undefined) {
@@ -132,8 +134,31 @@ function OrderConfirmationContent() {
       </section>
 
       <div className="max-w-4xl mx-auto px-6 md:px-12 py-12">
+        {/* Uber Direct courier tracking.
+            Takes precedence over the internal tracking link: this one is the
+            live courier map, hosted by Uber, and it exists only once a courier
+            is actually on the road. */}
+        {order.uberDirectTrackingUrl && (
+          <a
+            href={order.uberDirectTrackingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-8 flex items-center justify-between rounded-[2rem] bg-[#0D5C3F] p-6 text-white shadow-xl shadow-emerald-900/10 hover:bg-[#0A412D] transition-all group"
+          >
+            <div>
+              <p className="font-black uppercase tracking-widest text-[10px] text-white/60 mb-1">
+                Votre livreur
+              </p>
+              <p className="text-lg font-black">Suivre le livreur en direct</p>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 group-hover:bg-white/20 transition-colors">
+              <ExternalLink className="h-5 w-5" />
+            </div>
+          </a>
+        )}
+
         {/* Tracking CTA */}
-        {trackingToken && (
+        {!order.uberDirectTrackingUrl && trackingToken && (
           <Link
             href={`/track/${trackingToken}`}
             className="mb-8 flex items-center justify-between rounded-[2rem] bg-[#0D5C3F] p-6 text-white shadow-xl shadow-emerald-900/10 hover:bg-[#0A412D] transition-all group"

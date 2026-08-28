@@ -56,8 +56,8 @@ function ResetPasswordContent() {
       return
     }
 
-    if (password.length < 8) {
-      toast.error("Le mot de passe doit contenir au moins 8 caractères")
+    if (password.length < 12) {
+      toast.error("Le mot de passe doit contenir au moins 12 caractères")
       return
     }
 
@@ -177,11 +177,11 @@ function ResetPasswordContent() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       className="h-16 pl-12 pr-12 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400 focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20"
-                      placeholder="Min. 8 caractères"
+                      placeholder="Min. 12 caractères"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={8}
+                      minLength={12}
                     />
                     <button
                       type="button"
@@ -215,6 +215,7 @@ function ResetPasswordContent() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
+                      minLength={12}
                     />
                   </div>
                 </div>

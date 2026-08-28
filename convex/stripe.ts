@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { action } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 
@@ -18,6 +18,7 @@ interface OrderData {
  * Create a Stripe Checkout Session for card payment.
  * Redirects user to Stripe's hosted payment page.
  */
+// @public-by-design: a guest checking out has no account; the amount is read from the order server-side, never taken from the caller
 export const createCheckoutSession = action({
   args: {
     orderId: v.id("orders"),
@@ -79,6 +80,7 @@ export const createCheckoutSession = action({
  * Verify a Stripe Checkout Session after redirect.
  * Updates order and creates payment record if paid.
  */
+// @public-by-design: called from the return page by a guest; assertSettlesOrder binds the session to this order, currency and amount
 export const verifyCheckoutSession = action({
   args: {
     sessionId: v.string(),
@@ -157,5 +159,48 @@ export const verifyCheckoutSession = action({
       orderNumber: order?.orderNumber,
       viewToken: order?.viewToken,
     };
+  },
+});
+
+/**
+ * Issue a refund against a Stripe payment intent.
+ *
+ * Internal: authorisation and bookkeeping live in `payments.refundPayment`.
+ * This only talks to Stripe and reports what it said.
+ */
+export const internalRefund = internalAction({
+  args: {
+    /** The stored payment intent id (`pi_…`). */
+    externalId: v.string(),
+    /** Amount in cents. */
+    amount: v.number(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (_ctx, args): Promise<{ refundId: string }> => {
+    const Stripe = (await import("stripe")).default;
+    const { getSiteEnv } = await import("@be-in-digital/core/env");
+
+    const secretKey = getSiteEnv().STRIPE_SECRET_KEY;
+    if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
+
+    const stripe = new Stripe(secretKey, {
+      httpClient: Stripe.createFetchHttpClient(),
+    });
+
+    // Stripe's own `reason` field is a closed enum, so the operator's free-text
+    // motive goes to metadata where it survives without being rejected.
+    const refund = await stripe.refunds.create({
+      payment_intent: args.externalId,
+      amount: args.amount,
+      metadata: args.reason ? { motif: args.reason.slice(0, 500) } : undefined,
+    });
+
+    // `pending` is legitimate for some payment methods; `failed` and `canceled`
+    // are not refunds and must not be recorded as such.
+    if (refund.status && !["succeeded", "pending"].includes(refund.status)) {
+      throw new Error(`Stripe a refusé le remboursement (statut ${refund.status}).`);
+    }
+
+    return { refundId: refund.id };
   },
 });

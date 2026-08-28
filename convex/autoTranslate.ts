@@ -100,6 +100,7 @@ export const saveUITranslations = internalMutation(defs.saveUITranslations);
  * Orchestrates: GPT fetch (action) → DB write (mutation).
  * Called from the admin languages page.
  */
+// @guarded-inline: checks translations:write on the storeId it is given
 export const translateUIStrings = action({
   args: {
     storeId: v.id("stores"),
@@ -113,6 +114,14 @@ export const translateUIStrings = action({
     if (!identity) {
       throw new Error("Not authenticated");
     }
+
+    // Being logged in was the whole check: any customer account of any
+    // restaurant reached this. The storeId is an argument, so it has to be
+    // matched against what the caller may actually do there.
+    await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+      storeId: args.storeId,
+      permission: "translations:write",
+    });
 
     const sourceLang = args.sourceLang ?? "fr";
 

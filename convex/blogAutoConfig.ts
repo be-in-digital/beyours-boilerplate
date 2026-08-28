@@ -7,6 +7,8 @@
 
 import { v } from "convex/values"
 import { query, mutation } from "./_generated/server"
+import { storeQuery } from "./lib/storeFunctions"
+import { requireStorePermission } from "@be-in-digital/convex-functions/auth"
 import * as blogAutoConfigDefs from "@be-in-digital/convex-functions/blogAutoConfig"
 import {
   checkAutoBlogAccess,
@@ -19,15 +21,13 @@ import {
 // ============================================================================
 
 /** Get auto blog config for a store */
-export const getByStoreId = query({
+export const getByStoreId = storeQuery({
+  permission: "content:read",
   args: blogAutoConfigDefs.getByStoreId.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return blogAutoConfigDefs.getByStoreId.handler(ctx, args)
-  },
+  handler: (ctx, args) => blogAutoConfigDefs.getByStoreId.handler(ctx, args),
 })
 
+// @guarded-inline: derives the owner from the session; takes no id
 /** Get auto-blog access status for the authenticated owner */
 export const getAccessStatus = query({
   args: {},
@@ -38,6 +38,7 @@ export const getAccessStatus = query({
   },
 })
 
+// @guarded-inline: derives the owner from the session; takes no id
 /** Get image generation access status for the authenticated owner */
 export const getImageAccessStatus = query({
   args: {},
@@ -52,6 +53,7 @@ export const getImageAccessStatus = query({
 // Mutations
 // ============================================================================
 
+// @guarded-inline: store permission checked below, then plan entitlements
 /** Upsert auto blog config with entitlement checks */
 export const upsert = mutation({
   args: {
@@ -80,6 +82,15 @@ export const upsert = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error("Not authenticated")
+
+    // The entitlement check below asks "does THIS owner have an autoBlog plan",
+    // which says nothing about the store being configured. Without this, an
+    // owner with a plan could switch on auto-publishing for someone else's
+    // restaurant — and `targetStoreIds` could aim it at several.
+    await requireStorePermission(ctx, args.storeId, "content:write")
+    for (const targetStoreId of args.targetStoreIds ?? []) {
+      await requireStorePermission(ctx, targetStoreId, "content:write")
+    }
 
     // Check entitlements
     const access = await checkAutoBlogAccess(ctx, identity.subject)

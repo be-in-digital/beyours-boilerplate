@@ -36,8 +36,8 @@ export default function SignUpPage() {
       return
     }
 
-    if (password.length < 8) {
-      toast.error("Le mot de passe doit contenir au moins 8 caractères")
+    if (password.length < 12) {
+      toast.error("Le mot de passe doit contenir au moins 12 caractères")
       return
     }
 
@@ -109,6 +109,7 @@ export default function SignUpPage() {
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
                   <Input
                     id="name"
+                    type="text"
                     className="h-14 pl-12 pr-4 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400 focus:ring-4 focus:ring-emerald-500/5"
                     placeholder="Jean Dupont"
                     value={name}
@@ -155,11 +156,11 @@ export default function SignUpPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       className="h-14 pl-12 pr-12 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400"
-                      placeholder="Min. 8 caractères"
+                      placeholder="Min. 12 caractères"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={8}
+                      minLength={12}
                     />
                     <button
                       type="button"
@@ -192,6 +193,7 @@ export default function SignUpPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
+                      minLength={12}
                     />
                   </div>
                 </div>

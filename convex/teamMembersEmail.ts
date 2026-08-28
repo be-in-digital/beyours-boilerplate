@@ -164,6 +164,7 @@ function buildReminderHtml(
 /**
  * Send team invitation email via AWS SES and create the team member record.
  */
+// @guarded-inline: runs teamMembers.internalAssertCanManage, the roster policy
 export const sendInvitationEmail = action({
   args: {
     storeId: v.optional(v.id("stores")),
@@ -182,6 +183,14 @@ export const sendInvitationEmail = action({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    // Being logged in is not enough: this reaches the roster through
+    // `inviteInternal`, so without this check any account could invite itself
+    // as manager on any store — or chain-wide.
+    await ctx.runQuery(internal.teamMembers.internalAssertCanManage, {
+      storeId: args.storeId,
+      allStores: args.allStores,
+    });
 
     const token = randomUUID();
 
@@ -245,6 +254,7 @@ export const sendInvitationEmail = action({
 /**
  * Resend invitation email to a pending team member.
  */
+// @guarded-inline: runs teamMembers.internalAssertCanManageMember
 export const resendInvitationEmail = action({
   args: {
     memberId: v.id("teamMembers"),
@@ -253,6 +263,10 @@ export const resendInvitationEmail = action({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    await ctx.runQuery(internal.teamMembers.internalAssertCanManageMember, {
+      id: args.memberId,
+    });
 
     const newToken = randomUUID();
 

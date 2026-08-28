@@ -5,7 +5,17 @@ const STORES_URL = "/dashboard/stores"
 const SEARCH_PLACEHOLDER = "Rechercher par nom, ville..."
 
 test.describe("Stores Page", () => {
-  test.describe.configure({ mode: "serial" })
+  // Not serial.
+  //
+  // These tests share nothing: no `beforeAll`, no describe-scope variables, and
+  // not one of them submits a form — the delete tests open the confirmation and
+  // cancel it. Each re-navigates in its own `beforeEach`.
+  //
+  // Serial mode arrived in a bulk monorepo-wiring commit, unexplained, and cost
+  // far more than it gave: the first failure abandons the whole block, so four
+  // failures were hiding 52 tests across these four files. Independent tests
+  // each fail for their own reason, which is the only kind of failure worth
+  // reading.
 
   test.describe("Page Structure", () => {
     test('should display "Établissements" heading', async ({ page }) => {
@@ -267,16 +277,19 @@ test.describe("Stores Page", () => {
         timeout: 60_000,
       })
 
-      const rows = page.locator("tbody tr")
-      const rowCount = await rows.count().catch(() => 0)
+      // This test used to count rows the instant the DOM was ready — before
+      // Convex had answered — find zero, skip the `if`, and report success
+      // having asserted nothing. A test that cannot fail is worse than none.
+      //
+      // It also clicked the row rather than the link inside it. `TableRow` has
+      // no onClick; the anchor in the name cell is what navigates.
+      const storeLink = page
+        .locator('tbody tr a[href^="/dashboard/stores/"]')
+        .first()
+      await expect(storeLink).toBeVisible({ timeout: 30_000 })
 
-      if (rowCount > 0) {
-        await rows.first().click()
-        await page.waitForLoadState("domcontentloaded")
-
-        // Should navigate to a store detail page
-        await expect(page).toHaveURL(/\/dashboard\/stores\//, { timeout: 15_000 })
-      }
+      await storeLink.click()
+      await expect(page).toHaveURL(/\/dashboard\/stores\/.+/, { timeout: 15_000 })
     })
   })
 

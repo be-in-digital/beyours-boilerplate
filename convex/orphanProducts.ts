@@ -1,41 +1,38 @@
-import { query, mutation } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/orphanProducts";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
-export const listByStorePlatform = query(defs.listByStorePlatform);
-export const listPending = query(defs.listPending);
+// Integration bookkeeping — products a partner platform sent that match nothing
+// in the catalogue. Never storefront data, and it was fully public.
+export const listByStorePlatform = storeQuery({
+  permission: "products:read",
+  args: defs.listByStorePlatform.args,
+  handler: (ctx, args) => defs.listByStorePlatform.handler(ctx, args),
+});
 
-export const create = mutation({
+export const listPending = storeQuery({
+  permission: "products:read",
+  args: defs.listPending.args,
+  handler: (ctx, args) => defs.listPending.handler(ctx, args),
+});
+
+const orphanStoreId = storeIdFromDocument("Orphan product not found");
+
+export const create = storeMutation({
+  permission: "products:write",
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const match = mutation({
+export const match = storeMutation({
+  permission: "products:write",
   args: defs.match.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.match.handler(ctx, args);
-  },
+  storeIdFrom: orphanStoreId,
+  handler: (ctx, args) => defs.match.handler(ctx, args),
 });
 
-export const ignore = mutation({
+export const ignore = storeMutation({
+  permission: "products:write",
   args: defs.ignore.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.ignore.handler(ctx, args);
-  },
-});
-
-export const remove = mutation({
-  args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.remove.handler(ctx, args);
-  },
+  storeIdFrom: orphanStoreId,
+  handler: (ctx, args) => defs.ignore.handler(ctx, args),
 });

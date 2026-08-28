@@ -14,7 +14,7 @@ import {
   EmptyTitle,
 } from "@be-in-digital/ui/components"
 import {
-  useStoreStore,
+  useStorefrontStoreSelection,
   useCartStore,
   useNearestStore,
   type StoreWithDistance,
@@ -80,21 +80,24 @@ export function StoreSelectorDropdown({
   variant?: "transparent" | "solid"
 }) {
   const convexStores = useQuery(api.stores.list)
-  const currentStore = useStoreStore((s) => s.currentStore)
-  const setCurrentStore = useStoreStore((s) => s.setCurrentStore)
+  const storeId = useStorefrontStoreSelection((s) => s.storeId)
+  const setStoreId = useStorefrontStoreSelection((s) => s.setStoreId)
   const setCartStoreId = useCartStore((s) => s.setStoreId)
 
   const stores = convexStores ?? []
+  // Distances belong in this panel, but the panel is mounted in the header of
+  // every page - so asking on mount asks everywhere. A visitor who already
+  // granted their position gets distances straight away; everyone else gets
+  // the "Localiser" button below, and no prompt they did not ask for.
   const { storesWithDistance, isLocating, requestLocation } =
-    useNearestStore(stores)
+    useNearestStore(stores, { useGrantedLocation: true })
 
-  // Auto-select nearest store if none selected
-  // This is handled by useStoreId hook already, but we also
-  // want to factor in geolocation when available
+  const currentStore =
+    stores.find((s: { _id: string }) => s._id === storeId) ?? null
 
   function handleSelectStore(store: StoreWithDistance) {
-    if (currentStore?._id === store._id) return
-    setCurrentStore(store)
+    if (storeId === store._id) return
+    setStoreId(store._id)
     setCartStoreId(store._id)
   }
 

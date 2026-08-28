@@ -2,7 +2,8 @@ import { query, mutation, action, internalMutation, type QueryCtx, type Mutation
 import { internal } from "./_generated/api"
 import { v } from "convex/values"
 import { getAuthUser } from "@be-in-digital/convex-functions/auth"
-import { hasPermission, type Permission, type Role } from "@be-in-digital/core/auth/rbac"
+import * as maintenanceDefs from "@be-in-digital/convex-functions/maintenance"
+import { Role, hasPermission, type Permission } from "@be-in-digital/core/auth/rbac"
 import { migrations } from "./migrations/index"
 
 // Type returned by systemInternal.getAuthUserInternal
@@ -11,6 +12,26 @@ interface ActionAuthUser {
   role: Role
   storeIds: string[]
   profileId: string
+}
+
+// Type returned by maintenance._getUpdateGatingData (annotated explicitly to
+// break the api-type circularity between system.ts and maintenance.ts)
+interface UpdateGatingData {
+  contract: (maintenanceDefs.MaintenanceContractLike & { autoRenew: boolean }) | null
+  releases: maintenanceDefs.ReleaseLike[]
+}
+
+// Type returned by checkForUpdates
+interface UpdateCheckResult {
+  currentVersion: string
+  latestVersion: string
+  hasUpdate: boolean
+  entitledVersion: string | null
+  hasEntitledUpdate: boolean
+  lockedVersions: string[]
+  maintenanceStatus: maintenanceDefs.MaintenanceStatus
+  coveredUntil: number | null
+  registryError: string | null
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
@@ -45,6 +66,7 @@ function isLockActive(lock: { expiresAt: number } | undefined | null): boolean {
 // ─── Queries ────────────────────────────────────────────────────────────────────
 
 /** Get system info: version snapshot, lock status, migrations, last backup */
+// @guarded-inline: system:* permission checked in the handler
 export const getSystemInfo = query({
   args: {},
   handler: async (ctx) => {
@@ -66,7 +88,41 @@ export const getSystemInfo = query({
   },
 })
 
+/**
+ * Can this reader see this entry?
+ *
+ * System operations belong to no establishment and stay visible to every
+ * `system:read` holder. Establishment entries are scoped the way the rest of
+ * the admin surface is scoped: a super admin sees all of them, anyone else sees
+ * the stores their profile actually lists. Without this the journal would be
+ * the one screen where a client admin could read another establishment's
+ * address and opening hours.
+ *
+ * Membership is enough to keep the journal honest about your own work, which
+ * was not always true. `stores.create` could hand a client admin a restaurant
+ * they were not a member of, so scoping alone hid their own creation from them
+ * and the journal read as "nothing happened". That gap was patched here with a
+ * second rule — an entry you performed stays visible whatever the scope says —
+ * and then closed at its source in #117: creating an establishment now makes
+ * you its administrator, so the second rule is gone and one rule decides again.
+ *
+ * One path can still put your own entry on a store you no longer administer: a
+ * super admin rewriting your profile and dropping the store. Team revocation
+ * cannot do it — `revocationEffect` returns an admin's profile untouched — so
+ * that removal is always deliberate, and the scoped answer is the wanted one.
+ * Being removed from a restaurant is exactly what scoping is for.
+ */
+function canReadAuditEntry(
+  user: { role: Role; storeIds: string[] },
+  entry: { targetStoreId?: string },
+): boolean {
+  if (!entry.targetStoreId) return true
+  if (user.role === Role.SUPER_ADMIN) return true
+  return user.storeIds.includes(entry.targetStoreId)
+}
+
 /** Get paginated audit log */
+// @guarded-inline: system:* permission checked in the handler
 export const getAuditLog = query({
   args: {
     paginationOpts: v.object({
@@ -82,7 +138,6 @@ export const getAuditLog = query({
     }
 
     const numItems = Math.min(args.paginationOpts.numItems, 100)
-    const { cursor } = args.paginationOpts
 
     // Use the appropriate index depending on whether we filter by action
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -98,30 +153,29 @@ export const getAuditLog = query({
         .order("desc")
     }
 
-    // Bounded fetch: take one extra to determine if there's a next page
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results: any[] = await q.take(numItems + 1)
+    // Convex's own cursor rather than a hand-rolled one.
+    //
+    // This used to re-`take(numItems + 1)` from the top of the index on every
+    // call and hunt for the previous page's last `_id` inside that slice, so
+    // page two came back holding a single row and declaring itself done.
+    // Nothing noticed while the log held only the handful of system
+    // operations; now that every establishment change lands here, a journal
+    // that stops at row eleven is a journal nobody can read.
+    const result = await q.paginate({
+      cursor: args.paginationOpts.cursor,
+      numItems,
+    })
 
-    // If a cursor was provided, skip entries up to and including the cursor
-    let startIndex = 0
-    if (cursor) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const cursorIndex = results.findIndex((r: any) => r._id === cursor)
-      startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0
-    }
-
-    const sliced = results.slice(startIndex)
-    const page = sliced.slice(0, numItems)
-    const hasMore = sliced.length > numItems
-    const nextCursor = hasMore
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (page[page.length - 1] as any)?._id ?? null
-      : null
-
+    // Filtering after the page is drawn can hand back a short page — the
+    // cursor and `isDone` stay correct, so the reader keeps paging. Scoping
+    // before the read would need one index per reader.
     return {
-      page,
-      continueCursor: nextCursor,
-      isDone: !hasMore,
+      page: result.page.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (entry: any) => canReadAuditEntry(user, entry),
+      ),
+      continueCursor: result.continueCursor,
+      isDone: result.isDone,
     }
   },
 })
@@ -235,6 +289,7 @@ export const _addAppliedMigration = internalMutation({
 // ─── Mutations ──────────────────────────────────────────────────────────────────
 
 /** Force release system lock (owner/admin only) */
+// @guarded-inline: system:* permission checked in the handler
 export const forceReleaseLock = mutation({
   args: {},
   handler: async (ctx) => {
@@ -256,6 +311,7 @@ export const forceReleaseLock = mutation({
 })
 
 /** Sync runtime version to DB snapshot */
+// @guarded-inline: system:* permission checked in the handler
 export const syncVersion = mutation({
   args: { version: v.string() },
   handler: async (ctx, args) => {
@@ -272,60 +328,96 @@ export const syncVersion = mutation({
 
 // ─── Actions ────────────────────────────────────────────────────────────────────
 
-/** Check for available updates via npm registry */
+/**
+ * Check for available updates via npm registry, gated by the maintenance
+ * contract: the release catalog is synced from the packument's `time` map,
+ * then the entitled version is resolved against `coveredUntil`. Releases
+ * published after the end of coverage are reported as locked.
+ */
+// @guarded-inline: getAuthUser + hasPermission on system:*
 export const checkForUpdates = action({
   args: { currentVersion: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<UpdateCheckResult> => {
     const user: ActionAuthUser = await ctx.runQuery(internal.systemInternal.getAuthUserInternal, {})
     if (!hasPermission(user.role, PERM_SYSTEM_READ)) {
       throw new Error('Permission "system:read" requise')
     }
 
+    let registryError: string | null = null
+
+    // 1. Sync the release catalog from the npm registry (best effort —
+    //    a registry outage must not hide already-known releases)
     try {
       const res = await fetch(
-        "https://registry.npmjs.org/@be-in-digital/restaurant-theme/latest",
+        // TODO(beyours): no package named @be-in-digital/restaurant-theme is published
+        // by this repo (see packages/*). This request 404s, so the release catalog
+        // silently stays empty. Point it at the real engine package before relying
+        // on the maintenance / update feature.
+        "https://registry.npmjs.org/@be-in-digital/restaurant-theme",
         { headers: { Accept: "application/json" } }
       )
 
-      let latestVersion = args.currentVersion
-      let hasUpdate = false
-
       if (res.ok) {
         const data = await res.json()
-        latestVersion = data.version ?? args.currentVersion
-        hasUpdate = latestVersion !== args.currentVersion
+        const releases = maintenanceDefs.parseNpmTimeMap(data.time)
+        if (releases.length > 0) {
+          await ctx.runMutation(internal.maintenance._upsertReleases, {
+            releases,
+            source: "npm",
+          })
+        }
+      } else {
+        registryError = `Registre npm indisponible (HTTP ${res.status})`
       }
-
-      await ctx.runMutation(internal.system._recordAuditEntry, {
-        action: "version_check",
-        performedBy: user.userId,
-        result: "success",
-        details: JSON.stringify({
-          currentVersion: args.currentVersion,
-          latestVersion,
-          hasUpdate,
-        }),
-      })
-
-      return { currentVersion: args.currentVersion, latestVersion, hasUpdate }
     } catch (error) {
-      await ctx.runMutation(internal.system._recordAuditEntry, {
-        action: "version_check",
-        performedBy: user.userId,
-        result: "failure",
-        errorMessage: error instanceof Error ? error.message : String(error),
-      })
-
-      return {
-        currentVersion: args.currentVersion,
-        latestVersion: args.currentVersion,
-        hasUpdate: false,
-      }
+      registryError = error instanceof Error ? error.message : String(error)
     }
+
+    // 2. Resolve entitlement from the stored catalog + contract
+    const { contract, releases }: UpdateGatingData = await ctx.runQuery(
+      internal.maintenance._getUpdateGatingData,
+      {}
+    )
+    const entitlement = maintenanceDefs.resolveUpdateEntitlement({
+      releases,
+      contract,
+      currentVersion: args.currentVersion,
+      nowMs: Date.now(),
+    })
+
+    const result: UpdateCheckResult = {
+      currentVersion: args.currentVersion,
+      latestVersion: entitlement.latestVersion ?? args.currentVersion,
+      hasUpdate: entitlement.hasUpdate,
+      // Maintenance gating
+      entitledVersion: entitlement.entitledVersion,
+      hasEntitledUpdate: entitlement.hasEntitledUpdate,
+      lockedVersions: entitlement.lockedVersions,
+      maintenanceStatus: entitlement.maintenanceStatus,
+      coveredUntil: contract?.coveredUntil ?? null,
+      registryError,
+    }
+
+    await ctx.runMutation(internal.system._recordAuditEntry, {
+      action: "version_check",
+      performedBy: user.userId,
+      result: registryError ? "failure" : "success",
+      details: JSON.stringify({
+        currentVersion: result.currentVersion,
+        latestVersion: result.latestVersion,
+        hasUpdate: result.hasUpdate,
+        entitledVersion: result.entitledVersion,
+        maintenanceStatus: result.maintenanceStatus,
+      }),
+      ...(registryError ? { errorMessage: registryError } : {}),
+    })
+
+    return result
   },
 })
 
 /** Export a full backup as JSON */
+// @guarded-inline: getAuthUser + hasPermission on system:backup
 export const exportBackup = action({
   args: {},
   handler: async (ctx) => {
@@ -409,6 +501,7 @@ export const exportBackup = action({
 })
 
 /** Import backup — dry run mode by default */
+// @guarded-inline: getAuthUser + hasPermission on system:restore
 export const importBackup = action({
   args: {
     manifest: v.any(),
@@ -537,6 +630,7 @@ export const importBackup = action({
 })
 
 /** Run pending migrations */
+// @guarded-inline: getAuthUser + hasPermission on system:migrate
 export const runMigrations = action({
   args: {},
   handler: async (ctx) => {

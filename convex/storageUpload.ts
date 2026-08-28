@@ -6,20 +6,17 @@ import { v } from "convex/values";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getExtensionFromMimeType } from "@be-in-digital/cms";
+import { buildMediaUrl } from "@be-in-digital/core/aws/media-url";
+import {
+  S3_FOLDERS,
+  type S3Folder as CoreS3Folder,
+} from "@be-in-digital/core/aws/folders";
 
-const ALLOWED_FOLDERS = [
-  "products",
-  "branding",
-  "stores",
-  "cms",
-  "email",
-  "avatars",
-  "blogs",
-  "blog-auto",
-  "storefront",
-  "categories",
-] as const;
-type S3Folder = (typeof ALLOWED_FOLDERS)[number];
+// The folder list is defined once, in @be-in-digital/core/aws/folders, and is
+// what /api/files will serve. Redeclaring it here is how category, blog and
+// storefront uploads ended up with URLs that 404.
+const ALLOWED_FOLDERS = S3_FOLDERS;
+type S3Folder = CoreS3Folder;
 
 const ALLOWED_MIME_TYPES: Record<S3Folder, string[]> = {
   products: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
@@ -39,6 +36,7 @@ const ALLOWED_MIME_TYPES: Record<S3Folder, string[]> = {
   "blog-auto": ["image/png", "image/webp"],
   storefront: ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/svg+xml"],
   categories: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+  users: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
 };
 
 function createS3Client() {
@@ -51,8 +49,12 @@ function createS3Client() {
   });
 }
 
-function buildPublicUrl(bucketName: string, region: string, key: string) {
-  return `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
+/**
+ * The bucket is private: a key becomes either a CDN URL or a path on this
+ * app's own `/api/files` proxy. One policy, in `@be-in-digital/core`.
+ */
+function buildPublicUrl(key: string): string {
+  return buildMediaUrl(key, process.env.AWS_S3_PUBLIC_BASE_URL)
 }
 
 /**
@@ -65,6 +67,7 @@ function buildPublicUrl(bucketName: string, region: string, key: string) {
  *  3. Client PUTs file directly to uploadUrl
  *  4. Client stores publicUrl as the permanent accessible URL
  */
+// @guarded-inline: checks content:write by role — no store to scope against
 export const getPresignedUploadUrl = action({
   args: {
     folder: v.string(),
@@ -74,6 +77,12 @@ export const getPresignedUploadUrl = action({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    // Deployment-wide operation with no store to scope against. "Logged in"
+    // included every customer account, so the check is by role.
+    await ctx.runQuery(internal.authHelpers.checkPermission, {
+      permission: "content:write",
+    });
 
     // Validate folder
     const folder = args.folder as S3Folder;
@@ -109,9 +118,9 @@ export const getPresignedUploadUrl = action({
     });
     const uploadUrl = await getSignedUrl(client, putCommand, { expiresIn: 900 });
 
-    // Public URL (bucket policy allows public reads)
-    const region = process.env.AWS_REGION ?? "eu-west-3";
-    const publicUrl = buildPublicUrl(bucketName, region, key);
+    // Where the browser will read it back from. The bucket grants no
+    // anonymous read, so this is the CDN or this app's /api/files proxy.
+    const publicUrl = buildPublicUrl(key);
 
     return { uploadUrl, key, publicUrl };
   },
@@ -128,6 +137,7 @@ export const getPresignedUploadUrl = action({
  *  4. Client PUTs file to uploadUrl
  *  5. Client calls confirmUpload({ mediaId })
  */
+// @guarded-inline: checks content:write on the store owning the media
 export const getPresignedUrlForMedia = action({
   args: {
     mediaId: v.id("cmsMedia"),
@@ -142,6 +152,14 @@ export const getPresignedUrlForMedia = action({
       { mediaId: args.mediaId },
     );
     if (!media) throw new Error("Media not found");
+
+    // The media record carries the restaurant it belongs to. Without this, any
+    // logged-in account could confirm or re-presign an upload for any store's
+    // media library.
+    await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+      storeId: media.storeId,
+      permission: "content:write",
+    });
 
     // Only allow presign for processing or failed (retry) status
     if (media.status !== "processing" && media.status !== "failed") {

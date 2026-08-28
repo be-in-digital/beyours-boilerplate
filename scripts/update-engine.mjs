@@ -16,6 +16,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
+import { assertMaintenanceCurrent } from "./lib/maintenance.mjs"
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..")
 const PKG_PATH = path.join(ROOT, "package.json")
@@ -88,6 +89,10 @@ try {
 }
 
 if (CHECK) process.exit(0)
+
+/* Gate placed AFTER --check on purpose: a client whose maintenance has lapsed
+   can still list the versions they are missing. What stops is the install. */
+await assertMaintenanceCurrent({ root: ROOT, channel: "engine" })
 
 if (LATEST && Object.keys(latest).length > 0) {
   for (const dep of engineDeps) {

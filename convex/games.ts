@@ -1,51 +1,37 @@
-import { query, mutation } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/games";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
-export const list = query(defs.list);
+// A game document carries its `winRatio`. Exposed publicly, the odds the owner
+// configured were readable by anyone holding a storeId.
+export const list = storeQuery({
+  permission: "games:read",
+  args: defs.list.args,
+  handler: (ctx, args) => defs.list.handler(ctx, args),
+});
 
-export const create = mutation({
+export const create = storeMutation({
+  permission: "games:write",
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const updateWinRatio = mutation({
+export const updateWinRatio = storeMutation({
+  permission: "games:write",
   args: defs.updateWinRatio.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const game = await ctx.db.get(args.id);
-    if (!game) throw new Error("Game not found");
-    await requireStoreAccess(ctx, game.storeId);
-    return defs.updateWinRatio.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromDocument("Game not found"),
+  handler: (ctx, args) => defs.updateWinRatio.handler(ctx, args),
 });
 
-export const update = mutation({
+export const update = storeMutation({
+  permission: "games:write",
   args: defs.update.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const game = await ctx.db.get(args.id);
-    if (!game) throw new Error("Game not found");
-    await requireStoreAccess(ctx, game.storeId);
-    return defs.update.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromDocument("Game not found"),
+  handler: (ctx, args) => defs.update.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
+  permission: "games:write",
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const game = await ctx.db.get(args.id);
-    if (!game) throw new Error("Game not found");
-    await requireStoreAccess(ctx, game.storeId);
-    return defs.remove.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromDocument("Game not found"),
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });

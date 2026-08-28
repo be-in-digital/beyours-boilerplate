@@ -1,7 +1,7 @@
-import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/storeIntegrations";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
 // Internal (no-auth) variant for webhook handlers, which run without a user identity.
 export const internalListByPlatformEnabled = internalQuery({
@@ -9,95 +9,66 @@ export const internalListByPlatformEnabled = internalQuery({
   handler: async (ctx, args) => defs.listByPlatformEnabled.handler(ctx, args),
 });
 
+// Same, for the scheduled menu sync. `getByStorePlatform` below is store-scoped
+// and needs a session; the scheduler has none, so the nightly push died on it.
+export const internalGetByStorePlatform = internalQuery({
+  args: defs.getByStorePlatform.args,
+  handler: async (ctx, args) => defs.getByStorePlatform.handler(ctx, args),
+});
+
 // === Queries (auth-protected where applicable) ===
 
-export const listByStore = query({
+export const listByStore = storeQuery({
+  permission: "settings:read",
   args: defs.listByStore.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.listByStore.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.listByStore.handler(ctx, args),
 });
-export const listByPlatformEnabled = query({
-  args: defs.listByPlatformEnabled.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.listByPlatformEnabled.handler(ctx, args);
-  },
-});
-
-export const getByStorePlatform = query({
+export const getByStorePlatform = storeQuery({
+  permission: "settings:read",
   args: defs.getByStorePlatform.args,
-  handler: async (ctx, args) => {
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.getByStorePlatform.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.getByStorePlatform.handler(ctx, args),
 });
 
-export const getBySiteId = query({
-  args: defs.getBySiteId.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getBySiteId.handler(ctx, args);
-  },
-});
+// `listByPlatformEnabled`, `getBySiteId` and `getByBrandId` search ACROSS every
+// store — that is their whole purpose: an incoming Uber Eats or Deliveroo event
+// carries a platform id, and these resolve which restaurant it belongs to. They
+// cannot be store-scoped, and the webhooks that need them run as
+// `internalAction`s with no user identity. So they are internal only; the public
+// exports they used to have let anyone enumerate every connected restaurant.
+export const internalGetBySiteId = internalQuery(defs.getBySiteId);
+export const internalGetByBrandId = internalQuery(defs.getByBrandId);
 
-export const getByBrandId = query({
-  args: defs.getByBrandId.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.getByBrandId.handler(ctx, args);
-  },
-});
+// === Mutations (store-scoped) ===
 
-// === Mutations (protected) ===
-
-export const upsert = mutation({
+export const upsert = storeMutation({
+  permission: "settings:write",
   args: defs.upsert.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.upsert.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.upsert.handler(ctx, args),
 });
 
-export const updateMenuSyncStatus = mutation({
+export const updateMenuSyncStatus = storeMutation({
+  permission: "settings:write",
   args: defs.updateMenuSyncStatus.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.updateMenuSyncStatus.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.updateMenuSyncStatus.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
+  permission: "settings:write",
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.remove.handler(ctx, args);
-  },
+  storeIdFrom: storeIdFromDocument("Integration not found"),
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });
 
-export const toggleAutoAccept = mutation({
+export const toggleAutoAccept = storeMutation({
+  permission: "settings:write",
   args: defs.toggleAutoAccept.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.toggleAutoAccept.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.toggleAutoAccept.handler(ctx, args),
 });
 
-export const updateOrderMode = mutation({
+export const updateOrderMode = storeMutation({
+  permission: "settings:write",
   args: defs.updateOrderMode.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.updateOrderMode.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.updateOrderMode.handler(ctx, args),
 });
 
 // === Internal Mutations (for webhooks and schedulers) ===

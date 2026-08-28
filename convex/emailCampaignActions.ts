@@ -12,8 +12,10 @@ const api = _api as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const internal = _internal as any;
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-import { buildSegmentFilter } from "./lib/segmentFilter";
-import { renderTemplateToEmailHtml } from "./lib/emailHtmlRenderer";
+import {
+  buildSegmentFilter,
+  renderTemplateToEmailHtml,
+} from "@be-in-digital/marketing";
 
 const BATCH_DELAY_MS = 100; // ~10 emails/sec, well below SES sandbox limit
 
@@ -46,6 +48,7 @@ function delay(ms: number): Promise<void> {
  *
  * NOTE: For large campaigns (5 000+), consider scheduling batches via ctx.scheduler.
  */
+// @guarded-inline: runs authHelpers.checkStorePermission on the campaign's store
 export const send = action({
   args: {
     campaignId: v.id("emailCampaigns"),
@@ -111,6 +114,8 @@ export const send = action({
     // 4. Send emails
     const sesClient = createSESClient();
     const siteUrl = process.env.CONVEX_SITE_URL ?? "";
+    // Media stored without a CDN is a path on the storefront, not on Convex.
+    const appUrl = process.env.SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
     const fromAddress = config.senderName
       ? `${config.senderName} <${config.fromEmail}>`
       : config.fromEmail;
@@ -128,7 +133,9 @@ export const send = action({
           unsubscribeText: config.unsubscribeText ?? "Se désabonner",
         };
 
-        const html = renderTemplateToEmailHtml(template.blocks, branding);
+        const html = renderTemplateToEmailHtml(template.blocks, branding, undefined, {
+          siteUrl: appUrl,
+        });
 
         const command = new SendEmailCommand({
           FromEmailAddress: fromAddress,
@@ -193,6 +200,7 @@ export const send = action({
  * Send a test email for preview purposes.
  * Prepends "[TEST]" to the subject line.
  */
+// @guarded-inline: runs authHelpers.checkStorePermission before sending the test
 export const sendTest = action({
   args: {
     campaignId: v.id("emailCampaigns"),
@@ -230,6 +238,8 @@ export const sendTest = action({
     if (!config) throw new Error("Configuration email introuvable");
 
     const siteUrl = process.env.CONVEX_SITE_URL ?? "";
+    // Media stored without a CDN is a path on the storefront, not on Convex.
+    const appUrl = process.env.SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
     const branding = {
       ...config.branding,
       senderName: config.senderName,
@@ -237,7 +247,9 @@ export const sendTest = action({
       unsubscribeText: config.unsubscribeText ?? "Se désabonner",
     };
 
-    const html = renderTemplateToEmailHtml(template.blocks, branding);
+    const html = renderTemplateToEmailHtml(template.blocks, branding, undefined, {
+      siteUrl: appUrl,
+    });
 
     const sesClient = createSESClient();
     const fromAddress = config.senderName

@@ -10,6 +10,7 @@ import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import type { Id } from "./_generated/dataModel";
+import { buildMediaUrl } from "@be-in-digital/core/aws/media-url";
 
 // ── S3 helpers ───────────────────────────────────────────────────────
 
@@ -23,10 +24,12 @@ function createS3Client() {
   });
 }
 
-function buildPublicUrl(key: string) {
-  const bucket = process.env.AWS_S3_BUCKET_NAME!;
-  const region = process.env.AWS_REGION ?? "eu-west-3";
-  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+/**
+ * The bucket is private: a key becomes either a CDN URL or a path on this
+ * app's own `/api/files` proxy. One policy, in `@be-in-digital/core`.
+ */
+function buildPublicUrl(key: string): string {
+  return buildMediaUrl(key, process.env.AWS_S3_PUBLIC_BASE_URL)
 }
 
 async function downloadAndUpload(

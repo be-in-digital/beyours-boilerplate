@@ -1,4 +1,18 @@
 @import "tailwindcss";
+
+/*
+ * The engine packages are Tailwind sources too.
+ *
+ * Tailwind v4 auto-detects the app's own files and stops there: anything used
+ * only inside `packages/ui` or `packages/admin` produced no CSS at all. The
+ * classes were in the markup and no rule ever matched them — `max-h-[85vh]` on
+ * the promotion dialog, `max-h-[60vh]` on its scrolling form, `min-h-[50vh]` on
+ * the store guard. That dialog rendered 1549px tall in a 720px window with its
+ * actions off screen, which is not a styling nicety: the form could not be
+ * submitted.
+ */
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../packages/admin/src/**/*.{ts,tsx}";
 @import "../node_modules/tw-animate-css/dist/tw-animate.css";
 
 @custom-variant dark (&:is(.dark *));

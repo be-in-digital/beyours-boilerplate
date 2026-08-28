@@ -1,8 +1,9 @@
 "use node";
 
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
 
 /**
@@ -10,6 +11,7 @@ import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
  *
  * Calls the Deliveroo API to accept the order and updates the internal order status.
  */
+// @guarded-inline: checks orders:update_status on the order's own store
 export const acceptOrder = action({
   args: { orderId: v.id("orders") },
   handler: async (ctx, args) => {
@@ -21,8 +23,13 @@ export const acceptOrder = action({
 
     try {
       // 1. Get the order
-      const order = await ctx.runQuery(api.orders.getById, { id: args.orderId }) as {
+      // `api.orders.getById` only answers the customer who placed the order or
+      // the holder of its view token — never staff. These three actions were
+      // therefore dead: they always fell through to "Order not found". Read the
+      // order on the staff path, then check the caller works this restaurant.
+      const order = await ctx.runQuery(internal.orders.internalGetById, { id: args.orderId }) as {
         _id: string
+        storeId: Id<"stores">
         source?: string
         externalOrderId?: string
         status: string
@@ -31,6 +38,11 @@ export const acceptOrder = action({
       if (!order) {
         return { success: false, error: "Order not found" };
       }
+
+      await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+        storeId: order.storeId,
+        permission: "orders:update_status",
+      });
 
       // 2. Verify source is deliveroo
       if (order.source !== "deliveroo") {
@@ -79,6 +91,7 @@ export const acceptOrder = action({
  *
  * Calls the Deliveroo API to reject the order and updates the internal order status.
  */
+// @guarded-inline: checks orders:update_status on the order's own store
 export const rejectOrder = action({
   args: {
     orderId: v.id("orders"),
@@ -93,8 +106,13 @@ export const rejectOrder = action({
 
     try {
       // 1. Get the order
-      const order = await ctx.runQuery(api.orders.getById, { id: args.orderId }) as {
+      // `api.orders.getById` only answers the customer who placed the order or
+      // the holder of its view token — never staff. These three actions were
+      // therefore dead: they always fell through to "Order not found". Read the
+      // order on the staff path, then check the caller works this restaurant.
+      const order = await ctx.runQuery(internal.orders.internalGetById, { id: args.orderId }) as {
         _id: string
+        storeId: Id<"stores">
         source?: string
         externalOrderId?: string
         status: string
@@ -103,6 +121,11 @@ export const rejectOrder = action({
       if (!order) {
         return { success: false, error: "Order not found" };
       }
+
+      await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+        storeId: order.storeId,
+        permission: "orders:update_status",
+      });
 
       // 2. Verify source is deliveroo
       if (order.source !== "deliveroo") {
@@ -152,6 +175,7 @@ export const rejectOrder = action({
  *
  * Calls the Deliveroo API to update the prep stage and updates the internal order status.
  */
+// @guarded-inline: checks orders:update_status on the order's own store
 export const updatePrepStage = action({
   args: {
     orderId: v.id("orders"),
@@ -166,8 +190,13 @@ export const updatePrepStage = action({
 
     try {
       // 1. Get the order
-      const order = await ctx.runQuery(api.orders.getById, { id: args.orderId }) as {
+      // `api.orders.getById` only answers the customer who placed the order or
+      // the holder of its view token — never staff. These three actions were
+      // therefore dead: they always fell through to "Order not found". Read the
+      // order on the staff path, then check the caller works this restaurant.
+      const order = await ctx.runQuery(internal.orders.internalGetById, { id: args.orderId }) as {
         _id: string
+        storeId: Id<"stores">
         source?: string
         externalOrderId?: string
         status: string
@@ -176,6 +205,11 @@ export const updatePrepStage = action({
       if (!order) {
         return { success: false, error: "Order not found" };
       }
+
+      await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+        storeId: order.storeId,
+        permission: "orders:update_status",
+      });
 
       // 2. Verify source is deliveroo
       if (order.source !== "deliveroo") {

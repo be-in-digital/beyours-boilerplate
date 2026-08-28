@@ -31,13 +31,16 @@ export const siteConfig = {
 
   images: {
     /**
-     * Remote hosts allowed for next/image.
-     * Add the client's S3 bucket and any CDN in use here.
+     * Extra remote hosts allowed for next/image.
+     *
+     * The site's own S3 bucket does NOT belong here: it is private, and its
+     * media is served same-origin by `/api/files`. If this site puts a CDN in
+     * front of the bucket, declare it once in `AWS_S3_PUBLIC_BASE_URL` — the
+     * host is allowed from there. This list is for third-party image hosts.
      */
     remoteHosts: [
       "images.unsplash.com",
       "i.pravatar.cc",
-      "**.s3.eu-west-3.amazonaws.com",
     ],
   },
 } as const

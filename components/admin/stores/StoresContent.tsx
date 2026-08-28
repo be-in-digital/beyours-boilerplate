@@ -48,7 +48,7 @@ export function StoresContent() {
   const [phone, setPhone] = useState("")
   const [email, setEmail] = useState("")
 
-  const stores = useQuery(api.stores.list, {})
+  const stores = useQuery(api.stores.listAll, {})
   const createStore = useMutation(api.stores.create)
 
   const handleCreateStore = async () => {

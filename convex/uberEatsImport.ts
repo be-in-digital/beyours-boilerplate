@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { generateSlug } from "@be-in-digital/convex-functions"
 import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
@@ -35,6 +35,7 @@ type MappingRecord = {
  * 6. For each PulledCategory: match by name or create
  * 7. For each PulledItem: skip if already mapped, else create product + mapping
  */
+// @guarded-inline: checks products:write on the storeId it is given
 export const importFromStore = action({
   args: { storeId: v.id("stores") },
   handler: async (ctx, args) => {
@@ -43,6 +44,14 @@ export const importFromStore = action({
     if (!identity) {
       return { success: false, error: "Unauthorized", imported: 0, skipped: 0, categoriesCreated: 0 };
     }
+
+    // Being logged in was the whole check: any customer account of any
+    // restaurant reached this. The storeId is an argument, so it has to be
+    // matched against what the caller may actually do there.
+    await ctx.runQuery(internal.authHelpers.checkStorePermission, {
+      storeId: args.storeId,
+      permission: "products:write",
+    });
 
     // 2. Get store integration
     const integration = await ctx.runQuery(
@@ -85,7 +94,7 @@ export const importFromStore = action({
       }) as CategoryRecord[];
 
       const existingMappings = await ctx.runQuery(
-        api.externalProductMappings.listByStorePlatform,
+        internal.externalProductMappings.internalListByStorePlatform,
         { storeId: args.storeId, platform: "uberEats" }
       ) as MappingRecord[];
 
@@ -176,7 +185,7 @@ export const importFromStore = action({
           });
 
           // Create external mapping
-          await ctx.runMutation(api.externalProductMappings.upsert, {
+          await ctx.runMutation(internal.externalProductMappings.internalUpsert, {
             storeId: args.storeId,
             platform: "uberEats",
             internalProductId: productId,

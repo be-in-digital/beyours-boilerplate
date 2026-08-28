@@ -6,11 +6,34 @@ import {
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZES,
+  buildMediaUrl,
   type S3Folder,
 } from "@/lib/aws"
-import { isAuthenticated } from "@/lib/convex"
+import { isAuthenticated, fetchAuthQuery } from "@/lib/convex"
+import { api } from "@/convex/_generated/api"
+import {
+  decideUploadAccess,
+  requiresEditorialPermission,
+  UNAUTHENTICATED_ERROR,
+} from "@/lib/services/upload-authorization"
+import { sanitizeSvg } from "@be-in-digital/cms/sanitize"
+import { isInlineSafeContentType } from "@/lib/services/file-serving"
 
-const VALID_FOLDERS = new Set<S3Folder>(["products", "branding", "stores", "cms", "users"])
+// Deliberately narrower than the shared folder list.
+// upload-authorization treats any folder outside EDITORIAL_FOLDERS as
+// self-service, needing no `content:write`, so widening this set would let any
+// signed-in customer publish into editorial folders such as `storefront/`,
+// `blogs/` or `email/`. Those are written by the presigned Convex flow, which
+// is authorised separately.
+const VALID_FOLDERS = new Set<S3Folder>([
+  "products",
+  "branding",
+  "stores",
+  "cms",
+  "users",
+])
+
+const SVG_CONTENT_TYPE = "image/svg+xml"
 
 const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -32,6 +55,25 @@ function getS3Client() {
 }
 
 /**
+ * The caller's role, as their Convex profile reports it.
+ *
+ * `fetchAuthQuery` forwards the request's session to Convex, so this is the
+ * caller's own profile and nobody else's. A failure here — no profile row, a
+ * deployment that cannot be reached — returns no role, and no role is refused
+ * by `decideUploadAccess`. Denying an upload because authorization could not be
+ * established is the only safe direction.
+ */
+async function getCallerRole(): Promise<string | null> {
+  try {
+    const profile = await fetchAuthQuery(api.userProfiles.getMyProfile)
+    return profile?.role ?? null
+  } catch (error) {
+    console.error("Upload authorization check failed:", error)
+    return null
+  }
+}
+
+/**
  * POST /api/upload
  * Accepts multipart form data, uploads file server-side to S3.
  * No CORS config needed on the S3 bucket.
@@ -42,11 +84,12 @@ function getS3Client() {
  */
 export async function POST(request: Request) {
   try {
-    // Authentication check: reject unauthenticated requests
+    // Refused before the body is read: an anonymous caller has no business
+    // streaming a multipart upload into the process.
     const authenticated = await isAuthenticated()
     if (!authenticated) {
       return NextResponse.json(
-        { error: "Authentification requise" },
+        { error: UNAUTHENTICATED_ERROR },
         { status: 401 }
       )
     }
@@ -71,6 +114,18 @@ export async function POST(request: Request) {
 
     const contentType = file.type
     const s3Folder = folder as S3Folder
+
+    // Being signed in is not authorization: every storefront customer is signed
+    // in. Writing to a folder the restaurant publishes from needs
+    // `content:write`, the same check the Convex twin makes.
+    const access = decideUploadAccess({
+      folder: s3Folder,
+      authenticated,
+      role: requiresEditorialPermission(s3Folder) ? await getCallerRole() : null,
+    })
+    if (!access.allowed) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
+    }
 
     // Validate MIME type
     const allowed = ALLOWED_MIME_TYPES[s3Folder]
@@ -104,7 +159,24 @@ export async function POST(request: Request) {
     const key = `${folder}/${crypto.randomUUID()}.${ext}`
 
     // Upload to S3 server-side
-    const buffer = Buffer.from(await file.arrayBuffer())
+    let buffer = Buffer.from(await file.arrayBuffer())
+
+    // An SVG is a document, not an image: stored as uploaded it can carry
+    // script that runs on this origin. The CMS upload action has always
+    // sanitized; this route stored the bytes it was handed.
+    if (contentType === SVG_CONTENT_TYPE) {
+      try {
+        const { sanitized } = sanitizeSvg(buffer.toString("utf8"))
+        buffer = Buffer.from(sanitized, "utf8")
+      } catch (error) {
+        console.error("SVG sanitization failed:", error)
+        return NextResponse.json(
+          { error: "SVG invalide ou trop volumineux" },
+          { status: 400 }
+        )
+      }
+    }
+
     const client = getS3Client()
 
     await client.send(
@@ -114,16 +186,22 @@ export async function POST(request: Request) {
         Body: buffer,
         ContentType: contentType,
         CacheControl: "public, max-age=31536000, immutable",
+        // Travels with the object, so it holds even if something ever serves
+        // the bucket directly instead of going through /api/files.
+        ...(isInlineSafeContentType(contentType)
+          ? {}
+          : { ContentDisposition: "attachment" as const }),
       })
     )
 
-    // Return a proxy URL since the S3 bucket is not publicly accessible
-    const publicUrl = `/api/files/${key}`
+    // The bucket grants no anonymous read: this is the CDN when one fronts
+    // it, and this app's own /api/files proxy otherwise.
+    const publicUrl = buildMediaUrl(key, process.env.AWS_S3_PUBLIC_BASE_URL)
 
     return NextResponse.json({
       key,
       publicUrl,
-      size: file.size,
+      size: buffer.length,
     })
   } catch (error) {
     console.error("Upload error:", error)

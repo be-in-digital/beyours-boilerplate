@@ -13,6 +13,7 @@ import { getCurrentPeriodKey } from "@be-in-digital/convex-functions/blogAutoUsa
 // ============================================================================
 
 /** Get current month usage for the authenticated owner */
+// @guarded-inline: derives the owner from the session
 export const getMyCurrentUsage = query({
   args: {},
   handler: async (ctx) => {

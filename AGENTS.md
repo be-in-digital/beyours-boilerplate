@@ -15,7 +15,7 @@ clone of this repo. The shipped code comes from two sources:
    `NODE_AUTH_TOKEN` (a `read:packages` PAT) is required for `pnpm install`.
    Without a token: `pnpm engine:link <engine-clone>` (local symlinks).
 2. **The application shell** (`app/`, `components/`, `lib/`, `hooks/`, `cms/`,
-   `convex/`): a mirror of the engine's `apps/restaurant-theme`.
+   `convex/`): a mirror of the engine's `apps/reference`.
 
 ## Ownership zones — ABSOLUTE rule
 

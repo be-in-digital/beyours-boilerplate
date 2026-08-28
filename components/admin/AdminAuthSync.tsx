@@ -15,10 +15,12 @@ export function AdminAuthSync() {
   const { data: session, isPending: sessionLoading } =
     authClient.useSession()
 
-  const userId = session?.user?.id
+  // `getMyProfile` reads the caller's own profile from their session. The
+  // previous `getByUserId` took a user id and performed no identity check, so
+  // any visitor could read anyone's role and store list.
   const profile = useQuery(
-    api.userProfiles.getByUserId,
-    userId ? { userId } : "skip"
+    api.userProfiles.getMyProfile,
+    session?.user?.id ? {} : "skip"
   )
 
   const setAuth = useAdminAuthStore((s) => s.setAuth)

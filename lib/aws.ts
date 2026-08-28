@@ -33,6 +33,17 @@ export type {
 export {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZES,
+  S3_FOLDERS,
+  isKnownS3Folder,
+} from '@be-in-digital/core'
+
+// ============================================================================
+// Media URL policy (private bucket — see aws/media-url)
+// ============================================================================
+export {
+  MEDIA_PROXY_PATH,
+  buildMediaUrl,
+  mediaKeyFromUrl,
 } from '@be-in-digital/core'
 
 // ============================================================================

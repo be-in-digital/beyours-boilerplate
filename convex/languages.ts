@@ -1,63 +1,47 @@
-import { query, mutation } from "./_generated/server";
+import { query } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/languages";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
+// @public-by-design: the language switcher runs before any sign-in. A list of
+// enabled locales is not confidential.
+// @public-by-design: the language switcher runs before any sign-in
 export const list = query(defs.list);
+// @public-by-design: the language switcher runs before any sign-in
 export const listActive = query(defs.listActive);
+// @public-by-design: the language switcher runs before any sign-in
 export const listAll = query(defs.listAll);
 
-export const create = mutation({
+const languageStoreId = storeIdFromDocument("Language not found");
+
+export const create = storeMutation({
+  permission: "translations:write",
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const update = mutation({
+export const update = storeMutation({
+  permission: "translations:write",
   args: defs.update.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const language = await ctx.db.get(args.id);
-    if (!language) throw new Error("Language not found");
-    await requireStoreAccess(ctx, language.storeId);
-    return defs.update.handler(ctx, args);
-  },
+  storeIdFrom: languageStoreId,
+  handler: (ctx, args) => defs.update.handler(ctx, args),
 });
 
-export const toggleActive = mutation({
+export const toggleActive = storeMutation({
+  permission: "translations:write",
   args: defs.toggleActive.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const language = await ctx.db.get(args.id);
-    if (!language) throw new Error("Language not found");
-    await requireStoreAccess(ctx, language.storeId);
-    return defs.toggleActive.handler(ctx, args);
-  },
+  storeIdFrom: languageStoreId,
+  handler: (ctx, args) => defs.toggleActive.handler(ctx, args),
 });
 
-export const setDefault = mutation({
+export const setDefault = storeMutation({
+  permission: "translations:write",
   args: defs.setDefault.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.setDefault.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.setDefault.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
+  permission: "translations:write",
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const language = await ctx.db.get(args.id);
-    if (!language) throw new Error("Language not found");
-    await requireStoreAccess(ctx, language.storeId);
-    return defs.remove.handler(ctx, args);
-  },
+  storeIdFrom: languageStoreId,
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });

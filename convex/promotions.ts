@@ -1,61 +1,66 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, internalMutation, internalQuery } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/promotions";
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
-// === Queries (public for storefront) ===
+// === Queries ===
 
-export const list = query(defs.list);
-export const getById = query(defs.getById);
+// PUBLIC BY DESIGN — the storefront applies a coupon and displays automatic
+// offers before the customer has any account.
+// @public-by-design: a coupon is applied before the customer has an account
 export const getByCouponCode = query(defs.getByCouponCode);
+// @public-by-design: a coupon is applied before the customer has an account
 export const listActiveAuto = query(defs.listActiveAuto);
-export const getCustomerUsageCount = query(defs.getCustomerUsageCount);
+
+// Admin surface: `list` returns every promotion of a store, inactive and
+// expired ones included, along with their usage counts. It was public.
+export const list = storeQuery({
+  permission: "marketing:read",
+  args: defs.list.args,
+  handler: (ctx, args) => defs.list.handler(ctx, args),
+});
+
+export const getById = storeQuery({
+  permission: "marketing:read",
+  args: defs.getById.args,
+  storeIdFrom: storeIdFromDocument("Promotion not found"),
+  handler: (ctx, args) => defs.getById.handler(ctx, args),
+});
+
+// Answers "has this email already used this promotion?" — a membership probe on
+// an arbitrary address, and it had no caller at all outside the server.
+export const internalGetCustomerUsageCount = internalQuery(
+  defs.getCustomerUsageCount
+);
 
 // === Mutations (protected) ===
 
-export const create = mutation({
+const promotionStoreId = storeIdFromDocument("Promotion not found");
+
+export const create = storeMutation({
+  permission: "marketing:write",
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    await requireStoreAccess(ctx, args.storeId);
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const update = mutation({
+export const update = storeMutation({
+  permission: "marketing:write",
   args: defs.update.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const promotion = await ctx.db.get(args.id);
-    if (!promotion) throw new Error("Promotion not found");
-    await requireStoreAccess(ctx, promotion.storeId);
-    return defs.update.handler(ctx, args);
-  },
+  storeIdFrom: promotionStoreId,
+  handler: (ctx, args) => defs.update.handler(ctx, args),
 });
 
-export const toggleStatus = mutation({
+export const toggleStatus = storeMutation({
+  permission: "marketing:write",
   args: defs.toggleStatus.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const promotion = await ctx.db.get(args.id);
-    if (!promotion) throw new Error("Promotion not found");
-    await requireStoreAccess(ctx, promotion.storeId);
-    return defs.toggleStatus.handler(ctx, args);
-  },
+  storeIdFrom: promotionStoreId,
+  handler: (ctx, args) => defs.toggleStatus.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
+  permission: "marketing:write",
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const promotion = await ctx.db.get(args.id);
-    if (!promotion) throw new Error("Promotion not found");
-    await requireStoreAccess(ctx, promotion.storeId);
-    return defs.remove.handler(ctx, args);
-  },
+  storeIdFrom: promotionStoreId,
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });
 
 // === Internal Mutations (for checkout flow) ===

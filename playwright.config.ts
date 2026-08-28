@@ -88,7 +88,21 @@ export default defineConfig({
       : []),
   ],
   webServer: {
-    command: "pnpm dev",
+    // A production server in CI, a dev server locally.
+    //
+    // Turbopack compiles each route the first time it is requested, and in dev
+    // that costs ten to twenty seconds — longer than most of these tests are
+    // allowed to live. It produced failures that looked like defects and were
+    // not: `/dashboard` refused to redirect an anonymous visitor within 15 s on
+    // a cold server, and redirected in 4.6 s on the next run. Every one of
+    // those "failures" disappeared on a second pass.
+    //
+    // CI already runs `pnpm build`, so it should serve that build rather than
+    // recompile page by page. `E2E_USE_BUILD=true` gets the same locally.
+    command:
+      process.env.CI || process.env.E2E_USE_BUILD === "true"
+        ? "pnpm start"
+        : "pnpm dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

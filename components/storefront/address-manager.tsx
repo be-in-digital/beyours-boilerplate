@@ -24,7 +24,9 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from "@be-in-digital/ui/components"
-import { useAddressesStore, type SavedAddress } from "@/lib/stores/addresses-store"
+import { type SavedAddress } from "@/lib/stores/addresses-store"
+import { useAddresses } from "@/lib/hooks/use-addresses"
+import { authClient } from "@/lib/auth-client"
 import { useGooglePlacesAutocomplete } from "@/hooks/useGooglePlacesAutocomplete"
 import type { AddressValue } from "@/lib/address"
 import { toast } from "sonner"
@@ -39,11 +41,12 @@ const emptyAddress: AddressValue = {
 }
 
 export function AddressManager() {
-  const addresses = useAddressesStore((s: { addresses: SavedAddress[] }) => s.addresses)
-  const addAddress = useAddressesStore((s: { addAddress: (addr: Omit<SavedAddress, "id" | "isDefault">) => void }) => s.addAddress)
-  const updateAddress = useAddressesStore((s: { updateAddress: (id: string, addr: Omit<SavedAddress, "id" | "isDefault">) => void }) => s.updateAddress)
-  const removeAddress = useAddressesStore((s: { removeAddress: (id: string) => void }) => s.removeAddress)
-  const setDefault = useAddressesStore((s: { setDefault: (id: string) => void }) => s.setDefault)
+  // Signed in, the list lives in the database and follows the customer across
+  // devices; as a guest it stays in this browser, which is the only place a
+  // guest has. The hook hides which one is in play.
+  const { data: session } = authClient.useSession()
+  const { addresses, addAddress, updateAddress, removeAddress, setDefault } =
+    useAddresses(!!session?.user)
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)

@@ -16,6 +16,7 @@ import type {
   AiField,
   ParsingWarning,
 } from "@be-in-digital/convex-schema/types"
+import { buildMediaUrl, mediaKeyFromUrl } from "@be-in-digital/core/aws/media-url"
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -46,11 +47,12 @@ function createS3Client() {
   })
 }
 
+/**
+ * The bucket is private: a key becomes either a CDN URL or a path on this
+ * app's own `/api/files` proxy. One policy, in `@be-in-digital/core`.
+ */
 function buildPublicUrl(key: string): string {
-  const bucketName = requireEnv("AWS_S3_BUCKET_NAME")
-  const region = process.env.AWS_REGION ?? "eu-west-3"
-  const base = process.env.AWS_S3_PUBLIC_BASE_URL
-  return base ? `${base}/${key}` : `https://${bucketName}.s3.${region}.amazonaws.com/${key}`
+  return buildMediaUrl(key, process.env.AWS_S3_PUBLIC_BASE_URL)
 }
 
 /** Normalize a string for fuzzy matching: lowercase, no accents, trimmed */
@@ -117,18 +119,27 @@ type ProcessedImage = {
   processedUrl: string
   originalUrl: string
   enhanced: boolean
+  /**
+   * The processed bytes, inlined as a `data:` URL. The vision call sends this
+   * rather than `processedUrl`: OpenAI fetches the URL it is given from its
+   * own servers, and nothing in the bucket is anonymously readable.
+   */
+  processedDataUrl: string
 }
 
 async function processImage(imageUrl: string): Promise<ProcessedImage> {
   const bucketName = requireEnv("AWS_S3_BUCKET_NAME")
   const client = createS3Client()
 
-  // Determine if image is on our S3 or an external URL
+  // Ours, or somebody else's? `mediaKeyFromUrl` recognises every shape the
+  // product has stored — proxy path, CDN, and the direct S3 endpoint rows
+  // written before the bucket went private.
   let sourceBuffer: Buffer
-  if (imageUrl.includes(bucketName)) {
-    // Extract key from S3 URL
-    const url = new URL(imageUrl)
-    const key = url.pathname.startsWith("/") ? url.pathname.slice(1) : url.pathname
+  const key = mediaKeyFromUrl(imageUrl, {
+    publicBaseUrl: process.env.AWS_S3_PUBLIC_BASE_URL,
+    bucketName,
+  })
+  if (key) {
     const response = await client.send(new GetObjectCommand({ Bucket: bucketName, Key: key }))
     const chunks: Uint8Array[] = []
     for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
@@ -190,6 +201,7 @@ async function processImage(imageUrl: string): Promise<ProcessedImage> {
     processedUrl: buildPublicUrl(processedKey),
     originalUrl: imageUrl,
     enhanced: needsUpscale || width > MAX_DIMENSION || height > MAX_DIMENSION,
+    processedDataUrl: `data:image/webp;base64,${processedBuffer.toString("base64")}`,
   }
 }
 
@@ -330,8 +342,12 @@ function wrapRawProduct(raw: RawVisionProduct): WrappedProduct {
   }
 }
 
+/**
+ * @param image - Either a `data:` URL or a URL OpenAI can fetch itself. Callers
+ *   pass the inlined bytes: the bucket grants no anonymous read.
+ */
 async function analyzeWithVision(
-  imageUrl: string,
+  image: string,
   mode: "single" | "menu",
   apiKey: string
 ): Promise<VisionResult> {
@@ -355,7 +371,7 @@ async function analyzeWithVision(
           content: [
             {
               type: "image_url",
-              image_url: { url: imageUrl, detail: "high" },
+              image_url: { url: image, detail: "high" },
             },
           ],
         },
@@ -660,6 +676,7 @@ function postProcess(
 
 // ─── Main Action ─────────────────────────────────────────────────────────────
 
+// @guarded-inline: runs authHelpers.checkStorePermission on the target store
 export const analyze = action({
   args: {
     imageUrl: v.string(),
@@ -695,8 +712,8 @@ export const analyze = action({
     // Step 1: Process image (Sharp: resize, WebP, sharpen, optional upscale)
     const processed = await processImage(args.imageUrl)
 
-    // Step 2: Analyze with Vision AI
-    const visionResult = await analyzeWithVision(processed.processedUrl, args.mode, apiKey)
+    // Step 2: Analyze with Vision AI (bytes inlined — see processedDataUrl)
+    const visionResult = await analyzeWithVision(processed.processedDataUrl, args.mode, apiKey)
 
     // Step 3: Enrich missing fields (conditional — skip if all complete)
     const { enriched, usage: enrichmentUsage } = await enrichMissingSuggestions(

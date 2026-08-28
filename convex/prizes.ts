@@ -1,31 +1,33 @@
-import { query, mutation } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/prizes";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
-export const list = query(defs.list);
+// Prizes are admin data: the catalogue and its remaining stock. `list` used to
+// be a bare `query`, so any visitor holding a storeId — visible in the
+// `/display/[storeId]` URL — could read a competitor's prize stock.
+export const list = storeQuery({
+  permission: "games:read",
+  args: defs.list.args,
+  handler: (ctx, args) => defs.list.handler(ctx, args),
+});
 
-export const create = mutation({
+const prizeStoreId = storeIdFromDocument("Prize not found");
+
+export const create = storeMutation({
+  permission: "games:write",
   args: defs.create.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.create.handler(ctx, args);
-  },
+  handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const update = mutation({
+export const update = storeMutation({
+  permission: "games:write",
   args: defs.update.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.update.handler(ctx, args);
-  },
+  storeIdFrom: prizeStoreId,
+  handler: (ctx, args) => defs.update.handler(ctx, args),
 });
 
-export const remove = mutation({
+export const remove = storeMutation({
+  permission: "games:write",
   args: defs.remove.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    return defs.remove.handler(ctx, args);
-  },
+  storeIdFrom: prizeStoreId,
+  handler: (ctx, args) => defs.remove.handler(ctx, args),
 });

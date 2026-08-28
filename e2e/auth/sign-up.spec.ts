@@ -31,7 +31,7 @@ test.describe("Sign Up Page", () => {
       await expect(passwordInput).toHaveAttribute("type", "password")
       await expect(passwordInput).toHaveAttribute(
         "placeholder",
-        "Min. 6 caractères"
+        "Min. 12 caractères"
       )
     })
 
@@ -75,15 +75,21 @@ test.describe("Sign Up Page", () => {
 
       await page.getByLabel("Nom").fill("Test User")
       await page.getByLabel("Email").fill("test@example.com")
-      await page.getByLabel("Mot de passe").fill("12345")
+      await page.getByLabel("Mot de passe").fill("password123")
 
-      // The password field has minLength=6, so "12345" (5 chars) should be invalid
+      // The password field mirrors Better Auth's minPasswordLength=12, so
+      // "password123" (11 chars) should be invalid
       const passwordInput = page.getByLabel("Mot de passe")
-      await expect(passwordInput).toHaveAttribute("minlength", "6")
+      await expect(passwordInput).toHaveAttribute("minlength", "12")
 
       // Verify the value is shorter than the minimum
       const value = await passwordInput.inputValue()
-      expect(value.length).toBeLessThan(6)
+      expect(value.length).toBeLessThan(12)
+
+      // The confirmation field carries the same minimum, so a short password
+      // cannot slip through the second field either
+      const confirmInput = page.getByLabel("Confirmer")
+      await expect(confirmInput).toHaveAttribute("minlength", "12")
     })
   })
 
@@ -98,7 +104,8 @@ test.describe("Sign Up Page", () => {
       // Use the existing test user email to trigger duplicate error
       await page.getByLabel("Nom").fill("Duplicate User")
       await page.getByLabel("Email").fill("test.owner@beindigital.fr")
-      await page.getByLabel("Mot de passe").fill("password123")
+      await page.getByLabel("Mot de passe").fill("password1234")
+      await page.getByLabel("Confirmer").fill("password1234")
 
       await page.getByRole("button", { name: "Créer un compte" }).click()
 
@@ -119,7 +126,8 @@ test.describe("Sign Up Page", () => {
       const uniqueEmail = `signup-test-${Date.now()}@example.com`
       await page.getByLabel("Nom").fill("Test User")
       await page.getByLabel("Email").fill(uniqueEmail)
-      await page.getByLabel("Mot de passe").fill("password123")
+      await page.getByLabel("Mot de passe").fill("password1234")
+      await page.getByLabel("Confirmer").fill("password1234")
 
       await page.getByRole("button", { name: "Créer un compte" }).click()
 

@@ -2,6 +2,7 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
 
 // Input validation patterns
@@ -36,6 +37,7 @@ function sanitizeApiError(status: number, context: string): string {
  * - Uber Eats: calls getStoreStatus(credentials, storeId)
  * - Deliveroo: calls getAccessToken(credentials) then fetches /v1/brands/{brandId}/menus
  */
+// @guarded-inline: checks settings:read by role — no store to scope against
 export const validate = action({
   args: {
     platform: v.union(v.literal("uberEats"), v.literal("deliveroo"), v.literal("uberDirect")),
@@ -50,6 +52,12 @@ export const validate = action({
     // C-01: Authentication check
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
+
+    // Deployment-wide operation with no store to scope against. "Logged in"
+    // included every customer account, so the check is by role.
+    await ctx.runQuery(internal.authHelpers.checkPermission, {
+      permission: "settings:read",
+    });
       return { valid: false, error: "Non authentifie" };
     }
 

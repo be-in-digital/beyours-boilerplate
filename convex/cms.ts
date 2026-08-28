@@ -11,55 +11,48 @@ import { appCmsConfig } from "../cms"
 setCmsRegistry(appCmsConfig)
 
 import { v } from "convex/values"
-import { query, mutation } from "./_generated/server"
+import { query } from "./_generated/server"
 import * as cmsDefs from "@be-in-digital/convex-functions/cms"
-import * as cmsPublishDefs from "@be-in-digital/convex-functions/cmsPublish"
 import { publishPageCore } from "@be-in-digital/convex-functions/cmsPublish"
 import { saveDraftBlockCore } from "@be-in-digital/convex-functions/cms"
 import { scheduleCmsTranslation, schedulePageTranslation } from "./cmsAutoTranslate"
-import { requireStoreAccess } from "@be-in-digital/convex-functions/auth"
+import { storeQuery, storeMutation } from "./lib/storeFunctions";
 
 // ============================================================================
 // Queries
 // ============================================================================
 
 /** List all CMS pages for a store (public) */
+// @public-by-design: published storefront page content, no auth by design
 export const listPages = query(cmsDefs.listPages)
 
 /** Get page status (public) */
+// @public-by-design: published storefront page content, no auth by design
 export const getPage = query(cmsDefs.getPage)
 
 /** Get published blocks for storefront (public, no auth) */
+// @public-by-design: published storefront page content, no auth by design
 export const getPageBlocks = query(cmsDefs.getPageBlocks)
 
 /** Get draft + published blocks for admin editor (auth-protected) */
-export const getAdminPageBlocks = query({
+export const getAdminPageBlocks = storeQuery({
+  permission: "content:read",
   args: cmsDefs.getAdminPageBlocks.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return cmsDefs.getAdminPageBlocks.handler(ctx, args)
-  },
+  handler: (ctx, args) => cmsDefs.getAdminPageBlocks.handler(ctx, args),
 })
 
 /** Get preview blocks: draft > published (auth-protected) */
-export const getPreviewPageBlocks = query({
+export const getPreviewPageBlocks = storeQuery({
+  permission: "content:read",
   args: cmsDefs.getPreviewPageBlocks.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return cmsDefs.getPreviewPageBlocks.handler(ctx, args)
-  },
+  handler: (ctx, args) => cmsDefs.getPreviewPageBlocks.handler(ctx, args),
 })
 
 /** Get a single block draft (auth-protected) */
-export const getBlockDraft = query({
+export const getBlockDraft = storeQuery({
+  permission: "content:read",
   args: cmsDefs.getBlockDraft.args,
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    return cmsDefs.getBlockDraft.handler(ctx, args)
-  },
+  handler: (ctx, args) => cmsDefs.getBlockDraft.handler(ctx, args),
 })
 
 // ============================================================================
@@ -67,81 +60,65 @@ export const getBlockDraft = query({
 // ============================================================================
 
 /** Save draft block — built via saveDraftBlockCore helper */
-export const saveDraftBlock = mutation({
+export const saveDraftBlock = storeMutation({
+  permission: "content:write",
   args: {
     storeId: v.id("stores"),
     pageSlug: v.string(),
     blockKey: v.string(),
     values: v.any(),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    await requireStoreAccess(ctx, args.storeId)
-
-    // Derive updatedBy from auth identity (stable subject ID)
-    return saveDraftBlockCore(ctx, { ...args, updatedBy: identity.subject }, {
+  // Derive updatedBy from auth identity (stable subject ID)
+  handler: (ctx, args, identity) =>
+    saveDraftBlockCore(ctx, { ...args, updatedBy: identity.subject }, {
       onAfterSave: scheduleCmsTranslation,
-    })
-  },
+    }),
 })
 
 /** Reset a single field to fallback */
-export const resetField = mutation({
+export const resetField = storeMutation({
+  permission: "content:write",
   args: {
     storeId: v.id("stores"),
     pageSlug: v.string(),
     blockKey: v.string(),
     fieldKey: v.string(),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    await requireStoreAccess(ctx, args.storeId)
-    return cmsDefs.resetField.handler(ctx, { ...args, updatedBy: identity.subject })
-  },
+  handler: (ctx, args, identity) =>
+    cmsDefs.resetField.handler(ctx, { ...args, updatedBy: identity.subject }),
 })
 
 /** Reset an entire block */
-export const resetBlock = mutation({
+export const resetBlock = storeMutation({
+  permission: "content:write",
   args: {
     storeId: v.id("stores"),
     pageSlug: v.string(),
     blockKey: v.string(),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    await requireStoreAccess(ctx, args.storeId)
-    return cmsDefs.resetBlock.handler(ctx, { ...args, updatedBy: identity.subject })
-  },
+  handler: (ctx, args, identity) =>
+    cmsDefs.resetBlock.handler(ctx, { ...args, updatedBy: identity.subject }),
 })
 
 /** Reset all blocks for a page */
-export const resetPage = mutation({
+export const resetPage = storeMutation({
+  permission: "content:write",
   args: {
     storeId: v.id("stores"),
     pageSlug: v.string(),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    await requireStoreAccess(ctx, args.storeId)
-    return cmsDefs.resetPage.handler(ctx, { ...args, updatedBy: identity.subject })
-  },
+  handler: (ctx, args, identity) =>
+    cmsDefs.resetPage.handler(ctx, { ...args, updatedBy: identity.subject }),
 })
 
 /** Translate all text fields of a page at once */
-export const translateAllPageFields = mutation({
+export const translateAllPageFields = storeMutation({
+  permission: "content:write",
   args: {
     storeId: v.id("stores"),
     pageSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    await requireStoreAccess(ctx, args.storeId)
-
     // Check target languages exist
     const allLanguages = await ctx.db
       .query("languages")
@@ -160,19 +137,15 @@ export const translateAllPageFields = mutation({
 })
 
 /** Publish all draft blocks for a page */
-export const publishPage = mutation({
+export const publishPage = storeMutation({
+  permission: "content:write",
   args: {
     storeId: v.id("stores"),
     pageSlug: v.string(),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    await requireStoreAccess(ctx, args.storeId)
-
-    // Derive updatedBy from auth identity (stable subject ID)
-    return publishPageCore(ctx, { ...args, updatedBy: identity.subject }, {
+  // Derive updatedBy from auth identity (stable subject ID)
+  handler: (ctx, args, identity) =>
+    publishPageCore(ctx, { ...args, updatedBy: identity.subject }, {
       onAfterPublish: scheduleCmsTranslation,
-    })
-  },
+    }),
 })
