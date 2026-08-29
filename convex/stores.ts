@@ -4,8 +4,9 @@ import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import * as defs from "@be-in-digital/convex-functions/stores";
 import { storeQuery, storeMutation, authedQuery, authedMutation } from "./lib/storeFunctions";
-import { getAuthUser, requireStaff } from "@be-in-digital/convex-functions/auth";
+import { getAuthUser, isStaff, requireStaff } from "@be-in-digital/convex-functions/auth";
 import { hasPermission, type Role } from "@be-in-digital/core/auth/rbac";
+import { isPublishedStore } from "@be-in-digital/convex-schema";
 
 // === Queries (public for storefront) ===
 // Strip sensitive data (printConfig.apiKey) from public queries
@@ -50,11 +51,30 @@ export const listAll = authedQuery({
   },
 });
 
-// @public-by-design: public storefront info; sensitive printConfig is stripped above
+/**
+ * One establishment, by id — the query both halves of the product read.
+ *
+ * It is public because it has to be: the storefront's checkout, contact page and
+ * open/closed banner all ask for it before anyone signs in. It returned drafts
+ * to them, though — the address, the contact details, the `orderMode` and the
+ * `overrides` of an establishment its owner has never published. `stores.list`
+ * filters drafts out; a direct `getById` walked past that.
+ *
+ * A draft is not a storefront document, so an anonymous or customer caller gets
+ * `null` for one. It is still an *administration* document: the store detail
+ * page exists to publish drafts, the KDS reads its own establishment, and the
+ * CMS pickers read the one being edited — and `kitchen` and `delivery` do not
+ * hold `stores:read`, so `getAdminById` is not open to them. Staff, meaning
+ * anyone whose role is not `customer`, therefore still see drafts here.
+ */
+// @public-by-design: published establishments are storefront info, and the
+// sensitive printConfig is stripped above. Drafts are staff-only.
 export const getById = query({
   args: defs.getById.args,
   handler: async (ctx, args) => {
     const store = await defs.getById.handler(ctx, args);
+    if (!store) return null;
+    if (!isPublishedStore(store) && !(await isStaff(ctx))) return null;
     return stripSensitiveStoreData(store);
   },
 });
