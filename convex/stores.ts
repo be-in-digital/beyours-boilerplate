@@ -161,25 +161,11 @@ export const updatePrintConfig = storeMutation({
   handler: (ctx, args) => defs.updatePrintConfig.handler(ctx, args),
 });
 
-export const updateDisplayConfig = storeMutation({
-  permission: "stores:write",
-  args: defs.updateDisplayConfig.args,
-  storeIdFrom: storeIdFromIdArg,
-  handler: (ctx, args) => defs.updateDisplayConfig.handler(ctx, args),
-});
-
 export const updateSoundConfig = storeMutation({
   permission: "stores:write",
   args: defs.updateSoundConfig.args,
   storeIdFrom: storeIdFromIdArg,
   handler: (ctx, args) => defs.updateSoundConfig.handler(ctx, args),
-});
-
-export const updateOrderConfirmation = storeMutation({
-  permission: "stores:write",
-  args: defs.updateOrderConfirmation.args,
-  storeIdFrom: storeIdFromIdArg,
-  handler: (ctx, args) => defs.updateOrderConfirmation.handler(ctx, args),
 });
 
 export const updateOrderMode = storeMutation({
