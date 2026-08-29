@@ -26,9 +26,13 @@ const getClient = cache(() => {
 export async function resolveDefaultStoreSlug(): Promise<string | null> {
   // 1. Try cookie-based store slug.
   //
-  // `getBySlug` answers for a draft too — that is how the admin opens one — so
-  // the publication check belongs here. A cookie written while the place was
-  // published must not keep redirecting visitors into it afterwards.
+  // `getBySlug` used to answer for a draft, and the note here said that was how
+  // the admin opened one. It was not: the administration works in ids, from
+  // `listAll`. The query is staff-only for drafts since #169, and this render
+  // carries no identity, so a cookie can no longer resurrect an unpublished
+  // place on its own. The check stays for the staff case — an owner following a
+  // stale cookie belongs on the dashboard, not redirected into a storefront
+  // that does not exist yet.
   const cookieSlug = (await cookies()).get("storeSlug")?.value
   if (cookieSlug) {
     const store = await getStoreBySlug(cookieSlug)

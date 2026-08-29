@@ -105,11 +105,31 @@ export const internalGetById = internalQuery({
   handler: async (ctx, args) => defs.getById.handler(ctx, args),
 });
 
-// @public-by-design: public storefront info; sensitive printConfig is stripped above
+/**
+ * The same establishment, by its other name.
+ *
+ * `getById` was closed to drafts and this was not, so the leak moved rather
+ * than went away — and a slug is the half of the pair nobody has to guess, it
+ * is built from the restaurant's name. The address, the contact details, the
+ * `orderMode` and the `overrides` of an unpublished establishment stayed one
+ * request away.
+ *
+ * Visibility belongs to the establishment, not to the query that happens to
+ * find it, so both doors apply the same rule. Nothing in the administration
+ * reads by slug — it works in ids, from `listAll` — and the one production
+ * caller is `lib/convex-server.ts`, which feeds `generateCmsMetadata` from a
+ * server render carrying no identity. A draft therefore falls back to the
+ * page's own title instead of publishing its own, which is the answer a
+ * restaurant nobody has opened yet should give a crawler.
+ */
+// @public-by-design: published establishments are storefront info, and the
+// sensitive printConfig is stripped above. Drafts are staff-only.
 export const getBySlug = query({
   args: defs.getBySlug.args,
   handler: async (ctx, args) => {
     const store = await defs.getBySlug.handler(ctx, args);
+    if (!store) return null;
+    if (!isPublishedStore(store) && !(await isStaff(ctx))) return null;
     return stripSensitiveStoreData(store);
   },
 });
