@@ -590,13 +590,38 @@ export const importBackup = action({
         "emailSubscribers",
       ]
 
+      // The id map, carried table by table.
+      //
+      // An insert cannot choose its `_id`, so every restored row comes back
+      // under a new one. Without this, `stores` came back with new ids while
+      // everything restored after them kept the old `storeId`, and
+      // `v.id("stores")` let it through — it validates an id's encoding, not
+      // that it resolves. The deployment came up with every catalogue detached
+      // from its establishment. `importOrder` is why this works: a reference is
+      // only rewritable once its target has been inserted.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const idMap: Record<string, string> = {}
+
       for (const tableName of importOrder) {
         if (!data[tableName] || !Array.isArray(data[tableName])) continue
-        await ctx.runMutation(internal.systemInternal.importTable, {
-          tableName,
-          rows: data[tableName],
-        })
+        // Annotated rather than inferred: `importBackup` reaches these
+        // mutations through `internal`, and letting TypeScript infer the shape
+        // back out of them makes the action's own return type circular.
+        const result: { idMap: Record<string, string> } = await ctx.runMutation(
+          internal.systemInternal.importTable,
+          { tableName, rows: data[tableName], idMap }
+        )
+        Object.assign(idMap, result.idMap)
       }
+
+      // `userProfiles` is not in the backup — it holds identities, not
+      // restaurant data — so its `storeIds` still name the deployment's stores
+      // from before the restore. Left alone, every store-scoped screen refuses
+      // the owner who just ran the restore.
+      const profiles: { updated: number; dropped: number } =
+        await ctx.runMutation(internal.systemInternal.remapProfileStores, {
+          idMap,
+        })
 
       await ctx.runMutation(internal.system._releaseSystemLock, {})
       await ctx.runMutation(internal.system._recordAuditEntry, {
@@ -610,7 +635,18 @@ export const importBackup = action({
         dryRun: false,
         summary,
         totalRows: Object.values(summary).reduce((a, b) => a + b, 0),
-        message: "Import termine avec succes",
+        remappedIds: Object.keys(idMap).length,
+        remappedProfiles: profiles.updated,
+        droppedProfileStores: profiles.dropped,
+        // Said unconditionally, because it is unconditionally true: the backup
+        // carries the restaurant's configuration and catalogue, not its trading
+        // history. Those tables keep pointing at ids the restore replaced, and
+        // no import can repair them.
+        message:
+          "Import termine. Commandes, paiements, tickets de cuisine et membres d equipe ne sont ni exportes ni importes : leurs references aux etablissements restaures ne sont pas retablies." +
+          (profiles.dropped > 0
+            ? ` ${profiles.dropped} acces a un etablissement absent de la sauvegarde ont ete retires des profils.`
+            : ""),
       }
     } catch (error) {
       try {
