@@ -111,11 +111,19 @@ export const getSystemInfo = query({
  * cannot do it — `revocationEffect` returns an admin's profile untouched — so
  * that removal is always deliberate, and the scoped answer is the wanted one.
  * Being removed from a restaurant is exactly what scoping is for.
+ *
+ * ACCESS entries are the exception, and are super-admin only. They are about a
+ * PERSON rather than an establishment — who was promoted, moved or dismissed —
+ * so there is no store to scope them by, and the "no target means everyone"
+ * rule above would have handed a client admin the rights history of every
+ * account on the deployment. Narrow on purpose: widening this later is easy,
+ * un-leaking it is not.
  */
 function canReadAuditEntry(
   user: { role: Role; storeIds: string[] },
-  entry: { targetStoreId?: string },
+  entry: { targetStoreId?: string; targetUserId?: string },
 ): boolean {
+  if (entry.targetUserId) return user.role === Role.SUPER_ADMIN
   if (!entry.targetStoreId) return true
   if (user.role === Role.SUPER_ADMIN) return true
   return user.storeIds.includes(entry.targetStoreId)

@@ -6,6 +6,10 @@ import {
   assertCanAssignProfile,
   canClaimFirstAdmin,
 } from "@be-in-digital/convex-functions/profileProvisioning";
+import {
+  ACCESS_AUDIT_OPERATIONS,
+  recordAccessAudit,
+} from "@be-in-digital/convex-functions/accessAudit";
 import { Role } from "@be-in-digital/core/auth/rbac";
 
 
@@ -118,7 +122,28 @@ export const upsert = mutation({
         : null,
     });
 
-    return defs.upsert.handler(ctx, args);
+    const result = await defs.upsert.handler(ctx, args);
+
+    // After the write, inside the same transaction: an audit entry that
+    // survives a change it does not describe is worse than none.
+    await recordAccessAudit(ctx, {
+      targetUserId: args.userId,
+      operation: ACCESS_AUDIT_OPERATIONS.assign,
+      before: existing
+        ? {
+            role: existing.role,
+            storeIds: existing.storeIds,
+            permissions: existing.permissions,
+          }
+        : null,
+      after: {
+        role: args.role,
+        storeIds: args.storeIds,
+        permissions: args.permissions,
+      },
+    });
+
+    return result;
   },
 });
 
@@ -186,12 +211,23 @@ export const claimFirstAdmin = mutation({
 
     // Reuse the shared upsert so the profile is built with every field the
     // schema requires, rather than a second hand-rolled insert that drifts.
-    return defs.upsert.handler(ctx, {
+    const result = await defs.upsert.handler(ctx, {
       userId: identity.subject,
       role: Role.SUPER_ADMIN,
       storeIds: [],
       permissions: [],
     });
+
+    // The single most consequential change a deployment ever sees: somebody
+    // took the keys. It is also the one nobody is around to witness.
+    await recordAccessAudit(ctx, {
+      targetUserId: identity.subject,
+      operation: ACCESS_AUDIT_OPERATIONS.bootstrap,
+      before: null,
+      after: { role: Role.SUPER_ADMIN, storeIds: [], permissions: [] },
+    });
+
+    return result;
   },
 });
 

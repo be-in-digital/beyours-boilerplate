@@ -10,9 +10,14 @@ import {
   invitationGrant,
   invitationModules,
   revocationEffect,
+  sweepInvitation,
   TeamAccessError,
 } from "@be-in-digital/convex-functions/teamAccess";
 import { Role } from "@be-in-digital/core/auth/rbac";
+import {
+  ACCESS_AUDIT_OPERATIONS,
+  recordAccessAudit,
+} from "@be-in-digital/convex-functions/accessAudit";
 
 const memberStoreId = storeIdFromDocument("Team member not found");
 
@@ -75,6 +80,23 @@ async function revokeProfileAccess(
     storeIds: next.storeIds,
     updatedAt: Date.now(),
   });
+
+  // A dismissal is the entry an owner comes looking for months later, and it
+  // was the one change that left no trace at all.
+  await recordAccessAudit(ctx, {
+    targetUserId: member.userId,
+    operation: ACCESS_AUDIT_OPERATIONS.membershipRevoked,
+    before: {
+      role: profile.role as Role,
+      storeIds: profile.storeIds,
+      permissions: profile.permissions,
+    },
+    after: {
+      role: next.role,
+      storeIds: next.storeIds,
+      permissions: profile.permissions,
+    },
+  });
 }
 
 // === QUERIES ===
@@ -116,17 +138,17 @@ export const getByEmail = storeQuery({
   handler: (ctx, args) => defs.getByEmail.handler(ctx, args),
 });
 
-// @public-by-design: an invitee resolves their invitation before they have an
-// account. Access is guarded by the single-use token, not by a session.
-export const getByInvitationToken = query(defs.getByInvitationToken);
-
 /**
  * What `/invite/[token]` needs, and nothing else.
  *
- * `getByInvitationToken` returns the whole `teamMembers` row to an unauthenticated
- * caller — the module permission list, the userId, the token echoed back. The
- * page needs four fields and the restaurant's NAME, which is not on the row at
- * all: the invitation email had it because the inviter passed it in, and the
+ * It replaces `getByInvitationToken`, which was exported as a public query and
+ * returned the WHOLE `teamMembers` row to an unauthenticated caller — the
+ * module permission list, the userId, the token echoed back — while having no
+ * caller anywhere outside Convex. Removed rather than left: an unused public
+ * query is surface with nobody watching it.
+ *
+ * The page needs four fields and the restaurant's NAME, which is not on the row
+ * at all: the invitation email had it because the inviter passed it in, and the
  * link carried nothing.
  *
  * It also answers instead of throwing. A page that has to distinguish "no such
@@ -367,15 +389,88 @@ export const acceptInvitation = mutation({
     // here — acceptance kept whatever the profile already had, which for a new
     // member was nothing, i.e. unrestricted. `requireStorePermission` reads
     // this list now, so an unticked module is a refusal rather than decoration.
-    return profileDefs.upsert.handler(ctx, {
+    const permissions = invitationModules(
+      member.permissions,
+      existingProfile?.permissions
+    );
+
+    const result = await profileDefs.upsert.handler(ctx, {
       userId: identity.subject,
       role: grant.role,
       storeIds: grant.storeIds,
-      permissions: invitationModules(
-        member.permissions,
-        existingProfile?.permissions
-      ),
+      permissions,
     });
+
+    await recordAccessAudit(ctx, {
+      targetUserId: identity.subject,
+      operation: ACCESS_AUDIT_OPERATIONS.invitationAccepted,
+      before: existingProfile
+        ? {
+            role: existingProfile.role as Role,
+            storeIds: existingProfile.storeIds,
+            permissions: existingProfile.permissions,
+          }
+        : null,
+      after: {
+        role: grant.role,
+        storeIds: grant.storeIds,
+        permissions,
+      },
+    });
+
+    return result;
+  },
+});
+
+/**
+ * Expire the invitations that have run out, and delete the ones long dead.
+ *
+ * Nothing ever swept this table. An invitation past its seven days could not be
+ * ACCEPTED — `assertInvitationAcceptable` refuses it — but it kept its status
+ * of `pending` and, more to the point, kept its TOKEN. So the roster showed
+ * "En attente" forever, and every link ever sent stayed in the database as a
+ * live-looking secret with nothing left to protect.
+ *
+ * Expiring clears the token, which is the half that matters. Purging removes
+ * rows nobody ever accepted, thirty days later, so the table stops accumulating
+ * the name and email of people who never joined.
+ *
+ * `internalMutation`, called from `crons.ts`: a scheduled sweep has no session,
+ * so it must never reach a guarded function. See `tests/convex/scheduled-paths`.
+ */
+export const sweepInvitations = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const members = await ctx.db.query("teamMembers").collect();
+
+    let expired = 0;
+    let purged = 0;
+
+    for (const member of members) {
+      const verdict = sweepInvitation(member, now);
+
+      if (verdict === "expire") {
+        await ctx.db.patch(member._id, {
+          invitationStatus: "expired" as const,
+          // The point of the whole sweep: a dead link stops resolving.
+          invitationToken: undefined,
+          updatedAt: now,
+        });
+        expired += 1;
+      } else if (verdict === "purge") {
+        await ctx.db.delete(member._id);
+        purged += 1;
+      }
+    }
+
+    if (expired > 0 || purged > 0) {
+      console.log(
+        `[teamMembers] invitation sweep: ${expired} expired, ${purged} purged`
+      );
+    }
+
+    return { expired, purged };
   },
 });
 

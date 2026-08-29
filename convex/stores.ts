@@ -4,7 +4,12 @@ import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import * as defs from "@be-in-digital/convex-functions/stores";
 import { storeQuery, storeMutation, authedQuery, authedMutation } from "./lib/storeFunctions";
-import { getAuthUser, isStaff, requireStaff } from "@be-in-digital/convex-functions/auth";
+import {
+  getAuthUser,
+  isStaff,
+  requireStaff,
+  seesEveryStore,
+} from "@be-in-digital/convex-functions/auth";
 import { hasPermission, type Role } from "@be-in-digital/core/auth/rbac";
 import { isPublishedStore } from "@be-in-digital/convex-schema";
 
@@ -30,23 +35,38 @@ export const list = query({
 });
 
 /**
- * The administration list: every establishment, drafts included.
+ * The administration list: the establishments THIS account administers, drafts
+ * included.
  *
- * It cannot go through `storeQuery` — the list spans every store, so there is
- * no single store to scope to — so the gate is checked inline, the way `create`
- * does it. `requireStaff` rather than `stores:read`: the kitchen and delivery
- * roles do not hold that permission and still render behind `StoreGuard`,
- * which is built from this list.
+ * It cannot go through `storeQuery` — the list spans several stores, so there
+ * is no single store to scope to — so the gate is checked inline, the way
+ * `create` does it. `requireStaff` rather than `stores:read`: the kitchen and
+ * delivery roles do not hold that permission and still render behind
+ * `StoreGuard`, which is built from this list.
+ *
+ * Staff-only was ALL it checked (#94). Membership was never applied, so a
+ * kitchen account attached to one restaurant received the name, address,
+ * phone, email, opening hours and delivery radius of every other restaurant
+ * its owner runs. The scope now comes from the same `storeIds` every other
+ * guard reads; only a super admin, whose remit is the chain, still sees all of
+ * them.
  *
  * `printConfig.apiKey` is stripped here as it is on the public queries. The one
  * read that returns it is `getAdminById`, behind `stores:read`.
  */
-// @guarded-inline: staff-only checked in the handler; the list spans every store
+// @guarded-inline: staff-only AND membership-scoped in the handler; the list
+// spans several stores, so the store-scoped seam cannot express it
 export const listAll = authedQuery({
   args: defs.listAll.args,
   handler: async (ctx) => {
-    await requireStaff(ctx);
-    const stores = await defs.listAll.handler(ctx);
+    const user = await requireStaff(ctx);
+
+    const stores = seesEveryStore(user.role)
+      ? await defs.listAll.handler(ctx)
+      : await defs.listByIds.handler(ctx, {
+          ids: user.storeIds as Id<"stores">[],
+        });
+
     return stores.map(stripSensitiveStoreData);
   },
 });
