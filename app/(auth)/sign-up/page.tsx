@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { authClient } from "@/lib/auth-client"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import {
@@ -16,17 +16,58 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  MailCheck,
 } from "lucide-react"
 import { Button, Input, Label } from "@be-in-digital/ui/components"
 
-export default function SignUpPage() {
+/**
+ * Where to land after authenticating.
+ *
+ * Read from `?redirect=`, and deliberately restricted to a path on this site:
+ * an absolute URL here would turn either auth page into an open redirect, and
+ * these are exactly the two pages a phishing link wants to borrow. A protocol-
+ * relative `//evil.example` is a URL to a browser and a path to a naive check,
+ * so it is refused as well.
+ */
+function safeRedirect(raw: string | null): string {
+  if (!raw) return "/menu"
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/menu"
+  return raw
+}
+
+function SignUpForm() {
   const router = useRouter()
+  const redirectTo = safeRedirect(useSearchParams().get("redirect"))
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  /**
+   * The address the account was created for, once sign-up returned WITHOUT a
+   * session. Better Auth only hands back a token when the address needs no
+   * verification; when `requireEmailVerification` is on it answers
+   * `{ token: null }` and mails a link instead. This page used to read that as
+   * success and route to `/menu` — signed out, with nothing to show for it.
+   */
+  const [awaitingVerification, setAwaitingVerification] = useState<string | null>(null)
+  const [resending, setResending] = useState(false)
+
+  const handleResend = async () => {
+    if (!awaitingVerification) return
+    setResending(true)
+    const { error } = await authClient.sendVerificationEmail({
+      email: awaitingVerification,
+      callbackURL: redirectTo,
+    })
+    setResending(false)
+    if (error) {
+      toast.error(error.message ?? "Impossible de renvoyer l'email")
+      return
+    }
+    toast.success("Email renvoyé")
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,13 +89,21 @@ export default function SignUpPage() {
         name,
         email,
         password,
+        // Where the link in the verification email lands once the address is
+        // confirmed. Auto-sign-in runs first, so the visitor arrives signed in.
+        callbackURL: redirectTo,
       })
 
       if (result.error) {
         toast.error(result.error.message ?? "Échec de la création du compte")
+      } else if (result.data?.token == null) {
+        // Account created, no session: the deployment requires verification.
+        // Say so, and stay on this page — routing to /menu here is what made
+        // sign-up a dead end.
+        setAwaitingVerification(email)
       } else {
         toast.success("Compte créé avec succès !")
-        router.push("/menu")
+        router.push(redirectTo)
       }
     } catch {
       toast.error("Une erreur inattendue est survenue")
@@ -95,6 +144,53 @@ export default function SignUpPage() {
 
         {/* Form card */}
         <div className="bg-white rounded-[3rem] shadow-2xl shadow-emerald-950/5 border border-zinc-100 overflow-hidden">
+          {awaitingVerification ? (
+            <div
+              className="p-8 md:p-12 text-center space-y-6"
+              data-testid="verification-pending"
+            >
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
+                <MailCheck className="h-8 w-8 text-[#0D5C3F]" />
+              </div>
+              <div className="space-y-3">
+                <h2 className="text-2xl font-black tracking-tight text-zinc-800">
+                  Vérifiez votre boîte mail
+                </h2>
+                <p className="text-zinc-500 font-medium leading-relaxed">
+                  Nous avons envoyé un lien de confirmation à{" "}
+                  <span className="font-black text-zinc-800">{awaitingVerification}</span>.
+                  Cliquez dessus pour activer votre compte — vous serez connecté
+                  automatiquement.
+                </p>
+                <p className="text-sm text-zinc-400">
+                  Le lien expire dans une heure. Pensez à regarder vos spams.
+                </p>
+              </div>
+              <div className="space-y-3 pt-2">
+                <Button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="w-full h-14 rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs disabled:opacity-60"
+                >
+                  {resending ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span className="sr-only">Envoi en cours...</span>
+                    </>
+                  ) : (
+                    "Renvoyer l'email"
+                  )}
+                </Button>
+                <Link
+                  href={`/sign-in?redirect=${encodeURIComponent(redirectTo)}`}
+                  className="block text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-600"
+                >
+                  Retour à la connexion
+                </Link>
+              </div>
+            </div>
+          ) : (
           <div className="p-8 md:p-12">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Name */}
@@ -218,19 +314,50 @@ export default function SignUpPage() {
               </div>
             </form>
           </div>
+          )}
         </div>
 
         {/* Footer link */}
         <p className="text-center mt-12 text-zinc-500 font-medium">
           Déjà un compte ?{" "}
           <Link
-            href="/sign-in"
+            href={`/sign-in?redirect=${encodeURIComponent(redirectTo)}`}
             className="text-[#0D5C3F] font-black hover:underline underline-offset-4"
           >
             Se connecter
           </Link>
         </p>
       </motion.div>
+    </div>
+  )
+}
+
+
+/**
+ * `useSearchParams` forces this tree to render on the client, and Next refuses
+ * to prerender the route without a boundary to fall back to. The skeleton is
+ * the page's own frame, so the transition is a fill rather than a flash.
+ */
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<AuthPageFallback />}>
+      <SignUpForm />
+    </Suspense>
+  )
+}
+
+/** The page frame, shown while the client half of the route hydrates. */
+function AuthPageFallback() {
+  return (
+    <div className="min-h-screen bg-[#FDFCF6] flex items-center justify-center px-6">
+      <div className="w-full max-w-xl rounded-[3rem] border border-zinc-100 bg-white p-12 shadow-2xl shadow-emerald-950/5">
+        <div className="h-6 w-40 animate-pulse rounded-full bg-zinc-100" />
+        <div className="mt-8 space-y-4">
+          <div className="h-14 animate-pulse rounded-2xl bg-zinc-50" />
+          <div className="h-14 animate-pulse rounded-2xl bg-zinc-50" />
+          <div className="h-16 animate-pulse rounded-2xl bg-zinc-100" />
+        </div>
+      </div>
     </div>
   )
 }

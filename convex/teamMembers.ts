@@ -1,5 +1,5 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/teamMembers";
 import * as profileDefs from "@be-in-digital/convex-functions/userProfiles";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
@@ -8,7 +8,9 @@ import {
   assertCanManageMember,
   assertInvitationAcceptable,
   invitationGrant,
+  invitationModules,
   revocationEffect,
+  TeamAccessError,
 } from "@be-in-digital/convex-functions/teamAccess";
 import { Role } from "@be-in-digital/core/auth/rbac";
 
@@ -118,6 +120,88 @@ export const getByEmail = storeQuery({
 // account. Access is guarded by the single-use token, not by a session.
 export const getByInvitationToken = query(defs.getByInvitationToken);
 
+/**
+ * What `/invite/[token]` needs, and nothing else.
+ *
+ * `getByInvitationToken` returns the whole `teamMembers` row to an unauthenticated
+ * caller — the module permission list, the userId, the token echoed back. The
+ * page needs four fields and the restaurant's NAME, which is not on the row at
+ * all: the invitation email had it because the inviter passed it in, and the
+ * link carried nothing.
+ *
+ * It also answers instead of throwing. A page that has to distinguish "no such
+ * invitation" from "expired" from "already accepted" cannot do it from an
+ * exception Convex has redacted, and rendering three different pieces of copy
+ * is the entire point of this route.
+ */
+// @public-by-design: the single-use token is the credential; the invitee has no
+// session yet, and half the reason to visit is to find out they need one.
+export const getInvitationPreview = query({
+  args: { token: v.string() },
+  // An explicit return validator, not inference. Convex widens a handler that
+  // returns differently shaped objects, and the page depends on the narrowing:
+  // it must be able to prove that a `pending` answer carries the store and the
+  // role. It also pins what leaves the deployment for an anonymous caller.
+  returns: v.union(
+    v.object({
+      status: v.union(
+        v.literal("not_found"),
+        v.literal("invitation_expired"),
+        v.literal("invitation_not_pending")
+      ),
+    }),
+    v.object({
+      status: v.literal("pending"),
+      name: v.string(),
+      email: v.string(),
+      role: v.string(),
+      allStores: v.boolean(),
+      storeName: v.union(v.string(), v.null()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const member = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_invitationToken", (q) =>
+        q.eq("invitationToken", args.token)
+      )
+      .first();
+
+    if (!member) return { status: "not_found" as const };
+
+    // The same rule `acceptInvitation` enforces, asked rather than thrown, so
+    // the page can say "expired" before the invitee fills anything in. A
+    // pending row past its lifetime still reads `pending` in the table — it is
+    // stamped `expired` on the acceptance attempt, not by a sweeper — so the
+    // check has to run here too or a week-old invitation looks live.
+    try {
+      assertInvitationAcceptable({ member, now: Date.now() });
+    } catch (error) {
+      // Narrowed to the two refusals this check can actually produce.
+      // `TeamRejectionReason` also covers the roster-management rejections,
+      // and widening the return to those would leave the page unable to prove
+      // that a "pending" answer carries the store and role fields at all.
+      const reason: "invitation_expired" | "invitation_not_pending" =
+        error instanceof TeamAccessError &&
+        error.reason === "invitation_not_pending"
+          ? "invitation_not_pending"
+          : "invitation_expired";
+      return { status: reason };
+    }
+
+    const store = member.storeId ? await ctx.db.get(member.storeId) : null;
+
+    return {
+      status: "pending" as const,
+      name: member.name,
+      email: member.email,
+      role: member.role,
+      allStores: member.allStores,
+      storeName: store?.name ?? null,
+    };
+  },
+});
+
 // Internal query for actions to read member data
 export const getById = internalQuery({
   args: { id: v.id("teamMembers") },
@@ -205,7 +289,10 @@ export const acceptInvitation = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Connectez-vous pour accepter cette invitation.");
+      throw new ConvexError({
+        code: "not_authenticated",
+        message: "Connectez-vous pour accepter cette invitation.",
+      });
     }
 
     const member = await ctx.db
@@ -215,19 +302,35 @@ export const acceptInvitation = mutation({
       )
       .first();
 
-    if (!member) throw new Error("Invitation introuvable.");
+    if (!member) {
+      throw new ConvexError({
+        code: "not_found",
+        message: "Invitation introuvable.",
+      });
+    }
 
     const now = Date.now();
     try {
       assertInvitationAcceptable({ member, now });
     } catch (error) {
-      // Record the expiry we just detected, so the roster stops showing it as
-      // pending, then surface the reason.
-      if (member.invitationStatus === "pending") {
-        await ctx.db.patch(member._id, {
-          invitationStatus: "expired",
-          updatedAt: now,
-        });
+      // No write here, deliberately.
+      //
+      // This block used to stamp `invitationStatus: "expired"` before throwing,
+      // "so the roster stops showing it as pending". It never did: a Convex
+      // mutation is a transaction, and the throw on the next line rolls the
+      // patch back. A test finally asked for the row afterwards and found it
+      // still `pending` — the comment described an intention, not a behaviour.
+      //
+      // Expiry is a rule about `invitedAt`, not a stored fact, so
+      // `getInvitationPreview` applies it on read and the invitee is told the
+      // truth whatever the column says.
+      //
+      // A `TeamAccessError` carries the one thing the invite page needs — WHICH
+      // refusal this is — and Convex redacts a plain thrown message in
+      // production, so it is re-thrown as data. "Expired" and "already
+      // accepted" ask the invitee to do two different things.
+      if (error instanceof TeamAccessError) {
+        throw new ConvexError({ code: error.reason, message: error.message });
       }
       throw error;
     }
@@ -259,11 +362,19 @@ export const acceptInvitation = mutation({
         : null
     );
 
+    // The module checkboxes finally cross the bridge. They were collected by
+    // the invite dialog, written to `teamMembers.permissions`, and then dropped
+    // here — acceptance kept whatever the profile already had, which for a new
+    // member was nothing, i.e. unrestricted. `requireStorePermission` reads
+    // this list now, so an unticked module is a refusal rather than decoration.
     return profileDefs.upsert.handler(ctx, {
       userId: identity.subject,
       role: grant.role,
       storeIds: grant.storeIds,
-      permissions: existingProfile?.permissions ?? [],
+      permissions: invitationModules(
+        member.permissions,
+        existingProfile?.permissions
+      ),
     });
   },
 });

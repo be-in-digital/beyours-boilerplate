@@ -1,20 +1,38 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { authClient } from "@/lib/auth-client"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { Mail, Lock, ArrowLeft, ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button, Input, Label } from "@be-in-digital/ui/components"
 
-export default function SignInPage() {
+/**
+ * Where to land after authenticating.
+ *
+ * Read from `?redirect=`, and deliberately restricted to a path on this site:
+ * an absolute URL here would turn either auth page into an open redirect, and
+ * these are exactly the two pages a phishing link wants to borrow. A protocol-
+ * relative `//evil.example` is a URL to a browser and a path to a naive check,
+ * so it is refused as well.
+ */
+function safeRedirect(raw: string | null): string {
+  if (!raw) return "/menu"
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/menu"
+  return raw
+}
+
+function SignInForm() {
   const router = useRouter()
+  const redirectTo = safeRedirect(useSearchParams().get("redirect"))
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  /** Set when the server refused because the address is not confirmed yet. */
+  const [unverified, setUnverified] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,10 +45,20 @@ export default function SignInPage() {
       })
 
       if (result.error) {
-        toast.error(result.error.message ?? "Échec de la connexion")
+        // A 403 EMAIL_NOT_VERIFIED is not a wrong password, and telling
+        // somebody their credentials failed when the account is simply
+        // unconfirmed sends them to reset a password that was never the
+        // problem. The server has just re-sent the link (`sendOnSignIn`), so
+        // say where to look.
+        if (result.error.code === "EMAIL_NOT_VERIFIED") {
+          setUnverified(true)
+          toast.error("Confirmez votre adresse email pour vous connecter")
+        } else {
+          toast.error(result.error.message ?? "Échec de la connexion")
+        }
       } else {
         toast.success("Connexion réussie !")
-        router.push("/menu")
+        router.push(redirectTo)
       }
     } catch {
       toast.error("Une erreur inattendue est survenue")
@@ -137,6 +165,18 @@ export default function SignInPage() {
                 </div>
               </div>
 
+              {unverified && (
+                <div
+                  data-testid="unverified-notice"
+                  role="status"
+                  className="rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-sm text-orange-900"
+                >
+                  Cette adresse n&apos;est pas encore confirmée. Nous venons de
+                  vous renvoyer le lien de confirmation — vérifiez votre boîte
+                  mail, et vos spams.
+                </div>
+              )}
+
               {/* Submit */}
               <div className="space-y-4 pt-2">
                 <Button
@@ -162,13 +202,43 @@ export default function SignInPage() {
         <p className="text-center mt-12 text-zinc-500 font-medium">
           Pas encore de compte ?{" "}
           <Link
-            href="/sign-up"
+            href={`/sign-up?redirect=${encodeURIComponent(redirectTo)}`}
             className="text-[#0D5C3F] font-black hover:underline underline-offset-4"
           >
             Créer un compte
           </Link>
         </p>
       </motion.div>
+    </div>
+  )
+}
+
+
+/**
+ * `useSearchParams` forces this tree to render on the client, and Next refuses
+ * to prerender the route without a boundary to fall back to. The skeleton is
+ * the page's own frame, so the transition is a fill rather than a flash.
+ */
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<AuthPageFallback />}>
+      <SignInForm />
+    </Suspense>
+  )
+}
+
+/** The page frame, shown while the client half of the route hydrates. */
+function AuthPageFallback() {
+  return (
+    <div className="min-h-screen bg-[#FDFCF6] flex items-center justify-center px-6">
+      <div className="w-full max-w-xl rounded-[3rem] border border-zinc-100 bg-white p-12 shadow-2xl shadow-emerald-950/5">
+        <div className="h-6 w-40 animate-pulse rounded-full bg-zinc-100" />
+        <div className="mt-8 space-y-4">
+          <div className="h-14 animate-pulse rounded-2xl bg-zinc-50" />
+          <div className="h-14 animate-pulse rounded-2xl bg-zinc-50" />
+          <div className="h-16 animate-pulse rounded-2xl bg-zinc-100" />
+        </div>
+      </div>
     </div>
   )
 }

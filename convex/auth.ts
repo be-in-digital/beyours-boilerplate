@@ -9,6 +9,66 @@ import authConfig from "./auth.config";
 // Better Auth component client
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
+/**
+ * Post one transactional email to the deployment's own `/api/email/send`.
+ *
+ * Convex holds no SES credentials — the Next app does — so every mail Better
+ * Auth wants to send crosses this seam. Two failures used to be possible here
+ * and BOTH were silent: a deployment missing `SITE_URL` or the shared secret
+ * returned early without a word, and a 4xx from the route was never read, so a
+ * refused link looked exactly like a delivered one. A restaurateur waiting on
+ * an email they will never receive had nothing to look at, and neither did we.
+ *
+ * It throws now. On a misconfigured deployment that turns an invisible dead end
+ * into a visible error, which is the only version of this an operator can act
+ * on.
+ */
+async function sendTransactionalEmail(body: {
+  type: string;
+  to: string;
+  data: Record<string, string>;
+}): Promise<void> {
+  const siteUrl = process.env.SITE_URL;
+  // Must match what app/api/email/send/route.ts authenticates with:
+  // EMAIL_API_SECRET when set, BETTER_AUTH_SECRET while migrating.
+  const secret =
+    process.env.EMAIL_API_SECRET ?? process.env.BETTER_AUTH_SECRET;
+
+  if (!siteUrl || !secret) {
+    const missing = [
+      !siteUrl ? "SITE_URL" : null,
+      !secret ? "EMAIL_API_SECRET (or BETTER_AUTH_SECRET)" : null,
+    ]
+      .filter(Boolean)
+      .join(" and ");
+    console.error(
+      `[auth] Cannot send "${body.type}": ${missing} is not set on the Convex deployment. ` +
+        "Set it with `npx convex env set`."
+    );
+    throw new Error(`Email delivery is not configured (${missing}).`);
+  }
+
+  const res = await fetch(`${siteUrl}/api/email/send`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${secret}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    // The body carries the route's own reason — a link outside SITE_URL, a
+    // secret the two halves disagree on — and it is the only place that reason
+    // exists.
+    const detail = await res.text().catch(() => "");
+    console.error(
+      `[auth] "${body.type}" to ${body.to} was refused with ${res.status}: ${detail.slice(0, 300)}`
+    );
+    throw new Error(`Email delivery failed (${res.status}).`);
+  }
+}
+
 // Better Auth server configuration
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
@@ -29,29 +89,52 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       requireEmailVerification:
         process.env.AUTH_ALLOW_UNVERIFIED_EMAIL !== "true",
       minPasswordLength: 12,
+      // A reset must end every session the old password could still be
+      // holding open. Without this a stolen session survives the reset that
+      // was performed to kill it — for up to seven days, the session lifetime.
+      // The in-app password change already passed `revokeOtherSessions: true`;
+      // the reset path, the one used precisely when an account is believed
+      // compromised, did not.
+      revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
-        const siteUrl = process.env.SITE_URL;
-        // Must match what app/api/email/send/route.ts authenticates with:
-        // EMAIL_API_SECRET when set, BETTER_AUTH_SECRET while migrating.
-        const secret =
-          process.env.EMAIL_API_SECRET ?? process.env.BETTER_AUTH_SECRET;
-        if (!siteUrl || !secret) return;
-
-        await fetch(`${siteUrl}/api/email/send`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${secret}`,
+        await sendTransactionalEmail({
+          type: "passwordReset",
+          to: user.email,
+          data: {
+            resetLink: url,
+            expirationTime: "1 hour",
+            userName: user.name ?? user.email,
           },
-          body: JSON.stringify({
-            type: "passwordReset",
-            to: user.email,
-            data: {
-              resetLink: url,
-              expirationTime: "1 hour",
-              userName: user.name ?? user.email,
-            },
-          }),
+        });
+      },
+    },
+    /**
+     * The half that was missing.
+     *
+     * `requireEmailVerification` is on by default (see above), and Better Auth
+     * only mints a verification token when a sender exists: `sign-up.mjs:241`
+     * creates the token, finds no `sendVerificationEmail`, sends nothing and
+     * skips auto-sign-in; `sign-in.mjs:231` then answers every later attempt
+     * with `EMAIL_NOT_VERIFIED`. Sign-up reported success and left the account
+     * permanently unreachable.
+     *
+     * `sendOnSignIn` matters as much as `sendOnSignUp`: it is the way back for
+     * anyone who signed up before this existed, or who lost the mail. It only
+     * fires after the password has been checked, so it is not a way to make
+     * this deployment mail a stranger.
+     */
+    emailVerification: {
+      sendOnSignUp: true,
+      sendOnSignIn: true,
+      autoSignInAfterVerification: true,
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendTransactionalEmail({
+          type: "verifyEmail",
+          to: user.email,
+          data: {
+            verifyLink: url,
+            userName: user.name ?? user.email,
+          },
         });
       },
     },

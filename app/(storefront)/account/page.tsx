@@ -298,7 +298,15 @@ export default function AccountPage() {
 
     setIsUpdatingProfile(true)
     try {
-      await authClient.updateUser({ name: profileName })
+      // The Better Auth client RESOLVES on failure, with the reason in
+      // `error` — it does not throw. Awaiting it inside a try/catch and then
+      // announcing success is how a rejected update was reported as a saved
+      // one. Every other call site in this app already knew that.
+      const { error } = await authClient.updateUser({ name: profileName })
+      if (error) {
+        toast.error(error.message ?? "Erreur lors de la mise à jour du profil")
+        return
+      }
 
       await updateMyProfile({
         phones: validPhones,
@@ -326,11 +334,25 @@ export default function AccountPage() {
     }
 
     try {
-      await authClient.changePassword({
+      // Same trap, and this one locks people out. `changePassword` resolves
+      // with `{ error }` on a wrong current password; the result was ignored,
+      // so the page said "Mot de passe mis à jour", the user believed the new
+      // password was live, and the old one was still the only one that worked.
+      const { error } = await authClient.changePassword({
         newPassword,
         currentPassword,
         revokeOtherSessions: true,
       })
+
+      if (error) {
+        toast.error(
+          error.code === "INVALID_PASSWORD"
+            ? "Mot de passe actuel incorrect"
+            : (error.message ?? "Erreur lors du changement de mot de passe")
+        )
+        return
+      }
+
       toast.success("Mot de passe mis à jour")
       form.reset()
     } catch (error: unknown) {

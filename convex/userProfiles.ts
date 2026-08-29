@@ -1,5 +1,5 @@
 import { query, mutation, internalMutation } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/userProfiles";
 import { getAuthUser } from "@be-in-digital/convex-functions/auth";
 import {
@@ -46,6 +46,35 @@ export const getMyProfile = query({
       .query("userProfiles")
       .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
       .first();
+  },
+});
+
+/**
+ * Does this deployment still need its first administrator?
+ *
+ * `/setup` is the only screen a fresh deployment can offer, and without this it
+ * would have to guess: it would show a token field to someone whose deployment
+ * was configured months ago, and it could not tell "wrong token" from "nobody
+ * ever set one". Both answers are deployment state, not credentials — knowing
+ * that a bootstrap token EXISTS gets you no closer to holding it, and the claim
+ * still refuses everything but the token itself.
+ */
+// @public-by-design: reports deployment state, reveals no secret, and is the
+// only way the setup screen can say something true before anyone is an admin.
+export const bootstrapStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const superAdmin = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_role", (q) => q.eq("role", Role.SUPER_ADMIN))
+      .first();
+
+    return {
+      /** True once somebody holds the super-admin seat: `/setup` is closed. */
+      claimed: superAdmin !== null,
+      /** False when `ADMIN_BOOTSTRAP_TOKEN` is unset — nobody can claim it. */
+      configured: Boolean(process.env.ADMIN_BOOTSTRAP_TOKEN),
+    };
   },
 });
 
@@ -115,16 +144,32 @@ export const claimFirstAdmin = mutation({
   args: { bootstrapToken: v.string() },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    if (!identity) {
+      throw new ConvexError({
+        code: "not_authenticated",
+        message: "Connectez-vous avant de réclamer le siège d'administrateur.",
+      });
+    }
 
+    // ConvexError, not Error: Convex redacts a plain thrown message in
+    // production and the UI receives "Server Error". These three refusals are
+    // the only feedback an operator gets while setting a deployment up, and
+    // "Server Error" for all three is indistinguishable from a broken backend.
+    // `data` survives the redaction; the `code` is what the screen switches on,
+    // so the copy never has to guess from a string.
     const expected = process.env.ADMIN_BOOTSTRAP_TOKEN;
     if (!expected) {
-      throw new Error(
-        "L'amorçage administrateur n'est pas configuré sur ce déploiement."
-      );
+      throw new ConvexError({
+        code: "bootstrap_not_configured",
+        message:
+          "L'amorçage administrateur n'est pas configuré sur ce déploiement.",
+      });
     }
     if (!timingSafeEqualString(args.bootstrapToken, expected)) {
-      throw new Error("Jeton d'amorçage invalide.");
+      throw new ConvexError({
+        code: "bootstrap_token_invalid",
+        message: "Jeton d'amorçage invalide.",
+      });
     }
 
     const superAdmins = await ctx.db
@@ -133,9 +178,10 @@ export const claimFirstAdmin = mutation({
       .collect();
 
     if (!canClaimFirstAdmin({ existingSuperAdminCount: superAdmins.length })) {
-      throw new Error(
-        "Un super administrateur existe déjà sur ce déploiement."
-      );
+      throw new ConvexError({
+        code: "bootstrap_already_claimed",
+        message: "Un super administrateur existe déjà sur ce déploiement.",
+      });
     }
 
     // Reuse the shared upsert so the profile is built with every field the
