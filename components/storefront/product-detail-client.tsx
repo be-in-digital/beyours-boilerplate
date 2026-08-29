@@ -28,7 +28,7 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product, storeId }: ProductDetailClientProps) {
-  const addItem = useCartStore((s: { addItem: (item: import("@be-in-digital/restaurant").CartItem) => void }) => s.addItem)
+  const addItem = useCartStore((s: { addItem: (item: import("@be-in-digital/restaurant").NewCartItem) => void }) => s.addItem)
   const cartStoreId = useCartStore((s: { storeId: string | null }) => s.storeId)
   const { isFavorite, toggleFavorite } = useFavorites()
   const { isOpen } = useStoreStatus(storeId)

@@ -12,7 +12,7 @@ import {
   isProductAvailable,
   useCartStore,
 } from "@be-in-digital/restaurant"
-import type { ProductDoc, CartItem } from "@be-in-digital/restaurant"
+import type { ProductDoc, NewCartItem } from "@be-in-digital/restaurant"
 import { useFavorites } from "@/lib/hooks/use-favorites"
 import { useStoreStatus } from "@/lib/hooks/use-store-status"
 import { StorefrontProductCard } from "./storefront-product-card"
@@ -25,7 +25,7 @@ interface FavoritesGridProps {
 export function FavoritesGrid({ storeId }: FavoritesGridProps) {
   const router = useRouter()
   const { favorites, isFavorite, toggleFavorite } = useFavorites()
-  const addItem = useCartStore((s: { addItem: (item: CartItem) => void }) => s.addItem)
+  const addItem = useCartStore((s: { addItem: (item: NewCartItem) => void }) => s.addItem)
   const { isOpen } = useStoreStatus(storeId)
 
   // All favorite product IDs (all stores)
