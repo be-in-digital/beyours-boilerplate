@@ -1,4 +1,5 @@
-import { query, internalQuery } from "./_generated/server";
+import { query, internalQuery, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import * as defs from "@be-in-digital/convex-functions/stores";
@@ -175,9 +176,43 @@ export const updateTrendingMode = storeMutation({
   handler: (ctx, args) => defs.updateTrendingMode.handler(ctx, args),
 });
 
+/**
+ * Deleting an establishment takes its data with it.
+ *
+ * One mutation is one transaction with a bounded budget, and an established
+ * restaurant has more orders than that, so `defs.remove` clears one batch and
+ * says whether more is left. The scheduling lives here rather than in the
+ * package, which has no `internal` reference to schedule against — the same
+ * split `autoTranslate` uses.
+ */
 export const remove = storeMutation({
   permission: "stores:delete",
   args: defs.remove.args,
   storeIdFrom: storeIdFromIdArg,
-  handler: (ctx, args) => defs.remove.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const result = await defs.remove.handler(ctx, args);
+    if (result?.hasMore) {
+      await ctx.scheduler.runAfter(0, internal.stores.purgeStoreData, {
+        storeId: args.id,
+      });
+    }
+    return result;
+  },
+});
+
+/**
+ * The rest of the sweep, one batch per run, until there is nothing left.
+ *
+ * Internal only: it takes an id that no longer resolves — the store row is
+ * deleted in the first transaction — and it is nobody's to call but the
+ * scheduler's.
+ */
+export const purgeStoreData = internalMutation({
+  args: defs.purgeStoreData.args,
+  handler: async (ctx, args) => {
+    const { hasMore } = await defs.purgeStoreData.handler(ctx, args);
+    if (hasMore) {
+      await ctx.scheduler.runAfter(0, internal.stores.purgeStoreData, args);
+    }
+  },
 });
