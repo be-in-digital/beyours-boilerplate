@@ -95,6 +95,26 @@ export const create = mutation({
 
 const orderStoreId = storeIdFromDocument("Order not found");
 
+/**
+ * Cash taken at the counter, recorded as a payment.
+ *
+ * Under `orders:update_status`, not `payments:write`. The people who take cash
+ * are the ones who move the order along — the manager at the till and the rider
+ * at the door — and `payments:write` belongs to the owner, who is not there
+ * when the notes change hands. Recording that a cash order was paid is a step
+ * in its lifecycle; refunding it, which does hold `payments:refund`, is not.
+ */
+export const markCashPaid = storeMutation({
+  permission: "orders:update_status",
+  args: defs.markCashPaid.args,
+  storeIdFrom: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (!order) throw new Error("Order not found");
+    return order.storeId;
+  },
+  handler: (ctx, args) => defs.markCashPaid.handler(ctx, args),
+});
+
 // Protected: Admin only — verify store access via order's storeId
 export const updateStatus = storeMutation({
   // The permission exists precisely for this: advancing an order through its

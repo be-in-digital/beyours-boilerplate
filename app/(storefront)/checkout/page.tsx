@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useMutation, useQuery, useAction } from "convex/react"
@@ -61,6 +61,14 @@ export default function CheckoutPage() {
   )
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  /**
+   * One key per checkout attempt, minted on the first submit and kept until it
+   * succeeds. The button re-enables in `finally` while the redirect to the
+   * payment provider is in flight, and the cart survives a Back navigation:
+   * without this, a second click bought a second dinner. The server returns the
+   * order that already exists.
+   */
+  const idempotencyKey = useRef<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
   const [lastOrderId, setLastOrderId] = useState<string | null>(null)
   const [formEmail, setFormEmail] = useState("")
@@ -380,6 +388,9 @@ export default function CheckoutPage() {
     }
 
     setIsSubmitting(true)
+    if (!idempotencyKey.current) {
+      idempotencyKey.current = crypto.randomUUID()
+    }
     setFormEmail(data.email ?? "")
 
     try {
@@ -461,6 +472,7 @@ export default function CheckoutPage() {
           orderType === "delivery" ? data.deliveryAddress : undefined,
         // Only the id: the server reads the fee from the quote it stored.
         uberDirectEstimateId: orderQuote?.estimateId,
+        idempotencyKey: idempotencyKey.current ?? undefined,
       })
 
       const origin = window.location.origin
