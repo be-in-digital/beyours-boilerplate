@@ -1,4 +1,5 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { ConvexError, v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/teamMembers";
 import * as profileDefs from "@be-in-digital/convex-functions/userProfiles";
@@ -9,9 +10,11 @@ import {
   assertInvitationAcceptable,
   invitationGrant,
   invitationModules,
+  membershipUpdateEffect,
   revocationEffect,
   sweepInvitation,
   TeamAccessError,
+  type MembershipProjection,
 } from "@be-in-digital/convex-functions/teamAccess";
 import { Role } from "@be-in-digital/core/auth/rbac";
 import {
@@ -97,6 +100,112 @@ async function revokeProfileAccess(
       permissions: profile.permissions,
     },
   });
+}
+
+/**
+ * Carry a roster edit through to the profile the guards actually read.
+ *
+ * `toggleActive` and `remove` both call `revokeProfileAccess`; `update` called
+ * nothing, so the one mutation an owner uses day to day — the "Modifier le
+ * membre" dialog — wrote to `teamMembers` and stopped. Since every guard
+ * resolves rights from `userProfiles`, unticking a module, demoting a manager
+ * or moving someone to another restaurant changed the team screen and left the
+ * person's actual access exactly as it was.
+ *
+ * Called AFTER the patch, so it reads the row as it now stands, and inside the
+ * same mutation, so the profile, the roster and the audit entry land in one
+ * transaction or none.
+ */
+async function propagateMembershipUpdate(
+  ctx: Parameters<typeof getAuthUser>[0] & {
+    db: { patch: (id: unknown, updates: unknown) => Promise<unknown> };
+  },
+  before: {
+    _id: Id<"teamMembers">;
+    userId?: string;
+    storeId?: string;
+    allStores: boolean;
+  }
+) {
+  // A pending invitation has no profile behind it yet, and `acceptInvitation`
+  // reads the row as it stands when the invitee clicks — so editing one before
+  // it is accepted already works, and there is nothing here to carry.
+  const userId = before.userId;
+  if (!userId) return;
+
+  const after = await ctx.db.get(before._id);
+  if (!after) return;
+
+  const profile = await ctx.db
+    .query("userProfiles")
+    .withIndex("by_userId", (q: { eq: (f: string, v: unknown) => unknown }) =>
+      q.eq("userId", userId)
+    )
+    .first();
+  if (!profile) return;
+
+  // The person's other positions. Without them, narrowing someone in one
+  // restaurant would silently demote them in another.
+  const rows: MembershipRow[] = await ctx.db
+    .query("teamMembers")
+    .withIndex("by_userId", (q: { eq: (f: string, v: unknown) => unknown }) =>
+      q.eq("userId", userId)
+    )
+    .collect();
+
+  const next = membershipUpdateEffect({
+    profile: {
+      role: profile.role as Role,
+      storeIds: profile.storeIds,
+      permissions: profile.permissions,
+    },
+    before: { storeId: before.storeId, allStores: before.allStores },
+    after: projectMembership(after),
+    others: rows
+      .filter((row: MembershipRow) => row._id !== after._id)
+      .map(projectMembership),
+  });
+
+  // `null` means the roster has no say over this profile, or nothing moved.
+  if (!next) return;
+
+  await ctx.db.patch(profile._id, {
+    role: next.role,
+    storeIds: next.storeIds,
+    permissions: next.permissions,
+    updatedAt: Date.now(),
+  });
+
+  await recordAccessAudit(ctx, {
+    targetUserId: userId,
+    operation: ACCESS_AUDIT_OPERATIONS.membershipUpdated,
+    before: {
+      role: profile.role as Role,
+      storeIds: profile.storeIds,
+      permissions: profile.permissions,
+    },
+    after: next,
+  });
+}
+
+/** The roster fields the profile projection depends on. */
+type MembershipRow = {
+  _id: Id<"teamMembers">;
+  role: "manager" | "kitchen" | "waiter" | "delivery";
+  storeId?: Id<"stores">;
+  allStores: boolean;
+  permissions: string[];
+  isActive: boolean;
+};
+
+function projectMembership(row: MembershipRow): MembershipProjection {
+  return {
+    role: row.role,
+    storeId: row.storeId,
+    allStores: row.allStores,
+    permissions: row.permissions,
+    isActive: row.isActive,
+  };
 }
 
 // === QUERIES ===
@@ -518,7 +627,14 @@ export const update = mutation({
         allStores: args.allStores ?? existing.allStores,
       });
     }
-    return defs.update.handler(ctx, args);
+
+    const result = await defs.update.handler(ctx, args);
+
+    // The half that was missing. Editing the roster has to reach the profile,
+    // or the owner restricts nothing — see `propagateMembershipUpdate`.
+    await propagateMembershipUpdate(ctx, existing);
+
+    return result;
   },
 });
 
