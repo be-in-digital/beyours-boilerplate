@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { isStoreOpen, resolveStoreHours } from "@be-in-digital/restaurant"
+import { resolveStoreServices } from "@be-in-digital/convex-schema"
 import type { Id } from "@/convex/_generated/dataModel"
 import type { StoreHoursStatus } from "@be-in-digital/restaurant"
 
@@ -26,6 +27,10 @@ import type { StoreHoursStatus } from "@be-in-digital/restaurant"
  * - It compared against the visitor's own clock. `globalSettings.timezone` was
  *   written and never read, so a customer abroad got the wrong answer and
  *   anyone could change it by changing their system clock.
+ * - It returned `store.overrides.services` raw, and that override is
+ *   `undefined` on every establishment that has not customised it. The
+ *   order-type selector read `undefined` as "offer everything", so a restaurant
+ *   that does not deliver still showed Livraison.
  */
 export function useStoreStatus(storeId: string | null) {
   const store = useQuery(
@@ -51,6 +56,12 @@ export function useStoreStatus(storeId: string | null) {
     isOpen,
     hoursStatus,
     status: store?.status ?? null,
-    services: store?.overrides?.services ?? null,
+    // `null` while the two queries are in flight — the selector renders
+    // nothing rather than guessing, and guessing is what offered a service the
+    // restaurant does not run.
+    services:
+      store && globalSettings !== undefined
+        ? resolveStoreServices(store, globalSettings)
+        : null,
   }
 }

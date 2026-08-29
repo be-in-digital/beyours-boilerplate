@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -33,6 +34,7 @@ import type { OrderType } from "@be-in-digital/restaurant"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 import { useStoreStatus } from "@/lib/hooks/use-store-status"
 import { OrderTypeSelector } from "@/components/storefront/order-type-selector"
+import { isOrderTypeOffered, ORDER_TYPES } from "@be-in-digital/convex-schema"
 
 export default function CartPage() {
   const router = useRouter()
@@ -50,6 +52,17 @@ export default function CartPage() {
 
   const subtotal = getSubtotal()
   const itemCount = getItemCount()
+
+  // The cart's order type is persisted, so it outlives the owner switching a
+  // service off: a basket built when the restaurant delivered still said
+  // "delivery" the next day, and `orders.create` now refuses it. Move the
+  // selection to something the restaurant actually offers rather than let the
+  // customer reach checkout and be turned away there.
+  useEffect(() => {
+    if (!services || isOrderTypeOffered(orderType, services)) return
+    const fallback = ORDER_TYPES.find((type) => isOrderTypeOffered(type, services))
+    if (fallback) setOrderType(fallback)
+  }, [services, orderType, setOrderType])
 
   if (items.length === 0) {
     return (

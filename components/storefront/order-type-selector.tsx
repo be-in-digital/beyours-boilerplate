@@ -2,23 +2,38 @@
 
 import { Truck, ShoppingBag, Utensils } from "lucide-react"
 import type { OrderType } from "@be-in-digital/restaurant"
+import { isOrderTypeOffered, type StoreServices } from "@be-in-digital/convex-schema"
 
 interface OrderTypeSelectorProps {
   value: OrderType
   onChange: (type: OrderType) => void
   disabled?: boolean
-  services?: { dineIn: boolean; takeaway: boolean; delivery: boolean } | null
+  /**
+   * The services in force, or `null` while they load.
+   *
+   * `null` used to mean "offer everything", and that is what put Livraison in
+   * front of customers of a restaurant that does not deliver: the store
+   * override this was read from is `undefined` on every establishment that has
+   * not customised it. `null` now means "not known yet", and nothing is
+   * offered until it is.
+   */
+  services?: StoreServices | null
 }
 
+/**
+ * Which service each order type needs is `ORDER_TYPE_SERVICE`, next to the
+ * schema — the same map `orders.create` validates against. Kept in one place so
+ * the button a customer can press and the order the server accepts cannot
+ * disagree.
+ */
 const options: {
   type: OrderType
   label: string
   icon: typeof Truck
-  serviceKey: "delivery" | "takeaway" | "dineIn"
 }[] = [
-  { type: "delivery", label: "Livraison", icon: Truck, serviceKey: "delivery" },
-  { type: "pickup", label: "À emporter", icon: ShoppingBag, serviceKey: "takeaway" },
-  { type: "dine_in", label: "Sur place", icon: Utensils, serviceKey: "dineIn" },
+  { type: "delivery", label: "Livraison", icon: Truck },
+  { type: "pickup", label: "À emporter", icon: ShoppingBag },
+  { type: "dine_in", label: "Sur place", icon: Utensils },
 ]
 
 export function OrderTypeSelector({
@@ -27,9 +42,9 @@ export function OrderTypeSelector({
   disabled,
   services,
 }: OrderTypeSelectorProps) {
-  const availableOptions = options.filter(
-    (opt) => !services || services[opt.serviceKey]
-  )
+  const availableOptions = services
+    ? options.filter((opt) => isOrderTypeOffered(opt.type, services))
+    : []
 
   return (
     <div
