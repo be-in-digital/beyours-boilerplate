@@ -275,7 +275,7 @@ export function ProductForm({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="priceEuros">
-                Prix (€) <span className="text-destructive">*</span>
+                Prix TTC (€) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="priceEuros"

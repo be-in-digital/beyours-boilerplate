@@ -101,6 +101,7 @@ export function ProductDetailClient({ product, storeId }: ProductDetailClientPro
       productId: product._id,
       name: product.name,
       price: product.price,
+      taxRate: product.taxRate,
       quantity,
       options: cartOptions,
       imageUrl: product.images?.[0],

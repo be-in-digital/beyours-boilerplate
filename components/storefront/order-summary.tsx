@@ -56,10 +56,17 @@ export function OrderSummary({
   const subtotal = getSubtotal()
   const itemCount = getItemCount()
 
-  // Same function the server bills with, so the two cannot drift apart again.
+  // Same function the server bills with, so the two cannot drift apart again —
+  // including which rate applies to which line.
   const totals = computeOrderTotals({
     subtotal,
     taxRatePercent,
+    lines: items.map((item) => ({
+      subtotal:
+        (item.price + item.options.reduce((s, o) => s + o.priceModifier, 0)) *
+        item.quantity,
+      taxRatePercent: item.taxRate ?? taxRatePercent,
+    })),
     deliveryFee: deliveryFee ?? 0,
     discount: appliedPromo?.discountAmount ?? 0,
   })
@@ -246,7 +253,12 @@ export function OrderSummary({
           {totals.taxAmount > 0 && (
             <div className="flex items-center justify-between text-sm">
               <span className="font-bold uppercase tracking-widest text-zinc-400">
-                TVA ({taxRatePercent} %)
+                {/* "dont" — the tax is inside the prices above, not added to
+                    them. One rate is named; a basket mixing rates is not. */}
+                dont TVA
+                {totals.taxBreakdown.length === 1
+                  ? ` (${totals.taxBreakdown[0]!.ratePercent} %)`
+                  : ""}
               </span>
               <span className="text-zinc-800">
                 {formatPrice(totals.taxAmount)}
@@ -265,7 +277,7 @@ export function OrderSummary({
                 {formatPrice(displayTotal)}
               </p>
               <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                {totals.taxAmount > 0 ? "TVA incluse" : "Hors taxes"}
+                {totals.taxAmount > 0 ? "TVA incluse" : "Non soumis à la TVA"}
               </p>
             </div>
           </div>

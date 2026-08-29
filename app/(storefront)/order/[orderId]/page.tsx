@@ -255,7 +255,7 @@ function OrderConfirmationContent() {
                 <span className="font-bold text-zinc-600">{formatPrice(order.subtotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-400 font-bold uppercase tracking-widest text-[10px]">Taxes</span>
+                <span className="text-zinc-400 font-bold uppercase tracking-widest text-[10px]">dont TVA</span>
                 <span className="font-bold text-zinc-600">{formatPrice(order.taxAmount)}</span>
               </div>
               {order.deliveryFee !== undefined && order.deliveryFee > 0 && (

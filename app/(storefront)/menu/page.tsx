@@ -140,6 +140,7 @@ function MenuContent() {
       productId: product._id,
       name: product.name,
       price: product.price,
+      taxRate: product.taxRate,
       quantity: 1,
       options: [],
       imageUrl: product.images?.[0],
