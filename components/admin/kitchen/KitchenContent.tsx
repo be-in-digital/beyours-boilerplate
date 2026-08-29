@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner"
 import { TicketCard } from "./TicketCard"
 import { StationFilter } from "./StationFilter"
+import { resolveSoundConfig } from "@be-in-digital/admin"
 import { KitchenSoundManager } from "./KitchenSoundManager"
 import { KitchenPrintTrigger } from "./KitchenPrintTrigger"
 import { PrintStatusBadge } from "./PrintStatusBadge"
@@ -112,11 +113,11 @@ export function KitchenContent() {
         <>
           <KitchenSoundManager
             storeId={storeId!}
-            soundConfig={store.soundConfig ?? {
-              newTicket: { enabled: true, volume: 80 },
-              overdue: { enabled: true, volume: 100 },
-              printerOffline: { enabled: true, volume: 100 },
-            }}
+            // Resolved rather than defaulted whole: an establishment
+            // configured before an alert existed carries only the alerts it
+            // knew about, and reading `undefined.enabled` here would take the
+            // kitchen screen down.
+            soundConfig={resolveSoundConfig(store.soundConfig)}
             ticketCount={tickets?.length}
           />
           {store.printConfig?.enabled && (
