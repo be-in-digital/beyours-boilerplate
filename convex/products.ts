@@ -160,6 +160,19 @@ export const duplicateCatalog = storeMutation({
   },
 });
 
+/**
+ * Reorder the catalogue of one establishment.
+ *
+ * Scoped on `args.storeId` like every other write here; the handler refuses any
+ * product id that is not in that store, so the list of ids a client sends
+ * cannot reach across establishments.
+ */
+export const reorder = storeMutation({
+  args: defs.reorder.args,
+  permission: "products:write",
+  handler: (ctx, args) => defs.reorder.handler(ctx, args),
+});
+
 export const setTrendingProducts = storeMutation({
   args: defs.setTrendingProducts.args,
   permission: "products:write",
