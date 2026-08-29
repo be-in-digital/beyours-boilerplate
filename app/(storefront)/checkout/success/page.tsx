@@ -19,7 +19,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { CheckCircle2, Loader2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useCartStore } from "@be-in-digital/restaurant"
+import { useCartStore, clearCheckoutAttempt } from "@be-in-digital/restaurant"
 
 type Outcome =
   | { state: "verifying" }
@@ -105,6 +105,7 @@ function CheckoutSuccessContent() {
               orderNumber: state.orderNumber,
             })
             clearCart()
+            clearCheckoutAttempt()
           } else {
             setOutcome({ state: "pending", label: state.paymentStatus })
           }
@@ -138,6 +139,7 @@ function CheckoutSuccessContent() {
         setOutcome({ state: "paid", ...result, orderId: result.orderId ?? orderId })
         // Only now: the basket must survive a failed or abandoned payment.
         clearCart()
+        clearCheckoutAttempt()
       } else {
         // Carry the view token through: the pending screen offers a link to the
         // order, and without the token that link is a dead end for a guest —

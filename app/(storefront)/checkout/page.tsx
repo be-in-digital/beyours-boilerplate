@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useMutation, useQuery, useAction } from "convex/react"
@@ -12,7 +12,14 @@ import {
   ShieldCheck,
 } from "lucide-react"
 import { Button } from "@be-in-digital/ui/components"
-import { useCartStore, formatPrice } from "@be-in-digital/restaurant"
+import { useCartStore, formatPrice,
+  cartSignature,
+  resolveCheckoutAttempt,
+  loadCheckoutAttempt,
+  saveCheckoutAttempt,
+  clearCheckoutAttempt,
+  useCartHydrated,
+} from "@be-in-digital/restaurant"
 import { resolveTaxRatePercent } from "@be-in-digital/convex-functions/orderTotals"
 import {
   resolvePromotionDiscount,
@@ -40,7 +47,8 @@ interface AppliedPromo {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { storeId } = useStoreId()
+  const { storeId, isLoading: isResolvingStore } = useStoreId()
+  const cartHydrated = useCartHydrated()
   const { isOpen } = useStoreStatus(storeId)
   const { data: session } = authClient.useSession()
 
@@ -62,13 +70,15 @@ export default function CheckoutPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   /**
-   * One key per checkout attempt, minted on the first submit and kept until it
-   * succeeds. The button re-enables in `finally` while the redirect to the
-   * payment provider is in flight, and the cart survives a Back navigation:
-   * without this, a second click bought a second dinner. The server returns the
-   * order that already exists.
+   * One key per checkout attempt, kept in session storage rather than in a ref.
+   *
+   * The button re-enables in `finally` while the redirect to the payment
+   * provider is in flight, and the cart survives a Back navigation: without a
+   * key, a second click bought a second dinner. A ref covered the click and not
+   * the return — this page remounts on every arrival, including the one that
+   * matters. Tied to the basket, so an edited cart starts a new attempt instead
+   * of handing back an order for the old contents.
    */
-  const idempotencyKey = useRef<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
   const [lastOrderId, setLastOrderId] = useState<string | null>(null)
   const [formEmail, setFormEmail] = useState("")
@@ -299,18 +309,26 @@ export default function CheckoutPage() {
     setPromoError("")
   }, [])
 
-  // Guards
+  // Guards.
+  //
+  // Both wait for the persisted cart to be read back and for the establishment
+  // list to arrive. Before that the cart looks empty and no store is resolved,
+  // so a customer arriving at /checkout with a full basket — the one coming
+  // back from the payment provider, above all — was bounced to /cart or to the
+  // restaurant picker.
   useEffect(() => {
+    if (!cartHydrated) return
     if (items.length === 0 && !isSuccess) {
       router.replace("/cart")
     }
-  }, [items.length, router, isSuccess])
+  }, [cartHydrated, items.length, router, isSuccess])
 
   useEffect(() => {
+    if (!cartHydrated || isResolvingStore) return
     if (storeId === null && items.length > 0) {
       router.replace("/store-selector")
     }
-  }, [storeId, items.length, router])
+  }, [cartHydrated, isResolvingStore, storeId, items.length, router])
 
   // Success screen
   if (isSuccess) {
@@ -364,6 +382,7 @@ export default function CheckoutPage() {
     )
   }
 
+  if (!cartHydrated || isResolvingStore) return null
   if (items.length === 0 || !storeId) return null
 
   const cardProvider = globalSettings?.payments?.cardProvider ?? "stripe"
@@ -388,9 +407,17 @@ export default function CheckoutPage() {
     }
 
     setIsSubmitting(true)
-    if (!idempotencyKey.current) {
-      idempotencyKey.current = crypto.randomUUID()
-    }
+    const attempt = resolveCheckoutAttempt(
+      loadCheckoutAttempt(),
+      cartSignature({
+        storeId,
+        orderType,
+        promotionId: appliedPromo?.id ?? automaticOffer?.id,
+        items,
+      }),
+      () => crypto.randomUUID()
+    )
+    saveCheckoutAttempt(attempt)
     setFormEmail(data.email ?? "")
 
     try {
@@ -472,7 +499,7 @@ export default function CheckoutPage() {
           orderType === "delivery" ? data.deliveryAddress : undefined,
         // Only the id: the server reads the fee from the quote it stored.
         uberDirectEstimateId: orderQuote?.estimateId,
-        idempotencyKey: idempotencyKey.current ?? undefined,
+        idempotencyKey: attempt.key,
       })
 
       const origin = window.location.origin
@@ -482,6 +509,8 @@ export default function CheckoutPage() {
         // Cash: immediate confirmation
         setLastOrderId(orderId)
         clearCart()
+        // The order went through: the basket is gone and so is its attempt.
+        clearCheckoutAttempt()
         setIsSuccess(true)
         toast.success("Commande confirmée !")
 
