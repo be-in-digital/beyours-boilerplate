@@ -22,6 +22,12 @@ interface AppliedPromo {
 
 interface OrderSummaryProps {
   appliedPromo?: AppliedPromo | null
+  /**
+   * An offer the restaurant applies on its own, with no code to type. The
+   * server applies the best one when no coupon was entered; showing it here is
+   * what keeps the screen and the charge in agreement.
+   */
+  automaticOffer?: AppliedPromo | null
   promoError?: string
   promoLoading?: boolean
   onApplyPromo?: (code: string) => void
@@ -38,6 +44,7 @@ interface OrderSummaryProps {
 
 export function OrderSummary({
   appliedPromo,
+  automaticOffer,
   promoError,
   promoLoading,
   onApplyPromo,
@@ -68,7 +75,9 @@ export function OrderSummary({
       taxRatePercent: item.taxRate ?? taxRatePercent,
     })),
     deliveryFee: deliveryFee ?? 0,
-    discount: appliedPromo?.discountAmount ?? 0,
+    // One promotion per order, the coupon first — the same rule the server
+    // applies.
+    discount: appliedPromo?.discountAmount ?? automaticOffer?.discountAmount ?? 0,
   })
   const discount = totals.discount
   const displayTotal = totals.total
@@ -153,6 +162,22 @@ export function OrderSummary({
       {onApplyPromo && (
         <div className="px-8 pb-2">
           <Separator className="mb-6 bg-zinc-100" />
+
+          {!appliedPromo && automaticOffer && (
+            <div className="mb-4 flex items-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+                <Tag className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
+                  Offre automatique
+                </p>
+                <p className="text-[10px] font-medium text-emerald-600">
+                  {automaticOffer.name} — -{formatPrice(automaticOffer.discountAmount)}
+                </p>
+              </div>
+            </div>
+          )}
 
           {appliedPromo ? (
             <div className="flex items-center justify-between rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4">

@@ -67,6 +67,7 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
       name: product.name,
       price: product.price,
       taxRate: product.taxRate,
+      categoryId: product.categoryId,
       quantity: 1,
       options: [],
       imageUrl: product.images?.[0],

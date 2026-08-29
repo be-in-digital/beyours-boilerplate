@@ -264,6 +264,14 @@ function OrderConfirmationContent() {
                   <span className="font-bold text-zinc-600">{formatPrice(order.deliveryFee)}</span>
                 </div>
               )}
+              {/* Without this line the receipt does not add up: the discount was
+                  stored on the order and shown nowhere. */}
+              {order.discountAmount !== undefined && order.discountAmount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-emerald-600 font-bold uppercase tracking-widest text-[10px]">Réduction</span>
+                  <span className="font-bold text-emerald-600">-{formatPrice(order.discountAmount)}</span>
+                </div>
+              )}
             </div>
 
             <Separator className="my-6 bg-zinc-100" />

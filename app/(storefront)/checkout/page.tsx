@@ -14,6 +14,10 @@ import {
 import { Button } from "@be-in-digital/ui/components"
 import { useCartStore, formatPrice } from "@be-in-digital/restaurant"
 import { resolveTaxRatePercent } from "@be-in-digital/convex-functions/orderTotals"
+import {
+  resolvePromotionDiscount,
+  PromotionRejectedError,
+} from "@be-in-digital/convex-functions/promotionDiscount"
 import { authClient } from "@/lib/auth-client"
 import {
   decideOrderQuote,
@@ -83,6 +87,15 @@ export default function CheckoutPage() {
   const [promoError, setPromoError] = useState("")
   const [promoLoading, setPromoLoading] = useState(false)
 
+  // Automatic offers the restaurant is running right now. The list existed and
+  // had no caller at all: an owner who configured an "offre automatique" got a
+  // promotion that never applied. The server applies the best one when no
+  // coupon is typed; this is how the customer sees it coming.
+  const autoPromotions = useQuery(
+    api.promotions.listActiveAuto,
+    storeId ? { storeId: storeId as Id<"stores"> } : "skip"
+  )
+
   // Reactive query for promo lookup
   const promoResult = useQuery(
     api.promotions.getByCouponCode,
@@ -108,46 +121,37 @@ export default function CheckoutPage() {
     const now = Date.now()
     const promo = promoResult
 
-    // Validate
-    if (!promo.isActive) {
-      setPromoError("Ce code promo n'est plus actif.")
-      setPromoCode("")
-      return
-    }
-    if (now < promo.startDate || now > promo.endDate) {
-      setPromoError("Ce code promo a expiré ou n'est pas encore valide.")
-      setPromoCode("")
-      return
-    }
-    if (promo.maxTotalUsage && promo.usageCount >= promo.maxTotalUsage) {
-      setPromoError("Ce code promo a atteint sa limite d'utilisation.")
-      setPromoCode("")
-      return
-    }
-
-    const subtotal = getSubtotal()
-    if (promo.minimumOrderAmount && subtotal < promo.minimumOrderAmount) {
-      setPromoError(`Commande minimum de ${formatPrice(promo.minimumOrderAmount)} requise.`)
-      setPromoCode("")
-      return
-    }
-
-    // Calculate discount
+    // The server's own resolver, run on the client for display. It used to be
+    // a second, looser copy: `free_delivery` was hard-coded to 0 here while the
+    // server discounted the whole fee (26,90 € on screen, 22,00 € charged), and
+    // a fixed amount was uncapped here and clamped there (−50 € shown on a 22 €
+    // order). Same function, same numbers.
     let discountAmount = 0
-    if (promo.discountType === "percentage" && promo.discountValue) {
-      discountAmount = Math.round(subtotal * promo.discountValue / 100)
-      if (promo.maxDiscountAmount && discountAmount > promo.maxDiscountAmount) {
-        discountAmount = promo.maxDiscountAmount
-      }
-    } else if (promo.discountType === "fixed_amount" && promo.discountValue) {
-      discountAmount = promo.discountValue
-    } else if (promo.discountType === "free_delivery") {
-      // Handled server-side during order creation
-      discountAmount = 0
-    }
-
-    if (discountAmount <= 0 && promo.discountType !== "free_delivery") {
-      setPromoError("Ce code promo ne s'applique pas à votre commande.")
+    try {
+      const resolved = resolvePromotionDiscount({
+        promotion: promo,
+        storeId: storeId as string,
+        subtotal: getSubtotal(),
+        deliveryFee: estimatedDeliveryFee ?? 0,
+        now,
+        items: items.map((item) => ({
+          productId: item.productId,
+          categoryId: item.categoryId,
+          subtotal:
+            (item.price + item.options.reduce((s, o) => s + o.priceModifier, 0)) *
+            item.quantity,
+        })),
+        timezone: globalSettings?.timezone,
+        // The email is not known until the form is submitted, so a per-customer
+        // cap cannot be checked here. The server checks it and may still refuse.
+      })
+      discountAmount = resolved.discount
+    } catch (error) {
+      setPromoError(
+        error instanceof PromotionRejectedError
+          ? error.message
+          : "Ce code promo ne s'applique pas à votre commande."
+      )
       setPromoCode("")
       return
     }
@@ -187,6 +191,48 @@ export default function CheckoutPage() {
     return deliveryConfig.maxFee !== undefined && fee > deliveryConfig.maxFee
       ? deliveryConfig.maxFee
       : fee
+  })()
+
+  // The automatic offer the server would apply: the best one that resolves,
+  // evaluated with the resolver the server uses. Only when no coupon was typed
+  // — one promotion per order, and a typed coupon is the customer's own choice.
+  const automaticOffer = (() => {
+    if (appliedPromo || !storeId || !autoPromotions?.length) return null
+
+    const lines = items.map((item) => ({
+      productId: item.productId,
+      categoryId: item.categoryId,
+      subtotal:
+        (item.price + item.options.reduce((s, o) => s + o.priceModifier, 0)) *
+        item.quantity,
+    }))
+
+    let best: AppliedPromo | null = null
+    for (const promotion of autoPromotions) {
+      try {
+        const resolved = resolvePromotionDiscount({
+          promotion,
+          storeId: storeId as string,
+          subtotal: getSubtotal(),
+          deliveryFee: estimatedDeliveryFee ?? 0,
+          now: Date.now(),
+          items: lines,
+          timezone: globalSettings?.timezone,
+        })
+        if (resolved.discount > (best?.discountAmount ?? 0)) {
+          best = {
+            id: promotion._id,
+            code: "",
+            name: promotion.name,
+            discountAmount: resolved.discount,
+          }
+        }
+      } catch {
+        // Not applicable to this basket, at this hour. Nobody asked for it by
+        // name, so there is nobody to explain a refusal to.
+      }
+    }
+    return best
   })()
 
   // Request an Uber Direct quote when the fee depends on one. Skipped in every
@@ -523,6 +569,7 @@ export default function CheckoutPage() {
             <div className="sticky top-32 space-y-6">
               <OrderSummary
                 appliedPromo={appliedPromo}
+                automaticOffer={automaticOffer}
                 promoError={promoError}
                 promoLoading={promoLoading}
                 onApplyPromo={handleApplyPromo}
