@@ -47,6 +47,11 @@ function htmlPage(title: string, message: string): string {
 
 // ─── GET /email/unsubscribe?id=<subscriberId> ───────────────────────────────
 
+// @public-by-design: the recipient of a marketing email has no session and
+// must be able to leave from the link alone — required by law, and a login
+// wall on an unsubscribe link is itself the abuse. The unguessable document
+// id in the link is the bearer credential, and the handler answers the same
+// page whether or not it matched, so it is not an enumeration oracle.
 export const handleUnsubscribe = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
@@ -78,6 +83,8 @@ export const handleUnsubscribe = httpAction(async (ctx, request) => {
 
 // ─── GET /email/confirm?token=<doubleOptInToken> ────────────────────────────
 
+// @guarded-inline: the single-use doubleOptInToken is the credential, and
+// the mutation clears it on use
 export const handleConfirmOptIn = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
@@ -168,28 +175,8 @@ function getMailHeader(
   return headers?.find((h) => h.name === name)?.value;
 }
 
-/**
- * Validate SNS SigningCertURL following AWS best practices:
- * - Must be HTTPS
- * - Must be from sns.<region>.amazonaws.com
- * - Path must end with .pem
- * - No port override allowed
- */
-function isValidSNSOrigin(certUrl: string | undefined): boolean {
-  if (!certUrl) return false;
-  try {
-    const url = new URL(certUrl);
-    return (
-      url.protocol === "https:" &&
-      /^sns\.[a-z0-9-]+\.amazonaws\.com$/.test(url.hostname) &&
-      url.pathname.endsWith(".pem") &&
-      !url.port
-    );
-  } catch {
-    return false;
-  }
-}
-
+// @guarded-inline: verifies Amazon's RSA signature over the raw body before
+// reading a single field out of it
 export const handleSesWebhook = httpAction(async (ctx, request) => {
   const rawBody = await request.text();
 
@@ -200,9 +187,24 @@ export const handleSesWebhook = httpAction(async (ctx, request) => {
     return new Response("Invalid JSON", { status: 400 });
   }
 
-  // Basic SNS origin validation
-  if (!isValidSNSOrigin(snsMessage.SigningCertURL)) {
-    console.error("Invalid SNS SigningCertURL:", snsMessage.SigningCertURL);
+  // The check that used to stand here asked whether the body's own
+  // `SigningCertURL` field looked like an Amazon host, and treated a yes as
+  // authentication. The attacker writes that field. Everything below —
+  // `markBounced`, `markComplained`, the campaign counters — was reachable by
+  // anyone who could POST, for any subscriber id they cared to name.
+  //
+  // Amazon signs every message; that signature is the only thing here that an
+  // attacker cannot produce. The host check still runs, in
+  // `sesWebhookVerify`, doing the job it can actually do: deciding which host
+  // we are willing to fetch a certificate from.
+  // `internal` is cast to `any` at the top of this file, so the action's
+  // return type does not survive the call. Named here, or `verdict.valid`
+  // would be `any` and the check below would prove nothing.
+  const verdict = (await ctx.runAction(internal.sesWebhookVerify.verify, {
+    body: rawBody,
+  })) as { valid: boolean; reason?: string };
+  if (!verdict.valid) {
+    console.error("Rejected SES webhook:", verdict.reason);
     return new Response("Unauthorized", { status: 403 });
   }
 

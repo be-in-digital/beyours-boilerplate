@@ -25,6 +25,11 @@ interface StripeAccountLinkResponse {
  * Handle the return redirect after Stripe Account Links onboarding.
  * Checks that the account has charges_enabled and stores the connection.
  */
+// @unguarded-tracked: #162 — no CSRF state. `account_id` is taken from the
+// query string and written to the deployment-level paymentConnections row,
+// so anyone who learns the restaurant's acct_ id can rewrite its payment
+// connection status. The single-use state infrastructure already exists and
+// is used correctly by uberEatsOAuthHttp.
 export const stripeCallback = httpAction(async (ctx, request) => {
   const { getSiteEnv } = await import("@be-in-digital/core/env");
   const site = getSiteEnv();
@@ -90,6 +95,8 @@ export const stripeCallback = httpAction(async (ctx, request) => {
  * Handle the refresh redirect when the Stripe onboarding link has expired.
  * Generates a new Account Link and redirects the user back to Stripe.
  */
+// @unguarded-tracked: #162 — no CSRF state. Mints a fresh Stripe onboarding
+// link for whatever account_id the query string names.
 export const stripeRefresh = httpAction(async (ctx, request) => {
   const { getSiteEnv } = await import("@be-in-digital/core/env");
   const site = getSiteEnv();
@@ -155,6 +162,10 @@ export const stripeRefresh = httpAction(async (ctx, request) => {
  * Handle the SumUp OAuth redirect callback.
  * Delegates token exchange and encryption to the Node.js internalAction.
  */
+// @unguarded-tracked: #162 — no CSRF state, and this is the severe one of
+// the three: oauthConnect generates a state and never persists it, so an
+// injected authorization code binds a third party's SumUp account and routes
+// card payments into it. Described in full on the issue.
 export const sumupCallback = httpAction(async (ctx, request) => {
   const { getSiteEnv } = await import("@be-in-digital/core/env");
   const site = getSiteEnv();

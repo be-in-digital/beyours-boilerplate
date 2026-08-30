@@ -84,6 +84,7 @@ import type * as requiredActions from "../requiredActions.js";
 import type * as seed from "../seed.js";
 import type * as seedFixture from "../seedFixture.js";
 import type * as seedKitchenOrders from "../seedKitchenOrders.js";
+import type * as sesWebhookVerify from "../sesWebhookVerify.js";
 import type * as storageUpload from "../storageUpload.js";
 import type * as storeIntegrations from "../storeIntegrations.js";
 import type * as stores from "../stores.js";
@@ -194,6 +195,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   seedFixture: typeof seedFixture;
   seedKitchenOrders: typeof seedKitchenOrders;
+  sesWebhookVerify: typeof sesWebhookVerify;
   storageUpload: typeof storageUpload;
   storeIntegrations: typeof storeIntegrations;
   stores: typeof stores;

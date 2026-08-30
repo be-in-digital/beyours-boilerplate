@@ -21,6 +21,8 @@ type StoreIntegrationRecord = {
  * fetchOrder will fail (404/401) because sandbox API doesn't have production orders.
  * In that case we create the order/ticket with partial data from the webhook event.
  */
+// @guarded-inline: verifies the Uber signature over the raw body before
+// the payload is read or trusted
 export const handleWebhook = httpAction(async (ctx, request) => {
   try {
     const rawBody = await request.text()

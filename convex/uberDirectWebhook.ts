@@ -16,6 +16,8 @@
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 
+// @guarded-inline: the HMAC is checked before the body is parsed — see the
+// note at the top of this file
 export const handleWebhook = httpAction(async (ctx, request) => {
   try {
     const rawBody = await request.text();

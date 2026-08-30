@@ -6,6 +6,8 @@ import { internal } from "./_generated/api";
  * Receives ?code=...&state=... (or ?error=...), delegates token exchange +
  * encryption to the Node.js internalAction, then redirects to the admin UI.
  */
+// @guarded-inline: consumes a single-use OAuth state we issued, with a TTL,
+// before exchanging the code
 export const uberEatsConnectCallback = httpAction(async (ctx, request) => {
   const { getSiteEnv } = await import("@be-in-digital/core/env");
   const site = getSiteEnv();

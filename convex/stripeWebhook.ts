@@ -7,6 +7,8 @@ import type { Id } from "./_generated/dataModel";
  * Delegates Stripe SDK signature verification to a Node.js internalAction
  * because httpAction cannot use "use node".
  */
+// @guarded-inline: the Stripe SDK verifies the signature in
+// internal.stripeWebhookVerify.verify before anything here reads the event
 export const handleWebhook = httpAction(async (ctx, request) => {
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");

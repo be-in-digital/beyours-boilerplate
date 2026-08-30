@@ -10,6 +10,8 @@ import { internal } from "./_generated/api";
  * Signature: HMAC-SHA256(secret, sequence_guid_bytes + space + raw_body_bytes)
  * Uses raw ArrayBuffer (not text) per Deliveroo docs.
  */
+// @guarded-inline: verifies Deliveroo's HMAC-SHA256 over sequence guid and
+// raw body before acting on either
 export const handleWebhook = httpAction(async (ctx, request) => {
   try {
     // Read as ArrayBuffer first (required for correct HMAC verification)
