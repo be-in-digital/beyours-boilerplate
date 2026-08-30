@@ -21,6 +21,7 @@ import { useCartStore, formatPrice,
   useCartHydrated,
 } from "@be-in-digital/restaurant"
 import { resolveTaxRatePercent } from "@be-in-digital/convex-functions/orderTotals"
+import { effectiveDeliveryFeeMode } from "@be-in-digital/convex-functions/deliveryQuote"
 import {
   resolvePromotionDiscount,
   PromotionRejectedError,
@@ -195,7 +196,10 @@ export default function CheckoutPage() {
     const freeAbove = deliveryConfig.freeAbove
     if (freeAbove && subtotal >= freeAbove) return 0
 
-    const feeMode = deliveryConfig.feeMode ?? "fixed"
+    const feeMode = effectiveDeliveryFeeMode({
+      feeMode: deliveryConfig.feeMode,
+      uberDirectEnabled: globalSettings?.integrations?.uberDirect?.enabled,
+    })
     if (feeMode === "fixed") {
       const fee = deliveryConfig.fee
       if (fee === undefined || fee === null) return null // no fee configured
@@ -255,7 +259,13 @@ export default function CheckoutPage() {
 
   // Request an Uber Direct quote when the fee depends on one. Skipped in every
   // other mode so a fixed-fee store never touches the Uber API.
-  const feeMode = globalSettings?.delivery?.feeMode ?? "fixed"
+  // The mode the shop can honour, not the one it stored: percentage without
+  // Uber Direct prices nothing, and the server charges the fixed fee. Asking
+  // for a quote here would show a fee the order is never charged.
+  const feeMode = effectiveDeliveryFeeMode({
+    feeMode: globalSettings?.delivery?.feeMode,
+    uberDirectEnabled: globalSettings?.integrations?.uberDirect?.enabled,
+  })
   const needsQuote =
     orderType === "delivery" && feeMode === "percentage" && !!storeId
 

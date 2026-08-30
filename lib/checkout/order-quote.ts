@@ -12,6 +12,8 @@
  * therefore whether the fee charged is the fee displayed.
  */
 
+import { effectiveDeliveryFeeMode } from "@be-in-digital/convex-functions/deliveryQuote"
+
 export interface OrderQuote {
   estimateId: string
   fee: number
@@ -51,10 +53,15 @@ export function decideOrderQuote(input: {
     return { kind: "reuse", quote: input.displayedQuote }
   }
 
+  // Percentage mode with the integration off prices nothing: the server falls
+  // back to the fixed fee rather than refusing the order, and asking Uber for a
+  // quote here would bill a fee the shop cannot honour.
   const needsQuote =
     input.orderType === "delivery" &&
-    input.feeMode === "percentage" &&
-    input.uberDirectEnabled === true
+    effectiveDeliveryFeeMode({
+      feeMode: input.feeMode,
+      uberDirectEnabled: input.uberDirectEnabled,
+    }) === "percentage"
 
   if (!needsQuote) return { kind: "none" }
 
