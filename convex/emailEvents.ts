@@ -23,5 +23,6 @@ export const listBySubscriber = storeQuery({
 // === Internal mutations (called by SES webhook HTTP action only) ===
 
 export const alreadySentTo = internalQuery(defs.alreadySentTo);
+export const sentCountsSince = internalQuery(defs.sentCountsSince);
 export const create = internalMutation(defs.create);
 export const createBatch = internalMutation(defs.createBatch);

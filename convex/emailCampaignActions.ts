@@ -16,6 +16,12 @@ import {
   buildSegmentFilter,
   renderTemplateToEmailHtml,
 } from "@be-in-digital/marketing";
+import {
+  ONE_WEEK_MS,
+  resolveWeeklyCap,
+  subjectFor,
+  withinWeeklyCap,
+} from "@be-in-digital/convex-functions/campaignDelivery";
 
 const BATCH_DELAY_MS = 100; // ~10 emails/sec, well below SES sandbox limit
 
@@ -192,6 +198,38 @@ export const sendBatch = internalAction({
     const reached = new Set(alreadyReached);
     recipients = recipients.filter((s: any) => !reached.has(s._id));
 
+    // `maxEmailsPerWeek` was presented in the settings screen as an anti-spam
+    // guard, with a default of three, and nothing anywhere consulted it: a
+    // restaurant sending four campaigns in a week sent all four to everyone,
+    // having promised itself otherwise.
+    //
+    // Counted from the events table rather than a stored tally, so it cannot
+    // disagree with the idempotency check about what actually went out. One
+    // round-trip for the page, as with that check.
+    const cap = resolveWeeklyCap(config.maxEmailsPerWeek);
+    if (recipients.length > 0) {
+      const counts: Array<{ subscriberId: string; count: number }> =
+        await ctx.runQuery(internal.emailEvents.sentCountsSince, {
+          subscriberIds: recipients.map((s: any) => s._id),
+          since: Date.now() - ONE_WEEK_MS,
+        });
+      const sentThisWeek = new Map(
+        counts.map((c) => [c.subscriberId, c.count])
+      );
+      const before = recipients.length;
+      recipients = recipients.filter((s: any) =>
+        withinWeeklyCap(sentThisWeek.get(s._id) ?? 0, cap)
+      );
+      const held = before - recipients.length;
+      if (held > 0) {
+        // Logged rather than silent: an owner who sees fewer sends than
+        // subscribers deserves a reason that is findable.
+        console.log(
+          `[emailCampaigns] ${held} subscriber(s) held back by maxEmailsPerWeek=${cap}`
+        );
+      }
+    }
+
     const sesClient = createSESClient();
     const siteUrl = process.env.CONVEX_SITE_URL ?? "";
     // Media stored without a CDN is a path on the storefront, not on Convex.
@@ -202,6 +240,18 @@ export const sendBatch = internalAction({
 
     for (const subscriber of recipients) {
       try {
+        // The wizard collects variants and checks their percentages sum to 100.
+        // The send used `campaign.subject` for everyone, `campaign.variants`
+        // was read by nothing, and `metadata.variantId` — a schema field that
+        // exists for exactly this — was never written. An owner could run a
+        // test whose two arms were the same email and read a result measuring
+        // nothing.
+        //
+        // The arm is chosen deterministically from the two ids, because a send
+        // now runs in batches that can be interrupted and retried: drawing at
+        // random would let a retry send arm B to someone who already had arm A.
+        const delivery = subjectFor(campaign, subscriber._id, args.campaignId);
+
         const unsubscribeUrl = `${siteUrl}/email/unsubscribe?id=${subscriber._id}`;
 
         const branding = {
@@ -224,7 +274,7 @@ export const sendBatch = internalAction({
           ConfigurationSetName: "beindigital-email-tracking",
           Content: {
             Simple: {
-              Subject: { Data: campaign.subject, Charset: "UTF-8" },
+              Subject: { Data: delivery.subject, Charset: "UTF-8" },
               Body: {
                 Html: { Data: html, Charset: "UTF-8" },
                 Text: {
@@ -265,6 +315,11 @@ export const sendBatch = internalAction({
           subscriberId: subscriber._id,
           type: "sent",
           occurredAt: Date.now(),
+          // Which arm this address received. Without it a finished test has no
+          // way to say which subject won.
+          metadata: delivery.variantId
+            ? { variantId: delivery.variantId }
+            : undefined,
         });
 
         await ctx.runMutation(internal.emailCampaigns.incrementStats, {
