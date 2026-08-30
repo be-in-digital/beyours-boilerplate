@@ -1,4 +1,4 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/emailAutomations";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
@@ -64,3 +64,20 @@ export const pause = storeMutation({
 // === Internal mutations ===
 
 export const incrementStats = internalMutation(defs.incrementStats);
+
+/**
+ * The same rows, for the engine.
+ *
+ * `getById` and `listActive` are store-scoped, and a scheduled automation step
+ * has no identity to scope with. The authorisation happened when the owner
+ * activated the automation.
+ */
+export const getByIdInternal = internalQuery({
+  args: defs.getById.args,
+  handler: (ctx, args) => defs.getById.handler(ctx, args),
+});
+
+export const listActiveInternal = internalQuery({
+  args: defs.listActive.args,
+  handler: (ctx, args) => defs.listActive.handler(ctx, args),
+});
