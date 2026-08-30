@@ -1,7 +1,7 @@
 "use node";
 /* eslint-disable @typescript-eslint/no-explicit-any -- Convex action ctx.runQuery returns untyped results */
 
-import { action } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import { api as _api, internal as _internal } from "./_generated/api";
 import { v } from "convex/values";
@@ -33,20 +33,21 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Subscribers handled per batch. One SES call and a 100 ms pause each. */
+const BATCH_SIZE = 40;
+
 /**
- * Send a campaign to all matching subscribers.
+ * Begin sending a campaign. The work itself happens in `sendBatch`.
  *
- * Flow:
- *  1. Load campaign, template, emailConfig
- *  2. Fetch active subscribers (optionally filtered by segment)
- *  3. Mark campaign as "sending"
- *  4. For each subscriber: render HTML, send via SES, record event, increment stats
- *  5. Mark campaign as "sent"
+ * This used to BE the send: one synchronous loop over every active subscriber,
+ * invoked from the browser, with an SES call, two mutation round-trips and a
+ * 100 ms pause each. Around 3,000 subscribers it exceeded the Convex time
+ * limit, the campaign stayed at `sending` for good, and the only way out was
+ * "Relancer" — which started again from the first subscriber and mailed
+ * everyone who had already received it a second time.
  *
- * Custom SES headers (X-Campaign-Id, X-Subscriber-Id, X-Store-Id) are added
- * to each email for correlation in the SES webhook handler.
- *
- * NOTE: For large campaigns (5 000+), consider scheduling batches via ctx.scheduler.
+ * So the loop is gone. This validates, marks the campaign, and hands off to a
+ * chain of scheduled batches that can be interrupted, paused and resumed.
  */
 // @guarded-inline: runs authHelpers.checkStorePermission on the campaign's store
 export const send = action({
@@ -86,32 +87,111 @@ export const send = action({
     });
     if (!config) throw new Error("Configuration email introuvable");
 
-    // 2. Get active subscribers (optionally filtered by segment)
-    let subscribers: any[] = await ctx.runQuery(api.emailSubscribers.list, {
+    // Refusing an empty audience out loud, as before. It used to fall out of
+    // loading every subscriber; asking for a single row keeps the warning
+    // without bringing the unbounded read back with it.
+    const firstPage: any = await ctx.runQuery(internal.emailSubscribers.pageForSending, {
       storeId: campaign.storeId,
-      status: "active",
+      cursor: null,
+      numItems: 1,
     });
-
-    if (campaign.segmentId) {
-      const segment: any = await ctx.runQuery(api.emailSegments.getById, {
-        id: campaign.segmentId,
-      });
-      if (segment) {
-        const predicate = buildSegmentFilter(segment.rules, segment.ruleOperator);
-        subscribers = subscribers.filter((s: any) => predicate(s));
-      }
-    }
-
-    if (subscribers.length === 0) {
+    if (firstPage.page.length === 0) {
       throw new Error("Aucun abonné actif trouvé pour cette campagne");
     }
 
-    // 3. Mark campaign as sending
+    // Starting fresh rather than resuming means the cursor must be cleared,
+    // or a re-run of a finished campaign would resume at its end and send
+    // nothing. Resuming a paused one keeps it.
+    if (campaign.status !== "paused") {
+      await ctx.runMutation(internal.emailCampaigns.saveSendCursor, {
+        id: args.campaignId,
+        cursor: null,
+      });
+    }
+
     await ctx.runMutation(internal.emailCampaigns.markSending, {
       id: args.campaignId,
     });
 
-    // 4. Send emails
+    await ctx.scheduler.runAfter(0, internal.emailCampaignActions.sendBatch, {
+      campaignId: args.campaignId,
+    });
+
+    return { started: true };
+  },
+});
+
+/**
+ * Send one page of the campaign, then schedule the next.
+ *
+ * Three properties this has to hold, each one a defect it replaces:
+ *
+ * - **Bounded.** A batch reads one page and sends it, so no single invocation
+ *   can outgrow the action time limit however long the list is.
+ * - **Resumable.** The cursor is saved after every page, so an interruption
+ *   costs at most one batch and "Relancer" continues rather than restarts.
+ * - **Idempotent.** Before sending, it asks the events table which of these
+ *   subscribers this campaign has already reached, and skips them. A cursor
+ *   alone cannot survive a batch that is retried after a transient failure;
+ *   this can, and duplicate marketing mail is the failure that costs real
+ *   customers and real SES reputation.
+ */
+export const sendBatch = internalAction({
+  args: { campaignId: v.id("emailCampaigns") },
+  handler: async (ctx: ActionCtx, args): Promise<void> => {
+    const campaign: any = await ctx.runQuery(internal.emailCampaigns.getByIdInternal, {
+      id: args.campaignId,
+    });
+    if (!campaign) return;
+
+    // The owner pressed Pause between two batches. Stop the chain and leave the
+    // cursor where it is — that is what makes resuming possible at all.
+    if (campaign.status !== "sending") {
+      console.log(
+        `[emailCampaigns] batch stopped: campaign is "${campaign.status}"`
+      );
+      return;
+    }
+
+    const template: any = await ctx.runQuery(internal.emailTemplates.getByIdInternal, {
+      id: campaign.templateId,
+    });
+    const config: any = await ctx.runQuery(internal.emailConfig.getInternal, {
+      storeId: campaign.storeId,
+    });
+    if (!template || !config) {
+      console.error("[emailCampaigns] template or config missing; send halted");
+      return;
+    }
+
+    const page: any = await ctx.runQuery(internal.emailSubscribers.pageForSending, {
+      storeId: campaign.storeId,
+      cursor: campaign.sendCursor ?? null,
+      numItems: BATCH_SIZE,
+    });
+
+    let recipients: any[] = page.page;
+
+    if (campaign.segmentId) {
+      const segment: any = await ctx.runQuery(internal.emailSegments.getByIdInternal, {
+        id: campaign.segmentId,
+      });
+      if (segment) {
+        const predicate = buildSegmentFilter(segment.rules, segment.ruleOperator);
+        recipients = recipients.filter((s: any) => predicate(s));
+      }
+    }
+
+    // One round-trip for the whole page, not one per subscriber.
+    const alreadyReached: string[] = recipients.length
+      ? await ctx.runQuery(internal.emailEvents.alreadySentTo, {
+          campaignId: args.campaignId,
+          subscriberIds: recipients.map((s: any) => s._id),
+        })
+      : [];
+    const reached = new Set(alreadyReached);
+    recipients = recipients.filter((s: any) => !reached.has(s._id));
+
     const sesClient = createSESClient();
     const siteUrl = process.env.CONVEX_SITE_URL ?? "";
     // Media stored without a CDN is a path on the storefront, not on Convex.
@@ -120,9 +200,7 @@ export const send = action({
       ? `${config.senderName} <${config.fromEmail}>`
       : config.fromEmail;
 
-    let sentCount = 0;
-
-    for (const subscriber of subscribers) {
+    for (const subscriber of recipients) {
       try {
         const unsubscribeUrl = `${siteUrl}/email/unsubscribe?id=${subscriber._id}`;
 
@@ -178,9 +256,9 @@ export const send = action({
         });
 
         await sesClient.send(command);
-        sentCount++;
 
-        // Record "sent" event + increment campaign stat
+        // Recorded immediately after the send, so the idempotency check above
+        // sees it even if this batch dies on the next subscriber.
         await ctx.runMutation(internal.emailEvents.create, {
           storeId: campaign.storeId,
           campaignId: args.campaignId,
@@ -194,19 +272,25 @@ export const send = action({
           field: "sent",
         });
 
-        // Rate limiting between sends
         await delay(BATCH_DELAY_MS);
       } catch (error) {
         console.error(`Erreur envoi subscriber ${subscriber._id}:`, error);
       }
     }
 
-    // 5. Mark campaign as sent
-    await ctx.runMutation(internal.emailCampaigns.markSent, {
+    if (page.isDone) {
+      await ctx.runMutation(internal.emailCampaigns.markSent, { id: args.campaignId });
+      return;
+    }
+
+    await ctx.runMutation(internal.emailCampaigns.saveSendCursor, {
       id: args.campaignId,
+      cursor: page.continueCursor,
     });
 
-    return { sent: sentCount, total: subscribers.length };
+    await ctx.scheduler.runAfter(0, internal.emailCampaignActions.sendBatch, {
+      campaignId: args.campaignId,
+    });
   },
 });
 

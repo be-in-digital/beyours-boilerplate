@@ -1,4 +1,5 @@
-import { internalMutation } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/emailCampaigns";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
@@ -77,6 +78,46 @@ export const pause = storeMutation({
 // === Internal mutations (called by SES webhook / scheduler) ===
 
 export const markSending = internalMutation(defs.markSending);
+export const saveSendCursor = internalMutation(defs.saveSendCursor);
+export const dueForSending = internalQuery(defs.dueForSending);
+
+/**
+ * Start every campaign whose scheduled time has arrived.
+ *
+ * Called once a minute from `crons.ts`. It cannot go through the public `send`
+ * action: a cron carries no identity, and that action checks
+ * `marketing:write` on the caller. The authorisation happened when the owner
+ * scheduled the campaign; this is the deferred half of that decision, which is
+ * why it lives behind `internalAction`.
+ */
+export const dispatchScheduled = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ started: number }> => {
+    const due: string[] = await ctx.runQuery(internal.emailCampaigns.dueForSending, {
+      now: Date.now(),
+    });
+
+    for (const campaignId of due) {
+      // Marked before scheduling, so a second cron tick a minute later no
+      // longer sees it as `scheduled` and cannot start it twice.
+      await ctx.runMutation(internal.emailCampaigns.markSending, {
+        id: campaignId as never,
+      });
+      await ctx.runMutation(internal.emailCampaigns.saveSendCursor, {
+        id: campaignId as never,
+        cursor: null,
+      });
+      await ctx.scheduler.runAfter(0, internal.emailCampaignActions.sendBatch, {
+        campaignId: campaignId as never,
+      });
+    }
+
+    if (due.length > 0) {
+      console.log(`[emailCampaigns] dispatched ${due.length} scheduled campaign(s)`);
+    }
+    return { started: due.length };
+  },
+});
 export const markSent = internalMutation(defs.markSent);
 export const resetStats = internalMutation(defs.resetStats);
 export const incrementStats = internalMutation(defs.incrementStats);

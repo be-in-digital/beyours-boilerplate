@@ -22,4 +22,16 @@ crons.cron(
   {},
 );
 
+// Start the campaigns whose scheduled time has arrived. `schedule` wrote a
+// status and a date, the wizard offered a picker, and nothing ever read either:
+// a scheduled campaign sat at `scheduled` for good and the only way to send was
+// the manual menu item. Every minute, because a campaign timed for 18:00 that
+// goes out at 18:05 is a different promise than the owner made.
+crons.interval(
+  "dispatch scheduled campaigns",
+  { minutes: 1 },
+  internal.emailCampaigns.dispatchScheduled,
+  {},
+);
+
 export default crons;

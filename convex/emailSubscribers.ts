@@ -1,4 +1,4 @@
-import { mutation, internalMutation } from "./_generated/server";
+import { mutation, internalMutation, internalQuery } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/emailSubscribers";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
@@ -94,6 +94,7 @@ export const subscribe = mutation({
 
 // === Internal mutations (called by schedulers / HTTP actions) ===
 
+export const pageForSending = internalQuery(defs.pageForSending);
 export const confirmDoubleOptIn = internalMutation(defs.confirmDoubleOptIn);
 export const unsubscribe = internalMutation(defs.unsubscribe);
 export const markBounced = internalMutation(defs.markBounced);

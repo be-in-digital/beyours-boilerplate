@@ -1,4 +1,4 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/emailEvents";
 import { storeQuery, storeIdFromField } from "./lib/storeFunctions";
 
@@ -22,5 +22,6 @@ export const listBySubscriber = storeQuery({
 
 // === Internal mutations (called by SES webhook HTTP action only) ===
 
+export const alreadySentTo = internalQuery(defs.alreadySentTo);
 export const create = internalMutation(defs.create);
 export const createBatch = internalMutation(defs.createBatch);
