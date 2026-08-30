@@ -12,8 +12,10 @@
  * before that and never caught up.
  *
  * The decision is a pure function so it can be tested without a session, an S3
- * bucket or a running Convex deployment — the route stays a transport layer,
- * the same shape as /api/upload's neighbour, contact-service.
+ * bucket or a running Convex deployment — the route stays a transport layer.
+ * (It used to point at `contact-service` as the neighbouring example of that
+ * shape; that route was an unauthenticated SES relay with no caller and has
+ * been removed.)
  */
 
 import { Role, hasPermission, parseRole, type Permission } from "@/lib/rbac"
