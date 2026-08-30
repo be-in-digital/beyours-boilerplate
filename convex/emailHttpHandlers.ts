@@ -20,7 +20,11 @@ function esc(str: string): string {
   return str.replace(/[&<>"']/g, (ch) => ESC_MAP[ch] ?? ch);
 }
 
-function htmlPage(title: string, message: string): string {
+/**
+ * @param bodyExtra raw HTML appended after the message — callers pass only
+ *   markup they built themselves, never anything taken from a request.
+ */
+function htmlPage(title: string, message: string, bodyExtra = ""): string {
   const safeTitle = esc(title);
   const safeMessage = esc(message);
   return `<!DOCTYPE html>
@@ -34,12 +38,15 @@ function htmlPage(title: string, message: string): string {
     .card { background: #fff; border-radius: 12px; padding: 48px; max-width: 440px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     h1 { font-size: 22px; margin: 0 0 12px; }
     p { font-size: 15px; color: #666; margin: 0; line-height: 1.6; }
+    button { margin-top: 24px; font: inherit; font-size: 15px; padding: 12px 28px; border: 0; border-radius: 8px; background: #1a1a1a; color: #fff; cursor: pointer; }
+    button:hover { background: #333; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>${safeTitle}</h1>
     <p>${safeMessage}</p>
+    ${bodyExtra}
   </div>
 </body>
 </html>`;
@@ -47,38 +54,95 @@ function htmlPage(title: string, message: string): string {
 
 // ─── GET /email/unsubscribe?id=<subscriberId> ───────────────────────────────
 
-// @public-by-design: the recipient of a marketing email has no session and
-// must be able to leave from the link alone — required by law, and a login
-// wall on an unsubscribe link is itself the abuse. The unguessable document
-// id in the link is the bearer credential, and the handler answers the same
-// page whether or not it matched, so it is not an enumeration oracle.
-export const handleUnsubscribe = httpAction(async (ctx, request) => {
+const HTML = { "Content-Type": "text/html; charset=utf-8" } as const;
+
+const INVALID_LINK = htmlPage("Erreur", "Lien de désabonnement invalide.");
+
+const UNSUBSCRIBED = htmlPage(
+  "Désabonnement confirmé",
+  "Vous ne recevrez plus d'emails de notre part. Cette action peut prendre quelques instants."
+);
+
+/**
+ * GET only ASKS. It used to unsubscribe.
+ *
+ * A GET that mutates is fetched by things that are not the recipient: Outlook
+ * Safe Links, corporate mail scanners and the Gmail image proxy all follow
+ * links in delivered mail to check them. Every one of those fetches
+ * unsubscribed a paying customer who never clicked anything, silently, and the
+ * restaurant's list quietly shrank with no explanation available to anyone.
+ *
+ * The link in the email is unchanged, so everything already in an inbox keeps
+ * working — it now lands on a button instead of firing on arrival.
+ */
+// @public-by-design: the recipient of a marketing email has no session and must
+// be able to reach this from the link alone; this branch only renders a page
+export const handleUnsubscribe = httpAction(async (_ctx, request) => {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
 
+  if (!id) return new Response(INVALID_LINK, { status: 400, headers: HTML });
+
+  // The id is echoed into a hidden field, so it goes through `esc` — it is
+  // attacker-controlled text on its way into HTML.
+  const confirm = `<form method="POST" action="/email/unsubscribe">
+      <input type="hidden" name="id" value="${esc(id)}" />
+      <button type="submit">Confirmer le désabonnement</button>
+    </form>`;
+
+  return new Response(
+    htmlPage(
+      "Confirmer le désabonnement",
+      "Cliquez pour ne plus recevoir nos emails.",
+      confirm
+    ),
+    { status: 200, headers: HTML }
+  );
+});
+
+/**
+ * POST does it — from the button above, or from a mail client's one-click.
+ *
+ * RFC 8058 one-click sends `List-Unsubscribe=One-Click` as the body with no
+ * further interaction, which is exactly this endpoint. That is why there is no
+ * CSRF token here and why there must not be one: the caller is Gmail or Yahoo,
+ * not a browser carrying a session.
+ */
+// @public-by-design: RFC 8058 one-click is a machine POST from the mail
+// provider, and the unguessable id in the link is the only credential it has
+export const handleUnsubscribePost = httpAction(async (ctx, request) => {
+  const url = new URL(request.url);
+  let id = url.searchParams.get("id");
+
+  // The button posts a form body; one-click keeps the id in the query string.
   if (!id) {
-    return new Response(
-      htmlPage("Erreur", "Lien de désabonnement invalide."),
-      { status: 400, headers: { "Content-Type": "text/html; charset=utf-8" } }
-    );
+    try {
+      const form = await request.formData();
+      const field = form.get("id");
+      if (typeof field === "string") id = field;
+    } catch {
+      // No form body — the query string was the only source, and it was empty.
+    }
   }
+
+  if (!id) return new Response(INVALID_LINK, { status: 400, headers: HTML });
 
   try {
     await ctx.runMutation(internal.emailSubscribers.unsubscribe, {
       id: id as Id<"emailSubscribers">,
     });
   } catch (error) {
-    // Idempotent — show success even if already unsubscribed or invalid ID
-    console.error("Unsubscribe error:", error);
+    // Reported as success on purpose, but only for the recipient's benefit:
+    // an id that no longer exists or is already unsubscribed means they are
+    // not on the list, which is what they asked for, and distinguishing the
+    // cases would turn this page into an oracle for which ids are live.
+    //
+    // It is logged, because the previous version swallowed a genuine failure
+    // and told the customer they had been unsubscribed when they had not.
+    console.error("Unsubscribe failed:", error);
   }
 
-  return new Response(
-    htmlPage(
-      "Désabonnement confirmé",
-      "Vous ne recevrez plus d'emails de notre part. Cette action peut prendre quelques instants."
-    ),
-    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
-  );
+  return new Response(UNSUBSCRIBED, { status: 200, headers: HTML });
 });
 
 // ─── GET /email/confirm?token=<doubleOptInToken> ────────────────────────────

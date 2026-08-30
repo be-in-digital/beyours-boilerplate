@@ -158,6 +158,20 @@ export const send = action({
                 { Name: "X-Campaign-Id", Value: String(args.campaignId) },
                 { Name: "X-Subscriber-Id", Value: String(subscriber._id) },
                 { Name: "X-Store-Id", Value: String(campaign.storeId) },
+                // Gmail and Yahoo have required one-click unsubscribe from bulk
+                // senders since February 2024. Without these two headers the
+                // mail is filtered or refused outright — a deliverability
+                // problem that looks exactly like "our campaigns get no opens".
+                //
+                // RFC 8058: the provider POSTs to the https URL with a body of
+                // `List-Unsubscribe=One-Click` and no further interaction, which
+                // is why `POST /email/unsubscribe` exists and takes no CSRF
+                // token. The mailto is the fallback for clients that predate it.
+                {
+                  Name: "List-Unsubscribe",
+                  Value: `<mailto:${config.replyToEmail ?? config.fromEmail}?subject=unsubscribe>, <${unsubscribeUrl}>`,
+                },
+                { Name: "List-Unsubscribe-Post", Value: "List-Unsubscribe=One-Click" },
               ],
             },
           },
