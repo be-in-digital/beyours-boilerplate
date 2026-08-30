@@ -95,7 +95,7 @@ export const upsert = mutation({
     // Check entitlements
     const access = await checkAutoBlogAccess(ctx, identity.subject)
     if (!access.allowed) {
-      throw new Error(access.reason ?? "Acces refuse")
+      throw new Error(access.reason ?? "Accès refusé")
     }
 
     // Validate plan-specific limits

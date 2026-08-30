@@ -222,7 +222,7 @@ Regles :
   * source="detected" si visible sur l'image, sinon source="generated".
 - "price" : en euros decimaux (ex: 12.50 pour 12,50 EUR). source="detected" si visible, sinon value=null.
 - "ingredients" : liste les ingredients visibles ou hautement probables. source="detected" pour les visibles, source="inferred" pour les deduits.
-- "allergens" : TOUJOURS source="inferred", JAMAIS source="detected". Indique uniquement les allergenes tres probables vu les ingredients.
+- "allergens" : TOUJOURS source="inferred", JAMAIS source="detected". Indique uniquement les allergènes très probables vu les ingrédients.
 - "detectedCategoryName" : source="detected" si section visible sur l'image, sinon value=null avec source="inferred".
 - "suggestedCategoryName" : toujours rempli (Entree, Plat principal, Dessert, Boisson, etc.), source="inferred".
 - "confidence" : 0.0 a 1.0, ta certitude pour CE champ specifiquement.
@@ -248,7 +248,7 @@ Regles par champ :
   * Chaque description UNIQUE — pas de formulation copier-coller entre produits.
   * source="generated", confidence=0.7.
 - "ingredients" : source="detected" si listes. Sinon value=[] avec source="inferred" et confidence=0.
-- "allergens" : TOUJOURS source="inferred". Deduis uniquement a partir du nom du plat et des ingredients detectes.
+- "allergens" : TOUJOURS source="inferred". Déduis uniquement à partir du nom du plat et des ingrédients détectés.
 - "warnings" : un par ambiguite (prix coupe, nom tronque, section incertaine, texte flou).
 
 Langue : francais.`
@@ -266,7 +266,7 @@ Regles :
   * Chaque description doit etre UNIQUE — jamais de formulation generique ou repetitive entre produits.
   * source="generated".
 - "ingredients" : liste les ingredients typiques de ce plat. source="generated". Sois realiste, pas exhaustif.
-- NE MODIFIE PAS les champs deja remplis (confidence > 0).
+- NE MODIFIE PAS les champs déjà remplis (confidence > 0).
 - Mets confidence entre 0.5 et 0.8 pour les champs generes (jamais 1.0 — ce sont des suggestions).
 
 Retourne le JSON enrichi conforme au schema.`
@@ -396,7 +396,7 @@ async function analyzeWithVision(
   try {
     parsed = JSON.parse(content)
   } catch {
-    throw new Error("L'IA a retourne une reponse invalide. Reessayez avec une image plus nette.")
+    throw new Error("L'IA a retourné une réponse invalide. Réessayez avec une image plus nette.")
   }
 
   // Normalize: single mode returns a flat object, wrap in products array

@@ -2,12 +2,12 @@ import type { PageDefinition } from "@be-in-digital/cms"
 
 export const forgotPasswordPage: PageDefinition = {
   slug: "forgot-password",
-  label: "Page mot de passe oublie",
+  label: "Page mot de passe oublié",
   groupId: "auth",
   blocks: [
     {
       key: "form",
-      label: "Formulaire de reinitialisation",
+      label: "Formulaire de réinitialisation",
       fields: {
         heading: {
           type: "text",

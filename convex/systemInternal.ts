@@ -38,7 +38,7 @@ type AllowedTable = (typeof ALLOWED_TABLES)[number]
 
 function assertAllowedTable(tableName: string): asserts tableName is AllowedTable {
   if (!(ALLOWED_TABLES as readonly string[]).includes(tableName)) {
-    throw new Error(`Table "${tableName}" non autorisee pour import/export`)
+    throw new Error(`Table "${tableName}" non autorisée pour import/export`)
   }
 }
 

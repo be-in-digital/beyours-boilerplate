@@ -44,17 +44,47 @@ export function listTemplates(root = DEFAULT_ROOT) {
 }
 
 /**
+ * Resolves a slug to the directory that actually holds the template.
+ *
+ * The sales catalogue (`apps/site/lib/templates-data.ts`) sells all fifty
+ * themes under a compound `<vertical>-<theme>` slug. Five of them are their
+ * vertical's *base* template, whose directory kept the bare vertical name:
+ * `templates/asiatique/` is the theme sold as `asiatique-izakaya`, and its own
+ * template.json has always called it themeName "Izakaya". So the five slugs a
+ * buyer was shown — izakaya, trattoria, smash, convoi, braise — were the five
+ * that answered "Template inconnu" when someone tried to apply them.
+ *
+ * A real directory always wins over an alias, so creating
+ * `templates/asiatique-izakaya/` later supersedes the alias with no code change.
+ *
+ * Returns the directory slug, or null when nothing claims this name.
+ */
+export function resolveTemplateSlug(slug, root = DEFAULT_ROOT) {
+  if (fs.existsSync(path.join(root, "templates", slug, "template.json"))) return slug
+  const owner = listTemplates(root).find((t) => t.aliases?.includes(slug))
+  return owner ? owner.slug : null
+}
+
+/** Every name `apply` accepts: directory slugs plus the aliases sold beside them. */
+function applicableNames(root) {
+  return listTemplates(root).flatMap((t) => [t.slug, ...(t.aliases ?? [])])
+}
+
+/**
  * Applies a template: copies theme.css + fonts.ts into site/ and updates the
  * .beindigital-site.json sentinel if it exists. Returns the metadata.
+ *
+ * Accepts an alias, but everything downstream — the files copied, the sentinel
+ * written, the DESIGN.md path printed — uses the resolved directory slug.
  */
-export function applyTemplate(slug, root = DEFAULT_ROOT) {
-  const dir = path.join(root, "templates", slug)
-  const metaPath = path.join(dir, "template.json")
-  if (!fs.existsSync(metaPath)) {
-    const known = listTemplates(root).map((t) => t.slug).join(", ")
-    throw new Error(`Template inconnu : "${slug}". Disponibles : ${known}`)
+export function applyTemplate(requestedSlug, root = DEFAULT_ROOT) {
+  const slug = resolveTemplateSlug(requestedSlug, root)
+  if (slug === null) {
+    const known = applicableNames(root).join(", ")
+    throw new Error(`Template inconnu : "${requestedSlug}". Disponibles : ${known}`)
   }
-  const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"))
+  const dir = path.join(root, "templates", slug)
+  const meta = JSON.parse(fs.readFileSync(path.join(dir, "template.json"), "utf8"))
 
   for (const [from, to] of [
     ["theme.css", path.join("site", "theme.css")],
@@ -87,6 +117,8 @@ function printList(root) {
   for (const t of templates) {
     const cat = t.category ? `[${t.category}] ` : ""
     console.log(`  ${t.slug.padEnd(12)} ${cat}${t.label}`)
+    if (t.aliases?.length)
+      console.log(`  ${"".padEnd(12)} vendu sous : ${t.aliases.join(", ")}`)
     console.log(`  ${"".padEnd(12)} ${t.description}`)
     if (t.fonts)
       console.log(
@@ -113,7 +145,8 @@ if (isMain) {
       const meta = applyTemplate(slug, DEFAULT_ROOT)
       console.log(`\nTemplate « ${meta.label} » appliqué.`)
       console.log("Relire : git diff site/ — puis ajuster les couleurs du client dans site/theme.css")
-      console.log(`Direction artistique : templates/${slug}/DESIGN.md`)
+      // meta.slug, not the argument: an alias has no directory of its own.
+      console.log(`Direction artistique : templates/${meta.slug}/DESIGN.md`)
     } else {
       console.error(`Commande inconnue : ${command}. Utiliser "list" ou "apply <slug>".`)
       process.exit(1)

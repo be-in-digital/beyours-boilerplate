@@ -38,8 +38,8 @@ const SOURCE_LABELS: Record<string, string> = {
 
 const TRIGGER_LABELS: Record<string, string> = {
   confirmed: "NOUVEAU",
-  ready: "PRET",
-  reprint: "REIMPRESSION",
+  ready: "PRÊT",
+  reprint: "RÉIMPRESSION",
 }
 
 export function PrintTicketLayout({
@@ -142,7 +142,7 @@ export function PrintTicketLayout({
       {/* Allergens */}
       {allergens && allergens.length > 0 && (
         <div style={{ borderTop: "1px dashed #000", paddingTop: "2mm", marginBottom: "2mm" }}>
-          <div style={{ fontWeight: "bold" }}>ALLERGENES:</div>
+          <div style={{ fontWeight: "bold" }}>ALLERGÈNES :</div>
           <div>{allergens.join(", ")}</div>
         </div>
       )}

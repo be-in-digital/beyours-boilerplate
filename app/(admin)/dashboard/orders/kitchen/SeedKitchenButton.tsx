@@ -33,7 +33,7 @@ export function SeedKitchenButton() {
     setIsCleaning(true)
     try {
       const result = await cleanMutation({ storeId })
-      toast.success(`${result.deletedTickets} tickets et ${result.deletedOrders} commandes supprimees`)
+      toast.success(`${result.deletedTickets} tickets et ${result.deletedOrders} commandes supprimées`)
     } catch (err) {
       toast.error(`Erreur: ${String(err)}`)
     } finally {
@@ -54,7 +54,7 @@ export function SeedKitchenButton() {
         ) : (
           <Plus className="mr-2 h-4 w-4" />
         )}
-        Creer commandes test
+        Créer commandes test
       </Button>
       <Button
         variant="outline"

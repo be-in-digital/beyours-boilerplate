@@ -22,7 +22,7 @@ const SAMPLE_ITEMS = [
     { productName: "Rouleaux de printemps", quantity: 3, options: ["Sauce soja"] },
   ],
   [
-    { productName: "Caesar Salad", quantity: 1, options: ["Poulet grille", "Sauce a part"] },
+    { productName: "Caesar Salad", quantity: 1, options: ["Poulet grillé", "Sauce a part"] },
     { productName: "Soupe du jour", quantity: 1, options: [] },
   ],
   [
@@ -202,7 +202,7 @@ export const seedKitchenOrders = storeMutation({
 
     return {
       created: createdIds.length,
-      message: `${createdIds.length} commandes + tickets de test crees avec succes`,
+      message: `${createdIds.length} commandes + tickets de test créés avec succès`,
     }
   },
 })

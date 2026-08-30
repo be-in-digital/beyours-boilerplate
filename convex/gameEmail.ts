@@ -136,7 +136,7 @@ export const sendPrizeEmail = internalAction({
       });
       return { sent: true };
     } catch (error) {
-      console.error("Echec envoi email lot gagné:", error);
+      console.error("Échec envoi email lot gagné:", error);
       return { sent: false };
     }
   },

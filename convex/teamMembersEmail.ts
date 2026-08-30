@@ -85,29 +85,29 @@ function buildInvitationHtml(
     <div class="container">
       <div class="card">
         <div class="header">
-          <h1>Invitation a rejoindre l'equipe</h1>
+          <h1>Invitation à rejoindre l'équipe</h1>
         </div>
         <p>Bonjour <strong>${name}</strong>,</p>
-        <p>Vous avez ete invite(e) a rejoindre l'equipe de <strong>${storeName}</strong>.</p>
+        <p>Vous avez été invité(e) à rejoindre l'équipe de <strong>${storeName}</strong>.</p>
         <div class="info">
           <div class="info-row">
             <span class="info-label">Restaurant</span>
             <span class="info-value">${storeName}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Role</span>
+            <span class="info-label">Rôle</span>
             <span class="info-value">${ROLE_LABELS[role] ?? role}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Perimetre</span>
-            <span class="info-value">${allStores ? "Tous les etablissements" : "1 etablissement"}</span>
+            <span class="info-label">Périmètre</span>
+            <span class="info-value">${allStores ? "Tous les établissements" : "1 établissement"}</span>
           </div>
         </div>
         <a href="${inviteUrl}" class="button">Accepter l'invitation</a>
         <p class="expire">Ce lien est valable pendant 7 jours.</p>
       </div>
       <p class="footer">
-        Cet email a ete envoye par BeYours.<br>
+        Cet email a été envoyé par BeYours.<br>
         Si vous n'attendiez pas cette invitation, ignorez cet email.
       </p>
     </div>
@@ -146,12 +146,12 @@ function buildReminderHtml(
           <h1>Rappel d'invitation</h1>
         </div>
         <p>Bonjour <strong>${name}</strong>,</p>
-        <p>Pour rappel, vous avez ete invite(e) a rejoindre l'equipe de <strong>${storeName}</strong> en tant que <strong>${ROLE_LABELS[role] ?? role}</strong>.</p>
+        <p>Pour rappel, vous avez été invité(e) à rejoindre l'équipe de <strong>${storeName}</strong> en tant que <strong>${ROLE_LABELS[role] ?? role}</strong>.</p>
         <a href="${inviteUrl}" class="button">Accepter l'invitation</a>
         <p class="expire">Ce lien est valable pendant 7 jours.</p>
       </div>
       <p class="footer">
-        Cet email a ete envoye par BeYours.<br>
+        Cet email a été envoyé par BeYours.<br>
         Si vous n'attendiez pas cette invitation, ignorez cet email.
       </p>
     </div>
@@ -223,7 +223,7 @@ export const sendInvitationEmail = action({
     const textBody = [
       `Bonjour ${args.name},`,
       "",
-      `Vous avez ete invite(e) a rejoindre l'equipe de ${args.storeName} en tant que ${ROLE_LABELS[args.role] ?? args.role}.`,
+      `Vous avez été invité(e) à rejoindre l'équipe de ${args.storeName} en tant que ${ROLE_LABELS[args.role] ?? args.role}.`,
       "",
       `Acceptez l'invitation : ${inviteUrl}`,
       "",
@@ -299,7 +299,7 @@ export const resendInvitationEmail = action({
     const textBody = [
       `Bonjour ${member.name},`,
       "",
-      `Pour rappel, vous avez ete invite(e) a rejoindre l'equipe de ${args.storeName} en tant que ${ROLE_LABELS[member.role] ?? member.role}.`,
+      `Pour rappel, vous avez été invité(e) à rejoindre l'équipe de ${args.storeName} en tant que ${ROLE_LABELS[member.role] ?? member.role}.`,
       "",
       `Acceptez l'invitation : ${inviteUrl}`,
       "",

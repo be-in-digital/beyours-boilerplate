@@ -58,7 +58,7 @@ export const createCheckoutSession = action({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Non authentifie");
+    if (!identity) throw new Error("Non authentifié");
 
     const ownerId = identity.subject;
     const stripe = getStripe();
@@ -82,7 +82,7 @@ export const createCheckoutSession = action({
       ["active", "trialing"].includes(entitlements.subscriptionStatus)
     ) {
       throw new Error(
-        "Vous avez deja un abonnement actif. Gerez-le depuis le portail de facturation."
+        "Vous avez déjà un abonnement actif. Gérez-le depuis le portail de facturation."
       );
     }
 
@@ -129,7 +129,7 @@ export const createPortalSession = action({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Non authentifie");
+    if (!identity) throw new Error("Non authentifié");
 
     const ownerId = identity.subject;
     const stripe = getStripe();
@@ -169,7 +169,7 @@ export const createMaintenanceCheckoutSession = action({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Non authentifie");
+    if (!identity) throw new Error("Non authentifié");
 
     // Contract-level action: reserved to the account owner
     const user = await ctx.runQuery(
@@ -177,7 +177,7 @@ export const createMaintenanceCheckoutSession = action({
       {}
     );
     if (user.role !== Role.CLIENT_ADMIN && user.role !== Role.SUPER_ADMIN) {
-      throw new Error("Action reservee au proprietaire du compte");
+      throw new Error("Action réservée au propriétaire du compte");
     }
 
     const priceId = process.env.STRIPE_BID_PRICE_MAINTENANCE;
@@ -199,7 +199,7 @@ export const createMaintenanceCheckoutSession = action({
     );
     if (contract?.stripeSubscriptionId && contract?.autoRenew) {
       throw new Error(
-        "Le renouvellement automatique est deja actif. Gerez-le depuis le portail de facturation."
+        "Le renouvellement automatique est déjà actif. Gérez-le depuis le portail de facturation."
       );
     }
 
@@ -402,7 +402,7 @@ export const processWebhookEvent = internalAction({
         const subscriptionId =
           typeof sub === "string" ? sub : sub?.id ?? "unknown";
         console.warn(
-          `Paiement echoue pour la subscription ${subscriptionId}. ` +
+          `Paiement échoué pour la subscription ${subscriptionId}. ` +
             "Le status sera mis a jour via customer.subscription.updated."
         );
         break;

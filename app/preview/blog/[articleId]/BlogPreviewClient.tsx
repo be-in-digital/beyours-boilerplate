@@ -16,9 +16,9 @@ interface BlogPreviewClientProps {
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Brouillon",
-  scheduled: "Planifie",
-  published: "Publie",
-  archived: "Archive",
+  scheduled: "Planifié",
+  published: "Publié",
+  archived: "Archivé",
 }
 
 export function BlogPreviewClient({ articleId }: BlogPreviewClientProps) {
@@ -58,7 +58,7 @@ export function BlogPreviewClient({ articleId }: BlogPreviewClientProps) {
           <div className="flex items-center gap-2">
             <Eye className="h-4 w-4 text-yellow-600" />
             <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-              Apercu
+              Aperçu
             </span>
             <Badge variant="outline" className="text-xs">
               {STATUS_LABELS[article.status] ?? article.status}
@@ -128,7 +128,7 @@ export function BlogPreviewClient({ articleId }: BlogPreviewClientProps) {
         {/* Date info */}
         <div className="pt-8 border-t text-sm text-muted-foreground">
           {article.publishedAt && (
-            <p>Publie le {formatDate(article.publishedAt)}</p>
+            <p>Publié le {formatDate(article.publishedAt)}</p>
           )}
           {article.updatedAt && (
             <p>Derniere modification le {formatDate(article.updatedAt)}</p>

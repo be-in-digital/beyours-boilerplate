@@ -125,7 +125,7 @@ export function KitchenPrintTrigger({
             id: ticket._id as Id<"kitchenTickets">,
             reason: "Print dialog timeout (20s)",
           })
-          onToast(`Impression echouee pour #${ticket.orderNumber}`, "error")
+          onToast(`Impression échouée pour #${ticket.orderNumber}`, "error")
         }
 
         isPrintingRef.current = false

@@ -16,15 +16,15 @@ const NUMERIC_ID_REGEX = /^\d{1,20}$/;
 function sanitizeApiError(status: number, context: string): string {
   switch (status) {
     case 400:
-      return `${context} : requete invalide. Verifiez l'identifiant.`;
+      return `${context} : requête invalide. Vérifiez l'identifiant.`;
     case 401:
       return `${context} : credentials invalides.`;
     case 403:
-      return `${context} : acces refuse. Verifiez que vos credentials ont acces a cette ressource.`;
+      return `${context} : accès refusé. Vérifiez que vos credentials ont accès à cette ressource.`;
     case 404:
-      return `${context} : ressource introuvable. Verifiez l'identifiant.`;
+      return `${context} : ressource introuvable. Vérifiez l'identifiant.`;
     default:
-      return `${context} : erreur de validation (${status}). Veuillez reessayer.`;
+      return `${context} : erreur de validation (${status}). Veuillez réessayer.`;
   }
 }
 
@@ -58,7 +58,7 @@ export const validate = action({
     await ctx.runQuery(internal.authHelpers.checkPermission, {
       permission: "settings:read",
     });
-      return { valid: false, error: "Non authentifie" };
+      return { valid: false, error: "Non authentifié" };
     }
 
     // -----------------------------------------------------------------------
@@ -98,7 +98,7 @@ export const validate = action({
           if (status === 401 || status === 403) {
             return {
               valid: false,
-              error: "Credentials Uber Direct invalides. Verifiez votre Client ID et Client Secret.",
+              error: "Credentials Uber Direct invalides. Vérifiez votre Client ID et Client Secret.",
             };
           }
           return {
@@ -113,7 +113,7 @@ export const validate = action({
         console.error(`[validateIntegration] Uber Direct error:`, raw);
         return {
           valid: false,
-          error: "Echec de la validation Uber Direct. Veuillez reessayer.",
+          error: "Échec de la validation Uber Direct. Veuillez réessayer.",
         };
       }
     }
@@ -182,7 +182,7 @@ export const validate = action({
         if (raw.includes("Failed to get store status")) {
           return { valid: false, error: "Store ID Uber Eats introuvable ou inaccessible." };
         }
-        return { valid: false, error: "Echec de la validation Uber Eats. Veuillez reessayer." };
+        return { valid: false, error: "Échec de la validation Uber Eats. Veuillez réessayer." };
       }
     } else {
       // Deliveroo
@@ -196,7 +196,7 @@ export const validate = action({
       if (!args.platformStoreId || !NUMERIC_ID_REGEX.test(args.platformStoreId)) {
         return {
           valid: false,
-          error: "Format d'ID restaurant Deliveroo invalide. Un identifiant numerique est attendu (ex: 101).",
+          error: "Format d'ID restaurant Deliveroo invalide. Un identifiant numérique est attendu (ex: 101).",
         };
       }
 
@@ -256,7 +256,7 @@ export const validate = action({
         if (raw.includes("OAuth failed")) {
           return { valid: false, error: "Credentials Deliveroo invalides." };
         }
-        return { valid: false, error: "Echec de la validation Deliveroo. Veuillez reessayer." };
+        return { valid: false, error: "Échec de la validation Deliveroo. Veuillez réessayer." };
       }
     }
   },

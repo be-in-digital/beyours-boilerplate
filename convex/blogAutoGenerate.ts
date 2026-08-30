@@ -191,7 +191,7 @@ async function generateWithOpenAI(
   if (!apiKey) return null
 
   try {
-    const prompt = `Photo professionnelle de cuisine/restaurant : ${keyword}. Style editorial, lumiere naturelle, pas de texte, pas de logo, pas de marque.`
+    const prompt = `Photo professionnelle de cuisine/restaurant : ${keyword}. Style éditorial, lumière naturelle, pas de texte, pas de logo, pas de marque.`
 
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -353,7 +353,7 @@ export const generateArticle = action({
     const ownerId = identity.subject
 
     // 1b. Input validation
-    if (args.topic.length > 500) throw new Error("Topic trop long (max 500 caracteres)")
+    if (args.topic.length > 500) throw new Error("Topic trop long (max 500 caractères)")
     if (args.locale.length > 10) throw new Error("Locale invalide")
 
     // 2. Check entitlements + quota
@@ -362,7 +362,7 @@ export const generateArticle = action({
       { ownerId }
     )
     if (!access.allowed) {
-      throw new Error(access.reason ?? "Acces refuse")
+      throw new Error(access.reason ?? "Accès refusé")
     }
 
     // 3. Get store/category context for the prompt
@@ -381,7 +381,7 @@ export const generateArticle = action({
       args.tone === "formel"
         ? "formel et professionnel"
         : args.tone === "decontracte"
-          ? "decontracte et accessible"
+          ? "décontracté et accessible"
           : "storytelling et immersif"
 
     const systemPrompt = `Tu es un expert SEO et redacteur de blog professionnel pour un restaurant.
@@ -394,8 +394,8 @@ Regles generales :
 - Categorie de l'article : "${context.categoryName}"
 
 === FORMAT HTML OBLIGATOIRE ===
-- TOUT le contenu DOIT etre dans des balises HTML valides
-- Chaque paragraphe DOIT etre enveloppe dans <p>...</p>
+- TOUT le contenu DOIT être dans des balises HTML valides
+- Chaque paragraphe DOIT être enveloppé dans <p>...</p>
 - Chaque titre de section DOIT utiliser <h2>...</h2>
 - Chaque sous-titre DOIT utiliser <h3>...</h3>
 - Les listes DOIVENT utiliser <ul><li>...</li></ul> ou <ol><li>...</li></ol>
@@ -405,13 +405,13 @@ Regles generales :
 - Ne pas utiliser <h1> (le titre est separe du contenu)
 - Ne pas utiliser <br> entre les paragraphes, utiliser des <p> separes
 - Place les marqueurs [IMAGE_1], [IMAGE_2], [IMAGE_3] dans le contenu HTML, entre les sections
-- Chaque marqueur doit etre sur sa propre ligne ENTRE deux balises (ex: </p>[IMAGE_1]<h2>)
+- Chaque marqueur doit être sur sa propre ligne ENTRE deux balises (ex: </p>[IMAGE_1]<h2>)
 - Ne pas inclure de balises <img> (les images seront injectees automatiquement)
 
 Exemple de structure HTML attendue :
-<p>Introduction accrocheuse avec le mot-cle principal...</p>
+<p>Introduction accrocheuse avec le mot-clé principal...</p>
 [IMAGE_1]
-<h2>Premier sous-titre optimise SEO</h2>
+<h2>Premier sous-titre optimisé SEO</h2>
 <p>Paragraphe explicatif avec <strong>informations cles</strong>...</p>
 <p>Deuxieme paragraphe de la section...</p>
 <h3>Sous-section detaillee</h3>
@@ -431,14 +431,14 @@ Exemple de structure HTML attendue :
 - 4-6 sections avec sous-titres <h2>, et des <h3> pour les sous-sections
 - Hierarchie stricte : <h2> pour les sections principales, <h3> pour les sous-points
 - Premier paragraphe : inclure le MOT-CLE PRINCIPAL dans les 100 premiers mots
-- Dernier paragraphe : conclusion avec rappel du mot-cle principal et appel a l'action
+- Dernier paragraphe : conclusion avec rappel du mot-clé principal et appel a l'action
 
 **Mots-cles et semantique :**
-- Identifier 1 mot-cle principal + 3-5 mots-cles secondaires (LSI keywords) lies au sujet
+- Identifier 1 mot-clé principal + 3-5 mots-clés secondaires (LSI keywords) liés au sujet
 - Mot-cle principal : dans le titre, le premier paragraphe, au moins 2 sous-titres <h2>, et la conclusion
-- Densite du mot-cle principal : 1-2% naturellement (pas de keyword stuffing)
+- Densité du mot-clé principal : 1-2% naturellement (pas de keyword stuffing)
 - Utiliser des synonymes et variations semantiques tout au long de l'article
-- Inclure des termes LSI (Latent Semantic Indexing) lies a la thematique restaurant/cuisine
+- Inclure des termes LSI (Latent Semantic Indexing) liés a la thematique restaurant/cuisine
 
 **Featured Snippets (Position Zero) :**
 - Inclure au moins 1 liste <ul> ou <ol> de 5-8 items (Google adore les listes)
@@ -450,7 +450,7 @@ Exemple de structure HTML attendue :
 - Paragraphes courts (3-4 phrases max) pour faciliter la lecture mobile
 - Utiliser <strong> pour mettre en evidence les informations cles (2-3 par section)
 - Alterner paragraphes, listes et citations pour varier le rythme
-- Inclure des donnees chiffrees, statistiques ou faits concrets quand possible
+- Inclure des données chiffrées, statistiques ou faits concrets quand possible
 - Utiliser des questions rhetoriques pour maintenir l'engagement du lecteur
 
 **Liens internes (suggestions) :**
@@ -460,10 +460,10 @@ Exemple de structure HTML attendue :
 Reponds en JSON strict :
 {
   "title": "...",
-  "excerpt": "...(max 160 caracteres)...",
+  "excerpt": "...(max 160 caractères)...",
   "content": "<p>...</p>[IMAGE_1]<h2>...</h2>...[IMAGE_2]...[IMAGE_3]...",
-  "metaTitle": "...(max 60 caracteres, optimise SEO)...",
-  "metaDescription": "...(max 160 caracteres, optimise SEO, avec mots-cles pertinents)...",
+  "metaTitle": "...(max 60 caractères, optimisé SEO)...",
+  "metaDescription": "...(max 160 caractères, optimisé SEO, avec mots-clés pertinents)...",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
   "coverImageKeyword": "keyword in english for cover image",
   "coverImageAlt": "description alt de l'image de couverture dans la langue de l'article",
@@ -472,23 +472,23 @@ Reponds en JSON strict :
 }
 
 Regles pour le SEO des metadonnees :
-- title : inclure le mot-cle principal, accrocheur, inciter au clic (50-70 caracteres)
-- metaTitle : different du titre si possible, max 60 caracteres, mot-cle principal au debut
-- metaDescription : max 160 caracteres, mot-cle principal, benefice clair, appel a l'action (verbe d'action)
-- excerpt : resume engageant qui donne envie de lire, avec le mot-cle principal
-- tags : 4-6 tags pertinents en ${args.locale}, incluant le mot-cle principal et des variations
+- title : inclure le mot-clé principal, accrocheur, inciter au clic (50-70 caractères)
+- metaTitle : différent du titre si possible, max 60 caractères, mot-clé principal au debut
+- metaDescription : max 160 caractères, mot-clé principal, bénéfice clair, appel a l'action (verbe d'action)
+- excerpt : résumé engageant qui donne envie de lire, avec le mot-clé principal
+- tags : 4-6 tags pertinents en ${args.locale}, incluant le mot-clé principal et des variations
 
 Regles pour l'image de couverture :
-- coverImageKeyword : 1 mot-cle EN ANGLAIS pour l'image de couverture, TRES visuel et accrocheur
-- coverImageAlt : description alt dans la langue de l'article, max 125 caracteres, incluant le mot-cle principal
+- coverImageKeyword : 1 mot-clé EN ANGLAIS pour l'image de couverture, TRÈS visuel et accrocheur
+- coverImageAlt : description alt dans la langue de l'article, max 125 caractères, incluant le mot-clé principal
 
 Regles STRICTES pour les images du contenu :
-- imageKeywords : 3 mots-cles EN ANGLAIS, TRES SPECIFIQUES au sujet exact de l'article
+- imageKeywords : 3 mots-clés EN ANGLAIS, TRÈS SPECIFIQUES au sujet exact de l'article
 - Chaque keyword DOIT inclure la cuisine, la culture, le pays ou le plat specifique mentionne dans l'article
 - MAUVAIS exemples : "african food", "traditional dish", "restaurant interior", "fresh ingredients"
 - BON exemples : "senegalese thieboudienne rice fish dish", "moroccan tagine lamb couscous", "japanese sushi chef preparation", "italian wood-fired pizza margherita"
-- Les keywords doivent etre suffisamment precis pour trouver des photos pertinentes sur une banque d'images
-- imageCaptions : 3 legendes courtes dans la langue de l'article, en rapport direct avec le contenu, incluant des mots-cles
+- Les keywords doivent être suffisamment précis pour trouver des photos pertinentes sur une banque d'images
+- imageCaptions : 3 légendes courtes dans la langue de l'article, en rapport direct avec le contenu, incluant des mots-clés
 - Pas de logos, marques ou noms commerciaux dans les keywords`
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {

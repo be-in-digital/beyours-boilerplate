@@ -45,7 +45,7 @@ async function requireAccountOwner(ctx: QueryCtx | MutationCtx) {
   const user = await getAuthUser(ctx)
   if (user.role !== Role.CLIENT_ADMIN && user.role !== Role.SUPER_ADMIN) {
     throw new Error(
-      "Action reservee au proprietaire du compte (client_admin)",
+      "Action réservée au propriétaire du compte (client_admin)",
     )
   }
   return user
@@ -54,7 +54,7 @@ async function requireAccountOwner(ctx: QueryCtx | MutationCtx) {
 async function requireSuperAdmin(ctx: QueryCtx | MutationCtx) {
   const user = await getAuthUser(ctx)
   if (user.role !== Role.SUPER_ADMIN) {
-    throw new Error("Action reservee a l'equipe BeYours (super_admin)")
+    throw new Error("Action réservée à l'équipe BeYours (super_admin)")
   }
   return user
 }

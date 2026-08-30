@@ -12,6 +12,14 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    // 30s was sized for the convex-test cold start on a machine doing nothing
+    // else: each of the 27 suites compiles the whole `convex/` module graph on
+    // its first call. Under contention that cost is not linear — a run measured
+    // 433s of collection where an idle one takes 16s, and
+    // `unsubscribe-link.test.ts` crossed 30s on its first `t.fetch`, which is
+    // the cold start and not the assertion. 60s still catches a genuine hang,
+    // and no longer turns a busy runner into a red build.
+    testTimeout: 60_000,
     exclude: [
       '**/node_modules/**',
       '**/dist/**',

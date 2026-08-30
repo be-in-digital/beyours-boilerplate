@@ -102,7 +102,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
       // ready → completed: mark picked up (update order status)
       if (ticket.status === "ready") {
         await completeTicketAction({ id: ticket._id })
-        toast.success("Commande recuperee")
+        toast.success("Commande récupérée")
         return
       }
 

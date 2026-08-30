@@ -173,7 +173,7 @@ export const notifyMigrationRequest = internalAction({
         });
         results.bidNotified = true;
       } catch (error) {
-        console.error("Echec notification BID (migration request):", error);
+        console.error("Échec notification BID (migration request):", error);
       }
     } else {
       console.warn(
@@ -200,7 +200,7 @@ export const notifyMigrationRequest = internalAction({
       });
       results.clientNotified = true;
     } catch (error) {
-      console.error("Echec confirmation client (migration request):", error);
+      console.error("Échec confirmation client (migration request):", error);
     }
 
     return results;

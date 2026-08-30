@@ -5,5 +5,11 @@
   "label": "Braise — urban rotisserie",
   "description": "Chilli red on cream, poster condensed, urban rotisserie energy. Crispy chicken owned outright, executed premium.",
   "primary": "hsl(355 70% 42%)",
-  "fonts": { "heading": "Barlow Condensed", "body": "Barlow" }
+  "fonts": {
+    "heading": "Barlow Condensed",
+    "body": "Barlow"
+  },
+  "aliases": [
+    "poulet-braise"
+  ]
 }

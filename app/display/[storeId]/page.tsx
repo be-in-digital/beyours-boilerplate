@@ -38,14 +38,14 @@ export default function DisplayPage() {
 
       <main className="flex-1 flex px-4 py-2">
         <DisplayColumn
-          title="En preparation"
+          title="En préparation"
           tickets={data.preparing}
           variant="preparing"
           flashingIds={flashingIds}
         />
         <div className="w-px bg-slate-700 mx-2" />
         <DisplayColumn
-          title="Prets a recuperer"
+          title="Prêts à récupérer"
           tickets={data.ready}
           variant="ready"
           flashingIds={flashingIds}

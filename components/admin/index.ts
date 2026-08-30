@@ -11,7 +11,6 @@
 
 export { AdminAuthSync } from "./AdminAuthSync"
 export { DeleteConfirmDialog } from "./DeleteConfirmDialog"
-export { StatusBadge } from "./StatusBadge"
 export { LoadingState } from "./LoadingState"
 export { EmptyState } from "./EmptyState"
 export { DateDisplay } from "./DateDisplay"

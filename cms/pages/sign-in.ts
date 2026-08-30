@@ -51,7 +51,7 @@ export const signInPage: PageDefinition = {
         },
         forgotLink: {
           type: "text",
-          label: "Texte lien mot de passe oublie",
+          label: "Texte lien mot de passe oublié",
           maxLength: 100,
           hasCodeFallback: true,
         },

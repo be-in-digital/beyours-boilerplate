@@ -5,5 +5,11 @@
   "label": "Convoi — food truck street craft",
   "description": "Enamelled petrol blue on kraft paper, stencil condensed, sharp angles. Mobile craft, between bodywork and the daily chalkboard.",
   "primary": "hsl(192 62% 27%)",
-  "fonts": { "heading": "Big Shoulders", "body": "Work Sans" }
+  "fonts": {
+    "heading": "Big Shoulders",
+    "body": "Work Sans"
+  },
+  "aliases": [
+    "food-truck-convoi"
+  ]
 }

@@ -5,5 +5,11 @@
   "label": "Smash — premium burger",
   "description": "Mustard on charcoal, fleshy grotesque, wide rounding. Smash-burger counter energy, executed premium.",
   "primary": "hsl(42 96% 50%)",
-  "fonts": { "heading": "Bricolage Grotesque", "body": "Archivo" }
+  "fonts": {
+    "heading": "Bricolage Grotesque",
+    "body": "Archivo"
+  },
+  "aliases": [
+    "fast-food-smash"
+  ]
 }

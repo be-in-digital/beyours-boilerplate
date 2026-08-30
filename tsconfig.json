@@ -33,9 +33,14 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
+  // `tests/` holds convex-test suites that rely on Vite's `import.meta.glob`
+  // and the harness's own generics, neither of which `tsc` can model — the
+  // same arrangement as apps/reference and apps/site. Vitest type-checks
+  // nothing here; the suites are still run by `pnpm test`.
   "exclude": [
     "node_modules",
     "convex",
+    "tests",
     "dist",
     ".next",
     "coverage",
