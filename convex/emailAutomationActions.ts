@@ -2,10 +2,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- ctx.runQuery returns untyped results */
 
 import { internalAction } from "./_generated/server";
-import { internal as _internal } from "./_generated/api";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const internal = _internal as any;
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { renderTemplateToEmailHtml } from "@be-in-digital/marketing";
 import {
@@ -77,7 +76,11 @@ export const runStep = internalAction({
     });
     const template: any = await ctx.runQuery(
       internal.emailTemplates.getByIdInternal,
-      { id: step.templateId }
+      // `AutomationStep` is a plain shape in @be-in-digital/convex-functions,
+      // deliberately unaware of any schema, so it types this as a string. The
+      // column it comes from is `v.id("emailTemplates")`, so the value is an
+      // id; the cast is the boundary between the two views, not a guess.
+      { id: step.templateId as Id<"emailTemplates"> }
     );
     if (!config || !template) {
       console.error(

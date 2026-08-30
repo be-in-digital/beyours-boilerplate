@@ -7,10 +7,8 @@
  */
 
 import { httpAction } from "./_generated/server";
-import { internal as _internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const internal = _internal as any;
 
 // @guarded-inline: signature verified in the Node action before processing
 export const handleWebhook = httpAction(async (ctx, request) => {

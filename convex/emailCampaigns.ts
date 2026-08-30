@@ -122,3 +122,16 @@ export const markSent = internalMutation(defs.markSent);
 export const resetStats = internalMutation(defs.resetStats);
 export const incrementStats = internalMutation(defs.incrementStats);
 export const incrementRevenue = internalMutation(defs.incrementRevenue);
+
+/**
+ * The same row, for a caller with no session.
+ *
+ * `getById` is store-scoped, and a scheduled batch has no identity to scope
+ * with — it would be refused. The authorisation happened when a person started
+ * or scheduled the campaign; this is the deferred half of that work, so it is
+ * `internalQuery` and unreachable from a client.
+ */
+export const getByIdInternal = internalQuery({
+  args: defs.getById.args,
+  handler: (ctx, args) => defs.getById.handler(ctx, args),
+});

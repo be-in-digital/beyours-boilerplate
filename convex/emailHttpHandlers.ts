@@ -1,10 +1,7 @@
 import { httpAction } from "./_generated/server";
-import { internal as _internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 
-// Email modules not yet in codegen — will resolve after `convex dev` regenerates types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const internal = _internal as any;
 
 // ─── Helper: minimal HTML response page ─────────────────────────────────────
 

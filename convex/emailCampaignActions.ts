@@ -3,14 +3,9 @@
 
 import { action, internalAction } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
-import { api as _api, internal as _internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
 
-// Email modules not yet in codegen — will resolve after `convex dev` regenerates types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const api = _api as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const internal = _internal as any;
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import {
   buildSegmentFilter,
