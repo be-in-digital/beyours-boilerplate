@@ -5,7 +5,7 @@ import { collectConsoleErrors } from "../helpers/console.helpers"
  * Tracking Page E2E Tests
  *
  * The tracking page at /track/[token] is a customer-facing mobile page.
- * With an invalid token it should show the "Lien invalide" error state.
+ * With an invalid token it should show the "Commande introuvable" error state.
  * With no token / loading, it shows skeleton loading.
  */
 test.describe("Tracking Page", () => {
@@ -25,11 +25,11 @@ test.describe("Tracking Page", () => {
 
       // Either skeleton loading or the invalid message should appear
       const skeleton = page.locator(".animate-pulse")
-      const invalidMsg = page.getByText("Lien de suivi invalide")
+      const invalidMsg = page.getByText("Commande introuvable")
       const body = page.locator("body")
 
       await expect(
-        skeleton.first().or(invalidMsg).or(body)
+        skeleton.first().or(invalidMsg).or(body).first()
       ).toBeVisible({ timeout: 15_000 })
     })
 
@@ -46,7 +46,7 @@ test.describe("Tracking Page", () => {
 
       // After Convex resolves, the invalid token message should appear
       await expect(
-        page.getByText("Lien de suivi invalide")
+        page.getByText("Commande introuvable")
       ).toBeVisible({ timeout: 30_000 })
     })
   })

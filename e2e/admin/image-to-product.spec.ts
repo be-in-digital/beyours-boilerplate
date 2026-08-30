@@ -32,11 +32,11 @@ test.describe("Image to Product", () => {
       await waitForAdminPage(page)
     })
 
-    test('should display "Creer depuis une image" heading', async ({
+    test('should display "Créer depuis une image" heading', async ({
       page,
     }) => {
       await expect(
-        page.locator("h1", { hasText: "Creer depuis une image" })
+        page.locator("h1", { hasText: "Créer depuis une image" })
       ).toBeVisible({ timeout: 15_000 })
     })
 
@@ -112,7 +112,7 @@ test.describe("Image to Product", () => {
         timeout: 30_000,
       })
       await expect(
-        page.locator("h1", { hasText: "Creer depuis une image" })
+        page.locator("h1", { hasText: "Créer depuis une image" })
       ).toBeVisible({ timeout: 15_000 })
     })
   })
@@ -132,7 +132,7 @@ test.describe("Image to Product", () => {
 
     test("should display the upload card with title", async ({ page }) => {
       await expect(
-        page.getByText("Creer depuis une image").first()
+        page.getByText("Créer depuis une image").first()
       ).toBeVisible({ timeout: 15_000 })
 
       await expect(
@@ -289,18 +289,20 @@ test.describe("Image to Product", () => {
       await expect(loadingStep.or(errorToast)).toBeVisible({ timeout: 15_000 })
 
       // If loading appeared, verify the step indicators and cancel button
-      if (await loadingStep.isVisible().catch(() => false)) {
-        await expect(
-          page.getByText("Analyse par l'IA (Vision GPT-4o)")
-        ).toBeVisible()
-        await expect(
-          page.getByText("Enrichissement des descriptions")
-        ).toBeVisible()
-        await expect(page.getByText("Categorisation automatique")).toBeVisible()
-        await expect(
-          page.getByRole("button", { name: "Annuler" })
-        ).toBeVisible()
-      }
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await loadingStep.isVisible({ timeout: 15_000 }).catch(() => false)), "the analysis step was already past when the page was read")
+
+      await expect(
+        page.getByText("Analyse par l'IA (Vision GPT-4o)")
+      ).toBeVisible()
+      await expect(
+        page.getByText("Enrichissement des descriptions")
+      ).toBeVisible()
+      await expect(page.getByText("Categorisation automatique")).toBeVisible()
+      await expect(
+        page.getByRole("button", { name: "Annuler" })
+      ).toBeVisible()
     })
 
     test("should complete analysis and show suggestions for a real menu image", async ({
@@ -345,25 +347,27 @@ test.describe("Image to Product", () => {
       })
 
       // If review step appeared, verify the suggestions UI
-      if (await reviewStep.isVisible().catch(() => false)) {
-        // Should show the select all checkbox
-        await expect(page.locator('[data-slot="checkbox"]').first()).toBeVisible()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await reviewStep.isVisible({ timeout: 15_000 }).catch(() => false)), "the review step was not reached")
 
-        // Should show at least one suggestion card
-        const cards = page.locator('[data-slot="card"]')
-        const cardCount = await cards.count()
-        expect(cardCount).toBeGreaterThanOrEqual(1)
+      // Should show the select all checkbox
+      await expect(page.locator('[data-slot="checkbox"]').first()).toBeVisible()
 
-        // Should show "Nouvelle image" reset button
-        await expect(
-          page.getByRole("button", { name: /Nouvelle image/ })
-        ).toBeVisible()
+      // Should show at least one suggestion card
+      const cards = page.locator('[data-slot="card"]')
+      const cardCount = await cards.count()
+      expect(cardCount).toBeGreaterThanOrEqual(1)
 
-        // Should show "Creer X produit(s)" confirm button
-        await expect(
-          page.getByRole("button", { name: /Cr[eé]er \d+ produit/ })
-        ).toBeVisible()
-      }
+      // Should show "Nouvelle image" reset button
+      await expect(
+        page.getByRole("button", { name: /Nouvelle image/ })
+      ).toBeVisible()
+
+      // Should show "Creer X produit(s)" confirm button
+      await expect(
+        page.getByRole("button", { name: /Cr[eé]er \d+ produit/ })
+      ).toBeVisible()
     })
   })
 
@@ -401,12 +405,14 @@ test.describe("Image to Product", () => {
       await expect(loadingText.or(errorToast)).toBeVisible({ timeout: 15_000 })
 
       // If we got an error, we should be back on the upload step
-      if (await errorToast.isVisible().catch(() => false)) {
-        // Error toast means the action failed — step should revert to "upload"
-        await expect(
-          page.getByText("Deposez une image ici ou cliquez pour parcourir")
-        ).toBeVisible({ timeout: 15_000 })
-      }
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await errorToast.isVisible({ timeout: 15_000 }).catch(() => false)), "no error toast - this run took the success path")
+
+      // Error toast means the action failed — step should revert to "upload"
+      await expect(
+        page.getByText("Deposez une image ici ou cliquez pour parcourir")
+      ).toBeVisible({ timeout: 15_000 })
     })
   })
 

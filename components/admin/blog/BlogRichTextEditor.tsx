@@ -279,7 +279,7 @@ export function BlogRichTextEditor({
         </ToolbarButton>
         <ToolbarButton
           onClick={() => setGenerateImageDialogOpen(true)}
-          title="Generer une image avec l'IA"
+          title="Générer une image avec l'IA"
           disabled={disabled}
         >
           <Sparkles className="h-3.5 w-3.5" />

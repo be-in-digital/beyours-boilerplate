@@ -89,7 +89,7 @@ test.describe("Gamification", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: "Jeux & Lots" })
       ).toBeVisible({ timeout: 15_000 })
-      await expect(page.getByText("Jeux", { exact: true })).toBeVisible()
+      await expect(page.getByText("Jeux", { exact: true }).first()).toBeVisible()
       await expect(page.getByText("Lots à gagner")).toBeVisible()
     })
 
@@ -103,7 +103,7 @@ test.describe("Gamification", () => {
       await expect(dialog.getByLabel("Description")).toBeVisible()
       await expect(dialog.getByText("Ratio de victoire")).toBeVisible()
       await expect(dialog.getByRole("slider")).toBeVisible()
-      await expect(dialog.getByText(/%/)).toBeVisible()
+      await expect(dialog.getByText(/%/).first()).toBeVisible()
       await expect(dialog.getByRole("button", { name: "Créer le jeu" })).toBeVisible()
     })
 

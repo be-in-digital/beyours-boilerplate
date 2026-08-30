@@ -7,6 +7,7 @@ import {
   closeDialogByEscape,
   getDialog,
 } from "../helpers/dialog.helpers"
+import { chooseOption } from "../helpers/filter.helpers"
 
 const SUBSCRIBERS_URL = "/dashboard/email/subscribers"
 
@@ -162,7 +163,7 @@ test.describe("Email Subscribers Page", () => {
         .filter({ hasText: "Tous les statuts" })
 
       await statusFilter.click()
-      await page.getByRole("option", { name: "Actif" }).click()
+      await chooseOption(page, "Actif")
       await page.waitForTimeout(1_000)
 
       await expect(

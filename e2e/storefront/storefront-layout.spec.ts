@@ -15,7 +15,9 @@ test.describe("Storefront Layout", () => {
     }) => {
       await page.goto("/menu", { waitUntil: "domcontentloaded" })
 
-      const signInLink = page.getByRole("link", { name: "Se connecter" })
+      // "Connexion" in the header, a noun; "Se connecter" is the verb on the
+      // submit button of the page it leads to.
+      const signInLink = page.getByRole("link", { name: "Connexion" })
       await expect(signInLink).toBeVisible({ timeout: 30_000 })
     })
   })
@@ -25,7 +27,7 @@ test.describe("Storefront Layout", () => {
       await page.goto("/menu", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByText("Powered by BeYours Engine")
+        page.getByText(/Tous droits réservés/)
       ).toBeVisible({ timeout: 30_000 })
     })
   })
@@ -49,7 +51,9 @@ test.describe("Storefront Layout", () => {
     }) => {
       await page.goto("/menu", { waitUntil: "domcontentloaded" })
 
-      const signInLink = page.getByRole("link", { name: "Se connecter" })
+      // "Connexion" in the header, a noun; "Se connecter" is the verb on the
+      // submit button of the page it leads to.
+      const signInLink = page.getByRole("link", { name: "Connexion" })
       await expect(signInLink).toBeVisible({ timeout: 30_000 })
 
       await signInLink.click()

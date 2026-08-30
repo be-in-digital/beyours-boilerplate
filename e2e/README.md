@@ -113,6 +113,7 @@ is served from:
 | `E2E_NEXT_PUBLIC_CONVEX_URL` | `https://<deployment>.convex.cloud` — also the switch that turns the admin tests on |
 | `E2E_CONVEX_SITE_URL` | `https://<deployment>.convex.site` (HTTP routes) |
 | `E2E_CONVEX_DEPLOYMENT` | the deployment name |
+| `E2E_CONVEX_DEPLOY_KEY` | a deploy key for it — steps 2 and 3 of the seed call `npx convex run`, and a runner has no logged-in CLI. Without it the accounts exist with no role and no restaurant, and every admin spec fails on an empty screen |
 | `E2E_BETTER_AUTH_SECRET` | session signing key |
 | `E2E_ENCRYPTION_KEY` | 64 hex characters |
 | `E2E_SEED_PASSWORD` | the throwaway password from step 3 |

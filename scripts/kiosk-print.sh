@@ -1,43 +1,43 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Chrome Kiosk Print — Auto-print tickets sans boite de dialogue
+# Chrome Kiosk Print — Auto-print tickets with no dialog box
 # ==============================================================================
 #
-# Ce script lance Google Chrome en mode kiosk-printing.
-# Quand la page KDS appelle window.print(), Chrome imprime directement
-# sur l'imprimante par defaut sans afficher la boite de dialogue "Imprimer".
+# This script launches Google Chrome in kiosk-printing mode.
+# When the KDS page calls window.print(), Chrome prints straight to the
+# default printer without showing the "Print" dialog.
 #
-# PREREQUIS:
-#   1. Google Chrome installe
-#   2. Une imprimante thermique configuree comme imprimante par defaut du systeme
-#   3. L'URL du KDS (ex: http://localhost:3000/kitchen)
+# REQUIREMENTS:
+#   1. Google Chrome installed
+#   2. A thermal printer set as the system default printer
+#   3. The KDS URL (e.g. http://localhost:3000/kitchen)
 #
 # USAGE:
 #   ./scripts/kiosk-print.sh [URL]
 #
-# EXEMPLES:
-#   ./scripts/kiosk-print.sh                                # defaut: localhost:3000/kitchen
+# EXAMPLES:
+#   ./scripts/kiosk-print.sh                                # default: localhost:3000/kitchen
 #   ./scripts/kiosk-print.sh http://192.168.1.100:3000/kitchen
 #   ./scripts/kiosk-print.sh https://monrestaurant.com/kitchen
 #
 # OPTIONS:
-#   --printer NAME   Specifier l'imprimante (sinon imprimante par defaut)
-#   --profile PATH   Specifier un profil Chrome dedie
-#   --kiosk          Mode kiosk complet (plein ecran sans barre d'adresse)
-#   --help           Afficher cette aide
+#   --printer NAME   Target a specific printer (otherwise the default one)
+#   --profile PATH   Use a dedicated Chrome profile
+#   --kiosk          Full kiosk mode (fullscreen, no address bar)
+#   --help           Show this help
 #
 # NOTES:
-#   - Le flag --kiosk-printing supprime la boite de dialogue d'impression
-#   - Le flag --kiosk (optionnel) met Chrome en plein ecran (ideal pour tablette cuisine)
-#   - Utilisez un profil Chrome dedie pour eviter les conflits avec votre session
-#   - Pour imprimer sur une imprimante specifique, configurez-la comme defaut systeme
-#     OU utilisez le flag --printer
+#   - The --kiosk-printing flag suppresses the print dialog
+#   - The optional --kiosk flag puts Chrome fullscreen (ideal for a kitchen tablet)
+#   - Use a dedicated Chrome profile to avoid clashing with your own session
+#   - To print to a specific printer, set it as the system default
+#     OR use the --printer flag
 #
 # ==============================================================================
 
 set -euo pipefail
 
-# --- Configuration par defaut ------------------------------------------------
+# --- Default configuration ---------------------------------------------------
 DEFAULT_URL="http://localhost:3000/kitchen"
 PROFILE_DIR=""
 KIOSK_MODE=false
@@ -72,7 +72,7 @@ log_error() {
   echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# --- Detect Chrome -------------------------------------------------------------
+# --- Detect Chrome -----------------------------------------------------------
 
 detect_chrome() {
   local chrome_path=""
@@ -110,7 +110,7 @@ detect_chrome() {
   echo "$chrome_path"
 }
 
-# --- List printers -------------------------------------------------------------
+# --- List printers -----------------------------------------------------------
 
 list_printers() {
   case "$(uname -s)" in
@@ -134,7 +134,7 @@ get_default_printer() {
   esac
 }
 
-# --- Parse arguments -----------------------------------------------------------
+# --- Parse arguments ---------------------------------------------------------
 
 URL="$DEFAULT_URL"
 
@@ -173,7 +173,7 @@ done
 CHROME="$(detect_chrome)"
 log_success "Chrome detecte: $CHROME"
 
-# Dedicated profile, to avoid conflicts with the user's own session
+# Dedicated profile to avoid conflicts
 if [ -z "$PROFILE_DIR" ]; then
   PROFILE_DIR="$HOME/.chrome-kiosk-print"
 fi

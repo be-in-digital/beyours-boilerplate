@@ -39,7 +39,7 @@ test.describe("Sign Up Page", () => {
       await page.goto("/sign-up", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("button", { name: "Créer un compte" })
+        page.getByRole("button", { name: "Créer mon compte" })
       ).toBeVisible()
     })
 
@@ -60,7 +60,7 @@ test.describe("Sign Up Page", () => {
     }) => {
       await page.goto("/sign-up", { waitUntil: "domcontentloaded" })
 
-      await page.getByRole("button", { name: "Créer un compte" }).click()
+      await page.getByRole("button", { name: "Créer mon compte" }).click()
 
       // The name field should prevent submission via browser validation
       const nameInput = page.getByLabel("Nom")
@@ -107,7 +107,7 @@ test.describe("Sign Up Page", () => {
       await page.getByLabel("Mot de passe").fill("password1234")
       await page.getByLabel("Confirmer").fill("password1234")
 
-      await page.getByRole("button", { name: "Créer un compte" }).click()
+      await page.getByRole("button", { name: "Créer mon compte" }).click()
 
       // Error banner (div with red styling) or toast should appear
       const errorBanner = page.locator(".bg-red-50, .bg-red-900\\/20, [role='alert']")
@@ -129,7 +129,7 @@ test.describe("Sign Up Page", () => {
       await page.getByLabel("Mot de passe").fill("password1234")
       await page.getByLabel("Confirmer").fill("password1234")
 
-      await page.getByRole("button", { name: "Créer un compte" }).click()
+      await page.getByRole("button", { name: "Créer mon compte" }).click()
 
       // After submission, we should see either:
       // - A success redirect (away from /sign-up)

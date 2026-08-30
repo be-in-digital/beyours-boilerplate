@@ -84,18 +84,20 @@ test.describe("Team Page", () => {
 
       await expect(table.or(emptyState)).toBeVisible({ timeout: 15_000 })
 
-      if (await table.isVisible()) {
-        const headers = await getTableHeaders(page)
-        expect(headers).toEqual(
-          expect.arrayContaining([
-            "Membre",
-            "Rôle",
-            "Statut",
-            "Périmètre",
-            "Date d'ajout",
-          ])
-        )
-      }
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await table.isVisible({ timeout: 15_000 })), "this store has no table to inspect")
+
+      const headers = await getTableHeaders(page)
+      expect(headers).toEqual(
+        expect.arrayContaining([
+          "Membre",
+          "Rôle",
+          "Statut",
+          "Périmètre",
+          "Date d'ajout",
+        ])
+      )
     })
   })
 
@@ -255,21 +257,25 @@ test.describe("Team Page", () => {
       await expect(table.or(emptyState)).toBeVisible({ timeout: 15_000 })
 
       // Only test if table has rows
-      if (await table.isVisible()) {
-        const rows = page.locator("tbody tr")
-        const rowCount = await rows.count()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await table.isVisible({ timeout: 15_000 })), "this store has no table to inspect")
 
-        if (rowCount > 0) {
-          // Click the action menu on the first row
-          const actionButton = rows.first().getByRole("button").last()
-          await actionButton.click()
+      const rows = page.locator("tbody tr")
+      const rowCount = await rows.count()
 
-          // Dropdown menu should appear
-          await expect(
-            page.getByRole("menuitem").first()
-          ).toBeVisible({ timeout: 5_000 })
-        }
-      }
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the list came back empty. A skip states the gap instead.
+      test.skip(rowCount === 0, "the list is empty on this deployment")
+
+      // Click the action menu on the first row
+      const actionButton = rows.first().getByRole("button").last()
+      await actionButton.click()
+
+      // Dropdown menu should appear
+      await expect(
+        page.getByRole("menuitem").first()
+      ).toBeVisible({ timeout: 5_000 })
     })
 
     test("should show Modifier, Renvoyer, Désactiver, Supprimer options", async ({
@@ -282,27 +288,31 @@ test.describe("Team Page", () => {
 
       await expect(table.or(emptyState)).toBeVisible({ timeout: 15_000 })
 
-      if (await table.isVisible()) {
-        const rows = page.locator("tbody tr")
-        const rowCount = await rows.count()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await table.isVisible({ timeout: 15_000 })), "this store has no table to inspect")
 
-        if (rowCount > 0) {
-          const actionButton = rows.first().getByRole("button").last()
-          await actionButton.click()
+      const rows = page.locator("tbody tr")
+      const rowCount = await rows.count()
 
-          await expect(
-            page.getByRole("menuitem", { name: "Modifier" })
-          ).toBeVisible({ timeout: 5_000 })
-          await expect(
-            page.getByRole("menuitem", { name: "Renvoyer l'invitation" })
-              .or(page.getByRole("menuitem", { name: "Désactiver" }))
-              .or(page.getByRole("menuitem", { name: "Activer" }))
-          ).toBeVisible()
-          await expect(
-            page.getByRole("menuitem", { name: "Supprimer" })
-          ).toBeVisible()
-        }
-      }
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the list came back empty. A skip states the gap instead.
+      test.skip(rowCount === 0, "the list is empty on this deployment")
+
+      const actionButton = rows.first().getByRole("button").last()
+      await actionButton.click()
+
+      await expect(
+        page.getByRole("menuitem", { name: "Modifier" })
+      ).toBeVisible({ timeout: 5_000 })
+      await expect(
+        page.getByRole("menuitem", { name: "Renvoyer l'invitation" })
+          .or(page.getByRole("menuitem", { name: "Désactiver" }))
+          .or(page.getByRole("menuitem", { name: "Activer" }))
+      ).toBeVisible()
+      await expect(
+        page.getByRole("menuitem", { name: "Supprimer" })
+      ).toBeVisible()
     })
   })
 
@@ -321,22 +331,26 @@ test.describe("Team Page", () => {
 
       await expect(table.or(emptyState)).toBeVisible({ timeout: 15_000 })
 
-      if (await table.isVisible()) {
-        const rows = page.locator("tbody tr")
-        const rowCount = await rows.count()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await table.isVisible({ timeout: 15_000 })), "this store has no table to inspect")
 
-        if (rowCount > 0) {
-          const actionButton = rows.first().getByRole("button").last()
-          await actionButton.click()
+      const rows = page.locator("tbody tr")
+      const rowCount = await rows.count()
 
-          await clickDropdownItem(page, "Modifier")
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the list came back empty. A skip states the gap instead.
+      test.skip(rowCount === 0, "the list is empty on this deployment")
 
-          const dialog = await waitForDialog(page)
-          await expect(
-            dialog.getByText("Modifier le membre")
-          ).toBeVisible()
-        }
-      }
+      const actionButton = rows.first().getByRole("button").last()
+      await actionButton.click()
+
+      await clickDropdownItem(page, "Modifier")
+
+      const dialog = await waitForDialog(page)
+      await expect(
+        dialog.getByText("Modifier le membre")
+      ).toBeVisible()
     })
   })
 
@@ -357,22 +371,26 @@ test.describe("Team Page", () => {
 
       await expect(table.or(emptyState)).toBeVisible({ timeout: 15_000 })
 
-      if (await table.isVisible()) {
-        const rows = page.locator("tbody tr")
-        const rowCount = await rows.count()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await table.isVisible({ timeout: 15_000 })), "this store has no table to inspect")
 
-        if (rowCount > 0) {
-          const actionButton = rows.first().getByRole("button").last()
-          await actionButton.click()
+      const rows = page.locator("tbody tr")
+      const rowCount = await rows.count()
 
-          await clickDropdownItem(page, "Supprimer")
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the list came back empty. A skip states the gap instead.
+      test.skip(rowCount === 0, "the list is empty on this deployment")
 
-          const dialog = await waitForDialog(page)
-          await expect(
-            dialog.getByText("Supprimer le membre")
-          ).toBeVisible()
-        }
-      }
+      const actionButton = rows.first().getByRole("button").last()
+      await actionButton.click()
+
+      await clickDropdownItem(page, "Supprimer")
+
+      const dialog = await waitForDialog(page)
+      await expect(
+        dialog.getByText("Supprimer le membre")
+      ).toBeVisible()
     })
   })
 

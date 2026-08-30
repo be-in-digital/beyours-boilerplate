@@ -185,7 +185,16 @@ function SignInForm() {
                   className="w-full h-16 rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-950/20 transition-all hover:scale-[1.02] active:scale-[0.98] group disabled:opacity-60"
                 >
                   {loading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      {/*
+                        A spinner alone leaves the button with no accessible
+                        name: assistive technology announces "button" and
+                        nothing else, exactly when the user most wants to know
+                        what is happening.
+                      */}
+                      <span className="sr-only">Connexion en cours...</span>
+                    </>
                   ) : (
                     <>
                       Se connecter

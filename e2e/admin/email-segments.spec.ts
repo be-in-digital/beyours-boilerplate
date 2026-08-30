@@ -7,6 +7,7 @@ import {
   closeDialogByEscape,
   getDialog,
 } from "../helpers/dialog.helpers"
+import { countAfterLoad } from "../helpers/list.helpers"
 
 const SEGMENTS_URL = "/dashboard/email/segments"
 
@@ -136,7 +137,7 @@ test.describe("Email Segments Page", () => {
 
       // Count initial rule rows (should be 1)
       const valuePlaceholders = dialog.getByPlaceholder("Valeur")
-      const initialCount = await valuePlaceholders.count()
+      const initialCount = await countAfterLoad(valuePlaceholders)
 
       await dialog
         .getByRole("button", { name: "Ajouter une règle" })

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
+import { countAfterLoad } from "../helpers/list.helpers"
 
 /**
  * Order Detail Page E2E tests.
@@ -170,7 +171,7 @@ test.describe("Order Detail Page", () => {
         })
 
         // At least one action button should exist (unless order is in terminal state)
-        const count = await actionButtons.count()
+        const count = await countAfterLoad(actionButtons)
         // Some orders in terminal states (Terminée, Annulée) may have no action buttons
         expect(count).toBeGreaterThanOrEqual(0)
       }

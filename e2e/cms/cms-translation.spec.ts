@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test"
 import { waitForAdminPage } from "../helpers/navigation.helpers"
+import { countAfterLoad } from "../helpers/list.helpers"
 
 test.describe("CMS Translation", () => {
   test.describe("Translation Controls", () => {
@@ -33,13 +34,15 @@ test.describe("CMS Translation", () => {
 
       // The hero block has an image field — it should NOT have a translate button
       const imageLabel = page.getByText("Image d'illustration")
-      if (await imageLabel.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        const imageSection = imageLabel.locator("..")
-        const translateInImage = imageSection.getByRole("button", {
-          name: /traduire/i,
-        })
-        await expect(translateInImage).toHaveCount(0)
-      }
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await imageLabel.isVisible({ timeout: 5_000 }).catch(() => false)), "this page has no image field")
+
+      const imageSection = imageLabel.locator("..")
+      const translateInImage = imageSection.getByRole("button", {
+        name: /traduire/i,
+      })
+      await expect(translateInImage).toHaveCount(0)
     })
   })
 
@@ -54,18 +57,23 @@ test.describe("CMS Translation", () => {
 
       await waitForAdminPage(page)
 
+      // "Traduire", not "Traduire tout": the first /traduire/i match is the
+      // page-wide bulk action in the toolbar, which does not open the per-field
+      // drawer this test is about.
       const translateButton = page
-        .getByRole("button", { name: /traduire/i })
+        .getByRole("button", { name: "Traduire", exact: true })
         .first()
 
-      if (await translateButton.isVisible()) {
-        await translateButton.click()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await translateButton.isVisible({ timeout: 15_000 })), "this page has no per-field translate button")
 
-        // Should open the translation drawer/sheet
-        await expect(
-          page.getByText(/traductions/i),
-        ).toBeVisible({ timeout: 10_000 })
-      }
+      await translateButton.click()
+
+      // Should open the translation drawer/sheet
+      await expect(
+        page.getByText(/traductions/i),
+      ).toBeVisible({ timeout: 10_000 })
     })
 
     test("should show language sections in translation drawer", async ({
@@ -78,32 +86,37 @@ test.describe("CMS Translation", () => {
 
       await waitForAdminPage(page)
 
+      // "Traduire", not "Traduire tout": the first /traduire/i match is the
+      // page-wide bulk action in the toolbar, which does not open the per-field
+      // drawer this test is about.
       const translateButton = page
-        .getByRole("button", { name: /traduire/i })
+        .getByRole("button", { name: "Traduire", exact: true })
         .first()
 
-      if (await translateButton.isVisible()) {
-        await translateButton.click()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await translateButton.isVisible({ timeout: 15_000 })), "this page has no per-field translate button")
 
-        // Should display the "Langue par défaut" label
-        await expect(
-          page.getByText("Langue par défaut"),
-        ).toBeVisible({ timeout: 10_000 })
+      await translateButton.click()
 
-        // Should display at least one secondary language or a "no languages" message
-        const hasLanguages = await page
-          .getByText(/english|español|العربية|deutsch/i)
-          .first()
-          .isVisible({ timeout: 5_000 })
-          .catch(() => false)
+      // Should display the "Langue par défaut" label
+      await expect(
+        page.getByText("Langue par défaut"),
+      ).toBeVisible({ timeout: 10_000 })
 
-        const noLanguages = await page
-          .getByText(/aucune langue secondaire/i)
-          .isVisible({ timeout: 2_000 })
-          .catch(() => false)
+      // Should display at least one secondary language or a "no languages" message
+      const hasLanguages = await page
+        .getByText(/english|español|العربية|deutsch/i)
+        .first()
+        .isVisible({ timeout: 5_000 })
+        .catch(() => false)
 
-        expect(hasLanguages || noLanguages).toBe(true)
-      }
+      const noLanguages = await page
+        .getByText(/aucune langue secondaire/i)
+        .isVisible({ timeout: 2_000 })
+        .catch(() => false)
+
+      expect(hasLanguages || noLanguages).toBe(true)
     })
 
     test("should show translation count when translations exist", async ({
@@ -118,12 +131,14 @@ test.describe("CMS Translation", () => {
 
       // Look for translation buttons showing a number (translations exist)
       const countButtons = page.getByRole("button", { name: /^\d+$/ })
-      const count = await countButtons.count()
+      const count = await countAfterLoad(countButtons)
 
-      if (count > 0) {
-        const text = await countButtons.first().textContent()
-        expect(Number(text)).toBeGreaterThan(0)
-      }
+      // A silent `if` here let the test pass having checked nothing when the
+      // list came back empty. A skip says so instead.
+      test.skip(count < 1, "there is nothing to translate on this page")
+
+      const text = await countButtons.first().textContent()
+      expect(Number(text)).toBeGreaterThan(0)
     })
   })
 

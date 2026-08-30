@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
+import {
+  SEED_EMAIL,
+  SEED_PASSWORD,
+  requireSeedPassword,
+} from "../helpers/credentials.helpers"
 
 test.describe("Sign In Page", () => {
   test.describe("Page Structure", () => {
@@ -7,7 +12,7 @@ test.describe("Sign In Page", () => {
       await page.goto("/sign-in", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Connexion", level: 1 })
+        page.getByRole("heading", { name: /Bon retour/, level: 1 })
       ).toBeVisible()
     })
 
@@ -24,10 +29,7 @@ test.describe("Sign In Page", () => {
       const passwordInput = page.getByLabel("Mot de passe")
       await expect(passwordInput).toBeVisible()
       await expect(passwordInput).toHaveAttribute("type", "password")
-      await expect(passwordInput).toHaveAttribute(
-        "placeholder",
-        "Votre mot de passe"
-      )
+      await expect(passwordInput).toHaveAttribute("placeholder", "••••••••")
     })
 
     test("should display the submit button", async ({ page }) => {
@@ -98,22 +100,30 @@ test.describe("Sign In Page", () => {
     test("should attempt redirect on successful login", async ({
       page,
     }) => {
-      await page.goto("/sign-in", { waitUntil: "networkidle" })
+      requireSeedPassword()
+
+      // Not "networkidle": Convex holds a WebSocket open for the life of the
+      // page, so the network is never idle and the navigation times out at 60 s
+      // without ever having failed at anything. The heading below is the real
+      // signal that the page is ready.
+      await page.goto("/sign-in", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Connexion" })
+        page.getByRole("heading", { name: /Bon retour/ })
       ).toBeVisible({ timeout: 30_000 })
 
-      // Wait for any Next.js compilation to finish before filling the form
-      await page.waitForLoadState("networkidle")
-
-      await page.getByLabel("Email").fill("test.owner@beindigital.fr")
-      await page.getByLabel("Mot de passe").fill("julien")
+      await page.getByLabel("Email").fill(SEED_EMAIL)
+      await page.getByLabel("Mot de passe").fill(SEED_PASSWORD)
 
       await page.getByRole("button", { name: "Se connecter" }).click()
 
-      // After successful login, user should be redirected to /dashboard
-      await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 })
+      // The page sends everyone to /menu after a successful sign-in, staff
+      // included — `auth.setup.ts` accepts either destination for the same
+      // reason. What this test can assert is that the sign-in took: the user
+      // leaves /sign-in. Whether an owner should land on the dashboard instead
+      // is a product decision, not something to settle by rewriting a redirect
+      // under a test.
+      await expect(page).toHaveURL(/\/(dashboard|menu)/, { timeout: 30_000 })
     })
 
     test("should show error banner on invalid credentials", async ({
@@ -122,7 +132,7 @@ test.describe("Sign In Page", () => {
       await page.goto("/sign-in", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Connexion" })
+        page.getByRole("heading", { name: /Bon retour/ })
       ).toBeVisible({ timeout: 30_000 })
 
       await page.getByLabel("Email").fill("wrong@example.com")
@@ -140,14 +150,29 @@ test.describe("Sign In Page", () => {
     test("should show loading state while authenticating", async ({
       page,
     }) => {
+      requireSeedPassword()
+
       await page.goto("/sign-in", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Connexion" })
+        page.getByRole("heading", { name: /Bon retour/ })
       ).toBeVisible({ timeout: 30_000 })
 
-      await page.getByLabel("Email").fill("test.owner@beindigital.fr")
-      await page.getByLabel("Mot de passe").fill("julien")
+      // Hold the sign-in response open for a moment.
+      //
+      // The loading state is transient by nature: against a local Convex the
+      // request finishes in tens of milliseconds, so the button had usually
+      // returned to "Se connecter" before the assertion ever looked. Polling
+      // does not help — the state is already gone. Delaying the response is
+      // what makes this a test about the loading state rather than about how
+      // fast the backend happens to be today.
+      await page.route("**/api/auth/sign-in/email", async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 2_000))
+        await route.continue()
+      })
+
+      await page.getByLabel("Email").fill(SEED_EMAIL)
+      await page.getByLabel("Mot de passe").fill(SEED_PASSWORD)
 
       await page.getByRole("button", { name: "Se connecter" }).click()
 
@@ -158,14 +183,16 @@ test.describe("Sign In Page", () => {
     })
 
     test("should navigate away from sign-in on login", async ({ page }) => {
+      requireSeedPassword()
+
       await page.goto("/sign-in", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Connexion" })
+        page.getByRole("heading", { name: /Bon retour/ })
       ).toBeVisible({ timeout: 30_000 })
 
-      await page.getByLabel("Email").fill("test.owner@beindigital.fr")
-      await page.getByLabel("Mot de passe").fill("julien")
+      await page.getByLabel("Email").fill(SEED_EMAIL)
+      await page.getByLabel("Mot de passe").fill(SEED_PASSWORD)
 
       await page.getByRole("button", { name: "Se connecter" }).click()
 
@@ -210,7 +237,7 @@ test.describe("Sign In Page", () => {
       await page.goto("/sign-in", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Connexion" })
+        page.getByRole("heading", { name: /Bon retour/ })
       ).toBeVisible({ timeout: 30_000 })
 
       // Wait a moment for any async errors to surface

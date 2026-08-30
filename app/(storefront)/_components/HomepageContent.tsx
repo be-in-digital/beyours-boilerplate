@@ -77,7 +77,11 @@ export default function LandingPage() {
     const heroBadge = hero.field("badge").text ?? "Restaurant Premium"
     const heroTitle = hero.field("title").text ?? "Bienvenue Chez {Nous}"
     const heroSubtitle = hero.field("subtitle").text ?? "Découvrez nos plats préparés avec passion et des ingrédients frais, livrés directement chez vous ou à emporter."
-    const heroImage = hero.field("image").mediaUrl ?? "/imagery/hero-burger-v2.png"
+    // No fallback path here: `/imagery/hero-burger-v2.png` never existed —
+    // `public/imagery/` does not exist either — so the placeholder was a 400
+    // from the image optimizer on every homepage without a hero upload. An
+    // absent image is drawn as the empty frame it is.
+    const heroImage = hero.field("image").mediaUrl
     const heroCtaLabel = hero.field("ctaLabel").text ?? "Voir le Menu"
     const fb1Title = hero.field("floatingBadge1Title").text ?? "Top Rated"
     const fb1Subtitle = hero.field("floatingBadge1Subtitle").text ?? "Gourmet Choice"
@@ -171,13 +175,15 @@ export default function LandingPage() {
                         className="flex-1 relative w-full mt-24 md:mt-0"
                     >
                         <div className="relative w-full aspect-square max-w-xl mx-auto">
-                            <Image
-                                src={heroImage}
-                                alt="Hero"
-                                fill
-                                className="object-contain drop-shadow-[0_45px_45px_rgba(0,0,0,0.6)] z-20 scale-125"
-                                priority
-                            />
+                            {heroImage && (
+                                <Image
+                                    src={heroImage}
+                                    alt="Hero"
+                                    fill
+                                    className="object-contain drop-shadow-[0_45px_45px_rgba(0,0,0,0.6)] z-20 scale-125"
+                                    priority
+                                />
+                            )}
 
                             {/* Floating badge 1 */}
                             <motion.div

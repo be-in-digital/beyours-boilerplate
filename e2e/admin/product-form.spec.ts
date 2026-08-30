@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
 import { waitForAdminPage } from "../helpers/navigation.helpers"
+import { countAfterLoad } from "../helpers/list.helpers"
 
 test.describe("Product Form", () => {
   // Not serial.
@@ -117,10 +118,14 @@ test.describe("Product Form", () => {
 
       // Validation errors should appear for required fields
       // Look for any validation message or error indication
+      // Each side of this chain is plural — a form shows one message per
+      // invalid field — so the chain has to resolve to one before it can be
+      // asserted on.
       const validationError = page
         .getByText(/obligatoire|requis|required/i)
-        .or(page.locator('[data-slot="form-message"]').first())
-        .or(page.locator('[role="alert"]').first())
+        .or(page.locator('[data-slot="form-message"]'))
+        .or(page.locator('[role="alert"]'))
+        .first()
 
       await expect(validationError).toBeVisible({ timeout: 10_000 })
     })
@@ -171,9 +176,10 @@ test.describe("Product Form", () => {
       await stockTab.click()
 
       await expect(
-        page.getByRole("switch", { name: /stock/i }).or(
-          page.getByText("Suivre le stock de ce produit")
-        )
+        page
+          .getByRole("switch", { name: /stock/i })
+          .or(page.getByText("Suivre le stock de ce produit"))
+          .first()
       ).toBeVisible({ timeout: 15_000 })
     })
 
@@ -281,7 +287,7 @@ test.describe("Product Form", () => {
         .getByPlaceholder(/nom de l'option|taille|sauce/i)
         .or(page.getByLabel(/nom de l'option/i))
 
-      const countBefore = await optionNameInputs.count()
+      const countBefore = await countAfterLoad(optionNameInputs)
 
       if (countBefore > 0 && (await removeButton.first().isVisible())) {
         await removeButton.first().click()
@@ -289,7 +295,7 @@ test.describe("Product Form", () => {
         // Wait for removal animation
         await page.waitForTimeout(500)
 
-        const countAfter = await optionNameInputs.count()
+        const countAfter = await countAfterLoad(optionNameInputs)
         expect(countAfter).toBeLessThan(countBefore)
       }
     })
@@ -336,12 +342,15 @@ test.describe("Product Form", () => {
         page
           .getByLabel(/quantité/i)
           .or(page.getByPlaceholder(/quantité/i))
+          .first()
       ).toBeVisible({ timeout: 10_000 })
 
       await expect(
+        // The label and its visible text are two matches for the same field.
         page
           .getByLabel(/seuil/i)
           .or(page.getByText("Seuil de stock faible"))
+          .first()
       ).toBeVisible()
     })
 

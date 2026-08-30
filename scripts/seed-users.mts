@@ -14,8 +14,14 @@
 
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
+import { resolve, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
+import { loadEnvFiles } from "../e2e/load-env.js"
 
 const run = promisify(execFile)
+
+const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
+loadEnvFiles(appRoot, [".env.e2e", ".env.local"])
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -33,10 +39,48 @@ if (!CONVEX_URL) {
 }
 if (!SEED_PASSWORD) {
   console.error(
-    "SEED_PASSWORD is required (set it in .env.local — test accounts only). Aborting."
+    "SEED_PASSWORD is required (set it in .env.e2e — test accounts only). Aborting."
   )
   process.exit(1)
 }
+
+// `convex/auth.ts` sets minPasswordLength: 12. Saying so here beats letting
+// Better Auth reject the sign-up with a message about the request body.
+const MIN_PASSWORD_LENGTH = 12
+if (SEED_PASSWORD.length < MIN_PASSWORD_LENGTH) {
+  console.error(
+    `SEED_PASSWORD must be at least ${MIN_PASSWORD_LENGTH} characters — the ` +
+      `server enforces it (convex/auth.ts, minPasswordLength). Aborting.`
+  )
+  process.exit(1)
+}
+
+/**
+ * The owner account the e2e suite signs in as.
+ *
+ * Overridable because a password cannot be reset from here: the script signs
+ * existing accounts in rather than resetting them, so an address whose password
+ * has been lost is unusable forever. Pointing at a fresh address is the way out,
+ * and `e2e/auth.setup.ts` reads the same variable.
+ */
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? "test.owner@beindigital.fr"
+
+/**
+ * Better Auth refuses any state-changing request whose `Origin` is missing.
+ *
+ * Node's `fetch` sends none — a browser always does — so every call here came
+ * back `403 MISSING_OR_NULL_ORIGIN` and the script ended on "No account could
+ * be created or opened. Nothing to seed." The CI step runs it with `|| true`,
+ * so the run continued to Playwright against an empty database and the failure
+ * surfaced 400 tests later as an admin screen that would not load.
+ *
+ * `BASE_URL` is what a browser would send, and `convex/auth.ts` lists it in
+ * `trustedOrigins` (through `SITE_URL`, plus the localhost range).
+ */
+const AUTH_HEADERS = {
+  "Content-Type": "application/json",
+  Origin: BASE_URL,
+} as const
 
 type UserRole =
   | "client_admin"
@@ -57,7 +101,7 @@ const SEED_USERS: SeedUser[] = [
   // Owner
   {
     name: "Mamadou Seck",
-    email: "test.owner@beindigital.fr",
+    email: ADMIN_EMAIL,
     password: SEED_PASSWORD,
     role: "client_admin",
   },
@@ -103,7 +147,7 @@ async function signUpUser(
   try {
     const res = await fetch(`${BASE_URL}/api/auth/sign-up/email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: AUTH_HEADERS,
       body: JSON.stringify({
         name: user.name,
         email: user.email,
@@ -151,7 +195,7 @@ async function signInUser(
   try {
     const res = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: AUTH_HEADERS,
       body: JSON.stringify({ email: user.email, password: user.password }),
     })
 

@@ -95,7 +95,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
       // in_progress → ready: mark as ready (update order status)
       if (ticket.status === "in_progress") {
         await readyTicketAction({ id: ticket._id })
-        toast.success("Commande prete")
+        toast.success("Commande prête")
         return
       }
 
@@ -113,7 +113,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
       })
       toast.success(`Ticket deplace vers ${action.nextStatus.replace("_", " ")}`)
     } catch (error) {
-      toast.error("Echec de la mise a jour du statut du ticket")
+      toast.error("Échec de la mise à jour du statut du ticket")
       console.error(error)
     }
   }
@@ -121,9 +121,9 @@ export function TicketCard({ ticket }: TicketCardProps) {
   const handleCancel = async (reason?: string) => {
     try {
       await cancelTicketAction({ id: ticket._id, reason })
-      toast.success("Commande annulee")
+      toast.success("Commande annulée")
     } catch (error) {
-      toast.error("Echec de l'annulation")
+      toast.error("Échec de l'annulation")
       console.error(error)
     }
   }
@@ -131,9 +131,9 @@ export function TicketCard({ ticket }: TicketCardProps) {
   const handleReprint = async () => {
     try {
       await requestReprintMutation({ id: ticket._id })
-      toast.success("Reimpression demandee")
+      toast.success("Réimpression demandée")
     } catch (error) {
-      toast.error("Echec de la demande de reimpression")
+      toast.error("Échec de la demande de réimpression")
       console.error(error)
     }
   }
@@ -175,7 +175,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
                 size="icon"
                 className="h-7 w-7"
                 onClick={handleReprint}
-                title="Reimprimer"
+                title="Réimprimer"
               >
                 <Printer className="h-4 w-4" />
               </Button>
@@ -204,7 +204,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
         {/* Print stuck warning */}
         {printStuck && (
           <div className="flex items-center gap-1 text-xs text-amber-600 font-medium">
-            <span>Non imprimee</span>
+            <span>Non imprimée</span>
           </div>
         )}
 

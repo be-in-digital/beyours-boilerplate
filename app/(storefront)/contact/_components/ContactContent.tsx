@@ -154,11 +154,12 @@ export default function ContactPage() {
                                 <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-name">
                                                 Nom complet
                                             </label>
                                             <input
                                                 name="name"
+                                                id="contact-name"
                                                 type="text"
                                                 required
                                                 placeholder="Votre nom"
@@ -166,11 +167,12 @@ export default function ContactPage() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-email">
                                                 Email
                                             </label>
                                             <input
                                                 name="email"
+                                                id="contact-email"
                                                 type="email"
                                                 required
                                                 placeholder="votre@email.com"
@@ -179,22 +181,24 @@ export default function ContactPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-phone">
                                             Téléphone (optionnel)
                                         </label>
                                         <input
                                             name="phone"
+                                            id="contact-phone"
                                             type="tel"
                                             placeholder="+33 6 00 00 00 00"
                                             className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-300 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-subject">
                                             Sujet
                                         </label>
                                         <select
                                             name="subject"
+                                            id="contact-subject"
                                             required
                                             className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors appearance-none"
                                         >
@@ -207,11 +211,12 @@ export default function ContactPage() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-message">
                                             Message
                                         </label>
                                         <textarea
                                             name="message"
+                                            id="contact-message"
                                             required
                                             rows={5}
                                             placeholder="Comment pouvons-nous vous aider ?"

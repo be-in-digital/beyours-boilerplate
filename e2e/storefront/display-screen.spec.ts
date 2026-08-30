@@ -44,8 +44,10 @@ test.describe("Display Screen", () => {
       const main = page.locator("main")
       const body = page.locator("body")
 
+      // `.or(body)` cannot resolve to one element: body always matches, and so
+      // does whatever else the page rendered. Strict mode rejects the pair.
       await expect(
-        loading.or(main).or(body)
+        loading.or(main).or(body).first()
       ).toBeVisible({ timeout: 15_000 })
     })
   })

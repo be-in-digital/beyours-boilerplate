@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test"
+import { test, expect, type Page } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
 import { waitForAdminPage } from "../helpers/navigation.helpers"
 import {
@@ -8,6 +8,60 @@ import {
 } from "../helpers/dialog.helpers"
 
 const CAMPAIGNS_URL = "/dashboard/email/campaigns"
+
+/**
+ * Skips when the store has no sender address configured.
+ *
+ * "Nouvelle campagne" is deliberately disabled until then — the page says so in
+ * an amber banner — so the wizard tests were waiting thirty seconds on a button
+ * that is correct to refuse the click. A missing configuration is a state to
+ * recognise, not a failure to report.
+ */
+async function skipIfEmailUnconfigured(page: Page) {
+  const banner = page.getByText("Configuration email requise")
+  const createButton = page.getByRole("button", { name: "Nouvelle campagne" })
+
+  // Wait for the page to settle before deciding, for the same reason as
+  // `campaignTable` below: a five-second one-shot read on the banner answered
+  // "not there" while the page was still loading, so the guard concluded the
+  // store was configured and the test went on to click a disabled button.
+  await expect(banner.or(createButton).first()).toBeVisible({ timeout: 30_000 })
+
+  test.skip(
+    await banner.isVisible().catch(() => false),
+    "no sender address configured for this store"
+  )
+}
+
+/**
+ * Returns the campaign table once the page has settled, or skips.
+ *
+ * The seven dropdown tests each opened with
+ *
+ *   const hasTable = await table.isVisible({ timeout: 5_000 }).catch(() => false)
+ *   test.skip(!hasTable, "No campaigns in table to test")
+ *
+ * which is a one-shot read, not an assertion: it does not retry. Five seconds
+ * is also less than the Convex query needs on a busy machine, so the check ran
+ * while the page was still empty, concluded there were no campaigns, and the
+ * tests excused themselves — three of them in one run, a different three in the
+ * next.
+ *
+ * Waiting for the page to settle on one of its two real shapes — a table, or
+ * "Aucune campagne" — removes the race. The skip then means what it says.
+ */
+async function campaignTable(page: Page) {
+  const table = page.locator("table")
+  const empty = page.getByText("Aucune campagne").first()
+
+  await expect(table.or(empty).first()).toBeVisible({ timeout: 30_000 })
+
+  test.skip(
+    !(await table.isVisible().catch(() => false)),
+    "this store has no campaign to act on"
+  )
+  return table
+}
 
 test.describe("Email Campaigns Page", () => {
   test.describe("Page Structure", () => {
@@ -58,6 +112,7 @@ test.describe("Email Campaigns Page", () => {
         timeout: 60_000,
       })
       await waitForAdminPage(page)
+      await skipIfEmailUnconfigured(page)
     })
 
     test("should open wizard dialog when clicking create button", async ({
@@ -151,9 +206,7 @@ test.describe("Email Campaigns Page", () => {
     })
 
     test("should display dropdown menu on campaign row", async ({ page }) => {
-      const table = page.locator("table")
-      const hasTable = await table.isVisible({ timeout: 5_000 }).catch(() => false)
-      test.skip(!hasTable, "No campaigns in table to test")
+      const table = await campaignTable(page)
 
       const firstRow = table.locator("tbody tr").first()
       const menuButton = firstRow.getByRole("button").last()
@@ -166,9 +219,7 @@ test.describe("Email Campaigns Page", () => {
     })
 
     test("should open send test dialog from dropdown", async ({ page }) => {
-      const table = page.locator("table")
-      const hasTable = await table.isVisible({ timeout: 5_000 }).catch(() => false)
-      test.skip(!hasTable, "No campaigns in table to test")
+      const table = await campaignTable(page)
 
       const firstRow = table.locator("tbody tr").first()
       const menuButton = firstRow.getByRole("button").last()
@@ -183,9 +234,7 @@ test.describe("Email Campaigns Page", () => {
     })
 
     test("should validate email in send test dialog", async ({ page }) => {
-      const table = page.locator("table")
-      const hasTable = await table.isVisible({ timeout: 5_000 }).catch(() => false)
-      test.skip(!hasTable, "No campaigns in table to test")
+      const table = await campaignTable(page)
 
       const firstRow = table.locator("tbody tr").first()
       const menuButton = firstRow.getByRole("button").last()
@@ -209,9 +258,7 @@ test.describe("Email Campaigns Page", () => {
     })
 
     test("should close send test dialog on cancel", async ({ page }) => {
-      const table = page.locator("table")
-      const hasTable = await table.isVisible({ timeout: 5_000 }).catch(() => false)
-      test.skip(!hasTable, "No campaigns in table to test")
+      const table = await campaignTable(page)
 
       const firstRow = table.locator("tbody tr").first()
       const menuButton = firstRow.getByRole("button").last()
@@ -225,9 +272,7 @@ test.describe("Email Campaigns Page", () => {
     })
 
     test("should open preview dialog from dropdown", async ({ page }) => {
-      const table = page.locator("table")
-      const hasTable = await table.isVisible({ timeout: 5_000 }).catch(() => false)
-      test.skip(!hasTable, "No campaigns in table to test")
+      const table = await campaignTable(page)
 
       const firstRow = table.locator("tbody tr").first()
       const menuButton = firstRow.getByRole("button").last()
@@ -241,9 +286,7 @@ test.describe("Email Campaigns Page", () => {
     })
 
     test("should toggle desktop/mobile preview", async ({ page }) => {
-      const table = page.locator("table")
-      const hasTable = await table.isVisible({ timeout: 5_000 }).catch(() => false)
-      test.skip(!hasTable, "No campaigns in table to test")
+      const table = await campaignTable(page)
 
       const firstRow = table.locator("tbody tr").first()
       const menuButton = firstRow.getByRole("button").last()
@@ -264,9 +307,7 @@ test.describe("Email Campaigns Page", () => {
     })
 
     test("should close preview dialog on escape", async ({ page }) => {
-      const table = page.locator("table")
-      const hasTable = await table.isVisible({ timeout: 5_000 }).catch(() => false)
-      test.skip(!hasTable, "No campaigns in table to test")
+      const table = await campaignTable(page)
 
       const firstRow = table.locator("tbody tr").first()
       const menuButton = firstRow.getByRole("button").last()

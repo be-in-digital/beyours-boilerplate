@@ -65,10 +65,10 @@ export function CreateArticleDialog({
       setCategoryId("")
       // Navigate immediately — don't wait for dialog animation
       router.push(`/dashboard/content/blog/${articleId}`)
-      toast.success("Article cree")
+      toast.success("Article créé")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la creation",
+        err instanceof Error ? err.message : "Erreur lors de la création",
       )
     } finally {
       setIsCreating(false)
@@ -89,7 +89,7 @@ export function CreateArticleDialog({
         <DialogHeader>
           <DialogTitle>Nouvel article</DialogTitle>
           <DialogDescription>
-            Creez un nouvel article de blog.
+            Créez un nouvel article de blog.
           </DialogDescription>
         </DialogHeader>
 
@@ -103,20 +103,23 @@ export function CreateArticleDialog({
               <FolderPlus className="h-6 w-6 text-muted-foreground" />
             </div>
             <div>
-              <p className="font-medium">Aucune categorie</p>
+              <p className="font-medium">Aucune catégorie</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Vous devez creer au moins une categorie avant de pouvoir creer un article.
+                Vous devez créer au moins une catégorie avant de pouvoir créer un article.
               </p>
             </div>
             <Button onClick={handleOpenCategoryManager}>
-              Creer une categorie
+              Créer une catégorie
             </Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Titre</label>
+              <label className="text-sm font-medium" htmlFor="article-title">
+                Titre
+              </label>
               <Input
+                id="article-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Titre de l'article"
@@ -127,14 +130,16 @@ export function CreateArticleDialog({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Categorie</label>
+              <label className="text-sm font-medium" htmlFor="article-category">
+                Catégorie
+              </label>
               <Select
                 value={categoryId}
                 onValueChange={setCategoryId}
                 disabled={isCreating}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir une categorie" />
+                <SelectTrigger id="article-category">
+                  <SelectValue placeholder="Choisir une catégorie" />
                 </SelectTrigger>
                 <SelectContent>
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -161,7 +166,7 @@ export function CreateArticleDialog({
                 disabled={isCreating || !title.trim() || !categoryId}
               >
                 {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Creer
+                Créer
               </Button>
             </DialogFooter>
           </form>

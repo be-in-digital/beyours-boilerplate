@@ -166,7 +166,8 @@ test.describe("Admin Responsive", () => {
       // On desktop, stat cards should be laid out in a grid (multiple columns)
       // Check that at least 2 cards are side by side (similar y position)
       const count = await statCards.count()
-      if (count >= 2) {
+      test.skip(count < 2, "fewer than two stat cards — no grid to check")
+      {
         const box1 = await statCards.nth(0).boundingBox()
         const box2 = await statCards.nth(1).boundingBox()
 
@@ -196,20 +197,22 @@ test.describe("Admin Responsive", () => {
         name: /Ajouter|Créer|Nouveau/i,
       })
 
-      if (await createButton.isVisible().catch(() => false)) {
-        await createButton.click()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await createButton.isVisible({ timeout: 15_000 }).catch(() => false)), "no create button at this width")
 
-        const dialog = page.locator('[data-slot="dialog-content"]')
-        await expect(dialog).toBeVisible({ timeout: 10_000 })
+      await createButton.click()
 
-        // Dialog should not overflow the viewport
-        const dialogBox = await dialog.boundingBox()
-        if (dialogBox) {
-          expect(dialogBox.width).toBeLessThanOrEqual(375)
-        }
+      const dialog = page.locator('[data-slot="dialog-content"]')
+      await expect(dialog).toBeVisible({ timeout: 10_000 })
 
-        await page.keyboard.press("Escape")
+      // Dialog should not overflow the viewport
+      const dialogBox = await dialog.boundingBox()
+      if (dialogBox) {
+        expect(dialogBox.width).toBeLessThanOrEqual(375)
       }
+
+      await page.keyboard.press("Escape")
     })
 
     test("should display invite member dialog properly at 375px", async ({
@@ -226,20 +229,22 @@ test.describe("Admin Responsive", () => {
         name: /Inviter|Ajouter/i,
       })
 
-      if (await inviteButton.isVisible().catch(() => false)) {
-        await inviteButton.click()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await inviteButton.isVisible({ timeout: 15_000 }).catch(() => false)), "no invite button at this width")
 
-        const dialog = page.locator('[data-slot="dialog-content"]')
-        await expect(dialog).toBeVisible({ timeout: 10_000 })
+      await inviteButton.click()
 
-        // Dialog should not overflow the viewport
-        const dialogBox = await dialog.boundingBox()
-        if (dialogBox) {
-          expect(dialogBox.width).toBeLessThanOrEqual(375)
-        }
+      const dialog = page.locator('[data-slot="dialog-content"]')
+      await expect(dialog).toBeVisible({ timeout: 10_000 })
 
-        await page.keyboard.press("Escape")
+      // Dialog should not overflow the viewport
+      const dialogBox = await dialog.boundingBox()
+      if (dialogBox) {
+        expect(dialogBox.width).toBeLessThanOrEqual(375)
       }
+
+      await page.keyboard.press("Escape")
     })
   })
 })

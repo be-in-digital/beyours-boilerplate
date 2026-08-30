@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
+import { chooseOption } from "../helpers/filter.helpers"
+import { countAfterLoad } from "../helpers/list.helpers"
 
 const STORES_URL = "/dashboard/stores"
 const SEARCH_PLACEHOLDER = "Rechercher par nom, ville..."
@@ -112,7 +114,7 @@ test.describe("Stores Page", () => {
       await statusFilter.click()
 
       // Select "Ouvert" option
-      await page.getByRole("option", { name: "Ouvert" }).click()
+      await chooseOption(page, "Ouvert")
 
       // Wait for filter to apply
       await page.waitForTimeout(1_000)
@@ -262,12 +264,14 @@ test.describe("Stores Page", () => {
 
       if (tableExists) {
         const rows = page.locator("tbody tr")
-        const rowCount = await rows.count()
+        const rowCount = await countAfterLoad(rows)
 
-        if (rowCount > 0) {
-          // First row should be visible and contain content
-          await expect(rows.first()).toBeVisible()
-        }
+        // A silent `if` here let the test pass having checked nothing when the
+        // list came back empty. A skip says so instead.
+        test.skip(rowCount < 1, "the list is empty on this deployment")
+
+        // First row should be visible and contain content
+        await expect(rows.first()).toBeVisible()
       }
     })
 
@@ -301,31 +305,33 @@ test.describe("Stores Page", () => {
       })
 
       const rows = page.locator("tbody tr")
-      const rowCount = await rows.count().catch(() => 0)
+      const rowCount = await countAfterLoad(rows)
 
-      if (rowCount > 0) {
-        // Look for a delete action button (kebab menu or direct button)
-        const actionButton = rows.first().getByRole("button").last()
-        await actionButton.click()
+      // A silent `if` here let the test pass having checked nothing when the
+      // list came back empty. A skip says so instead.
+      test.skip(rowCount < 1, "the list is empty on this deployment")
 
-        // Click the delete option in the dropdown
-        const deleteOption = page.getByRole("menuitem", {
-          name: /[Ss]upprimer/,
-        })
-        const deleteVisible = await deleteOption
-          .isVisible()
-          .catch(() => false)
+      // Look for a delete action button (kebab menu or direct button)
+      const actionButton = rows.first().getByRole("button").last()
+      await actionButton.click()
 
-        if (deleteVisible) {
-          await deleteOption.click()
+      // Click the delete option in the dropdown
+      const deleteOption = page.getByRole("menuitem", {
+        name: /[Ss]upprimer/,
+      })
+      const deleteVisible = await deleteOption
+        .isVisible()
+        .catch(() => false)
 
-          // Confirmation dialog should appear
-          const dialog = page.locator('[data-slot="dialog-content"]')
-          await expect(dialog).toBeVisible({ timeout: 10_000 })
-          await expect(
-            dialog.getByText(/Supprimer l'établissement/)
-          ).toBeVisible()
-        }
+      if (deleteVisible) {
+        await deleteOption.click()
+
+        // Confirmation dialog should appear
+        const dialog = page.locator('[data-slot="dialog-content"]')
+        await expect(dialog).toBeVisible({ timeout: 10_000 })
+        await expect(
+          dialog.getByText(/Supprimer l'établissement/)
+        ).toBeVisible()
       }
     })
 
@@ -336,30 +342,32 @@ test.describe("Stores Page", () => {
       })
 
       const rows = page.locator("tbody tr")
-      const rowCount = await rows.count().catch(() => 0)
+      const rowCount = await countAfterLoad(rows)
 
-      if (rowCount > 0) {
-        // Open action menu on first row
-        const actionButton = rows.first().getByRole("button").last()
-        await actionButton.click()
+      // A silent `if` here let the test pass having checked nothing when the
+      // list came back empty. A skip says so instead.
+      test.skip(rowCount < 1, "the list is empty on this deployment")
 
-        const deleteOption = page.getByRole("menuitem", {
-          name: /[Ss]upprimer/,
-        })
-        const deleteVisible = await deleteOption
-          .isVisible()
-          .catch(() => false)
+      // Open action menu on first row
+      const actionButton = rows.first().getByRole("button").last()
+      await actionButton.click()
 
-        if (deleteVisible) {
-          await deleteOption.click()
+      const deleteOption = page.getByRole("menuitem", {
+        name: /[Ss]upprimer/,
+      })
+      const deleteVisible = await deleteOption
+        .isVisible()
+        .catch(() => false)
 
-          const dialog = page.locator('[data-slot="dialog-content"]')
-          await expect(dialog).toBeVisible({ timeout: 10_000 })
+      if (deleteVisible) {
+        await deleteOption.click()
 
-          // Click cancel to dismiss the dialog
-          await dialog.getByRole("button", { name: "Annuler" }).click()
-          await expect(dialog).toBeHidden({ timeout: 5_000 })
-        }
+        const dialog = page.locator('[data-slot="dialog-content"]')
+        await expect(dialog).toBeVisible({ timeout: 10_000 })
+
+        // Click cancel to dismiss the dialog
+        await dialog.getByRole("button", { name: "Annuler" }).click()
+        await expect(dialog).toBeHidden({ timeout: 5_000 })
       }
     })
   })

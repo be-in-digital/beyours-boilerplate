@@ -14,7 +14,18 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""
+/**
+ * A fixture page, so it supplies its own key when the environment has none.
+ *
+ * `useGooglePlacesAutocomplete` returns immediately on an empty key — before
+ * it ever requests the Maps script. The e2e spec intercepts that request and
+ * answers with a mock, so it was mocking a call the component had already
+ * decided not to make, and no suggestion list ever appeared. Any non-empty
+ * value gets the component past that guard; the request itself is either
+ * intercepted by the test or fails harmlessly.
+ */
+const GOOGLE_MAPS_API_KEY =
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "address-test-fixture-key"
 
 /**
  * Test-only page for Playwright E2E testing of AddressAutocomplete.

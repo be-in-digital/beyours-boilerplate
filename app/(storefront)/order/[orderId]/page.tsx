@@ -134,31 +134,8 @@ function OrderConfirmationContent() {
       </section>
 
       <div className="max-w-4xl mx-auto px-6 md:px-12 py-12">
-        {/* Uber Direct courier tracking.
-            Takes precedence over the internal tracking link: this one is the
-            live courier map, hosted by Uber, and it exists only once a courier
-            is actually on the road. */}
-        {order.uberDirectTrackingUrl && (
-          <a
-            href={order.uberDirectTrackingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mb-8 flex items-center justify-between rounded-[2rem] bg-[#0D5C3F] p-6 text-white shadow-xl shadow-emerald-900/10 hover:bg-[#0A412D] transition-all group"
-          >
-            <div>
-              <p className="font-black uppercase tracking-widest text-[10px] text-white/60 mb-1">
-                Votre livreur
-              </p>
-              <p className="text-lg font-black">Suivre le livreur en direct</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 group-hover:bg-white/20 transition-colors">
-              <ExternalLink className="h-5 w-5" />
-            </div>
-          </a>
-        )}
-
         {/* Tracking CTA */}
-        {!order.uberDirectTrackingUrl && trackingToken && (
+        {trackingToken && (
           <Link
             href={`/track/${trackingToken}`}
             className="mb-8 flex items-center justify-between rounded-[2rem] bg-[#0D5C3F] p-6 text-white shadow-xl shadow-emerald-900/10 hover:bg-[#0A412D] transition-all group"

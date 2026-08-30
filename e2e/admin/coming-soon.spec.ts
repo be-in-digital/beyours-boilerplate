@@ -2,6 +2,11 @@ import { test, expect } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
 
 test.describe("Coming Soon Pages", () => {
+  // DELIBERATE DIVERGENCE from apps/reference — do not align.
+  // /dashboard/games/settings is in this list here and absent there: the bench
+  // deleted the route because nothing linked to it, while this template keeps
+  // it as one more gamification screen behind ComingSoon. See
+  // app/(admin)/dashboard/games/settings/page.tsx.
   const comingSoonPages = [
     "/dashboard/customers",
     "/dashboard/games/catalog",

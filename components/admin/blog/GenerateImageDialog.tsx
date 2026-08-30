@@ -57,7 +57,7 @@ export function GenerateImageDialog({
       setGeneratedImage({ url: result.url, alt: result.alt })
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la generation"
+        err instanceof Error ? err.message : "Erreur lors de la génération"
       )
     } finally {
       setGenerating(false)
@@ -91,7 +91,7 @@ export function GenerateImageDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            Generer une image avec l&apos;IA
+            Générer une image avec l&apos;IA
           </DialogTitle>
         </DialogHeader>
 
@@ -114,16 +114,19 @@ export function GenerateImageDialog({
 
           {/* Prompt input */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Prompt</label>
+            <label className="text-sm font-medium" htmlFor="generate-image-prompt">
+              Prompt
+            </label>
             <Textarea
+              id="generate-image-prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Decrivez l'image souhaitee..."
+              placeholder="Décrivez l'image souhaitée..."
               rows={4}
               disabled={generating}
             />
             <p className="text-xs text-muted-foreground">
-              Decrivez l&apos;image que vous souhaitez generer. Soyez precis pour de meilleurs resultats.
+              Décrivez l&apos;image que vous souhaitez générer. Soyez précis pour de meilleurs résultats.
             </p>
           </div>
 
@@ -136,12 +139,12 @@ export function GenerateImageDialog({
             {generating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generation en cours...
+                Génération en cours...
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Generer
+                Générer
               </>
             )}
           </Button>
@@ -149,7 +152,8 @@ export function GenerateImageDialog({
           {/* Preview */}
           {generatedImage && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Apercu</label>
+              {/* Heads an image, not a control. */}
+              <p className="text-sm font-medium">Aperçu</p>
               <div className="relative rounded-lg border overflow-hidden bg-muted">
                 <img
                   src={generatedImage.url}

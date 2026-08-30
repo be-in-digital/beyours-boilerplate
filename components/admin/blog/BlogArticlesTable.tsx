@@ -52,17 +52,17 @@ function StatusBadges({ article }: { article: ArticleRow }) {
       {article.status === "scheduled" && (
         <Badge variant="outline" className="text-[10px]">
           <Clock className="mr-1 h-2.5 w-2.5" />
-          Planifie {article.scheduledPublishAt ? formatDate(article.scheduledPublishAt) : ""}
+          Planifié {article.scheduledPublishAt ? formatDate(article.scheduledPublishAt) : ""}
         </Badge>
       )}
       {article.status === "published" && (
         <Badge variant="default" className="text-[10px]">
-          Publie
+          Publié
         </Badge>
       )}
       {article.status === "archived" && (
         <Badge variant="outline" className="text-[10px]">
-          Archive
+          Archivé
         </Badge>
       )}
       {article.hasUnpublishedChanges && article.status === "published" && (
@@ -89,7 +89,7 @@ export function BlogArticlesTable({
         <TableHeader>
           <TableRow>
             <TableHead>Titre</TableHead>
-            <TableHead className="hidden md:table-cell">Categorie</TableHead>
+            <TableHead className="hidden md:table-cell">Catégorie</TableHead>
             <TableHead>Statut</TableHead>
             <TableHead className="hidden sm:table-cell">Modifie le</TableHead>
             <TableHead className="text-right">Actions</TableHead>

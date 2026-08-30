@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
+import { countAfterLoad } from "../helpers/list.helpers"
 
 const ORDERS_URL = "/dashboard/orders"
 const SEARCH_PLACEHOLDER =
@@ -216,12 +217,14 @@ test.describe("Orders Page", () => {
       if (tableExists) {
         // If table exists, check for rows
         const rows = page.locator("tbody tr")
-        const rowCount = await rows.count()
+        const rowCount = await countAfterLoad(rows)
 
-        if (rowCount > 0) {
-          // First row should contain content
-          await expect(rows.first()).toBeVisible()
-        }
+        // A silent `if` here let the test pass having checked nothing when the
+        // list came back empty. A skip says so instead.
+        test.skip(rowCount < 1, "the list is empty on this deployment")
+
+        // First row should contain content
+        await expect(rows.first()).toBeVisible()
       }
     })
   })

@@ -63,7 +63,7 @@ export function KitchenContent() {
       }
       toast.success(`Mode commandes: ${labels[value]}`)
     } catch (error) {
-      toast.error("Echec de la mise a jour")
+      toast.error("Échec de la mise à jour")
       console.error(error)
     }
   }
@@ -161,7 +161,7 @@ export function KitchenContent() {
         </div>
       </div>
 
-      {/* Tabs: Actif / Terminées */}
+      {/* Tabs: active / completed */}
       <Tabs defaultValue="active">
         <TabsList variant="line">
           <TabsTrigger value="active">Actif</TabsTrigger>

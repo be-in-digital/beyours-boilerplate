@@ -1,5 +1,14 @@
 "use client"
 
+// DELIBERATE DIVERGENCE from apps/reference — do not align.
+// The bench implements the whole player flow here (welcome → actions →
+// wheel/scratch → result → claim → reward, plus the cooldown and referral
+// exits) across ten sibling components and lib/game. None of it ships in the
+// template: gamification is not part of what a client buys today, so this is
+// a CMS-editable placeholder rather than a copy left to rot out of step with
+// the engine. The admin half is stubbed the same way — see
+// app/(admin)/dashboard/games/*/page.tsx.
+
 import { useParams } from "next/navigation"
 import { useCmsPage } from "@/lib/cms"
 

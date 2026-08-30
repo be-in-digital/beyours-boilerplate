@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useId } from "react"
 import { MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useGooglePlacesAutocomplete } from "@/hooks/useGooglePlacesAutocomplete"
@@ -27,6 +27,11 @@ export function AddressAutocomplete({
   error,
   label,
 }: AddressAutocompleteProps) {
+  // The component can appear more than once on a page (billing and delivery
+  // addresses), so the ids that tie each label to its field have to be unique
+  // per instance rather than hard-coded.
+  const fieldId = useId()
+
   // Keep a ref to always have the latest value in the callback,
   // avoiding stale closure issues with Google's async event
   const valueRef = useRef(value)
@@ -63,18 +68,20 @@ export function AddressAutocomplete({
 
   return (
     <div className="w-full space-y-3">
+      {/* Heads the group, not one field, so it labels nothing on its own. */}
       {label && (
-        <label className="text-sm font-medium leading-none">{label}</label>
+        <p className="text-sm font-medium leading-none">{label}</p>
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {/* Street field IS the autocomplete field */}
         <div className="space-y-1.5 sm:col-span-2">
-          <label className="text-xs font-medium text-muted-foreground">Rue</label>
+          <label className="text-xs font-medium text-muted-foreground" htmlFor={`${fieldId}-street`}>Rue</label>
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               ref={inputRef}
+              id={`${fieldId}-street`}
               type="text"
               className={cn(fieldClassName, "pl-10")}
               value={value.street}
@@ -86,8 +93,9 @@ export function AddressAutocomplete({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Ville</label>
+          <label className="text-xs font-medium text-muted-foreground" htmlFor={`${fieldId}-city`}>Ville</label>
           <input
+            id={`${fieldId}-city`}
             type="text"
             className={fieldClassName}
             value={value.city}
@@ -97,8 +105,9 @@ export function AddressAutocomplete({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Code postal</label>
+          <label className="text-xs font-medium text-muted-foreground" htmlFor={`${fieldId}-postal-code`}>Code postal</label>
           <input
+            id={`${fieldId}-postal-code`}
             type="text"
             className={fieldClassName}
             value={value.postalCode}
@@ -108,8 +117,9 @@ export function AddressAutocomplete({
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <label className="text-xs font-medium text-muted-foreground">Pays</label>
+          <label className="text-xs font-medium text-muted-foreground" htmlFor={`${fieldId}-country`}>Pays</label>
           <input
+            id={`${fieldId}-country`}
             type="text"
             className={fieldClassName}
             value={value.country}

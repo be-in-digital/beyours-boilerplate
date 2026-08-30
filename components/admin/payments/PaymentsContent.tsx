@@ -105,9 +105,11 @@ export function PaymentsContent({ embedded = false }: PaymentsContentProps) {
       {/* Filters */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Statut :</label>
+          <label className="text-sm font-medium" htmlFor="payments-status">
+            Statut :
+          </label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger id="payments-status" className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -123,9 +125,11 @@ export function PaymentsContent({ embedded = false }: PaymentsContentProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Fournisseur :</label>
+          <label className="text-sm font-medium" htmlFor="payments-provider">
+            Fournisseur :
+          </label>
           <Select value={providerFilter} onValueChange={setProviderFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger id="payments-provider" className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

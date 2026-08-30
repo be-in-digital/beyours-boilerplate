@@ -71,7 +71,10 @@ export function MealCard({
         if (image && typeof image === "object" && (image as unknown as { url: string }).url) {
             return (image as unknown as { url: string }).url;
         }
-        return "/imagery/hero-burger-v2.png";
+        // Not "/imagery/hero-burger-v2.png": that file does not exist, so every
+        // product without a photo asked the image optimizer for it and got a
+        // 400. The wrapper below is already a neutral tile.
+        return null;
     })();
 
     return (
@@ -83,12 +86,14 @@ export function MealCard({
             )}
         >
             <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-                <Image
-                    src={resolvedImage}
-                    alt={title || "Meal Image"}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-all duration-700"
-                />
+                {resolvedImage && (
+                    <Image
+                        src={resolvedImage}
+                        alt={title || "Meal Image"}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-all duration-700"
+                    />
+                )}
                 <div className="absolute top-4 left-4 flex gap-2">
                     {rating >= 4.8 ? (
                         <Badge className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-zinc-800 dark:text-zinc-100 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">Trending</Badge>

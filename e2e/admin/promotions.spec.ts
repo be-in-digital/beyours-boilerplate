@@ -7,6 +7,8 @@ import {
   closeDialogByEscape,
   getDialog,
 } from "../helpers/dialog.helpers"
+import { chooseOption } from "../helpers/filter.helpers"
+import { countAfterLoad } from "../helpers/list.helpers"
 
 const PROMOTIONS_URL = "/dashboard/promotions"
 const SEARCH_PLACEHOLDER = "Rechercher une promotion..."
@@ -148,7 +150,7 @@ test.describe("Promotions Page", () => {
         .getByRole("combobox")
         .filter({ hasText: /statuts|Active|Inactive|Expirée|Planifiée/ })
       await statusFilter.click()
-      await page.getByRole("option", { name: status, exact: true }).click()
+      await chooseOption(page, status, { exact: true })
       await page.waitForTimeout(500)
       await expect(
         page.getByRole("heading", { name: "Promotions", level: 1 })
@@ -209,9 +211,13 @@ test.describe("Promotions Page", () => {
       .click()
     const dialog = await waitForDialog(page)
     await dialog.getByLabel("Nom de la promotion").clear()
-    await dialog
-      .getByRole("button", { name: "Créer la promotion" })
-      .click()
+
+    // The dialog body scrolls and the submit button sits below its fold, so a
+    // plain click spent its whole timeout reporting "element is outside of the
+    // viewport" on a button that is perfectly reachable once scrolled to.
+    const submit = dialog.getByRole("button", { name: "Créer la promotion" })
+    await submit.scrollIntoViewIfNeeded()
+    await submit.click()
     // Dialog still open = validation failed
     await expect(dialog).toBeVisible()
 
@@ -276,24 +282,24 @@ test.describe("Promotions Page", () => {
 
     // Fixed amount
     await dialog.getByRole("combobox").first().click()
-    await page.getByRole("option", { name: "Montant fixe (€)" }).click()
+    await chooseOption(page, "Montant fixe (€)")
     await expect(dialog.getByLabel(/Valeur.*€/)).toBeVisible()
     await expect(dialog.getByLabel("Plafond (€)")).toBeHidden()
 
     // BOGO
     await dialog.getByRole("combobox").first().click()
-    await page.getByRole("option", { name: "Offre BOGO (1+1)" }).click()
+    await chooseOption(page, "Offre BOGO (1+1)")
     await expect(dialog.getByLabel("Quantité achetée")).toBeVisible()
     await expect(dialog.getByLabel("Quantité offerte")).toBeVisible()
 
     // Free product
     await dialog.getByRole("combobox").first().click()
-    await page.getByRole("option", { name: "Produit offert" }).click()
+    await chooseOption(page, "Produit offert")
     await expect(dialog.getByLabel(/Valeur/)).toBeHidden()
 
     // Free delivery
     await dialog.getByRole("combobox").first().click()
-    await page.getByRole("option", { name: "Livraison offerte" }).click()
+    await chooseOption(page, "Livraison offerte")
     await expect(dialog.getByLabel(/Valeur/)).toBeHidden()
   })
 
@@ -372,10 +378,9 @@ test.describe("Promotions Page", () => {
     await page.waitForTimeout(500)
     const items = listContainer.locator("label")
     const emptyText = listContainer.getByText("Aucun produit trouvé")
-    const count = await items.count()
-    if (count === 0) {
-      await expect(emptyText).toBeVisible()
-    }
+    // Asserting the empty message only when the list was empty meant a
+    // populated list was never checked at all. One assertion covers both.
+    await expect(items.first().or(emptyText)).toBeVisible()
   })
 
   test("should allow selecting and filtering categories", async ({ page }) => {
@@ -411,10 +416,9 @@ test.describe("Promotions Page", () => {
     await page.waitForTimeout(500)
     const items = listContainer.locator("label")
     const emptyText = listContainer.getByText("Aucune catégorie trouvée")
-    const count = await items.count()
-    if (count === 0) {
-      await expect(emptyText).toBeVisible()
-    }
+    // Asserting the empty message only when the list was empty meant a
+    // populated list was never checked at all. One assertion covers both.
+    await expect(items.first().or(emptyText)).toBeVisible()
   })
 
   // ──────────────────────────────────────────────────
@@ -436,8 +440,14 @@ test.describe("Promotions Page", () => {
     await expect(sw).toBeVisible()
     await expect(sw).not.toBeChecked()
 
-    // Enable scheduling
-    await sw.click()
+    // Enable scheduling.
+    //
+    // `force`: the control is an `sr-only` checkbox clipped to a 1px box, the
+    // visible toggle being drawn by the wrapping label. Playwright's
+    // actionability checks never settle on it, so the click waits out its
+    // timeout on an element that is perfectly operable for a real user.
+    await sw.scrollIntoViewIfNeeded()
+    await sw.click({ force: true })
     for (const day of ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]) {
       await expect(dialog.getByText(day, { exact: true })).toBeVisible()
     }
@@ -450,7 +460,8 @@ test.describe("Promotions Page", () => {
     await expect(samBtn).toHaveClass(/bg-primary/)
 
     // Disable scheduling
-    await sw.click()
+    await sw.scrollIntoViewIfNeeded()
+    await sw.click({ force: true })
     await expect(dialog.getByLabel("Heure début")).toBeHidden()
   })
 
@@ -471,7 +482,7 @@ test.describe("Promotions Page", () => {
     if (!tableExists) return
 
     const rows = page.locator("tbody tr")
-    const rowCount = await rows.count()
+    const rowCount = await countAfterLoad(rows)
     if (rowCount === 0) return
 
     // Row visible
@@ -517,7 +528,7 @@ test.describe("Promotions Page", () => {
     await waitForAdminPage(page)
 
     const rows = page.locator("tbody tr")
-    const rowCount = await rows.count().catch(() => 0)
+    const rowCount = await countAfterLoad(rows)
     if (rowCount === 0) return
 
     await rows.first().getByRole("button").last().click()

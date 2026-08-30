@@ -53,3 +53,24 @@ export async function clearFilters(page: Page) {
     await resetButton.click()
   }
 }
+
+/**
+ * Click an option in the listbox that is currently open.
+ *
+ * Radix renders every item twice - the styled one the user sees and a hidden
+ * native option it keeps for accessibility - so an unscoped
+ * `getByRole("option")` matches both and Playwright refuses to guess between
+ * them. Scoping to the open listbox and taking the first match picks the one
+ * being clicked.
+ */
+export async function chooseOption(
+  page: Page,
+  name: string | RegExp,
+  options?: { exact?: boolean }
+) {
+  await page
+    .getByRole("listbox")
+    .getByRole("option", { name, exact: options?.exact })
+    .first()
+    .click()
+}

@@ -4,6 +4,7 @@ import {
   waitForAdminPage,
   navigateViaSidebar,
 } from "../helpers/navigation.helpers"
+import { countAfterLoad } from "../helpers/list.helpers"
 
 test.describe("Dashboard Page", () => {
   test.describe("Page Loading", () => {
@@ -64,11 +65,19 @@ test.describe("Dashboard Page", () => {
     })
 
     test("should display order breakdown section", async ({ page }) => {
-      // Order breakdown shows categories like Livraison, À emporter, Sur place
+      // The section is always there; its slices are not. With no orders the
+      // chart renders "Aucune donnée", so asserting only on Livraison /
+      // À emporter / Sur place made this a test about the seed data rather
+      // than about the dashboard.
+      await expect(
+        page.getByText("Par type de commande")
+      ).toBeVisible({ timeout: 15_000 })
+
       const breakdownSection = page
         .getByText("Livraison")
         .or(page.getByText("À emporter"))
         .or(page.getByText("Sur place"))
+        .or(page.getByText("Aucune donnée"))
 
       await expect(breakdownSection.first()).toBeVisible({ timeout: 15_000 })
     })
@@ -103,12 +112,14 @@ test.describe("Dashboard Page", () => {
     test("should display numeric values in stat cards", async ({ page }) => {
       // Stat cards should contain numeric values (currency, count, etc.)
       const statCards = page.locator('[data-slot="card"]')
-      await expect(statCards.first()).toBeVisible({ timeout: 15_000 })
 
-      // At least one card should contain a number or currency symbol
-      const cardTexts = await statCards.allTextContents()
-      const hasNumericValue = cardTexts.some((text) => /\d/.test(text))
-      expect(hasNumericValue).toBe(true)
+      // `allTextContents()` is a snapshot, like `count()`: it read the cards the
+      // instant the first one appeared, before their figures had arrived, and
+      // found no digit. Filtering and asserting polls until a card actually
+      // carries a number — which is what the test is about.
+      await expect(
+        statCards.filter({ hasText: /\d/ }).first()
+      ).toBeVisible({ timeout: 15_000 })
     })
 
     test("should display 7-day chart with day labels", async ({ page }) => {
@@ -141,10 +152,12 @@ test.describe("Dashboard Page", () => {
       await expect(ordersTable.or(emptyState)).toBeVisible({ timeout: 15_000 })
 
       // If table is visible, it should have at most 10 rows
-      if (await ordersTable.isVisible()) {
-        const rowCount = await page.locator("tbody tr").count()
-        expect(rowCount).toBeLessThanOrEqual(10)
-      }
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await ordersTable.isVisible({ timeout: 15_000 })), "the dashboard shows no orders table")
+
+      const rowCount = await page.locator("tbody tr").count()
+      expect(rowCount).toBeLessThanOrEqual(10)
     })
 
     test("should display order number, customer, amount in table", async ({
@@ -156,18 +169,22 @@ test.describe("Dashboard Page", () => {
       await expect(ordersTable.or(emptyState)).toBeVisible({ timeout: 15_000 })
 
       // If table exists with rows, check for expected column content
-      if (await ordersTable.isVisible()) {
-        const rows = page.locator("tbody tr")
-        const rowCount = await rows.count()
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the element never showed. A skip states the gap instead.
+      test.skip(!(await ordersTable.isVisible({ timeout: 15_000 })), "the dashboard shows no orders table")
 
-        if (rowCount > 0) {
-          // First row should contain data cells
-          const firstRow = rows.first()
-          const cells = firstRow.locator("td")
-          const cellCount = await cells.count()
-          expect(cellCount).toBeGreaterThanOrEqual(3)
-        }
-      }
+      const rows = page.locator("tbody tr")
+      const rowCount = await rows.count()
+
+      // A silent `if` here let the test finish green having asserted nothing
+      // when the list came back empty. A skip states the gap instead.
+      test.skip(rowCount === 0, "the list is empty on this deployment")
+
+      // First row should contain data cells
+      const firstRow = rows.first()
+      const cells = firstRow.locator("td")
+      const cellCount = await countAfterLoad(cells)
+      expect(cellCount).toBeGreaterThanOrEqual(3)
     })
   })
 

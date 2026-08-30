@@ -57,7 +57,7 @@ test.describe("Public Pages", () => {
       await page.goto("/cart", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Shopping Cart" })
+        page.getByRole("heading", { name: "Votre Box", level: 1 })
       ).toBeVisible({ timeout: 30_000 })
     })
 
@@ -65,7 +65,7 @@ test.describe("Public Pages", () => {
       await page.goto("/cart", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Shopping Cart" })
+        page.getByRole("heading", { name: "Votre Box", level: 1 })
       ).toBeVisible({ timeout: 30_000 })
 
       const paragraph = page.locator("p").first()
@@ -83,12 +83,16 @@ test.describe("Public Pages", () => {
     })
   })
 
+  // An anonymous visitor arrives at /checkout with an empty cart, and the page
+  // answers with its empty-Box state rather than the order form. That is the
+  // page working; exercising "Finaliser Commande" means adding a product first,
+  // which is a flow test, not a does-this-route-render test.
   test.describe("Checkout Page", () => {
     test("should display the heading", async ({ page }) => {
       await page.goto("/checkout", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Checkout" })
+        page.getByRole("heading", { name: "Votre Box", level: 1 })
       ).toBeVisible({ timeout: 30_000 })
     })
 
@@ -96,7 +100,7 @@ test.describe("Public Pages", () => {
       await page.goto("/checkout", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Checkout" })
+        page.getByRole("heading", { name: "Votre Box", level: 1 })
       ).toBeVisible({ timeout: 30_000 })
 
       const paragraph = page.locator("p").first()
@@ -119,7 +123,7 @@ test.describe("Public Pages", () => {
       await page.goto("/store-selector", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Select Store" })
+        page.getByRole("heading", { name: "Choisir un restaurant" })
       ).toBeVisible({ timeout: 30_000 })
     })
 
@@ -127,7 +131,7 @@ test.describe("Public Pages", () => {
       await page.goto("/store-selector", { waitUntil: "domcontentloaded" })
 
       await expect(
-        page.getByRole("heading", { name: "Select Store" })
+        page.getByRole("heading", { name: "Choisir un restaurant" })
       ).toBeVisible({ timeout: 30_000 })
 
       const paragraph = page.locator("p").first()

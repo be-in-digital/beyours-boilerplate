@@ -14,8 +14,15 @@ import { test as setup, expect } from "@playwright/test"
 
 const ADMIN_STORAGE_STATE = "e2e/.auth/admin.json"
 
-/** The account `scripts/seed-users.mts` creates with the `client_admin` role. */
-const ADMIN_EMAIL = "test.owner@beindigital.fr"
+/**
+ * The account `scripts/seed-users.mts` creates with the `client_admin` role.
+ *
+ * `SEED_ADMIN_EMAIL` overrides it, and the seed script reads the same variable:
+ * a password cannot be reset from the script, so an address whose password has
+ * been lost is replaced rather than recovered.
+ */
+const ADMIN_EMAIL =
+  process.env.SEED_ADMIN_EMAIL ?? "test.owner@beindigital.fr"
 
 /**
  * The seeded password, which only the environment knows.

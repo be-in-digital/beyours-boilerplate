@@ -65,12 +65,12 @@ export function BlogCategoryManager({
         name: newName.trim(),
         ...(newDescription.trim() && { description: newDescription.trim() }),
       })
-      toast.success("Categorie creee")
+      toast.success("Catégorie créée")
       setNewName("")
       setNewDescription("")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la creation",
+        err instanceof Error ? err.message : "Erreur lors de la création",
       )
     } finally {
       setIsCreating(false)
@@ -93,7 +93,7 @@ export function BlogCategoryManager({
         name: editName.trim(),
         description: editDescription.trim() || undefined,
       })
-      toast.success("Categorie modifiee")
+      toast.success("Catégorie modifiée")
       setEditingId(null)
     } catch (err) {
       toast.error(
@@ -112,7 +112,7 @@ export function BlogCategoryManager({
       await deleteCategory({
         categoryId: deleteTarget.id as Id<"blogCategories">,
       })
-      toast.success("Categorie supprimee")
+      toast.success("Catégorie supprimée")
       setDeleteTarget(null)
     } catch (err) {
       toast.error(
@@ -128,9 +128,9 @@ export function BlogCategoryManager({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Categories</SheetTitle>
+            <SheetTitle>Catégories</SheetTitle>
             <SheetDescription>
-              Gerez les categories de votre blog.
+              Gérez les catégories de votre blog.
             </SheetDescription>
           </SheetHeader>
 
@@ -140,7 +140,7 @@ export function BlogCategoryManager({
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Nom de la categorie"
+                placeholder="Nom de la catégorie"
                 disabled={isCreating}
               />
               <Input
@@ -172,7 +172,7 @@ export function BlogCategoryManager({
                 </div>
               ) : categories.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Aucune categorie
+                  Aucune catégorie
                 </p>
               ) : (
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -264,8 +264,8 @@ export function BlogCategoryManager({
           if (!open) setDeleteTarget(null)
         }}
         onConfirm={handleDelete}
-        title="Supprimer la categorie"
-        description={`Etes-vous sur de vouloir supprimer la categorie "${deleteTarget?.name}" ? Cette action est irreversible.`}
+        title="Supprimer la catégorie"
+        description={`Êtes-vous sûr de vouloir supprimer la catégorie "${deleteTarget?.name}" ? Cette action est irreversible.`}
         isDeleting={isDeleting}
       />
     </>

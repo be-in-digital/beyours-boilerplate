@@ -16,8 +16,8 @@ test.describe("CMS Page Editor", () => {
       // Should display the heading
       await expect(page.getByRole("heading", { name: "Pages" })).toBeVisible()
 
-      // Should display a table with page entries
-      const table = page.locator("table")
+      // One table per page group, so the list is several tables, not one.
+      const table = page.locator("table").first()
       await expect(table).toBeVisible({ timeout: 15_000 })
     })
 
@@ -218,12 +218,21 @@ test.describe("CMS Page Editor", () => {
 
       await waitForAdminPage(page)
 
+      // Wait for the blocks to load first, exactly as the sibling test below
+      // already does. `count()` is a one-shot read that does not retry, so
+      // counting straight after `waitForAdminPage` counted a page whose CMS
+      // fields had not arrived yet and reported zero buttons as a missing
+      // feature.
+      await expect(
+        page.getByText("Section principale"),
+      ).toBeVisible({ timeout: 15_000 })
+
       // Each field should have a "Réinitialiser" button
       const resetButtons = page.getByRole("button", {
         name: /réinitialiser$/i,
       })
-      const count = await resetButtons.count()
-      expect(count).toBeGreaterThan(0)
+      await expect(resetButtons.first()).toBeVisible({ timeout: 10_000 })
+      expect(await resetButtons.count()).toBeGreaterThan(0)
     })
 
     test("should have block-level reset button", async ({ page }) => {

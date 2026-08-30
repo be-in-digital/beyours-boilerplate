@@ -56,7 +56,7 @@ export function BlogContent() {
   const handlePublish = async (articleId: Id<"blogArticles">) => {
     try {
       await publishArticle({ articleId })
-      toast.success("Article publie")
+      toast.success("Article publié")
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Erreur lors de la publication",
@@ -121,7 +121,7 @@ export function BlogContent() {
             onClick={() => setCategoryManagerOpen(true)}
           >
             <FolderOpen className="mr-2 h-4 w-4" />
-            Categories
+            Catégories
           </Button>
           <Button
             variant="outline"
@@ -129,7 +129,7 @@ export function BlogContent() {
             onClick={() => setGenerateDialogOpen(true)}
           >
             <Sparkles className="mr-2 h-4 w-4" />
-            Generer avec l&apos;IA
+            Générer avec l&apos;IA
           </Button>
           <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -146,9 +146,9 @@ export function BlogContent() {
         <TabsList>
           <TabsTrigger value="all">Tous</TabsTrigger>
           <TabsTrigger value="draft">Brouillons</TabsTrigger>
-          <TabsTrigger value="scheduled">Planifies</TabsTrigger>
-          <TabsTrigger value="published">Publies</TabsTrigger>
-          <TabsTrigger value="archived">Archives</TabsTrigger>
+          <TabsTrigger value="scheduled">Planifiés</TabsTrigger>
+          <TabsTrigger value="published">Publiés</TabsTrigger>
+          <TabsTrigger value="archived">Archivés</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -161,7 +161,7 @@ export function BlogContent() {
           title="Aucun article"
           description={
             statusFilter === "all"
-              ? "Creez votre premier article de blog."
+              ? "Créez votre premier article de blog."
               : "Aucun article avec ce statut."
           }
           action={

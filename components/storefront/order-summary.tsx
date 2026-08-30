@@ -204,11 +204,15 @@ export function OrderSummary({
             </div>
           ) : (
             <div>
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              <label
+                className="mb-2 block text-[10px] font-black uppercase tracking-widest text-zinc-400"
+                htmlFor="promo-code"
+              >
                 Code promo
               </label>
               <div className="flex gap-2">
                 <Input
+                  id="promo-code"
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
