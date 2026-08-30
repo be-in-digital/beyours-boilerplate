@@ -8,9 +8,12 @@ import { v } from "convex/values";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { renderTemplateToEmailHtml } from "@be-in-digital/marketing";
 import {
+  DEFAULT_INACTIVE_AFTER_DAYS,
   canDispatch,
   delayForStep,
+  isLapsed,
   nextStep,
+  occurrenceFor,
 } from "@be-in-digital/convex-functions/automationDispatch";
 
 function createSESClient() {
@@ -42,6 +45,8 @@ export const runStep = internalAction({
     subscriberId: v.id("emailSubscribers"),
     /** When the trigger fired. Delays are measured from here, not from now. */
     triggeredAt: v.number(),
+    /** Which firing this is; see `occurrenceFor`. Absent for a welcome. */
+    occurrenceKey: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<void> => {
     const automation: any = await ctx.runQuery(
@@ -53,7 +58,14 @@ export const runStep = internalAction({
     // Re-checked on every step, not just at the trigger: an owner who pauses an
     // automation means the sequence stops, including the steps already
     // scheduled days out.
-    if (!canDispatch(automation)) return;
+    const config: any = await ctx.runQuery(internal.emailConfig.getInternal, {
+      storeId: automation.storeId,
+    });
+
+    // Re-checked on every step, not just at the trigger: an owner who pauses an
+    // automation — or turns its settings toggle off — means the sequence stops,
+    // including the steps already scheduled days out.
+    if (!canDispatch(automation, config?.automationSettings)) return;
 
     const subscriber: any = await ctx.runQuery(
       internal.emailSubscribers.getByIdInternal,
@@ -65,15 +77,16 @@ export const runStep = internalAction({
 
     const sent: string[] = await ctx.runQuery(
       internal.emailAutomationRuns.stepsSentTo,
-      { automationId: args.automationId, subscriberId: args.subscriberId }
+      {
+        automationId: args.automationId,
+        subscriberId: args.subscriberId,
+        occurrenceKey: args.occurrenceKey,
+      }
     );
 
     const step = nextStep(automation.steps, sent);
     if (!step) return;
 
-    const config: any = await ctx.runQuery(internal.emailConfig.getInternal, {
-      storeId: automation.storeId,
-    });
     const template: any = await ctx.runQuery(
       internal.emailTemplates.getByIdInternal,
       // `AutomationStep` is a plain shape in @be-in-digital/convex-functions,
@@ -149,6 +162,7 @@ export const runStep = internalAction({
       subscriberId: args.subscriberId,
       storeId: automation.storeId,
       stepId: step.id,
+      occurrenceKey: args.occurrenceKey,
     });
 
     await ctx.runMutation(internal.emailAutomations.incrementStats, {
@@ -166,17 +180,68 @@ export const runStep = internalAction({
         automationId: args.automationId,
         subscriberId: args.subscriberId,
         triggeredAt: args.triggeredAt,
+        occurrenceKey: args.occurrenceKey,
       }
     );
   },
 });
 
 /**
+ * Start every active automation on `trigger` for one subscriber.
+ *
+ * The generalisation of what `startWelcome` did for one trigger. Each firing
+ * carries an occurrence key so the same automation can run again where that
+ * makes sense — see `occurrenceFor`.
+ */
+async function startTrigger(
+  ctx: any,
+  args: {
+    storeId: string;
+    subscriberId: string;
+    trigger: "welcome" | "post_order" | "inactive";
+    context: { orderId?: string; lastOrderAt?: number };
+  }
+): Promise<number> {
+  const [automations, config]: [any[], any] = await Promise.all([
+    ctx.runQuery(internal.emailAutomations.listActiveInternal, {
+      storeId: args.storeId,
+    }),
+    ctx.runQuery(internal.emailConfig.getInternal, { storeId: args.storeId }),
+  ]);
+
+  const triggeredAt = Date.now();
+  let started = 0;
+
+  for (const automation of automations) {
+    if (automation.trigger !== args.trigger) continue;
+    // The settings toggle is consulted here, which is the whole reason it
+    // exists: turning "Post-commande" off has to stop the mail, not just store
+    // a boolean.
+    if (!canDispatch(automation, config?.automationSettings)) continue;
+
+    const first = automation.steps[0];
+    if (!first) continue;
+
+    await ctx.scheduler.runAfter(
+      delayForStep(first, triggeredAt, triggeredAt),
+      internal.emailAutomationActions.runStep,
+      {
+        automationId: automation._id,
+        subscriberId: args.subscriberId,
+        triggeredAt,
+        occurrenceKey: occurrenceFor(args.trigger, args.context),
+      }
+    );
+    started += 1;
+  }
+
+  return started;
+}
+
+/**
  * Start every `welcome` automation this store has active.
  *
- * Called when a subscriber confirms their double opt-in — the one trigger the
- * current schema can actually detect. The other four are declared unready in
- * `automationDispatch`, with the missing piece named for each.
+ * Called when a subscriber confirms their double opt-in.
  */
 export const startWelcome = internalAction({
   args: {
@@ -184,28 +249,113 @@ export const startWelcome = internalAction({
     subscriberId: v.id("emailSubscribers"),
   },
   handler: async (ctx, args): Promise<void> => {
+    await startTrigger(ctx, {
+      storeId: args.storeId,
+      subscriberId: args.subscriberId,
+      trigger: "welcome",
+      context: {},
+    });
+  },
+});
+
+/**
+ * Start every `post_order` automation, for one confirmed order.
+ *
+ * Called from the order-confirmation seam, beside the write that records the
+ * order against the subscriber. The order's id is the occurrence, so a
+ * thank-you follows every order rather than only the first one a customer ever
+ * placed.
+ */
+export const startPostOrder = internalAction({
+  args: {
+    storeId: v.id("stores"),
+    subscriberId: v.id("emailSubscribers"),
+    orderId: v.string(),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    await startTrigger(ctx, {
+      storeId: args.storeId,
+      subscriberId: args.subscriberId,
+      trigger: "post_order",
+      context: { orderId: args.orderId },
+    });
+  },
+});
+
+/**
+ * Find the customers who have gone quiet, and start the win-back.
+ *
+ * Runs daily from `crons.ts`. Walks the active subscribers of every store that
+ * has an `inactive` automation, rather than every subscriber in the
+ * deployment — a restaurant with no such automation costs nothing.
+ *
+ * Someone who has never ordered is never lapsed: "come back, we miss you" to a
+ * person who has never been is how a sender gets reported.
+ */
+export const sweepInactive = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ started: number }> => {
     const automations: any[] = await ctx.runQuery(
-      internal.emailAutomations.listActiveInternal,
-      { storeId: args.storeId }
+      internal.emailAutomations.listActiveByTriggerInternal,
+      { trigger: "inactive" }
     );
 
-    const triggeredAt = Date.now();
+    const now = Date.now();
+    let started = 0;
+
+    // One pass per store, not per automation: two win-backs on one restaurant
+    // would otherwise read the whole subscriber list twice.
+    const byStore = new Map<string, any[]>();
     for (const automation of automations) {
-      if (automation.trigger !== "welcome") continue;
-      if (!canDispatch(automation)) continue;
-
-      const first = automation.steps[0];
-      if (!first) continue;
-
-      await ctx.scheduler.runAfter(
-        delayForStep(first, triggeredAt, triggeredAt),
-        internal.emailAutomationActions.runStep,
-        {
-          automationId: automation._id,
-          subscriberId: args.subscriberId,
-          triggeredAt,
-        }
-      );
+      const list = byStore.get(automation.storeId) ?? [];
+      list.push(automation);
+      byStore.set(automation.storeId, list);
     }
+
+    for (const [storeId, storeAutomations] of byStore) {
+      const config: any = await ctx.runQuery(internal.emailConfig.getInternal, {
+        storeId: storeId as never,
+      });
+
+      let cursor: string | null = null;
+      for (;;) {
+        const page: any = await ctx.runQuery(
+          internal.emailSubscribers.pageForSending,
+          { storeId: storeId as never, cursor, numItems: 100 }
+        );
+
+        for (const automation of storeAutomations) {
+          if (!canDispatch(automation, config?.automationSettings)) continue;
+          const afterDays =
+            automation.inactiveAfterDays ?? DEFAULT_INACTIVE_AFTER_DAYS;
+
+          for (const subscriber of page.page) {
+            if (!isLapsed(subscriber, afterDays, now)) continue;
+
+            await ctx.scheduler.runAfter(
+              delayForStep(automation.steps[0], now, now),
+              internal.emailAutomationActions.runStep,
+              {
+                automationId: automation._id,
+                subscriberId: subscriber._id,
+                triggeredAt: now,
+                occurrenceKey: occurrenceFor("inactive", {
+                  lastOrderAt: subscriber.metadata?.lastOrderAt,
+                }),
+              }
+            );
+            started += 1;
+          }
+        }
+
+        if (page.isDone) break;
+        cursor = page.continueCursor;
+      }
+    }
+
+    if (started > 0) {
+      console.log(`[emailAutomations] win-back started for ${started} subscriber(s)`);
+    }
+    return { started };
   },
 });

@@ -1,4 +1,6 @@
 import { query, internalMutation, internalQuery, mutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/orders";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 import { v } from "convex/values";
@@ -116,6 +118,30 @@ export const markCashPaid = storeMutation({
 });
 
 // Protected: Admin only — verify store access via order's storeId
+/**
+ * Advance an order, and start the post-order automation if one is waiting.
+ *
+ * The shared handler decides WHO should be reached — it holds the rule — and
+ * returns it; scheduling needs `internal.*`, which only an app has. The same
+ * split `emailSubscribers.confirmDoubleOptIn` uses.
+ *
+ * Scheduled rather than awaited: a thank-you email is not a reason for an order
+ * confirmation to fail.
+ */
+async function advanceOrder(
+  ctx: MutationCtx,
+  args: Parameters<typeof defs.updateStatus.handler>[1]
+) {
+  const dispatch = await defs.updateStatus.handler(ctx, args);
+  if (dispatch) {
+    await ctx.scheduler.runAfter(
+      0,
+      internal.emailAutomationActions.startPostOrder,
+      dispatch as never
+    );
+  }
+}
+
 export const updateStatus = storeMutation({
   // The permission exists precisely for this: advancing an order through its
   // lifecycle. Under `orders:write` the two roles whose entire job is to move
@@ -124,7 +150,7 @@ export const updateStatus = storeMutation({
   permission: "orders:update_status",
   args: defs.updateStatus.args,
   storeIdFrom: orderStoreId,
-  handler: (ctx, args) => defs.updateStatus.handler(ctx, args),
+  handler: (ctx, args) => advanceOrder(ctx, args),
 });
 
 export const remove = storeMutation({
@@ -148,7 +174,10 @@ export const createFromWebhook = internalMutation(defs.createFromWebhook);
 export const updateFromWebhook = internalMutation(defs.updateFromWebhook);
 
 // Internal version of updateStatus for webhooks/schedulers
-export const internalUpdateStatus = internalMutation(defs.updateStatus);
+export const internalUpdateStatus = internalMutation({
+  args: defs.updateStatus.args,
+  handler: (ctx, args) => advanceOrder(ctx, args),
+});
 
 /** Update only paymentStatus — used by payment actions and webhooks */
 export const internalUpdatePaymentStatus = internalMutation({

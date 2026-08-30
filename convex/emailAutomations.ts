@@ -77,6 +77,11 @@ export const getByIdInternal = internalQuery({
   handler: (ctx, args) => defs.getById.handler(ctx, args),
 });
 
+export const listActiveByTriggerInternal = internalQuery({
+  args: defs.listActiveByTrigger.args,
+  handler: (ctx, args) => defs.listActiveByTrigger.handler(ctx, args),
+});
+
 export const listActiveInternal = internalQuery({
   args: defs.listActive.args,
   handler: (ctx, args) => defs.listActive.handler(ctx, args),

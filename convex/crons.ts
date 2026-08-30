@@ -34,4 +34,14 @@ crons.interval(
   {},
 );
 
+// Start the win-back for customers who have gone quiet. Daily at 9am UTC: a
+// "you have not been in a while" landing at 4am reads as a machine, and the
+// sweep is cheap — it only walks stores that actually have such an automation.
+crons.cron(
+  "win back lapsed customers",
+  "0 9 * * *",
+  internal.emailAutomationActions.sweepInactive,
+  {},
+);
+
 export default crons;
