@@ -27,6 +27,7 @@
     "convex:deploy": "convex deploy",
     "convex:codegen": "convex codegen",
     "convex:env": "bash scripts/setup-convex-env.sh",
+    "convex:env:infisical": "bash scripts/setup-convex-env.sh --infisical",
     "ses:check": "bash scripts/check-ses-status.sh",
     "env:setup": "node scripts/env.mjs setup",
     "env:check": "node scripts/env.mjs check",

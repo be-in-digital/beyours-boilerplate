@@ -35,3 +35,7 @@ e2e/.auth/
 # Mode engine-link (pnpm engine:link) — jamais commité
 .engine-link.json
 .gstack/
+
+# Infisical — `infisical init` writes the project id here; the scripts read
+# INFISICAL_PROJECT_ID instead. Never commit it.
+.infisical.json
