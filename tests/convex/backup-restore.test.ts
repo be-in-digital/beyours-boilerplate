@@ -308,7 +308,7 @@ describe("restoring a backup", () => {
     const t = newHarness()
     const storeId = await seedStore(t, "Pizzeria Napoli")
     const backup = await exportTables(t, ["stores"])
-    await seedStore(t, "Ajoutee Apres")
+    await seedStore(t, "Ajoutée Après")
     expect(storeId).toBeDefined()
 
     await restore(t, backup)

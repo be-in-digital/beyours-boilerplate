@@ -91,7 +91,7 @@ export function BlogArticlesTable({
             <TableHead>Titre</TableHead>
             <TableHead className="hidden md:table-cell">Catégorie</TableHead>
             <TableHead>Statut</TableHead>
-            <TableHead className="hidden sm:table-cell">Modifie le</TableHead>
+            <TableHead className="hidden sm:table-cell">Modifié le</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>

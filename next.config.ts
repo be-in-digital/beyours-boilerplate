@@ -12,6 +12,8 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const contentSecurityPolicy = buildContentSecurityPolicy({
   isDevelopment: process.env.NODE_ENV !== "production",
+  // Only has an effect when it names a loopback backend — the e2e suite's.
+  convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL,
 });
 
 /**

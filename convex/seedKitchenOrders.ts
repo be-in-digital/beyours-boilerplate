@@ -14,7 +14,7 @@ const SAMPLE_ITEMS = [
     { productName: "Coca-Cola", quantity: 2, options: [] },
   ],
   [
-    { productName: "Pizza Margherita", quantity: 1, options: ["Base tomate", "Mozzarella fraiche"] },
+    { productName: "Pizza Margherita", quantity: 1, options: ["Base tomate", "Mozzarella fraîche"] },
     { productName: "Tiramisu", quantity: 1, options: [] },
   ],
   [
@@ -31,7 +31,7 @@ const SAMPLE_ITEMS = [
   ],
   [
     { productName: "Steak frites", quantity: 1, options: ["Saignant", "Sauce poivre"], notes: "VIP - Table 3" },
-    { productName: "Creme brulee", quantity: 2, options: [] },
+    { productName: "Crème brulee", quantity: 2, options: [] },
     { productName: "Vin rouge (verre)", quantity: 2, options: ["Bordeaux"] },
   ],
   [
@@ -184,7 +184,7 @@ export const seedKitchenOrders = storeMutation({
         estimatedReadyAt: ticketCreatedAt + prepTime * 60_000,
         customerName: orderType === "delivery" ? customerName : undefined,
         customerPhone: orderType === "delivery" ? `+33 6 ${String(10 + i).padStart(2, "0")} 00 00 00` : undefined,
-        deliveryNotes: i === 1 ? "2eme etage, code 4578" : undefined,
+        deliveryNotes: i === 1 ? "2eme étage, code 4578" : undefined,
         allergens: i === 2 ? ["arachides"] : undefined,
         status: ticketStatus,
         printStatus: "not_required",

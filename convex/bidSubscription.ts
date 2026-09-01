@@ -142,7 +142,7 @@ export const createPortalSession = action({
 
     const customerId = entitlements?.stripeCustomerId as string | undefined;
     if (!customerId) {
-      throw new Error("Aucun abonnement Stripe lie a votre compte");
+      throw new Error("Aucun abonnement Stripe lié a votre compte");
     }
 
     const session = await stripe.billingPortal.sessions.create({
@@ -183,7 +183,7 @@ export const createMaintenanceCheckoutSession = action({
     const priceId = process.env.STRIPE_BID_PRICE_MAINTENANCE;
     if (!priceId) {
       throw new Error(
-        "Le renouvellement en ligne n'est pas configure (STRIPE_BID_PRICE_MAINTENANCE). Contactez BeYours."
+        "Le renouvellement en ligne n'est pas configuré (STRIPE_BID_PRICE_MAINTENANCE). Contactez BeYours."
       );
     }
 

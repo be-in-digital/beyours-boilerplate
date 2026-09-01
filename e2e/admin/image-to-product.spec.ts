@@ -78,7 +78,7 @@ test.describe("Image to Product", () => {
   // ────────────────────────────────────────────────────────
 
   test.describe("Navigation from Products Page", () => {
-    test('should have "Creer depuis image" button on products page', async ({
+    test('should have "Créer depuis image" button on products page', async ({
       page,
     }) => {
       await page.goto("/dashboard/products", {
@@ -186,7 +186,7 @@ test.describe("Image to Product", () => {
 
     test("should display the image uploader drop zone", async ({ page }) => {
       await expect(
-        page.getByText("Deposez une image ici ou cliquez pour parcourir")
+        page.getByText("Déposez une image ici ou cliquez pour parcourir")
       ).toBeVisible({ timeout: 15_000 })
     })
 
@@ -364,7 +364,7 @@ test.describe("Image to Product", () => {
         page.getByRole("button", { name: /Nouvelle image/ })
       ).toBeVisible()
 
-      // Should show "Creer X produit(s)" confirm button
+      // Should show "Créer X produit(s)" confirm button
       await expect(
         page.getByRole("button", { name: /Cr[eé]er \d+ produit/ })
       ).toBeVisible()
@@ -411,7 +411,7 @@ test.describe("Image to Product", () => {
 
       // Error toast means the action failed — step should revert to "upload"
       await expect(
-        page.getByText("Deposez une image ici ou cliquez pour parcourir")
+        page.getByText("Déposez une image ici ou cliquez pour parcourir")
       ).toBeVisible({ timeout: 15_000 })
     })
   })

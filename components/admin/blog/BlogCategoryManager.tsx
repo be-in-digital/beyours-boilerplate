@@ -265,7 +265,7 @@ export function BlogCategoryManager({
         }}
         onConfirm={handleDelete}
         title="Supprimer la catégorie"
-        description={`Êtes-vous sûr de vouloir supprimer la catégorie "${deleteTarget?.name}" ? Cette action est irreversible.`}
+        description={`Êtes-vous sûr de vouloir supprimer la catégorie "${deleteTarget?.name}" ? Cette action est irréversible.`}
         isDeleting={isDeleting}
       />
     </>

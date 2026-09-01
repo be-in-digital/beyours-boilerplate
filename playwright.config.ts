@@ -22,7 +22,24 @@ const ADMIN_STORAGE_STATE = "e2e/.auth/admin.json"
 
 // Admin/setup projects require a real Convex backend (not placeholder URLs).
 // In CI with placeholder URLs we only run the "public" project.
-const hasRealBackend = !process.env.NEXT_PUBLIC_CONVEX_URL?.includes("placeholder")
+//
+// Spelled out rather than `!url?.includes("placeholder")`: that reads as "no
+// placeholder, so a real backend", but on an UNSET variable it is `!undefined`
+// — true — and claims a backend that was never configured. Unset is the one
+// case where we know there is nothing to talk to.
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? ""
+const hasRealBackend = convexUrl !== "" && !convexUrl.includes("placeholder")
+
+// Dropping 43 of 56 spec files should never be silent. The projects below are
+// spread out of the array when there is no backend, so they are not reported as
+// skipped — they are absent, and the run looks complete. Say so here, and let
+// scripts/assert-e2e-ran.mjs fail the job on it in CI.
+if (!hasRealBackend) {
+  console.warn(
+    `[e2e] NEXT_PUBLIC_CONVEX_URL is ${convexUrl === "" ? "unset" : `"${convexUrl}"`} — ` +
+      `the "setup" and "admin" projects are NOT declared. Only public tests will run.`
+  )
+}
 
 /**
  * The port the suite drives, and the port the server it starts listens on.
@@ -42,7 +59,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : 2,
-  reporter: "html",
+  // JSON alongside HTML: the HTML report is for a human opening the artifact,
+  // the JSON is what scripts/assert-e2e-ran.mjs reads to prove tests actually
+  // ran. Playwright exits 0 over an empty run, so something has to count.
+  reporter: [["html"], ["json", { outputFile: "playwright-report/report.json" }]],
   timeout: 60_000,
   expect: {
     timeout: 15_000,

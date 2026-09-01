@@ -49,8 +49,40 @@ const BASE_DIRECTIVES: Record<string, string[]> = {
   "manifest-src": ["'self'"],
 }
 
+/**
+ * The Convex origin, but only when it is a loopback address.
+ *
+ * `connect-src` is open to `https:`/`wss:`, which covers every real deployment.
+ * It does not cover a Convex backend running on the machine itself, because
+ * that one is plain `http:`/`ws:` — and a production build refuses `ws:`, by
+ * design and by test. The end-to-end suite runs `pnpm start` against exactly
+ * such a backend, so without this every Convex query in the browser is blocked
+ * and every admin screen sits on a loading skeleton forever.
+ *
+ * Only loopback hosts are admitted, so this cannot widen a deployed policy: a
+ * client's `NEXT_PUBLIC_CONVEX_URL` is an `https://…convex.cloud` address and
+ * returns nothing here. Granting a page the right to talk to 127.0.0.1 also
+ * grants nothing to a remote attacker.
+ */
+function loopbackConvexSources(convexUrl?: string): string[] {
+  if (!convexUrl) return []
+  let url: URL
+  try {
+    url = new URL(convexUrl)
+  } catch {
+    return []
+  }
+  const host = url.hostname
+  const isLoopback = host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]"
+  if (!isLoopback) return []
+  const socket = url.protocol === "https:" ? "wss:" : "ws:"
+  return [url.origin, `${socket}//${url.host}`]
+}
+
 export function buildContentSecurityPolicy(options: {
   isDevelopment: boolean
+  /** `NEXT_PUBLIC_CONVEX_URL`. Only used when it names a loopback backend. */
+  convexUrl?: string
 }): string {
   const directives: Record<string, string[]> = {
     ...BASE_DIRECTIVES,
@@ -61,9 +93,12 @@ export function buildContentSecurityPolicy(options: {
       ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
       : ["'self'", "'unsafe-inline'"],
     // ws: is the HMR socket.
-    "connect-src": options.isDevelopment
-      ? ["'self'", "https:", "wss:", "ws:"]
-      : ["'self'", "https:", "wss:"],
+    "connect-src": [
+      ...(options.isDevelopment
+        ? ["'self'", "https:", "wss:", "ws:"]
+        : ["'self'", "https:", "wss:"]),
+      ...loopbackConvexSources(options.convexUrl),
+    ],
   }
 
   return Object.entries(directives)

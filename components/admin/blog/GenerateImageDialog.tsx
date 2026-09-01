@@ -28,7 +28,7 @@ export function GenerateImageDialog({
   open,
   onOpenChange,
   onInsert,
-  defaultPrompt = "Photo professionnelle : [sujet]. Style editorial, lumiere naturelle, haute qualite.",
+  defaultPrompt = "Photo professionnelle : [sujet]. Style editorial, lumiere naturelle, haute qualité.",
 }: GenerateImageDialogProps) {
   const storeId = useAdminStoreId()
   const [prompt, setPrompt] = useState(defaultPrompt)

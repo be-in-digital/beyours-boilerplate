@@ -115,13 +115,32 @@ jobs:
     # plus the E2E_* secrets (dedicated test Convex deployment)
     if: vars.CONVEX_E2E_ENABLED == 'true'
     env:
-      NEXT_PUBLIC_CONVEX_URL: ${{ secrets.E2E_NEXT_PUBLIC_CONVEX_URL || 'https://placeholder.convex.cloud' }}
-      CONVEX_SITE_URL: ${{ secrets.E2E_CONVEX_SITE_URL || 'https://placeholder.convex.site' }}
+      # No `|| 'https://placeholder.convex.cloud'` fallback.
+      #
+      # playwright.config.ts builds the `setup` and `admin` projects out of a
+      # spread — `...(hasRealBackend ? [project] : [])` — and a URL containing
+      # "placeholder" makes that false. The projects are then not skipped, they
+      # are never declared: 43 of 56 spec files disappear from the run and from
+      # the report, and Playwright exits 0 over the handful that remain. The
+      # fallback turned "nobody configured a backend" into a green tick.
+      NEXT_PUBLIC_CONVEX_URL: ${{ secrets.E2E_NEXT_PUBLIC_CONVEX_URL }}
+      CONVEX_SITE_URL: ${{ secrets.E2E_CONVEX_SITE_URL }}
       BETTER_AUTH_URL: http://localhost:3000
       SITE_URL: http://localhost:3000
       BETTER_AUTH_SECRET: ${{ secrets.E2E_BETTER_AUTH_SECRET }}
 
     steps:
+      # Before anything is installed or built: if this job is running at all,
+      # the flag says E2E is wanted, and E2E without a backend cannot happen.
+      - name: Require a backend to test against
+        run: |
+          if [ -z "$NEXT_PUBLIC_CONVEX_URL" ]; then
+            echo "::error::CONVEX_E2E_ENABLED is true but E2E_NEXT_PUBLIC_CONVEX_URL is unset."
+            echo "Playwright cannot run without a deployment to point at."
+            echo "Set the E2E_* secrets, or unset CONVEX_E2E_ENABLED to skip E2E honestly."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
@@ -163,8 +182,18 @@ jobs:
         env:
           CI: "true"
 
+      - name: Prove the suite actually ran
+        # Playwright exits 0 when it has nothing to run. See the comment on
+        # NEXT_PUBLIC_CONVEX_URL above for the two ways that happens here.
+        if: always()
+        run: |
+          node scripts/assert-e2e-ran.mjs playwright-report/report.json \
+            --min 100 --projects setup,public,admin
+
       - name: Upload Playwright report
-        if: failure()
+        # always(), not failure(): a run that passed over 13 of 56 spec files
+        # leaves no artifact to notice that with.
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report

@@ -91,7 +91,7 @@ export function BlogContent() {
     setIsDeleting(true)
     try {
       await deleteArticle({ articleId: deleteTarget.id })
-      toast.success("Article supprime")
+      toast.success("Article supprimé")
       setDeleteTarget(null)
     } catch (err) {
       toast.error(
@@ -205,7 +205,7 @@ export function BlogContent() {
         }}
         onConfirm={handleDelete}
         title="Supprimer l'article"
-        description={`Etes-vous sur de vouloir supprimer l'article "${deleteTarget?.title}" ? Cette action est irreversible.`}
+        description={`Etes-vous sur de vouloir supprimer l'article "${deleteTarget?.title}" ? Cette action est irréversible.`}
         isDeleting={isDeleting}
       />
     </div>

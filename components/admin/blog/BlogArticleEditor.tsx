@@ -421,7 +421,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
 
     const timestamp = new Date(scheduleDate).getTime()
     if (!Number.isFinite(timestamp) || timestamp <= Date.now()) {
-      toast.error("La date de publication doit etre dans le futur")
+      toast.error("La date de publication doit être dans le futur")
       return
     }
 
@@ -431,7 +431,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
         articleId: articleId as Id<"blogArticles">,
         publishAt: timestamp,
       })
-      toast.success("Publication planifiee")
+      toast.success("Publication planifiée")
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Erreur lors de la planification",
@@ -481,7 +481,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
     setIsDeleting(true)
     try {
       await deleteArticle({ articleId: articleId as Id<"blogArticles"> })
-      toast.success("Article supprime")
+      toast.success("Article supprimé")
       router.push("/dashboard/content/blog")
     } catch (err) {
       toast.error(
@@ -739,7 +739,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
               id="article-editor-excerpt"
               value={localDraft.excerpt}
               onChange={(e) => handleDraftChange("excerpt", e.target.value)}
-              placeholder="Resume court de l'article (affiche dans les listes)"
+              placeholder="Résumé court de l'article (affiche dans les listes)"
               maxLength={300}
               rows={3}
             />
@@ -1055,7 +1055,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
           {article.status === "scheduled" && (
             <div className="rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950 p-4 space-y-3">
               <div>
-                <p className="text-sm font-medium">Publication planifiee</p>
+                <p className="text-sm font-medium">Publication planifiée</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   L&apos;article sera publié automatiquement le{" "}
                   {article.scheduledPublishAt
@@ -1079,7 +1079,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {article.status === "archived"
-                  ? "Cet article est archive et n'est plus visible."
+                  ? "Cet article est archivé et n'est plus visible."
                   : "Archivez l'article pour le retirer de votre site sans le supprimer."}
               </p>
             </div>
@@ -1189,7 +1189,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleDelete}
         title="Supprimer l'article"
-        description={`Etes-vous sur de vouloir supprimer "${localDraft.title}" ? Cette action est irreversible.`}
+        description={`Etes-vous sur de vouloir supprimer "${localDraft.title}" ? Cette action est irréversible.`}
         isDeleting={isDeleting}
       />
     </div>

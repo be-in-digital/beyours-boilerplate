@@ -88,7 +88,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
       // pending → in_progress: accept (notify Uber Eats / Deliveroo)
       if (ticket.status === "pending" && (ticket.source === "uber_eats" || ticket.source === "deliveroo")) {
         await acceptTicketAction({ id: ticket._id })
-        toast.success(ticket.source === "uber_eats" ? "Commande acceptee sur Uber Eats" : "Commande acceptee sur Deliveroo")
+        toast.success(ticket.source === "uber_eats" ? "Commande acceptée sur Uber Eats" : "Commande acceptée sur Deliveroo")
         return
       }
 

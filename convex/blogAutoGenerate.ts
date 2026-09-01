@@ -413,11 +413,11 @@ Exemple de structure HTML attendue :
 [IMAGE_1]
 <h2>Premier sous-titre optimisé SEO</h2>
 <p>Paragraphe explicatif avec <strong>informations cles</strong>...</p>
-<p>Deuxieme paragraphe de la section...</p>
-<h3>Sous-section detaillee</h3>
-<ul><li>Element de liste pertinent</li><li>Autre element</li></ul>
+<p>Deuxième paragraphe de la section...</p>
+<h3>Sous-section détaillée</h3>
+<ul><li>Élément de liste pertinent</li><li>Autre element</li></ul>
 [IMAGE_2]
-<h2>Deuxieme section principale</h2>
+<h2>Deuxième section principale</h2>
 <p>Contenu riche avec des <em>variations semantiques</em>...</p>
 <blockquote><p>Citation ou fait marquant</p></blockquote>
 [IMAGE_3]
@@ -455,7 +455,7 @@ Exemple de structure HTML attendue :
 
 **Liens internes (suggestions) :**
 - Dans le contenu, suggerer naturellement 2-3 sujets connexes que le lecteur pourrait explorer
-- Formuler sous forme de phrases comme "Decouvrez aussi nos..." ou "Pour en savoir plus sur..."
+- Formuler sous forme de phrases comme "Découvrez aussi nos..." ou "Pour en savoir plus sur..."
 
 Reponds en JSON strict :
 {

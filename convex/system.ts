@@ -586,7 +586,7 @@ export const importBackup = action({
         dryRun: true,
         summary,
         totalRows: Object.values(summary).reduce((a, b) => a + b, 0),
-        message: "Mode aperçu — aucune donnée modifiée. ATTENTION : l'import reel n'est pas atomique — en cas d'échec, certaines tables pourraient être partiellement modifiées.",
+        message: "Mode aperçu — aucune donnée modifiée. ATTENTION : l'import réel n'est pas atomique — en cas d'échec, certaines tables pourraient être partiellement modifiées.",
       }
     }
 

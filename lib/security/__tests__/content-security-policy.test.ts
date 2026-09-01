@@ -47,6 +47,35 @@ describe("buildContentSecurityPolicy", () => {
     expect(production()["connect-src"]).toContain("wss:")
   })
 
+  describe("a Convex backend on this machine", () => {
+    // The e2e suite runs a production build against a local Convex backend, so
+    // the socket it needs is ws://127.0.0.1 — which a production policy refuses.
+    const withConvex = (convexUrl: string) =>
+      parse(buildContentSecurityPolicy({ isDevelopment: false, convexUrl }))
+
+    it("admits the loopback origin and its websocket", () => {
+      const sources = withConvex("http://127.0.0.1:3310")["connect-src"]
+      expect(sources).toContain("http://127.0.0.1:3310")
+      expect(sources).toContain("ws://127.0.0.1:3310")
+    })
+
+    it("changes nothing for a real deployment", () => {
+      expect(withConvex("https://sturdy-lion-42.convex.cloud")["connect-src"]).toEqual(
+        production()["connect-src"],
+      )
+    })
+
+    it("still refuses ws: wholesale", () => {
+      // The specific origin is admitted; the scheme is not. A page on a client
+      // deployment must not be free to open a socket to any host it likes.
+      expect(withConvex("http://localhost:3310")["connect-src"]).not.toContain("ws:")
+    })
+
+    it("ignores a value that is not a URL", () => {
+      expect(withConvex("not a url")["connect-src"]).toEqual(production()["connect-src"])
+    })
+  })
+
   it("emits one well-formed directive per entry", () => {
     const policy = buildContentSecurityPolicy({ isDevelopment: false })
     expect(policy).not.toContain(";;")
