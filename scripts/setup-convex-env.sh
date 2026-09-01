@@ -83,6 +83,15 @@ fi
 $DRY_RUN && echo "Dry run — nothing will be written."
 echo
 
+# Names Convex provides itself. Setting one is refused by the API with
+# `EnvVarNameForbidden`, which under `set -e` aborted the whole push after
+# writing whatever came before it alphabetically. Found by running this against
+# a fresh deployment on 2026-09-01: `.env.convex.example` listed CONVEX_SITE_URL
+# as something to set, so every client provisioning would have died there.
+CONVEX_BUILT_IN=" CONVEX_CLOUD_URL CONVEX_SITE_URL "
+is_built_in() { case "$CONVEX_BUILT_IN" in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
+built_in_skipped=""
+
 # Keys already pushed, so the local file cannot silently undo the shared store.
 # A plain string rather than an associative array, for the same bash 3.2 reason.
 seen=""
@@ -151,6 +160,10 @@ read_dotenv() {
       [[ "$(printf '%s' "$raw" | sed -E 's/^[[:space:]]+//')" == "#"* ]] && continue
       value="$(parse_value "$raw")"
       [[ -z "$value" ]] && continue
+      if is_built_in "$key"; then
+        built_in_skipped="$built_in_skipped $key"
+        continue
+      fi
       if [[ "$origin" == "local" ]] && is_seen "$key"; then
         overridden="$overridden $key"
         continue
@@ -207,6 +220,12 @@ if $DRY_RUN; then
   echo "$count variables would be set on Convex."
 else
   echo "$count variables set on Convex."
+fi
+
+if [[ -n "$built_in_skipped" ]]; then
+  echo
+  echo "Skipped — Convex provides these itself and refuses to have them set:"
+  for key in $built_in_skipped; do echo "  - $key"; done
 fi
 
 if [[ -n "$overridden" ]]; then
