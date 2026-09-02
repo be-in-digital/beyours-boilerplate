@@ -230,18 +230,19 @@ test.describe("Image to Product", () => {
       const fileInput = page.locator('input[type="file"]')
       await fileInput.setInputFiles(MENU_IMAGE_PATH)
 
-      // After upload, the image preview or uploading state should appear
-      // The upload will trigger the S3 presigned URL flow which may fail in test
-      // but we can verify the file input accepts the file
       await page.waitForTimeout(1_000)
 
-      // Either: uploading state, preview image, or error (due to S3 in test env)
+      // Either: uploading state, preview image, or error. The runner takes the
+      // error branch by design, on the placeholder AWS credentials e2e.yml sets.
       const uploadingState = page.getByText("Upload en cours...")
       const preview = page.locator('img[alt="Aperçu"]')
       const error = page.locator(".text-destructive")
 
+      // `.text-destructive` cannot resolve to one element: the upload panel puts
+      // it on the alert icon and on the message beside it. Strict mode rejects
+      // the pair, so this failed whenever the error it accepts was on screen.
       await expect(
-        uploadingState.or(preview).or(error)
+        uploadingState.or(preview).or(error).first()
       ).toBeVisible({ timeout: 15_000 })
     })
   })
