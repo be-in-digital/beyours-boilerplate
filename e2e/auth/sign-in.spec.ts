@@ -59,7 +59,16 @@ test.describe("Sign In Page", () => {
         name: "Créer un compte",
       })
       await expect(createAccountLink).toBeVisible()
-      await expect(createAccountLink).toHaveAttribute("href", "/sign-up")
+      // Not the bare path. The link carries the destination across the switch
+      // between the two auth pages, so somebody who arrived at
+      // `/sign-in?redirect=/checkout` and decides to register still lands on
+      // the checkout afterwards. With no incoming parameter `safeRedirect`
+      // supplies `/menu`, so the query is always there. Asserting `/sign-up`
+      // alone pinned the state of this page before that existed.
+      await expect(createAccountLink).toHaveAttribute(
+        "href",
+        /^\/sign-up\?redirect=/
+      )
     })
   })
 

@@ -84,10 +84,13 @@ test.describe("Product Form", () => {
         )
       ).toBeVisible()
 
-      // Price field
-      await expect(
-        page.getByLabel(/Prix \(€\)/)  // le formulaire affiche « Prix (€) », jamais « Prix (EUR) »
-      ).toBeVisible()
+      // Price field. The label is "Prix TTC (€)" since prices became the
+      // amount the customer pays, with the VAT taken out rather than added —
+      // the same work that put "dont TVA" on the storefront summary. `TTC` is
+      // load-bearing here and not decoration: the form carries a second field,
+      // "Prix barré TTC (€)", so a looser /Prix.*\(€\)/ would match both and
+      // fail on strict mode.
+      await expect(page.getByLabel(/Prix TTC \(€\)/)).toBeVisible()
     })
 
     test("should auto-generate slug from name", async ({ page }) => {
