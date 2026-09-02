@@ -79,6 +79,29 @@ function loopbackConvexSources(convexUrl?: string): string[] {
   return [url.origin, `${socket}//${url.host}`]
 }
 
+/**
+ * Where the Places autocomplete loads its code from.
+ *
+ * `useGooglePlacesAutocomplete` appends a `<script>` for
+ * `maps.googleapis.com/maps/api/js`, and that loader then fetches its own
+ * chunks from `maps.gstatic.com`. Neither was listed, so `script-src 'self'`
+ * refused both and the address field silently offered no suggestions — in every
+ * production build, not only under test. The browser blocks the tag before the
+ * request leaves, which is why the e2e suite's mock of the Google endpoint
+ * never intercepted anything and read as "element(s) not found".
+ *
+ * Two origins and no wildcard: `*.googleapis.com` would also admit every other
+ * Google API host, which this application does not load script from.
+ *
+ * Nothing else needs widening. `img-src` already allows `https:` for the
+ * dropdown's sprites, `style-src` carries `'unsafe-inline'` for the styles the
+ * widget injects, and `connect-src` allows `https:` for its own requests.
+ */
+const GOOGLE_MAPS_SCRIPT_SOURCES = [
+  "https://maps.googleapis.com",
+  "https://maps.gstatic.com",
+]
+
 export function buildContentSecurityPolicy(options: {
   isDevelopment: boolean
   /** `NEXT_PUBLIC_CONVEX_URL`. Only used when it names a loopback backend. */
@@ -90,8 +113,8 @@ export function buildContentSecurityPolicy(options: {
     // runtime evaluate modules. A production build does not, so it is not
     // granted there.
     "script-src": options.isDevelopment
-      ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
-      : ["'self'", "'unsafe-inline'"],
+      ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", ...GOOGLE_MAPS_SCRIPT_SOURCES]
+      : ["'self'", "'unsafe-inline'", ...GOOGLE_MAPS_SCRIPT_SOURCES],
     // ws: is the HMR socket.
     "connect-src": [
       ...(options.isDevelopment

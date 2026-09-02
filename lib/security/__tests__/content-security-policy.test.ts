@@ -40,6 +40,24 @@ describe("buildContentSecurityPolicy", () => {
     expect(production()["script-src"]).toContain("'unsafe-inline'")
   })
 
+  it("lets the Places autocomplete load its script", () => {
+    // Neither origin was listed, so `script-src 'self'` refused the loader and
+    // the address field offered no suggestions at all — in every production
+    // build, not only under test. The browser blocks the tag before the request
+    // leaves, which is why the e2e mock of the Google endpoint intercepted
+    // nothing and the failure read as "element(s) not found".
+    for (const environment of [production(), development()]) {
+      expect(environment["script-src"]).toContain("https://maps.googleapis.com")
+      expect(environment["script-src"]).toContain("https://maps.gstatic.com")
+    }
+  })
+
+  it("admits those two hosts and not every Google API", () => {
+    // A wildcard would have been shorter and would have granted script to every
+    // *.googleapis.com host, none of which this application loads code from.
+    expect(production()["script-src"]).not.toContain("https://*.googleapis.com")
+  })
+
   it("leaves connect-src open to https/wss for the per-client Convex backend", () => {
     // headers() is evaluated at build time; the deployment URL is a runtime
     // value that differs per client.
