@@ -108,10 +108,18 @@ async function setStoreHours(
     await save.click()
     await expect(saved).toBeVisible({ timeout: 20_000 })
 
-    // What was saved is what the switch says. Read here, an echo that undid it
-    // names itself; read three navigations later, it arrives as a "restaurant
-    // fermé" banner on a storefront with no visible reason to show one.
-    await expect(globalSwitch).toBeChecked()
+    // And read the flag back from the server, since the toast says the request
+    // was accepted rather than that the storefront will now see it. The reload
+    // is the point: the form re-seeds itself from the store document, so a
+    // switch still on after it is one the backend actually kept. Read in the
+    // page instead, an echo that undid the toggle would go unnoticed here and
+    // arrive three navigations later as a "restaurant fermé" banner with no
+    // visible reason to show one.
+    await page.reload({ waitUntil: "domcontentloaded" })
+    await page.getByRole("tab", { name: "Horaires" }).click()
+    await expect(
+      page.getByRole("switch", { name: "Horaires globaux" })
+    ).toBeChecked({ timeout: 20_000 })
   }
 }
 

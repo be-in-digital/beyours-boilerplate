@@ -16,6 +16,7 @@
  */
 
 import { convexTest } from "convex-test"
+import { anyApi } from "convex/server"
 import { afterEach, describe, expect, test } from "vitest"
 import { api, internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
@@ -352,6 +353,26 @@ describe("privilege escalation", () => {
 // Reading other people's data
 // ============================================================================
 
+/**
+ * Proving a public function is GONE takes more care than it looks.
+ *
+ * The obvious `expect(api.orders).not.toHaveProperty("getByCustomer")` is a
+ * tautology. `api` from `_generated/api.js` is `anyApi`, a Proxy carrying a
+ * `get` trap and no `has` trap, so `in` is false for every key and
+ * `not.toHaveProperty` passes for a live function just as happily as for a
+ * deleted one. `expect(api.orders).not.toHaveProperty("getMyOrders")` passes
+ * today, and the first test below asserts `getMyOrders` for real, so that
+ * example cannot quietly stop being one.
+ *
+ * Absence is only observable by CALLING through the Proxy: convex-test resolves
+ * the module and throws "there is no such export" before it reads a single
+ * argument. Hence `anyApi` imported next to `api`. They are the same object at
+ * runtime, but `api` is typed from the generated module list, so naming a
+ * deleted export on it would not compile — that is the type-level half of the
+ * guard, and this is the runtime half.
+ *
+ * Re-export either function and these two go red on the next run.
+ */
 describe("identity is never an argument", () => {
   test("a signed-in customer only sees their own orders", async () => {
     // `getByCustomer` took an arbitrary customerId and returned that person's
@@ -359,7 +380,10 @@ describe("identity is never an argument", () => {
     const t = newHarness()
     const asCustomer = await seedUser(t, "user:c1", "customer", [])
 
-    expect(api.orders).not.toHaveProperty("getByCustomer")
+    await expect(
+      asCustomer.query(anyApi.orders.getByCustomer, { customerId: "user:c1" })
+    ).rejects.toThrow(/getByCustomer.*no such export/)
+
     await expect(asCustomer.query(api.orders.getMyOrders, {})).resolves.toEqual([])
   })
 
@@ -368,7 +392,10 @@ describe("identity is never an argument", () => {
     const t = newHarness()
     const asCustomer = await seedUser(t, "user:c1", "customer", [])
 
-    expect(api.userProfiles).not.toHaveProperty("getByUserId")
+    await expect(
+      asCustomer.query(anyApi.userProfiles.getByUserId, { userId: "user:c1" })
+    ).rejects.toThrow(/getByUserId.*no such export/)
+
     const mine = await asCustomer.query(api.userProfiles.getMyProfile, {})
     expect(mine?.userId).toBe("user:c1")
   })

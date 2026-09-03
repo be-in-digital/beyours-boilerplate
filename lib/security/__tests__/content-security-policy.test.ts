@@ -33,6 +33,18 @@ describe("buildContentSecurityPolicy", () => {
     expect(production()["connect-src"]).not.toContain("ws:")
   })
 
+  it("admits the Google Maps hosts the address field loads from", () => {
+    // The policy used to be `'self' 'unsafe-inline'`, which blocked
+    // maps.googleapis.com outright: `window.google` never appeared and the
+    // address autocomplete stopped suggesting, in production as well as under
+    // test. Asserted in both environments, since a developer hits the same
+    // field.
+    for (const policy of [production(), development()]) {
+      expect(policy["script-src"]).toContain("https://maps.googleapis.com")
+      expect(policy["script-src"]).toContain("https://maps.gstatic.com")
+    }
+  })
+
   it("still allows the inline script Next.js hydrates from", () => {
     // Stated rather than assumed: this policy does not stop injected inline
     // script. Removing 'unsafe-inline' needs a per-request nonce, which needs
