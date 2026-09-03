@@ -17,6 +17,7 @@
  */
 
 import { convexTest } from "convex-test"
+import { anyApi } from "convex/server"
 import { afterEach, describe, expect, test } from "vitest"
 import { api, internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
@@ -108,7 +109,7 @@ async function seedStore(t: ReturnType<typeof convexTest>, name: string) {
   )
 }
 
-/** A roster row exactly as `invite` writes it. */
+/** A roster row exactly as `inviteInternal` writes it. */
 async function seedInvitation(
   t: ReturnType<typeof convexTest>,
   overrides: {
@@ -138,6 +139,108 @@ async function seedInvitation(
     })
   )
 }
+
+// ============================================================================
+// How an invitation comes into existence
+// ============================================================================
+
+/**
+ * The token is the credential, and only the server may choose it.
+ *
+ * `teamMembersEmail.sendInvitationEmail` is the one way in: it mints the token
+ * with `randomUUID()` and reaches the roster through `inviteInternal`. Alongside
+ * it sat `teamMembers.invite`, a PUBLIC mutation over the same shared handler
+ * that took `invitationToken` as an argument, and which nothing in the product
+ * ever called. Unexercised, untested, and reachable by anyone already able to
+ * manage the roster — so a manager could mint an invitation link of their own
+ * choosing and skip the email entirely. `importBatch` had the same shape on the
+ * subscriber path; both survived by never actually being run.
+ *
+ * The refusals are driven through `anyApi` rather than the generated `api`,
+ * because the whole point is that these names are no longer on the typed
+ * surface. Both are the same proxy at runtime, which is also why
+ * `expect(api.x).not.toHaveProperty("y")` is NOT used here: the proxy has no
+ * `has` trap, so that assertion passes whether or not the function exists.
+ */
+describe("the roster's public surface", () => {
+  test("mints the invitation token itself, on the one path that leads in", async () => {
+    // The positive half, and the control for the two refusals below: without
+    // it, deleting the whole module would leave them green.
+    const t = newHarness()
+    const storeId = await seedStore(t, "Chez Luigi")
+    const asOwner = await seedProfile(t, "user-owner", "client_admin", [storeId])
+
+    // SES holds no credentials under test. The action catches that and reports
+    // `emailSent: false`, which is what leaves the roster write assertable.
+    await asOwner.action(api.teamMembersEmail.sendInvitationEmail, {
+      storeId,
+      allStores: false,
+      name: "Yanis Moreau",
+      email: "yanis@resto.example",
+      role: "manager",
+      permissions: ["dashboard", "orders"],
+      storeName: "Chez Luigi",
+    })
+
+    const [member] = await t.run((ctx) => ctx.db.query("teamMembers").collect())
+    expect(member?.invitationToken).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    )
+  })
+
+  test("does not let a manager choose the invitation token", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t, "Chez Luigi")
+    const asOwner = await seedProfile(t, "user-owner", "client_admin", [storeId])
+
+    // Captured rather than asserted on the spot, so that BOTH readings below
+    // actually run. `expect(...).rejects` aborts the test on failure — even
+    // soft — and the second reading is the one that carries the rule: "the name
+    // is back" and "a token the caller named went live" are different failures,
+    // and only the second is the defect itself.
+    const refusal = await asOwner
+      .mutation(anyApi.teamMembers.invite, {
+        storeId,
+        allStores: false,
+        name: "Yanis Moreau",
+        email: "yanis@resto.example",
+        role: "manager",
+        permissions: ["dashboard", "orders"],
+        invitationToken: "chosen-by-the-caller",
+      })
+      .then(() => "the mutation resolved", (error: unknown) => String(error))
+
+    const preview = await t.query(api.teamMembers.getInvitationPreview, {
+      token: "chosen-by-the-caller",
+    })
+
+    expect.soft(preview.status).toBe("not_found")
+    expect(refusal).toMatch(/no such export/)
+  })
+
+  test("does not let a manager swap a pending token for one they chose", async () => {
+    // `resendInvitation` was the same defect wearing the other name: a public
+    // mutation taking `newToken`, next to a `resendInvitationEmail` action that
+    // mints one. Retargeting a live invitation is worse than issuing one — the
+    // person who was invited keeps a dead link and never knows.
+    const t = newHarness()
+    const storeId = await seedStore(t, "Chez Luigi")
+    const asOwner = await seedProfile(t, "user-owner", "client_admin", [storeId])
+    const memberId = await seedInvitation(t, { storeId, token: "tok-minted" })
+
+    const refusal = await asOwner
+      .mutation(anyApi.teamMembers.resendInvitation, {
+        id: memberId,
+        newToken: "chosen-by-the-caller",
+      })
+      .then(() => "the mutation resolved", (error: unknown) => String(error))
+
+    const member = await t.run((ctx) => ctx.db.get(memberId))
+
+    expect.soft(member?.invitationToken).toBe("tok-minted")
+    expect(refusal).toMatch(/no such export/)
+  })
+})
 
 // ============================================================================
 // What the page renders before anyone is signed in

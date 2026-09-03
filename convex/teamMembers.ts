@@ -3,7 +3,7 @@ import type { Id } from "./_generated/dataModel";
 import { ConvexError, v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/teamMembers";
 import * as profileDefs from "@be-in-digital/convex-functions/userProfiles";
-import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
+import { storeQuery } from "./lib/storeFunctions";
 import { getAuthUser } from "@be-in-digital/convex-functions/auth";
 import {
   assertCanManageMember,
@@ -21,8 +21,6 @@ import {
   ACCESS_AUDIT_OPERATIONS,
   recordAccessAudit,
 } from "@be-in-digital/convex-functions/accessAudit";
-
-const memberStoreId = storeIdFromDocument("Team member not found");
 
 /**
  * Guard for the team roster.
@@ -344,11 +342,11 @@ export const getById = internalQuery({
 /**
  * Authorisation check for the invitation ACTIONS.
  *
- * `teamMembersEmail.sendInvitationEmail` is the real public entry point — the
- * team screen calls it, and it reaches the roster through `inviteInternal`,
- * bypassing the guard on `invite`. It only checked that the caller was logged
- * in, so any account could invite itself as `manager` on any store, or
- * chain-wide with `allStores: true`.
+ * `teamMembersEmail.sendInvitationEmail` is the only public entry point to the
+ * roster — the team screen calls it, and it reaches the table through
+ * `inviteInternal`, which carries no guard of its own. The action checked only
+ * that the caller was logged in, so any account could invite itself as
+ * `manager` on any store, or chain-wide with `allStores: true`.
  *
  * Actions have no `ctx.db`, so the check runs here and the caller's identity
  * propagates through `runQuery`.
@@ -380,20 +378,22 @@ export const internalAssertCanManageMember = internalQuery({
 
 // === MUTATIONS ===
 
-// @guarded-inline: `requireCanManage` applies the roster policy, which the
-// store-scoped seam cannot express (chain-wide members have no storeId)
-export const invite = mutation({
-  args: defs.invite.args,
-  handler: async (ctx, args) => {
-    await requireCanManage(ctx, {
-      storeId: args.storeId,
-      allStores: args.allStores ?? false,
-    });
-    return defs.invite.handler(ctx, args);
-  },
-});
-
-// Internal version of invite (called from sendInvitationEmail action)
+/**
+ * Create the pending roster row an invitation stands for.
+ *
+ * Internal only, and that is the whole point. This used to have a public twin —
+ * `invite`, guarded by `requireCanManage` — with no caller anywhere in the
+ * product. Nothing exercised it, so nothing had ever noticed that it took
+ * `invitationToken` FROM THE CALLER while the live path mints it server-side in
+ * `sendInvitationEmail`. A manager could therefore create a member holding a
+ * token of their own choosing and never send the email the token exists to
+ * carry. `importBatch` took the double opt-in token the same way, and survived
+ * for the same underlying reason — nothing ever ran it: there because its
+ * validator rejected the only caller, here because there is no caller at all.
+ *
+ * The token is a credential. It arrives here already minted, from an action
+ * that is the only way in.
+ */
 export const inviteInternal = internalMutation({
   args: defs.invite.args,
   handler: async (ctx, args) => {
@@ -583,14 +583,16 @@ export const sweepInvitations = internalMutation({
   },
 });
 
-export const resendInvitation = storeMutation({
-  permission: "team:write",
-  args: defs.resendInvitation.args,
-  storeIdFrom: memberStoreId,
-  handler: (ctx, args) => defs.resendInvitation.handler(ctx, args),
-});
-
-// Internal version (called from resendInvitationEmail action)
+/**
+ * Point a pending invitation at a freshly minted token.
+ *
+ * Internal for the same reason as `inviteInternal`: the public `resendInvitation`
+ * it replaces took `newToken` as an argument and had no caller, so a manager
+ * could retarget a live invitation onto a token they had chosen — leaving the
+ * person actually invited holding a link that no longer resolves, with nothing
+ * sent to tell them. `resendInvitationEmail` mints the token and sends the mail
+ * in one go, which is the only sequence that makes sense.
+ */
 export const resendInvitationInternal = internalMutation({
   args: defs.resendInvitation.args,
   handler: async (ctx, args) => {
