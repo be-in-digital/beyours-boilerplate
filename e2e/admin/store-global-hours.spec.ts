@@ -83,17 +83,35 @@ async function setStoreHours(
   await page.locator("#open-1").fill(open)
   await page.locator("#close-1").fill(close)
   await page.getByRole("button", { name: "Appliquer à tous les jours" }).click()
-  await page.getByRole("button", { name: "Enregistrer les horaires" }).click()
-  await expect(page.getByText("Horaires mis à jour avec succès")).toBeVisible({
-    timeout: 20_000,
-  })
+
+  const save = page.getByRole("button", { name: "Enregistrer les horaires" })
+  const saved = page.getByText("Horaires mis à jour avec succès")
+
+  await save.click()
+  await expect(saved).toBeVisible({ timeout: 20_000 })
 
   if (followGlobal) {
+    // Both saves raise the same toast, and the first one stays up for four
+    // seconds. Flipping the switch and asserting inside that window proved
+    // nothing: the assertion passed on the toast that was already there, and
+    // the test left for the storefront with `useGlobalHours: true` still in
+    // flight — or already undone, because the form re-seeds itself from every
+    // echo of the store document the first save produced, and one landing
+    // between the toggle and the click puts the switch back.
+    //
+    // Waiting for the first toast to clear settles both: the toggle happens
+    // after the echoes, and a toast appearing afterwards can only be the
+    // second save's, which is raised once its mutation has returned.
+    await expect(saved).toHaveCount(0, { timeout: 20_000 })
+
     await globalSwitch.setChecked(true, { force: true })
-    await page.getByRole("button", { name: "Enregistrer les horaires" }).click()
-    await expect(page.getByText("Horaires mis à jour avec succès")).toBeVisible({
-      timeout: 20_000,
-    })
+    await save.click()
+    await expect(saved).toBeVisible({ timeout: 20_000 })
+
+    // What was saved is what the switch says. Read here, an echo that undid it
+    // names itself; read three navigations later, it arrives as a "restaurant
+    // fermé" banner on a storefront with no visible reason to show one.
+    await expect(globalSwitch).toBeChecked()
   }
 }
 

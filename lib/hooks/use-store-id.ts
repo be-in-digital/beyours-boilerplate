@@ -45,6 +45,23 @@ export function useStoreId(): {
   const store = (stores as StoreDoc[] | undefined)?.find((s) => s._id === storeId) ?? null
   const needsResolution = !!stores && !store
 
+  /**
+   * The list is in and nothing has been picked from it yet.
+   *
+   * The effect below does the picking, and it runs in the same commit as the
+   * effects of whoever called this hook - which closed over the `storeId` of
+   * the render that preceded it. So for exactly one render a caller reads
+   * `null` while a store is already being chosen, and the checkout guard read
+   * that as "this visitor has no restaurant": a cold arrival at /checkout with
+   * a full basket was sent to /store-selector, every time. Reporting the render
+   * as loading says what is true of it - nothing is resolved, and something
+   * will be.
+   *
+   * An empty list is not that: there is nothing to pick, and `null` is the
+   * final answer rather than a pending one.
+   */
+  const isResolving = needsResolution && (stores?.length ?? 0) > 0
+
   const { nearestStore } = useNearestStore(stores ?? [], {
     useGrantedLocation: needsResolution && (stores?.length ?? 0) > 1,
   })
@@ -73,6 +90,6 @@ export function useStoreId(): {
   return {
     storeId: store?._id ?? null,
     store,
-    isLoading: stores === undefined,
+    isLoading: stores === undefined || isResolving,
   }
 }

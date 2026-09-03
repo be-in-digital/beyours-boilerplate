@@ -87,3 +87,65 @@ test.describe("Stale store selection", () => {
       .not.toBe(FOREIGN_STORE_ID)
   })
 })
+
+/**
+ * The other half of the same resolution: a visitor with no selection at all.
+ *
+ * `useStoreId` picks the store in an effect, and that effect runs in the same
+ * commit as the checkout's own guard - which had already read `storeId: null`
+ * out of the render before it. So the guard fired on a page that was one render
+ * away from having a store, and a cold arrival at /checkout was sent to the
+ * restaurant picker with a full basket: the visitor who deep-links to it, and
+ * the one whose storage was cleared between the payment provider and the
+ * return.
+ *
+ * storefront/checkout-vat.spec.ts fails on this too, three assertions deep and
+ * with the wording of an arithmetic defect. This one says what it is.
+ */
+test.describe("A checkout reached without browsing first", () => {
+  /** Written by the cart store (packages/restaurant). */
+  const CART_KEY = "beindigital-cart"
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(
+      ({ key }: { key: string }) => {
+        window.localStorage.setItem(
+          key,
+          JSON.stringify({
+            // No store, and none in `beyours-storefront-store` either: this
+            // browser has never been on the storefront before.
+            state: {
+              items: [
+                {
+                  lineId: "line-menu",
+                  productId: "p1",
+                  name: "Menu du jour",
+                  price: 2_400,
+                  quantity: 1,
+                  options: [],
+                  taxRate: 10,
+                },
+              ],
+              orderType: "pickup",
+              storeId: null,
+            },
+            version: 1,
+          }),
+        )
+      },
+      { key: CART_KEY },
+    )
+  })
+
+  test("stays on the checkout", async ({ page }) => {
+    await page.goto("/checkout", { waitUntil: "domcontentloaded" })
+
+    // The picker renders its own `h1`, so this fails rather than times out when
+    // the redirect comes back.
+    await expect(
+      page.getByRole("heading", { name: /Finaliser/ }),
+    ).toBeVisible({ timeout: 30_000 })
+
+    await expect(page).toHaveURL(/\/checkout$/)
+  })
+})
