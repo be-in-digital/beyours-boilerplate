@@ -10,6 +10,15 @@ export const list = storeQuery({
   handler: (ctx, args) => defs.list.handler(ctx, args),
 })
 
+/**
+ * Unread count for the sidebar badge.
+ */
+export const unreadCount = storeQuery({
+  permission: "customers:read",
+  args: defs.unreadCount.args,
+  handler: (ctx, args) => defs.unreadCount.handler(ctx, args),
+})
+
 // === Mutations ===
 
 /**
