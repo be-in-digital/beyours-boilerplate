@@ -18,12 +18,22 @@ Without a real Convex URL the `setup` and `admin` projects are not registered at
 all. Playwright then reports success on the handful of public tests it did run —
 there is no "skipped" line for a project that was never declared.
 
-**In CI**, `.github/workflows/e2e.yml` is gated on `vars.CONVEX_E2E_ENABLED ==
-'true'`, and then again on `secrets.E2E_NEXT_PUBLIC_CONVEX_URL` being non-empty.
-A missing secret produces a `::warning::`, not a failure.
+**In CI**, `.github/workflows/ci.yml` *was* gated on
+`vars.CONVEX_E2E_ENABLED == 'true'`, and then again on
+`secrets.E2E_NEXT_PUBLIC_CONVEX_URL` being non-empty. Neither was ever set, so
+the job was skipped on every run and the check reported that skip as success.
 
 Three ways to be green while testing nothing. Anyone reading a passing PR would
 reasonably conclude the suite ran.
+
+> **Current state.** The gate is gone. The `e2e` job in `.github/workflows/ci.yml`
+> downloads and starts its own `convex-local-backend`, deploys the functions to
+> it, builds, seeds and runs the whole suite — no Convex account and no `E2E_*`
+> secrets, which had been the stated reason for keeping it off. `E2E Status` is
+> the aggregate to require on `main`; it fails on a skip as well as a failure.
+> `scripts/assert-e2e-ran.mjs` then fails the job unless `setup`, `public` and
+> `admin` each report tests and at least 100 ran, so a suite that quietly runs
+> nothing can no longer be green.
 
 ## Running them locally
 
@@ -102,26 +112,25 @@ Check the header names three projects — `setup`, `public`, `admin`. If it name
 only `public`, the backend was not detected: re-read step 1 before reading any
 result as a pass.
 
-## Enabling CI
+## CI
 
-Set the repository **variable** `CONVEX_E2E_ENABLED` to `true`, and these
-**secrets**. Point them at a deployment dedicated to CI, never the one a client
-is served from:
+Nothing to enable, and nothing to provision. The `e2e` job in
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`.
 
-| Secret | What it is |
-| --- | --- |
-| `E2E_NEXT_PUBLIC_CONVEX_URL` | `https://<deployment>.convex.cloud` — also the switch that turns the admin tests on |
-| `E2E_CONVEX_SITE_URL` | `https://<deployment>.convex.site` (HTTP routes) |
-| `E2E_CONVEX_DEPLOYMENT` | the deployment name |
-| `E2E_CONVEX_DEPLOY_KEY` | a deploy key for it — steps 2 and 3 of the seed call `npx convex run`, and a runner has no logged-in CLI. Without it the accounts exist with no role and no restaurant, and every admin spec fails on an empty screen |
-| `E2E_BETTER_AUTH_SECRET` | session signing key |
-| `E2E_ENCRYPTION_KEY` | 64 hex characters |
-| `E2E_SEED_PASSWORD` | the throwaway password from step 3 |
+It downloads `convex-local-backend` (pinned in `CONVEX_BACKEND_VERSION`),
+starts it on the runner, writes an `.env.local` pointing at it, builds, deploys
+the functions self-hosted, seeds an owner account and runs the suite against
+that. No Convex account, no deploy key, and no `E2E_*` secrets — the absence of
+which had been the stated reason for leaving the suite switched off. The only
+secret it needs is `GH_PACKAGES_TOKEN`, which the rest of CI already uses.
 
-Optional, and only for the suites that touch them:
-`E2E_AWS_REGION`, `E2E_AWS_ACCESS_KEY_ID`, `E2E_AWS_SECRET_ACCESS_KEY` (S3, SES)
-and `E2E_OPENAI_API_KEY` (auto-translation). The workflow falls back to
-placeholders, so the rest of the suite runs without them.
+`scripts/assert-e2e-ran.mjs` then fails the job unless `setup`, `public` and
+`admin` each report tests and at least 100 ran in total.
+
+**The required check is `E2E Status`, never `E2E tests (Playwright)`.** A job
+that does not run reports `skipped`, and GitHub counts a skip as satisfied;
+`E2E Status` is an aggregate that runs unconditionally and fails on skip,
+cancel and failure alike.
 
 The Deliveroo webhook specs skip themselves unless `DELIVEROO_CLIENT_ID`,
 `DELIVEROO_CLIENT_SECRET`, `DELIVEROO_WEBHOOK_SECRET`, `DELIVEROO_SITE_ID` and

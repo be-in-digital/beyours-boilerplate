@@ -50,17 +50,22 @@ Same settings as the boilerplate, **without** `ENGINE_SYNC_TOKEN` (sites do
 not sync against the engine — they take template updates through
 `pnpm update:template`).
 
-### Playwright E2E (optional, recommended before production)
+### Playwright E2E — on by default, nothing to configure
 
-1. Create a Convex deployment **dedicated to tests** (never the production
-   one): `pnpx convex dev` in a throwaway directory, or a separate Convex
-   project.
-2. Variables (Settings → … → Variables): `CONVEX_E2E_ENABLED=true`
-3. Secrets: `E2E_NEXT_PUBLIC_CONVEX_URL`, `E2E_CONVEX_SITE_URL`,
-   `E2E_BETTER_AUTH_SECRET` (openssl rand -base64 32)
+Nothing. The `e2e` job runs on every pull request and needs no variable and no
+secret beyond the `GH_PACKAGES_TOKEN` the rest of CI already uses: it downloads
+`convex-local-backend`, starts it on the runner, deploys the functions to it,
+seeds an account and runs the suite against that.
 
-Without `CONVEX_E2E_ENABLED` the e2e job is skipped. With placeholder URLs,
-only the "public" tests run (see `playwright.config.ts`).
+It used to be gated on a `CONVEX_E2E_ENABLED` variable plus a set of `E2E_*`
+secrets pointing at a Convex deployment somebody had to create. Nobody created
+them, so the job was skipped on every run — and a skipped job reports neutral,
+which GitHub counts as satisfied. The check was green because nothing ran.
+
+**Require `E2E Status`, never `E2E tests (Playwright)`.** `E2E Status` is an
+aggregate that runs unconditionally and fails on anything that is not a real
+pass, skips included. Requiring the test job itself reintroduces exactly the
+bug above.
 
 ## 3. Vercel (per site)
 

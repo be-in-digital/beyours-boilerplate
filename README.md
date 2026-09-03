@@ -267,8 +267,9 @@ Environment variables: every `[REQUIS]` entry from `.env.example` plus
 `CONVEX_SITE_URL` into Vercel.
 
 **GitHub Actions CI**: `ci.yml` (lint + typecheck + tests + build, requires the
-`GH_PACKAGES_TOKEN` secret; e2e through `CONVEX_E2E_ENABLED=true` plus the
-`E2E_*` secrets; conditional mobile job). Full secrets runbook:
+`GH_PACKAGES_TOKEN` secret; Playwright e2e against a Convex backend the job
+starts itself — no variable, no `E2E_*` secrets; conditional mobile job). The
+check to require on `main` is `E2E Status`. Full secrets runbook:
 [`docs/SETUP-CI.md`](docs/SETUP-CI.md).
 
 ## Security
