@@ -1,6 +1,7 @@
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { normalizeBounceType } from "@be-in-digital/convex-functions/emailSubscribers";
 
 
 // ─── Helper: minimal HTML response page ─────────────────────────────────────
@@ -176,7 +177,9 @@ export const handleConfirmOptIn = httpAction(async (ctx, request) => {
         ? "Ce lien de confirmation a expiré (48h). Veuillez vous réinscrire."
         : msg === "Abonné déjà confirmé"
           ? "Votre inscription est déjà confirmée."
-          : "Ce lien de confirmation est invalide.";
+          : msg === "Adresse non distribuable"
+            ? "Nous n'avons pas pu livrer d'email à cette adresse. Vérifiez-la, puis réinscrivez-vous."
+            : "Ce lien de confirmation est invalide.";
 
     return new Response(htmlPage("Erreur", userMsg), {
       status: 400,
@@ -258,12 +261,9 @@ export const handleSesWebhook = httpAction(async (ctx, request) => {
   // attacker cannot produce. The host check still runs, in
   // `sesWebhookVerify`, doing the job it can actually do: deciding which host
   // we are willing to fetch a certificate from.
-  // `internal` is cast to `any` at the top of this file, so the action's
-  // return type does not survive the call. Named here, or `verdict.valid`
-  // would be `any` and the check below would prove nothing.
-  const verdict = (await ctx.runAction(internal.sesWebhookVerify.verify, {
+  const verdict = await ctx.runAction(internal.sesWebhookVerify.verify, {
     body: rawBody,
-  })) as { valid: boolean; reason?: string };
+  });
   if (!verdict.valid) {
     console.error("Rejected SES webhook:", verdict.reason);
     return new Response("Unauthorized", { status: 403 });
@@ -329,8 +329,18 @@ export const handleSesWebhook = httpAction(async (ctx, request) => {
   try {
     switch (notification.notificationType) {
       case "Bounce": {
+        // The classification is the whole point of reading this branch.
+        // Without it every dead mailbox was mailed three times, and it is the
+        // bounce ratio — not the number of distinct bad addresses — that AWS
+        // suspends an account over. The body is signed, so this is trustworthy
+        // by the time execution reaches here.
         await ctx.runMutation(internal.emailSubscribers.markBounced, {
           id: typedSubscriberId,
+          // Normalised rather than forwarded raw: `markBounced`'s validator is
+          // a closed union, and this whole switch sits inside a catch that
+          // only logs — so an unrecognised value would fail validation, be
+          // swallowed, and lose the bounce entirely.
+          bounceType: normalizeBounceType(notification.bounce?.bounceType),
         });
         await ctx.runMutation(internal.emailEvents.create, {
           storeId: typedStoreId,

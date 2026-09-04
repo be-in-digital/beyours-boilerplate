@@ -17,6 +17,12 @@ import {
   subjectFor,
   withinWeeklyCap,
 } from "@be-in-digital/convex-functions/campaignDelivery";
+import {
+  configurationSetFields,
+  describeSendAbort,
+  resolveConfigurationSet,
+  shouldAbortSend,
+} from "@be-in-digital/convex-functions/sesSending";
 
 const BATCH_DELAY_MS = 100; // ~10 emails/sec, well below SES sandbox limit
 
@@ -233,6 +239,22 @@ export const sendBatch = internalAction({
       ? `${config.senderName} <${config.fromEmail}>`
       : config.fromEmail;
 
+    // The configuration set is what SES attaches open and click tracking to,
+    // and it belongs to the AWS account doing the sending. It used to be
+    // hard-coded to the agency's own, which exists in no client account, so
+    // every call came back `ConfigurationSetDoesNotExist`. Read it from the
+    // deployment, and omit the field when there is none — a send with no
+    // configuration set is accepted, it simply produces no tracking events.
+    const configurationSet = resolveConfigurationSet(
+      process.env.AWS_SES_CONFIGURATION_SET
+    );
+    const configurationSetField = configurationSetFields(configurationSet);
+
+    // A run of refusals is an account-level fault, not a bad address; see
+    // CONSECUTIVE_SEND_FAILURE_LIMIT. Reset by every send that works, so a list
+    // with scattered bad addresses still goes out in full.
+    let consecutiveFailures = 0;
+
     for (const subscriber of recipients) {
       try {
         // The wizard collects variants and checks their percentages sum to 100.
@@ -266,7 +288,7 @@ export const sendBatch = internalAction({
           ReplyToAddresses: config.replyToEmail
             ? [config.replyToEmail]
             : undefined,
-          ConfigurationSetName: "beindigital-email-tracking",
+          ...configurationSetField,
           Content: {
             Simple: {
               Subject: { Data: delivery.subject, Charset: "UTF-8" },
@@ -302,6 +324,10 @@ export const sendBatch = internalAction({
 
         await sesClient.send(command);
 
+        // A send that worked clears the budget below: what aborts a batch is a
+        // RUN of failures, never a total.
+        consecutiveFailures = 0;
+
         // Recorded immediately after the send, so the idempotency check above
         // sees it even if this batch dies on the next subscriber.
         await ctx.runMutation(internal.emailEvents.create, {
@@ -324,7 +350,38 @@ export const sendBatch = internalAction({
 
         await delay(BATCH_DELAY_MS);
       } catch (error) {
+        consecutiveFailures += 1;
         console.error(`Erreur envoi subscriber ${subscriber._id}:`, error);
+
+        // The failure this replaces: every call refused, every refusal
+        // swallowed here, `markSent` below run regardless — and the owner told
+        // "Campagne envoyée (0/342 emails)". A campaign that reached nobody
+        // must not report success, so the batch gives up out loud.
+        //
+        // Throwing is also what stops the damage: the cursor is not advanced
+        // and the next batch is never scheduled, so the chain halts here
+        // instead of burning the rest of the list against a broken account.
+        // The campaign stays `sending` — not `sent` — with its cursor intact,
+        // so "Relancer" resumes this page once the account is fixed, and the
+        // idempotency check skips whoever did get through.
+        //
+        // `emailCampaigns` has no `failed` status and no internal pause
+        // mutation to reach `paused` from a batch that carries no identity, so
+        // `sending` is as close to "this went wrong" as the schema goes today.
+        if (shouldAbortSend(consecutiveFailures)) {
+          // `paused` rather than the `sending` the abort would otherwise leave
+          // behind: the admin renders `sending` as "En cours", which claims a
+          // send is progressing when it has stopped and will not resume by
+          // itself. `paused` is the state the screen already offers "Relancer"
+          // from, and the cursor is untouched, so resuming picks up this page
+          // once the account is fixed.
+          await ctx.runMutation(internal.emailCampaigns.pauseInternal, {
+            id: args.campaignId,
+          });
+          throw new Error(
+            describeSendAbort({ consecutiveFailures, configurationSet, error })
+          );
+        }
       }
     }
 
@@ -408,7 +465,11 @@ export const sendTest = action({
       new SendEmailCommand({
         FromEmailAddress: fromAddress,
         Destination: { ToAddresses: [args.testEmail] },
-        ConfigurationSetName: "beindigital-email-tracking",
+        // Same reasoning as the batch: the set belongs to the client's own AWS
+        // account, and the field is omitted when they have none. A test send
+        // has no catch, so a wrong name surfaces to the admin as an error —
+        // which is exactly how the batch's failure should have surfaced too.
+        ...configurationSetFields(process.env.AWS_SES_CONFIGURATION_SET),
         Content: {
           Simple: {
             Subject: {

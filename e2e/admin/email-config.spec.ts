@@ -170,20 +170,37 @@ test.describe("Email Config Page", () => {
       }
     })
 
-    test("should toggle an automation switch", async ({ page }) => {
+    test("should toggle an automation the engine can dispatch", async ({ page }) => {
       await page.waitForTimeout(2_000)
 
-      const birthdaySwitch = page.locator('label[for="birthdayEnabled"]').last()
-      await expect(birthdaySwitch).toBeVisible({ timeout: 15_000 })
+      // Was `birthdayEnabled`, which is now disabled by design: nothing
+      // dispatches on it, so the switch no longer accepts a click. `welcome`
+      // is a trigger the engine actually fires, so it is the one that still
+      // answers the question this test is asking.
+      const welcomeSwitch = page.locator('label[for="welcomeEnabled"]').last()
+      await expect(welcomeSwitch).toBeVisible({ timeout: 15_000 })
 
-      // Click the switch toggle to toggle it
-      await birthdaySwitch.click()
+      await welcomeSwitch.click()
       await page.waitForTimeout(500)
 
-      // The page should remain functional after toggle
       await expect(
         page.getByRole("heading", { name: "Configuration Email", level: 1 })
       ).toBeVisible()
+    })
+
+    test("should disable the automations nothing can dispatch", async ({ page }) => {
+      await page.waitForTimeout(2_000)
+
+      // An owner switching on "Email d'anniversaire" used to see it save and
+      // report itself on, while nothing would ever send: no record anywhere
+      // carries a date of birth, and the cart is never persisted server-side.
+      // The screen now says so instead of accepting the instruction.
+      for (const id of ["birthdayEnabled", "abandonedCartEnabled"]) {
+        await expect(page.locator(`#${id}`)).toBeDisabled({ timeout: 15_000 })
+      }
+      for (const id of ["welcomeEnabled", "postOrderEnabled", "inactiveEnabled"]) {
+        await expect(page.locator(`#${id}`)).toBeEnabled({ timeout: 15_000 })
+      }
     })
   })
 

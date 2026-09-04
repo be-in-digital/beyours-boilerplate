@@ -15,6 +15,10 @@ import {
   nextStep,
   occurrenceFor,
 } from "@be-in-digital/convex-functions/automationDispatch";
+import {
+  configurationSetFields,
+  resolveConfigurationSet,
+} from "@be-in-digital/convex-functions/sesSending";
 
 function createSESClient() {
   return new SESv2Client({
@@ -118,6 +122,15 @@ export const runStep = internalAction({
       { siteUrl: appUrl }
     );
 
+    // Same setting, same reasoning as a campaign: the configuration set belongs
+    // to the client's own AWS account, so it is read from the deployment and
+    // the field is omitted when they have none. Hard-coding the agency's own
+    // meant `ConfigurationSetDoesNotExist` on every automation SES ever
+    // attempted — a welcome sequence that silently reached nobody.
+    const configurationSet = resolveConfigurationSet(
+      process.env.AWS_SES_CONFIGURATION_SET
+    );
+
     try {
       await createSESClient().send(
         new SendEmailCommand({
@@ -126,7 +139,7 @@ export const runStep = internalAction({
             : config.fromEmail,
           Destination: { ToAddresses: [subscriber.email] },
           ReplyToAddresses: config.replyToEmail ? [config.replyToEmail] : undefined,
-          ConfigurationSetName: "beindigital-email-tracking",
+          ...configurationSetFields(configurationSet),
           Content: {
             Simple: {
               Subject: { Data: template.subject, Charset: "UTF-8" },
@@ -153,7 +166,14 @@ export const runStep = internalAction({
     } catch (error) {
       // Not recorded, so the step can be retried. Recording a send that failed
       // would drop the message from the sequence for good.
-      console.error(`[emailAutomations] step ${step.id} failed:`, error);
+      //
+      // The configuration set is named because it is the setting this failure
+      // is usually about, and the one an operator can check in a second.
+      console.error(
+        `[emailAutomations] step ${step.id} failed (configuration set: ` +
+          `${configurationSet ?? "none"}):`,
+        error
+      );
       return;
     }
 
@@ -357,5 +377,194 @@ export const sweepInactive = internalAction({
       console.log(`[emailAutomations] win-back started for ${started} subscriber(s)`);
     }
     return { started };
+  },
+});
+
+// ─── The double opt-in confirmation ─────────────────────────────────────────
+//
+// Lives here rather than in a module of its own, and that is a deployment
+// constraint rather than a taste: Convex bundles every `"use node"` module
+// separately with its dependencies, and the e2e workflow pushes all of them
+// into a local backend under a hard five-minute ceiling that #315 measured the
+// push already running at ~60% of. A thirty-fourth Node bundle carrying its own
+// copy of the AWS SDK took three of four shards over that ceiling, failing them
+// in `Deploy Convex functions` before a single test body ran.
+//
+// It is also where the confirmation belongs. Confirming an opt-in is what
+// starts the welcome sequence, so the mail that carries the link and the engine
+// that answers it now sit in one file, over one SES client.
+
+const ESC_MAP: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+/**
+ * The restaurant's own name reaches this template from the database, where an
+ * owner typed it. Interpolating it raw would put whatever they typed into the
+ * markup of an email we send on their behalf.
+ */
+function esc(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => ESC_MAP[ch] ?? ch);
+}
+
+function buildConfirmationHtml(params: {
+  storeName: string;
+  confirmUrl: string;
+}): string {
+  const storeName = esc(params.storeName);
+  // Not escaped with `esc`: the URL goes in an href, where `&quot;` would
+  // corrupt it. It is built from CONVEX_SITE_URL and a UUID we minted, and the
+  // token is encoded at the call site.
+  const confirmUrl = params.confirmUrl;
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+  <head><meta charset="utf-8"></head>
+  <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#1a1a1a;margin:0;padding:0;background:#f4f4f5;">
+    <div style="max-width:560px;margin:0 auto;padding:40px 20px;">
+      <div style="background:#ffffff;border-radius:16px;padding:40px;">
+        <h1 style="margin:0 0 16px;font-size:22px;color:#1a1a1a;">Confirmez votre inscription</h1>
+        <p style="margin:0 0 8px;font-size:15px;color:#3f3f46;">
+          Vous avez demandé à recevoir les actualités de ${storeName}.
+          Un dernier clic et c'est fait.
+        </p>
+        <div style="text-align:center;margin:32px 0;">
+          <a href="${confirmUrl}" style="display:inline-block;background:#0A412D;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:999px;">Confirmer mon inscription</a>
+        </div>
+        <p style="margin:0;font-size:13px;color:#71717a;">
+          Ce lien est valable 48 heures. Si vous n'êtes pas à l'origine de cette
+          demande, ignorez cet email : aucune inscription ne sera enregistrée.
+        </p>
+      </div>
+      <p style="text-align:center;margin:20px 0 0;font-size:12px;color:#71717a;">${storeName}</p>
+    </div>
+  </body>
+</html>`;
+}
+
+function buildConfirmationText(params: {
+  storeName: string;
+  confirmUrl: string;
+}): string {
+  return [
+    `Vous avez demandé à recevoir les actualités de ${params.storeName}.`,
+    "",
+    "Confirmez votre inscription en ouvrant ce lien :",
+    params.confirmUrl,
+    "",
+    "Ce lien est valable 48 heures. Si vous n'êtes pas à l'origine de cette",
+    "demande, ignorez cet email : aucune inscription ne sera enregistrée.",
+  ].join("\n");
+}
+
+/**
+ * Send one subscriber the link that confirms their consent.
+ *
+ * Scheduled from the mutation that created them rather than awaited, for the
+ * same reason `confirmDoubleOptIn` schedules the welcome sequence: SES being
+ * slow or refusing is not a reason for the signup itself to fail in front of
+ * the visitor.
+ */
+export const sendConfirmation = internalAction({
+  args: { subscriberId: v.id("emailSubscribers") },
+  handler: async (ctx, args): Promise<void> => {
+    const subscriber = await ctx.runQuery(
+      internal.emailSubscribers.getByIdInternal,
+      { id: args.subscriberId }
+    );
+    if (!subscriber) return;
+
+    // Both are ordinary, not errors: a `manual` subscriber is `active` with no
+    // token by design, and a row confirmed between the schedule and the send
+    // has had its token cleared. Neither should produce a second email.
+    if (subscriber.status !== "pending" || !subscriber.doubleOptInToken) return;
+
+    const siteUrl = process.env.CONVEX_SITE_URL ?? "";
+    if (!siteUrl) {
+      // The three existing senders fall back to `""` here, which yields
+      // `/email/confirm?token=…` — a relative path, and an unclickable link in
+      // every mail client. Sending that would burn the token on a message that
+      // cannot work, and the 48-hour expiry would run out before anyone
+      // noticed. Refusing leaves the row `pending` and the token usable once
+      // the deployment is configured.
+      throw new Error(
+        "CONVEX_SITE_URL is not set — refusing to send a confirmation link that would be relative"
+      );
+    }
+
+    const confirmUrl = `${siteUrl.replace(/\/$/, "")}/email/confirm?token=${encodeURIComponent(
+      subscriber.doubleOptInToken
+    )}`;
+
+    const store = await ctx.runQuery(internal.stores.internalGetById, {
+      id: subscriber.storeId,
+    });
+    const storeName = store?.name ?? "votre restaurant";
+
+    // The marketing config when the owner has set one up, so the mail comes
+    // from the restaurant; the deployment's own sender otherwise, because a
+    // visitor who signs up before the owner opens the email screen still has
+    // to be confirmable.
+    const config = await ctx.runQuery(internal.emailConfig.getInternal, {
+      storeId: subscriber.storeId,
+    });
+    // `||`, not `??`: `emailConfig.fromEmail` is a required `v.string()` that
+    // `upsert` accepts empty, and `??` would hand SES "" rather than falling
+    // back — defeating the sentence above this one.
+    const fromEmail =
+      config?.fromEmail || process.env.AWS_SES_FROM_EMAIL || "";
+    if (!fromEmail) {
+      throw new Error(
+        "Neither the store's email config nor AWS_SES_FROM_EMAIL provides a sender address"
+      );
+    }
+    const fromAddress = config?.senderName
+      ? `${config.senderName} <${fromEmail}>`
+      : fromEmail;
+
+    // Omitted when unset: on a client's own AWS account a configuration set
+    // named for ours does not exist, and naming a missing one makes SES reject
+    // the send outright.
+    const configurationSet = process.env.AWS_SES_CONFIGURATION_SET;
+
+    await createSESClient().send(
+      new SendEmailCommand({
+        FromEmailAddress: fromAddress,
+        Destination: { ToAddresses: [subscriber.email] },
+        ReplyToAddresses: config?.replyToEmail ? [config.replyToEmail] : undefined,
+        ...(configurationSet ? { ConfigurationSetName: configurationSet } : {}),
+        Content: {
+          Simple: {
+            Subject: {
+              Data: `Confirmez votre inscription — ${storeName}`,
+              Charset: "UTF-8",
+            },
+            Body: {
+              Html: {
+                Data: buildConfirmationHtml({ storeName, confirmUrl }),
+                Charset: "UTF-8",
+              },
+              Text: {
+                Data: buildConfirmationText({ storeName, confirmUrl }),
+                Charset: "UTF-8",
+              },
+            },
+            Headers: [
+              // The webhook correlates bounces by these. A confirmation that
+              // hard-bounces is the clearest possible evidence the address is
+              // dead, and `markBounced` now suppresses a `Permanent` one on the
+              // first event — so a typo'd signup stops costing sends
+              // immediately instead of after three.
+              { Name: "X-Subscriber-Id", Value: String(subscriber._id) },
+              { Name: "X-Store-Id", Value: String(subscriber.storeId) },
+            ],
+          },
+        },
+      })
+    );
   },
 });

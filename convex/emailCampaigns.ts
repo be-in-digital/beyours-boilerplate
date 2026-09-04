@@ -68,6 +68,20 @@ export const cancel = storeMutation({
   handler: (ctx, args) => defs.cancel.handler(ctx, args),
 });
 
+/**
+ * Pause a campaign from a caller with no session.
+ *
+ * `sendBatch` aborts itself when SES refuses several sends in a row — an
+ * account-level fault, not a bad address. Left at `sending` the admin renders
+ * "En cours", which is the same lie one step quieter: nothing is in progress
+ * and nothing will be. `paused` is what the screen already knows how to show,
+ * and "Relancer" resumes from the preserved cursor once the account is fixed.
+ *
+ * Internal because a scheduled action has no identity to satisfy the
+ * permission check on its public twin.
+ */
+export const pauseInternal = internalMutation(defs.pause);
+
 export const pause = storeMutation({
   permission: "marketing:write",
   storeIdFrom: emailCampaignsStoreId,

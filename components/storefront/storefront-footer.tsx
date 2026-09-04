@@ -3,8 +3,11 @@
 import { useState, useId } from "react"
 import Link from "next/link"
 import { Facebook, Twitter, Instagram, MapPin, Phone, Clock, Mail } from "lucide-react"
+import { useMutation } from "convex/react"
 import { Button } from "@be-in-digital/ui/components"
 import { Input } from "@be-in-digital/ui/components"
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { useStoreId } from "@/lib/hooks"
 import { toast } from "sonner"
 
@@ -22,15 +25,40 @@ const quickLinks = [
 ]
 
 export function StorefrontFooter() {
-  const { store } = useStoreId()
+  const { storeId, store } = useStoreId()
   const [email, setEmail] = useState("")
+  const [subscribing, setSubscribing] = useState(false)
   const inputId = useId()
+  const subscribe = useMutation(api.emailSubscribers.subscribe)
 
-  function handleNewsletterSubmit(e: React.FormEvent<HTMLFormElement>) {
+  /**
+   * This form called no mutation at all.
+   *
+   * It read the address, discarded it, and showed "Vous êtes maintenant
+   * inscrit" — so a visitor who signed up in the footer was never recorded
+   * anywhere, in any state, and had no way of knowing. The two other signup
+   * surfaces at least write a row.
+   */
+  async function handleNewsletterSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!email.trim()) return
-    toast.success("Merci ! Vous êtes maintenant inscrit à notre newsletter.")
-    setEmail("")
+    if (!email.trim() || !storeId || subscribing) return
+
+    setSubscribing(true)
+    try {
+      await subscribe({ storeId: storeId as Id<"stores">, email: email.trim() })
+      // Deliberately not "vous êtes inscrit": they are not, yet. The row is
+      // `pending` until they open the link, and only `active` subscribers are
+      // ever mailed.
+      toast.success("Presque fini !", {
+        description:
+          "Ouvrez le lien que nous venons de vous envoyer pour confirmer votre inscription.",
+      })
+      setEmail("")
+    } catch {
+      toast.error("Cet email est déjà inscrit, ou une erreur est survenue.")
+    } finally {
+      setSubscribing(false)
+    }
   }
 
   return (
@@ -130,9 +158,10 @@ export function StorefrontFooter() {
               />
               <Button
                 type="submit"
+                disabled={subscribing || !storeId}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 bg-orange-500 hover:bg-orange-600 font-black text-[10px] uppercase tracking-widest rounded-lg px-4 text-white transition-colors"
               >
-                S&apos;inscrire
+                {subscribing ? "Envoi…" : "S'inscrire"}
               </Button>
             </form>
           </div>
