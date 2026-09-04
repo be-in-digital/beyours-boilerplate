@@ -293,7 +293,7 @@ describe("privilege escalation", () => {
     const asCustomer = await seedUser(t, "user:mallory", "customer", [])
 
     await expect(
-      asCustomer.mutation(api.userProfiles.upsert, {
+      asCustomer.mutation(internal.userProfiles.upsert, {
         userId: "user:mallory",
         role: "manager",
         storeIds: [storeId],
@@ -308,7 +308,7 @@ describe("privilege escalation", () => {
     const asOwnerOfA = await seedUser(t, "user:a", "client_admin", [storeA])
 
     await expect(
-      asOwnerOfA.mutation(api.userProfiles.upsert, {
+      asOwnerOfA.mutation(internal.userProfiles.upsert, {
         userId: "user:new",
         role: "manager",
         storeIds: [storeB],
@@ -322,7 +322,7 @@ describe("privilege escalation", () => {
     const asOwnerOfA = await seedUser(t, "user:a", "client_admin", [storeA])
 
     await expect(
-      asOwnerOfA.mutation(api.userProfiles.upsert, {
+      asOwnerOfA.mutation(internal.userProfiles.upsert, {
         userId: "user:new",
         role: "client_admin",
         storeIds: [storeA],
@@ -839,61 +839,397 @@ describe("copying a catalogue", () => {
   })
 })
 
+/**
+ * The first-administrator path.
+ *
+ * These assert the property the whole bootstrap exists for: **a clone nobody
+ * has configured cannot produce an administrator, by any public route.** The
+ * earlier version of this block asserted `rejects.toThrow()` and nothing else,
+ * which is satisfied by a schema error as readily as by a refusal, and its
+ * success case never checked that a super admin had been minted at all — let
+ * alone exactly one. So it would have stayed green through a claim that
+ * silently minted two, or one that refused for the wrong reason.
+ *
+ * Every case below therefore reads the refusal's `code` and counts the
+ * super-admin rows afterwards. `mintedSuperAdmins` is the invariant; the codes
+ * are what stops a right answer for a wrong reason.
+ */
 describe("claiming the first admin seat", () => {
-  test("an authenticated stranger cannot claim it without the bootstrap secret", async () => {
-    const t = newHarness()
-    const asCustomer = await seedUser(t, "user:mallory", "customer", [])
-
-    // Sign-up is open on the storefront. "Self-closing once a super admin
-    // exists" meant the first stranger through the door took the deployment.
-    await expect(
-      asCustomer.mutation(api.userProfiles.claimFirstAdmin, {
-        bootstrapToken: "guess",
-      })
-    ).rejects.toThrow()
-  })
-
-  test("an unset bootstrap secret refuses everyone rather than letting anyone in", async () => {
-    const previous = process.env.ADMIN_BOOTSTRAP_TOKEN
-    delete process.env.ADMIN_BOOTSTRAP_TOKEN
+  /**
+   * The refusal's machine-readable code.
+   *
+   * convex-test serialises `ConvexError.data` into the message rather than
+   * carrying `err.data` across, so read it back out of the JSON. A test that
+   * cannot tell "wrong token" from "no such function" is not testing a guard.
+   */
+  async function refusalCode(call: Promise<unknown>): Promise<string> {
     try {
-      const t = newHarness()
-      const asCustomer = await seedUser(t, "user:mallory", "customer", [])
-
-      await expect(
-        asCustomer.mutation(api.userProfiles.claimFirstAdmin, {
-          bootstrapToken: "",
-        })
-      ).rejects.toThrow()
-    } finally {
-      if (previous !== undefined) process.env.ADMIN_BOOTSTRAP_TOKEN = previous
+      await call
+      return "__RESOLVED__"
+    } catch (err) {
+      const raw = String((err as Error).message ?? err)
+      const data = (err as { data?: unknown }).data
+      if (data && typeof data === "object" && "code" in data) {
+        return String((data as { code: unknown }).code)
+      }
+      const match = raw.match(/\{[\s\S]*\}/)
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[0]) as { code?: unknown }
+          if (parsed.code !== undefined) return String(parsed.code)
+        } catch {
+          /* not JSON: fall through and report the raw message */
+        }
+      }
+      return raw
     }
-  })
+  }
 
-  test("the holder of the secret claims the seat, once", async () => {
+  /** Who actually holds the super-admin seat, straight from the table. */
+  async function mintedSuperAdmins(t: ReturnType<typeof convexTest>) {
+    return t.run((ctx) =>
+      ctx.db
+        .query("userProfiles")
+        .filter((q) => q.eq(q.field("role"), "super_admin"))
+        .collect()
+    )
+  }
+
+  /** Run `fn` with `ADMIN_BOOTSTRAP_TOKEN` set to `value` (or unset). */
+  async function withBootstrapToken<T>(
+    value: string | undefined,
+    fn: () => Promise<T>
+  ): Promise<T> {
     const previous = process.env.ADMIN_BOOTSTRAP_TOKEN
-    process.env.ADMIN_BOOTSTRAP_TOKEN = "s3cr3t-bootstrap"
+    if (value === undefined) delete process.env.ADMIN_BOOTSTRAP_TOKEN
+    else process.env.ADMIN_BOOTSTRAP_TOKEN = value
     try {
-      const t = newHarness()
-      const asOwner = await seedUser(t, "user:owner", "customer", [])
-
-      await expect(
-        asOwner.mutation(api.userProfiles.claimFirstAdmin, {
-          bootstrapToken: "s3cr3t-bootstrap",
-        })
-      ).resolves.not.toThrow()
-
-      // Self-closing: even with the secret, the second claim finds an admin.
-      const asSecond = await seedUser(t, "user:second", "customer", [])
-      await expect(
-        asSecond.mutation(api.userProfiles.claimFirstAdmin, {
-          bootstrapToken: "s3cr3t-bootstrap",
-        })
-      ).rejects.toThrow()
+      return await fn()
     } finally {
       if (previous === undefined) delete process.env.ADMIN_BOOTSTRAP_TOKEN
       else process.env.ADMIN_BOOTSTRAP_TOKEN = previous
     }
+  }
+
+  test("an unconfigured deployment refuses everyone rather than letting anyone in", async () => {
+    // A missing variable that waved callers through would recreate the hole on
+    // exactly the deployments nobody has set up yet — every fresh clone.
+    await withBootstrapToken(undefined, async () => {
+      const t = newHarness()
+      const asCustomer = await seedUser(t, "user:mallory", "customer", [])
+
+      expect(
+        await refusalCode(
+          asCustomer.mutation(api.userProfiles.claimFirstAdmin, {
+            bootstrapToken: "guess",
+          })
+        )
+      ).toBe("bootstrap_not_configured")
+      expect(await mintedSuperAdmins(t)).toHaveLength(0)
+    })
+  })
+
+  test("an empty bootstrap token is not a configured one", async () => {
+    // `ADMIN_BOOTSTRAP_TOKEN=` in a .env file is the shape a half-finished
+    // setup leaves behind, and an empty secret matching an empty submission is
+    // how it would hand the deployment to the next visitor.
+    await withBootstrapToken("", async () => {
+      const t = newHarness()
+      const asCustomer = await seedUser(t, "user:mallory", "customer", [])
+
+      expect(
+        await refusalCode(
+          asCustomer.mutation(api.userProfiles.claimFirstAdmin, { bootstrapToken: "" })
+        )
+      ).toBe("bootstrap_not_configured")
+      expect(await mintedSuperAdmins(t)).toHaveLength(0)
+    })
+  })
+
+  test("an authenticated stranger cannot claim it without the bootstrap secret", async () => {
+    // Sign-up is open on the storefront. "Self-closing once a super admin
+    // exists" meant the first stranger through the door took the deployment.
+    // The token IS configured here, so this tests the refusal it is named for
+    // rather than passing because nothing was ever set.
+    await withBootstrapToken("s3cr3t-bootstrap", async () => {
+      const t = newHarness()
+      const asCustomer = await seedUser(t, "user:mallory", "customer", [])
+
+      expect(
+        await refusalCode(
+          asCustomer.mutation(api.userProfiles.claimFirstAdmin, {
+            bootstrapToken: "guess",
+          })
+        )
+      ).toBe("bootstrap_token_invalid")
+      expect(await mintedSuperAdmins(t)).toHaveLength(0)
+    })
+  })
+
+  test("a correct prefix of the secret is worth no more than a wrong guess", async () => {
+    await withBootstrapToken("s3cr3t-bootstrap", async () => {
+      const t = newHarness()
+      const asCustomer = await seedUser(t, "user:mallory", "customer", [])
+
+      expect(
+        await refusalCode(
+          asCustomer.mutation(api.userProfiles.claimFirstAdmin, {
+            bootstrapToken: "s3cr3t",
+          })
+        )
+      ).toBe("bootstrap_token_invalid")
+      expect(await mintedSuperAdmins(t)).toHaveLength(0)
+    })
+  })
+
+  test("holding the secret is not enough without a session", async () => {
+    // The seat is attached to an account, not to the token. A claim that
+    // succeeded anonymously would have nobody to attach it to.
+    await withBootstrapToken("s3cr3t-bootstrap", async () => {
+      const t = newHarness()
+
+      expect(
+        await refusalCode(
+          t.mutation(api.userProfiles.claimFirstAdmin, {
+            bootstrapToken: "s3cr3t-bootstrap",
+          })
+        )
+      ).toBe("not_authenticated")
+      expect(await mintedSuperAdmins(t)).toHaveLength(0)
+    })
+  })
+
+  test("the holder of the secret claims the seat, exactly once", async () => {
+    await withBootstrapToken("s3cr3t-bootstrap", async () => {
+      const t = newHarness()
+      const asOwner = await seedUser(t, "user:owner", "customer", [])
+
+      await asOwner.mutation(api.userProfiles.claimFirstAdmin, {
+        bootstrapToken: "s3cr3t-bootstrap",
+      })
+
+      // One seat, and it belongs to the caller who claimed it.
+      const minted = await mintedSuperAdmins(t)
+      expect(minted).toHaveLength(1)
+      expect(minted[0]?.userId).toBe("user:owner")
+
+      // Self-closing against a replay by the same holder...
+      expect(
+        await refusalCode(
+          asOwner.mutation(api.userProfiles.claimFirstAdmin, {
+            bootstrapToken: "s3cr3t-bootstrap",
+          })
+        )
+      ).toBe("bootstrap_already_claimed")
+
+      // ...and against a second person who also came by the token.
+      const asSecond = await seedUser(t, "user:second", "customer", [])
+      expect(
+        await refusalCode(
+          asSecond.mutation(api.userProfiles.claimFirstAdmin, {
+            bootstrapToken: "s3cr3t-bootstrap",
+          })
+        )
+      ).toBe("bootstrap_already_claimed")
+
+      expect(await mintedSuperAdmins(t)).toHaveLength(1)
+    })
+  })
+
+  test("two claims racing for the seat still mint exactly one", async () => {
+    // Both callers hold the token and both find an empty table. Only the
+    // transaction that commits first may win.
+    await withBootstrapToken("s3cr3t-bootstrap", async () => {
+      const t = newHarness()
+      const results = await Promise.allSettled([
+        t
+          .withIdentity({ subject: "user:a" })
+          .mutation(api.userProfiles.claimFirstAdmin, {
+            bootstrapToken: "s3cr3t-bootstrap",
+          }),
+        t
+          .withIdentity({ subject: "user:b" })
+          .mutation(api.userProfiles.claimFirstAdmin, {
+            bootstrapToken: "s3cr3t-bootstrap",
+          }),
+      ])
+
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1)
+      expect(await mintedSuperAdmins(t)).toHaveLength(1)
+    })
+  })
+
+  test("`upsert` is not publicly exported at all", () => {
+    // The strongest form of "not a second door onto the seat": the mutation is
+    // `internalMutation`, so no client can reach it whatever the policy says.
+    //
+    // This has to be a source assertion, and the reason is worth recording.
+    // Neither of the two things that would normally catch a regression here
+    // can see it. `tsconfig.json` excludes `tests`, so the compiler never
+    // type-checks these files and a stale `api.userProfiles.upsert` raises
+    // nothing. And convex-test resolves `api.` and `anyApi.` by path and runs
+    // the function regardless of its visibility — measured: calling
+    // `anyApi.userProfiles.upsert` after this change still executed the
+    // handler and returned the policy's refusal, not "no such export". The
+    // sibling tests above that DO assert "no such export" pass because those
+    // functions were deleted outright, which is a different thing.
+    //
+    // So reverting `internalMutation` to `mutation` would be invisible to the
+    // whole suite. This is what notices.
+    const sources = import.meta.glob("../../convex/userProfiles.ts", {
+      query: "?raw",
+      import: "default",
+      eager: true,
+    }) as Record<string, string>
+    const source = Object.values(sources)[0]
+
+    expect(source).toBeTypeOf("string")
+    expect(source).toMatch(/export const upsert = internalMutation\(/)
+    expect(source).not.toMatch(/export const upsert = mutation\(/)
+  })
+
+  test("the provisioning policy still refuses an escalation from inside", async () => {
+    // Internal is the outer wall; the policy is the inner one, and it still
+    // runs. Reaching it through `internal.` is how a server function would,
+    // and how `seed-users.mts` does through a deploy key.
+    await withBootstrapToken(undefined, async () => {
+      const t = newHarness()
+
+      // No profile at all — the state of every account on a fresh clone.
+      expect(
+        await refusalCode(
+          t.withIdentity({ subject: "user:nobody" }).mutation(internal.userProfiles.upsert, {
+            userId: "user:nobody",
+            role: "super_admin",
+            storeIds: [],
+            permissions: [],
+          })
+        )
+      ).toBe("no_profile")
+
+      // A customer promoting themselves.
+      const asCustomer = await seedUser(t, "user:mallory", "customer", [])
+      expect(
+        await refusalCode(
+          asCustomer.mutation(internal.userProfiles.upsert, {
+            userId: "user:mallory",
+            role: "super_admin",
+            storeIds: [],
+            permissions: [],
+          })
+        )
+      ).toMatch(/pas le droit/)
+
+      // A restaurant owner promoting themselves the rest of the way.
+      const asClientAdmin = await seedUser(t, "user:owner", "client_admin", [])
+      expect(
+        await refusalCode(
+          asClientAdmin.mutation(internal.userProfiles.upsert, {
+            userId: "user:owner",
+            role: "super_admin",
+            storeIds: [],
+            permissions: [],
+          })
+        )
+      ).toMatch(/super administrateur/)
+
+      expect(await mintedSuperAdmins(t)).toHaveLength(0)
+    })
+  })
+
+  test("a client admin cannot demote the super admin out of the seat", async () => {
+    // The mirror image of claiming it, and the one `upsert` makes reachable:
+    // the requested role is harmless, the target holds no foreign store, and
+    // every other check passes. Only reading who the target IS today refuses
+    // it — so this covers the seam between `assertCanAssignProfile` and its
+    // call site, which the pure-function tests in `convex-functions` cannot.
+    // Passing `existingTarget: null` from the handler reopens it, and until
+    // this test existed that change kept the whole suite green.
+    await withBootstrapToken("s3cr3t-bootstrap", async () => {
+      const t = newHarness()
+      const storeA = await seedStore(t, "Pizza A")
+      await seedUser(t, "user:root", "super_admin", [])
+      const asOwner = await seedUser(t, "user:owner", "client_admin", [storeA])
+
+      expect(
+        await refusalCode(
+          asOwner.mutation(internal.userProfiles.upsert, {
+            userId: "user:root",
+            role: "customer",
+            storeIds: [],
+            permissions: [],
+          })
+        )
+      ).toMatch(/super administrateur/)
+
+      // Still holds the seat, with the role and stores it had.
+      const supers = await mintedSuperAdmins(t)
+      expect(supers).toHaveLength(1)
+      expect(supers[0]?.userId).toBe("user:root")
+    })
+  })
+
+  test("the claim is wired to the constant-time comparison, not to `!==`", async () => {
+    // `bootstrapTokenMatches` and `!==` agree on every input — they differ only
+    // in timing, which no assertion can pin down reliably. So the property is
+    // checked structurally instead: reverting the call site to `!==` is
+    // otherwise invisible to the entire suite, and it silently reinstates the
+    // byte-at-a-time oracle the function exists to close.
+    const sources = import.meta.glob("../../convex/userProfiles.ts", {
+      query: "?raw",
+      import: "default",
+      eager: true,
+    }) as Record<string, string>
+    const source = Object.values(sources)[0]
+
+    expect(source).toBeTypeOf("string")
+    expect(source).toContain("bootstrapTokenMatches(args.bootstrapToken, expected)")
+    // No hand-rolled comparison of the token beside it.
+    expect(source).not.toMatch(/args\.bootstrapToken\s*[!=]==/)
+  })
+
+  test("`bootstrapStatus` tells the setup screen the truth", async () => {
+    // `/setup` renders one of three states off this query. If it lied about
+    // `configured`, the screen would show a token field on a deployment where
+    // no token can work — or hide it on one where the seat is still free.
+    await withBootstrapToken(undefined, async () => {
+      const t = newHarness()
+      expect(await t.query(api.userProfiles.bootstrapStatus, {})).toEqual({
+        claimed: false,
+        configured: false,
+      })
+    })
+
+    // `ADMIN_BOOTSTRAP_TOKEN=` — the shape a half-finished setup leaves behind.
+    // `claimFirstAdmin` already refuses it; the screen has to agree, or it
+    // shows a token field on a deployment where no token can ever work. A
+    // `!== undefined` test here reads as correct and reports the opposite.
+    await withBootstrapToken("", async () => {
+      const t = newHarness()
+      expect(await t.query(api.userProfiles.bootstrapStatus, {})).toEqual({
+        claimed: false,
+        configured: false,
+      })
+    })
+
+    await withBootstrapToken("s3cr3t-bootstrap", async () => {
+      const t = newHarness()
+      expect(await t.query(api.userProfiles.bootstrapStatus, {})).toEqual({
+        claimed: false,
+        configured: true,
+      })
+
+      await t
+        .withIdentity({ subject: "user:owner" })
+        .mutation(api.userProfiles.claimFirstAdmin, {
+          bootstrapToken: "s3cr3t-bootstrap",
+        })
+
+      expect(await t.query(api.userProfiles.bootstrapStatus, {})).toEqual({
+        claimed: true,
+        configured: true,
+      })
+    })
   })
 })
 

@@ -259,9 +259,10 @@ async function main() {
 
   // Profiles go through `internalUpsert`, run by the Convex CLI.
   //
-  // The public `userProfiles.upsert` demands an authenticated actor with the
-  // right to hand out roles — that is the whole point of it. This script has no
-  // session, so it used to fail with "Not authenticated" on every user while
+  // `userProfiles.upsert` is internal now and demands an authenticated actor
+  // with the right to hand out roles — that is the whole point of it. This
+  // script has no session, so it used to fail with "Not authenticated" on
+  // every user while
   // still printing "Seeding complete!": the accounts existed, none of them had
   // a role, and the e2e suite then failed on an admin screen for reasons that
   // pointed nowhere near here.

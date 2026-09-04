@@ -282,7 +282,17 @@ Site "${name}" initialisé (${mobile ? "web + app mobile" : "web"}, template des
   1. pnpx convex dev          # provisionne le deployment Convex
   2. pnpm env:setup           # wizard .env (web + convex + mobile)
   3. pnpm convex:env          # pousse .env.convex côté backend
-  4. pnpm dev${mobile ? "\n  5. cd mobile && pnpm install && pnpm start   # app Expo" : ""}
+  4. npx convex env set ADMIN_BOOTSTRAP_TOKEN "$(openssl rand -base64 32)"
+                              # sans lui, /setup refuse TOUT LE MONDE et
+                              # personne ne peut prendre la main sur l'admin
+  5. pnpm dev${mobile ? "\n  6. cd mobile && pnpm install && pnpm start   # app Expo" : ""}
+
+L'étape 4 échoue fermé, exprès : un jeton absent qui laisserait passer
+rouvrirait le trou sur exactement les déploiements que personne n'a configurés.
+Transmettez le jeton au client une seule fois — il crée son compte, ouvre
+/setup, le colle, et le siège est pris définitivement. Procédure complète, avec
+la restriction de la clé Google Maps : scripts/wizards/github-e2e-maps-bootstrap.sh
+dans le monorepo BeYours.
 
 Avant la mise en prod : créer le projet Sentry DU CLIENT (1 projet par client,
 sous SON compte), coller le DSN dans NEXT_PUBLIC_SENTRY_DSN, et le déclarer

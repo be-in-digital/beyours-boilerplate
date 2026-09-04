@@ -4,6 +4,7 @@ import * as defs from "@be-in-digital/convex-functions/userProfiles";
 import { getAuthUser } from "@be-in-digital/convex-functions/auth";
 import {
   assertCanAssignProfile,
+  bootstrapTokenMatches,
   canClaimFirstAdmin,
 } from "@be-in-digital/convex-functions/profileProvisioning";
 import {
@@ -12,21 +13,6 @@ import {
 } from "@be-in-digital/convex-functions/accessAudit";
 import { Role } from "@be-in-digital/core/auth/rbac";
 
-
-/**
- * Compare two secrets without leaking their length or content through timing.
- *
- * A plain `===` returns on the first differing byte, which is enough to
- * recover a token one character at a time.
- */
-function timingSafeEqualString(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return diff === 0;
-}
 
 // === Queries ===
 //
@@ -87,13 +73,35 @@ export const bootstrapStatus = query({
 /**
  * Create or update another user's profile.
  *
- * The previous guard only rejected the literal strings "super_admin" and
- * "client_admin", so `manager` — which carries products, orders and customers
- * write access — passed straight through, on any store id the caller chose.
- * The whole policy now lives in `assertCanAssignProfile`.
+ * INTERNAL, and that is the point. The previous guard only rejected the literal
+ * strings "super_admin" and "client_admin", so `manager` — which carries
+ * products, orders and customers write access — passed straight through, on any
+ * store id the caller chose. The whole policy now lives in
+ * `assertCanAssignProfile`, and it held: an adversarial pass over seven
+ * starting roles, three target roles and both self and other could not get an
+ * administrative profile out of it.
+ *
+ * It was still a PUBLIC mutation whose validator accepts `super_admin`, with no
+ * caller in either app's interface — the entire product reaches profiles
+ * through `teamMembers.*` instead. A publicly reachable escalation surface that
+ * nothing uses is a surface kept alive by its guard alone, and this repository
+ * has already shipped one regression (#129) through an `any`-typed API injector
+ * that hid a call the compiler could not see. Internal removes the surface
+ * rather than defending it.
+ *
+ * The policy still runs, and is still tested — the tests reach it through
+ * `internal.` now, and one of them asserts it is no longer publicly callable.
+ * A super admin who genuinely has to rewrite a profile by hand still can,
+ * through `internalUpsert` and a deploy key, which is how `seed-users.mts`
+ * already provisions every seeded account.
  */
-// @guarded-inline: session-derived, or policy-checked in the handler
-export const upsert = mutation({
+// Not `@guarded-inline`: that marker is for the ESLint rule in
+// `packages/convex-functions/eslint/convex-auth.mjs`, which inspects bare
+// `query`/`mutation` builders only. An internal mutation is outside its scope,
+// so leaving the marker here would assert a check that no longer watches this
+// function. The policy call below is the guard, and the tests reach it through
+// `internal.`.
+export const upsert = internalMutation({
   args: defs.upsert.args,
   handler: async (ctx, args) => {
     const actor = await getAuthUser(ctx);
@@ -190,7 +198,7 @@ export const claimFirstAdmin = mutation({
           "L'amorçage administrateur n'est pas configuré sur ce déploiement.",
       });
     }
-    if (!timingSafeEqualString(args.bootstrapToken, expected)) {
+    if (!bootstrapTokenMatches(args.bootstrapToken, expected)) {
       throw new ConvexError({
         code: "bootstrap_token_invalid",
         message: "Jeton d'amorçage invalide.",

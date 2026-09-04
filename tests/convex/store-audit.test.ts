@@ -14,7 +14,7 @@
 
 import { convexTest } from "convex-test"
 import { afterEach, describe, expect, test } from "vitest"
-import { api } from "../../convex/_generated/api"
+import { api, internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
 
@@ -456,7 +456,7 @@ describe("getAuditLog", () => {
     // The one route that can still strip a client admin of a store: a super
     // admin rewriting the profile. Team revocation leaves admin roles alone,
     // and #117 means creating a store grants it rather than withholding it.
-    await root.mutation(api.userProfiles.upsert, {
+    await root.mutation(internal.userProfiles.upsert, {
       userId: "marie",
       role: "client_admin",
       storeIds: [],

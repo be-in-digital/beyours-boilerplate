@@ -17,7 +17,7 @@
 
 import { convexTest } from "convex-test"
 import { afterEach, describe, expect, test } from "vitest"
-import { api } from "../../convex/_generated/api"
+import { api, internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
 
@@ -271,7 +271,7 @@ describe("the grant does not become an escalation", () => {
     // The narrow grant inside `stores.create` is the exception; the general
     // rule it lives beside is untouched.
     await expect(
-      marie.mutation(api.userProfiles.upsert, {
+      marie.mutation(internal.userProfiles.upsert, {
         userId: "marie",
         role: "client_admin",
         storeIds: [roma, theirs],
