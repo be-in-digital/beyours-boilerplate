@@ -13,9 +13,10 @@ export const list = storeQuery({
   handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
-/** Get order by ID with access control (owner via auth OR view token) */
-// @guarded-inline: returns the order only to its owner (session) or to the
-// holder of the view token; otherwise null
+/** Get order by ID with access control (view token, the customer, or the store's staff) */
+// @guarded-inline: the view token issued at checkout, the customer who placed
+// the order, or someone who works at that order's restaurant and holds
+// `orders:read` there; otherwise null
 export const getById = query({
   args: {
     id: v.id("orders"),
@@ -33,6 +34,27 @@ export const getById = query({
     // Access via authenticated owner
     const identity = await ctx.auth.getUserIdentity();
     if (identity && order.customerId === identity.subject) {
+      return order;
+    }
+
+    /**
+     * Access via the staff of the restaurant the order belongs to.
+     *
+     * The two branches above ask "did you place this order". Nothing asked "do
+     * you work here", so the admin's order-detail screen was unreachable for
+     * every guest order — which is most of them: a guest carries no
+     * `customerId`, checkout stores `session?.user?.id` and that is `undefined`
+     * without an account. The screen rendered "Commande introuvable" to the
+     * owner of the restaurant.
+     *
+     * Scoped to THIS order's store, through the same `requireStorePermission`
+     * chain every admin function already uses — so staff of one restaurant
+     * still cannot read another's. `orders:read` is the permission `list` above
+     * already requires, and `list` already returns these very documents whole,
+     * so this branch widens the audience of nothing: it lets the same people
+     * open one of the orders they can already enumerate.
+     */
+    if (identity && (await defs.mayReadStoreOrders(ctx, order.storeId))) {
       return order;
     }
 
@@ -186,6 +208,11 @@ export const internalUpdateStatus = internalMutation({
  * feeds the kitchen" lives. Patching `paymentStatus` here directly is what
  * left the Stripe, PayPal and SumUp paths each responsible for remembering to
  * tell the kitchen, and none of them did.
+ *
+ * The union comes from the defs layer too, `refund_pending` included: the four
+ * provider paths pass whatever `paymentStatusAfterSettlement` returns, and for
+ * money arriving against a cancelled order that is `refund_pending`. Restating
+ * the union here is how the two would drift.
  */
 export const internalUpdatePaymentStatus = internalMutation({
   args: defs.recordPaymentStatus.args,

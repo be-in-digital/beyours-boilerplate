@@ -125,7 +125,18 @@ export const generateOAuthUrl = action({
         throw new Error(account.error?.message ?? "Failed to create Stripe account");
       }
 
-      // 2. Generate an onboarding link
+      // 2. Issue and persist a single-use CSRF state (TTL) before handing the
+      //    onboarding URL to the browser. Both Stripe redirect targets carry
+      //    it, so neither can be driven with an account id alone — that was
+      //    the whole of the stripeCallback / stripeRefresh gap.
+      const { randomBytes } = await import("crypto");
+      const stripeState = randomBytes(16).toString("hex");
+      await ctx.runMutation(internal.oauthState.create, {
+        provider: "stripe",
+        state: stripeState,
+      });
+
+      // 3. Generate an onboarding link
       const linkRes = await fetch("https://api.stripe.com/v1/account_links", {
         method: "POST",
         headers: {
@@ -134,8 +145,8 @@ export const generateOAuthUrl = action({
         },
         body: new URLSearchParams({
           account: account.id,
-          return_url: `${siteUrl}/connect/stripe/callback?account_id=${account.id}`,
-          refresh_url: `${siteUrl}/connect/stripe/refresh?account_id=${account.id}`,
+          return_url: `${siteUrl}/connect/stripe/callback?account_id=${account.id}&state=${stripeState}`,
+          refresh_url: `${siteUrl}/connect/stripe/refresh?account_id=${account.id}&state=${stripeState}`,
           type: "account_onboarding",
         }),
       });
@@ -144,7 +155,7 @@ export const generateOAuthUrl = action({
         throw new Error(link.error?.message ?? "Failed to create Stripe onboarding link");
       }
 
-      return { url: link.url, state: "" };
+      return { url: link.url, state: stripeState };
     }
 
     // -----------------------------------------------------------------------
@@ -160,6 +171,15 @@ export const generateOAuthUrl = action({
 
     const { randomBytes } = await import("crypto");
     const state = randomBytes(16).toString("hex");
+
+    // Persist the state (single-use, TTL) so the callback can verify it (CSRF).
+    // This one line was the SumUp hole: the state was generated and returned to
+    // the caller but never stored, so sumupCallback had nothing to match against
+    // and accepted any authorization code presented to it.
+    await ctx.runMutation(internal.oauthState.create, {
+      provider: "sumup",
+      state,
+    });
 
     const params = new URLSearchParams({
       response_type: "code",

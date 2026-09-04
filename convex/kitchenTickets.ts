@@ -412,7 +412,13 @@ export const completeTicket = action({
  * Platform behavior:
  * - Uber Eats: deny (pre-accept) or cancel (post-accept). Refund is automatic.
  * - Deliveroo: reject (pre-accept only). Post-accept cancel not available via API.
- * - Website: orders.internalUpdateStatus already marks payments as refunded at DB level.
+ * - Website: NOTHING is refunded here. `orders.internalUpdateStatus` flags the
+ *   order `paymentStatus: "refund_pending"` and leaves the `payments` rows
+ *   alone. It used to patch them to "refunded" without calling any provider, so
+ *   the books claimed a refund the customer never received — and since
+ *   `planRefund` accepts only "succeeded"/"partially_refunded", that fake
+ *   refund then made the real one impossible. An operator sends the money back
+ *   through `payments.refundPayment`, which calls the provider first.
  */
 // @guarded-inline: checks kitchen:write on the ticket's own store
 export const cancelTicket = action({
@@ -444,7 +450,8 @@ export const cancelTicket = action({
       status: "cancelled",
     });
 
-    // 2. Cancel the order (also handles DB-level refund for website payments)
+    // 2. Cancel the order. This flags it `refund_pending` when it was paid; it
+    //    does NOT move money and does not touch the payments rows.
     try {
       await ctx.runMutation(internal.orders.internalUpdateStatus, {
         id: ticket.orderId,

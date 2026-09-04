@@ -91,7 +91,9 @@ export type OrderItem = {
 }
 
 export type OrderStatus = "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "completed" | "cancelled"
-export type OrderPaymentStatus = "pending" | "paid" | "failed" | "refunded" | "partially_refunded"
+// `refund_pending`: a paid order was cancelled and the money is owed back,
+// but nothing has been sent yet. Mirrors the union in `@be-in-digital/admin`.
+export type OrderPaymentStatus = "pending" | "paid" | "failed" | "refunded" | "partially_refunded" | "refund_pending"
 export type OrderSource = "website" | "uber_eats" | "deliveroo" | "pos"
 export type OrderType = "delivery" | "pickup" | "dine_in"
 

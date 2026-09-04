@@ -4,7 +4,10 @@ import { v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { assertSettlesOrder } from "@be-in-digital/convex-functions/paymentSettlement";
+import {
+  assertSettlesOrder,
+  paymentStatusAfterSettlement,
+} from "@be-in-digital/convex-functions/paymentSettlement";
 
 // ---------------------------------------------------------------------------
 // Inline AES-256-GCM decryption (same pattern as oauthConnect.ts)
@@ -150,6 +153,9 @@ export const verifyCheckout = action({
       total: number;
       orderNumber: string;
       storeId: string;
+      // Needed by `paymentStatusAfterSettlement`: money arriving for a
+      // cancelled order is owed back, not "paid".
+      status: string;
       paymentStatus: string;
       viewToken?: string;
       customerInfo?: { email?: string };
@@ -174,29 +180,34 @@ export const verifyCheckout = action({
         { orderId: args.orderId, total: order.total }
       );
 
-      if (order.paymentStatus !== "paid") {
+      // What this settlement should do to the ORDER — which is not always
+      // "mark it paid". `refund_pending` (paid, then cancelled, money owed
+      // back) is not "paid", so the old `if (order.paymentStatus !== "paid")`
+      // walked into the branch and wrote the marker away; a provider retry or
+      // a refreshed success tab was enough. The payment row is recorded either
+      // way: the money moved, and a refund needs something to point at.
+      const nextPaymentStatus = paymentStatusAfterSettlement(order);
+      if (nextPaymentStatus) {
         await ctx.runMutation(internal.orders.internalUpdatePaymentStatus, {
           id: args.orderId,
-          paymentStatus: "paid",
+          paymentStatus: nextPaymentStatus,
         });
-
-        try {
-          const paymentId = await ctx.runMutation(internal.payments.internalCreate, {
-            orderId: args.orderId,
-            storeId: order.storeId as Id<"stores">,
-            amount: order.total,
-            currency: "EUR",
-            provider: "sumup",
-            externalId: checkout.transaction_id ?? checkout.id,
-          });
-          await ctx.runMutation(internal.payments.internalUpdateStatus, {
-            id: paymentId,
-            status: "succeeded",
-          });
-        } catch {
-          // Payment record may already exist
-        }
       }
+
+      // One mutation, one transaction: keyed on the SumUp transaction id, so a
+      // second verification of the same checkout returns the row that already
+      // exists instead of writing another refundable one.
+      //
+      // Unconditional now: the row records that the money moved, which stays
+      // true whether the order ends up paid or awaiting a refund.
+      await ctx.runMutation(internal.payments.internalSettle, {
+        orderId: args.orderId,
+        storeId: order.storeId as Id<"stores">,
+        amount: order.total,
+        currency: "EUR",
+        provider: "sumup",
+        externalId: checkout.transaction_id ?? checkout.id,
+      });
 
       return {
         status: "paid" as const,

@@ -222,6 +222,21 @@ export const updateSoundConfig = storeMutation({
   handler: (ctx, args) => defs.updateSoundConfig.handler(ctx, args),
 });
 
+/**
+ * The Design screen's three save buttons — couleurs, typographie, logo — all
+ * come through here, each sending only its own fields. `defs.updateBranding`
+ * merges rather than replaces, so one tab's save cannot erase another's.
+ *
+ * `stores:write`, like every other store-settings mutation beside it: branding
+ * is a setting of the establishment, and `manager` holds `stores:read` alone.
+ */
+export const updateBranding = storeMutation({
+  permission: "stores:write",
+  args: defs.updateBranding.args,
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateBranding.handler(ctx, args),
+});
+
 export const updateOrderMode = storeMutation({
   permission: "stores:write",
   args: defs.updateOrderMode.args,

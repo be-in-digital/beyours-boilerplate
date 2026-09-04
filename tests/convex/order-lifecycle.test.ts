@@ -443,6 +443,251 @@ describe("cancelling an order", () => {
     const after = await t.run((ctx) => ctx.db.get(ticket))
     expect(after?.status).toBe("completed")
   })
+
+  /**
+   * A cancellation does not move money, and must not pretend it did.
+   *
+   * Cancelling a paid order used to patch the order AND every succeeded payment
+   * to "refunded" with no provider call anywhere — the restaurant read
+   * "remboursé" and the customer was never paid back. It was also a one-way
+   * door: `planRefund` accepts only "succeeded" and "partially_refunded", so
+   * the fake refund made `payments.refundPayment` throw `not_settled` for ever
+   * after. `orders:update_status` belongs to the kitchen and delivery roles, so
+   * a line cook could fire it.
+   *
+   * These three go through the real path — the mutation, then the refund action
+   * — because the bug lived in the seam between them, where a unit test with a
+   * hand-rolled ctx cannot see it.
+   */
+  async function cancelledPaidOrder() {
+    const t = newHarness()
+    await seedGlobalSettings(t)
+    const storeId = await seedStore(t)
+    const productId = await seedProduct(t, storeId)
+    const orderId = (await t.mutation(
+      api.orders.create,
+      orderArgs(storeId, productId, { paymentMethod: "cash" })
+    )) as Id<"orders">
+
+    const asManager = await seedUser(t, "user:m1", "manager", [storeId])
+    const asOwner = await seedUser(t, "user:a1", "client_admin", [storeId])
+
+    await asManager.mutation(api.orders.markCashPaid, { orderId })
+    const paymentId = await t.run(async (ctx) => {
+      const payment = await ctx.db.query("payments").first()
+      return payment!._id
+    })
+
+    await asManager.mutation(api.orders.updateStatus, {
+      id: orderId,
+      status: "cancelled" as const,
+      cancellationReason: "plus de stock",
+    })
+
+    return { t, orderId, paymentId, asOwner }
+  }
+
+  test("leaves the payment rows untouched", async () => {
+    const { t, paymentId } = await cancelledPaidOrder()
+
+    const payment = await t.run((ctx) => ctx.db.get(paymentId))
+    expect(payment?.status).toBe("succeeded")
+    expect(payment?.refundedAmount).toBeUndefined()
+    expect(payment?.refundedAt).toBeUndefined()
+  })
+
+  test("flags the order refund_pending, not refunded", async () => {
+    const { t, orderId } = await cancelledPaidOrder()
+
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+    // "refund_pending" says money is OWED back. "refunded" claimed it was sent.
+    expect(order?.paymentStatus).toBe("refund_pending")
+  })
+
+  test("leaves the real refund still possible afterwards", async () => {
+    const { t, orderId, paymentId, asOwner } = await cancelledPaidOrder()
+
+    // Cash routes to a manual refund, so the whole path runs without a
+    // provider. Before the fix this threw `not_settled`.
+    const result = await asOwner.action(api.payments.refundPayment, {
+      id: paymentId,
+      amount: 1_200,
+      reason: "plus de stock",
+    })
+    expect(result.isFullRefund).toBe(true)
+
+    const payment = await t.run((ctx) => ctx.db.get(paymentId))
+    expect(payment?.status).toBe("refunded")
+    expect(payment?.refundMethod).toBe("manual")
+
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+    expect(order?.paymentStatus).toBe("refunded")
+  })
+
+  test("refuses to take cash again while the refund is still owed", async () => {
+    const { t, orderId } = await cancelledPaidOrder()
+    const storeId = await t.run(async (ctx) => (await ctx.db.get(orderId))!.storeId)
+    const asManager = t.withIdentity({ subject: "user:m1" })
+
+    await expect(
+      asManager.mutation(api.orders.markCashPaid, { orderId })
+    ).rejects.toThrow(/attente de remboursement/)
+
+    const payments = await t.run((ctx) =>
+      ctx.db
+        .query("payments")
+        .withIndex("by_storeId", (q) => q.eq("storeId", storeId))
+        .collect()
+    )
+    expect(payments).toHaveLength(1)
+  })
+})
+
+/**
+ * A cancellation only owes a refund where the restaurant took the money.
+ *
+ * Since the fake refund was removed, cancelling a paid order flags it
+ * `refund_pending` and the admin renders an amber "remboursement dû" banner
+ * with a refund button. Uber Eats and Deliveroo orders are created `paid` and
+ * never get a `payments` row — the customer paid the platform, `payments`
+ * has no provider value for one, and Deliveroo refunds its own customer on a
+ * rejection. Those cancellations raised the same banner, so the restaurant was
+ * asked to send back money it never held and has no way to send.
+ *
+ * `source` decides, not the absence of a payment row: a card order is marked
+ * paid by `internalUpdatePaymentStatus` and settled by
+ * `payments.internalSettle` in a SECOND transaction, so in between a real
+ * Stripe order looks exactly like a platform one.
+ *
+ * Through the real seam, because that is where the two disagreed: the
+ * auto-reject path cancels via `internalUpdateStatus`, the status webhooks via
+ * `updateFromWebhook`.
+ */
+describe("cancelling a platform order", () => {
+  async function platformOrder(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    platform: "uberEats" | "deliveroo",
+    externalOrderId: string
+  ) {
+    const { orderId } = (await t.mutation(internal.orders.createFromWebhook, {
+      storeId,
+      externalOrderId,
+      platform,
+      status: "pending" as const,
+      type: "delivery" as const,
+      customerName: "Camille",
+      items: [{ externalId: "i1", name: "Margherita", quantity: 1, price: 1_200 }],
+      subtotal: 1_200,
+      total: 1_200,
+      createdAt: NOW,
+    })) as { orderId: Id<"orders">; created: boolean }
+    return orderId
+  }
+
+  test("the platform's order really does arrive paid and unbacked", async () => {
+    // The premise, asserted rather than assumed. If either half of this ever
+    // stops being true the two tests below are measuring nothing.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await platformOrder(t, storeId, "deliveroo", "gb:1")
+
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+    expect(order?.paymentStatus).toBe("paid")
+    expect(order?.source).toBe("deliveroo")
+
+    const payments = await t.run((ctx) =>
+      ctx.db
+        .query("payments")
+        .withIndex("by_orderId", (q) => q.eq("orderId", orderId))
+        .collect()
+    )
+    expect(payments).toHaveLength(0)
+  })
+
+  test("auto-rejecting a Deliveroo order owes nobody a refund", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await platformOrder(t, storeId, "deliveroo", "gb:2")
+
+    // Exactly what `deliverooWebhook`'s auto-reject branch calls.
+    await t.mutation(internal.orders.internalUpdateStatus, {
+      id: orderId,
+      status: "cancelled" as const,
+    })
+
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+    expect(order?.status).toBe("cancelled")
+    expect(order?.paymentStatus).not.toBe("refund_pending")
+  })
+
+  test("cancelling an Uber Eats order owes nobody a refund", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await platformOrder(t, storeId, "uberEats", "ue:1")
+
+    await t.mutation(internal.orders.internalUpdateStatus, {
+      id: orderId,
+      status: "cancelled" as const,
+    })
+
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+    expect(order?.paymentStatus).not.toBe("refund_pending")
+  })
+
+  test("both webhook cancellation routes leave it in the same state", async () => {
+    // One platform, one cancellation, two transports. `internalUpdateStatus`
+    // used to write `refund_pending` where `updateFromWebhook` left `paid`, so
+    // whether a restaurant was billed for a refund depended on which webhook
+    // Deliveroo happened to send.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const viaStatus = await platformOrder(t, storeId, "deliveroo", "gb:3")
+    const viaWebhook = await platformOrder(t, storeId, "deliveroo", "gb:4")
+
+    await t.mutation(internal.orders.internalUpdateStatus, {
+      id: viaStatus,
+      status: "cancelled" as const,
+    })
+    await t.mutation(internal.orders.updateFromWebhook, {
+      externalOrderId: "gb:4",
+      platform: "deliveroo" as const,
+      status: "cancelled" as const,
+      updatedAt: NOW,
+    })
+
+    const a = await t.run((ctx) => ctx.db.get(viaStatus))
+    const b = await t.run((ctx) => ctx.db.get(viaWebhook))
+    expect(a?.status).toBe("cancelled")
+    expect(b?.status).toBe("cancelled")
+    expect(a?.paymentStatus).toBe("paid")
+    expect(b?.paymentStatus).toBe(a?.paymentStatus)
+  })
+
+  test("a direct order the restaurant WAS paid for still owes its refund", async () => {
+    // The regression guard. Narrowing the flag to direct orders must not lose
+    // it on the orders it was introduced for.
+    const t = newHarness()
+    await seedGlobalSettings(t)
+    const storeId = await seedStore(t)
+    const productId = await seedProduct(t, storeId)
+    const orderId = (await t.mutation(
+      api.orders.create,
+      orderArgs(storeId, productId, { paymentMethod: "cash" })
+    )) as Id<"orders">
+    const asManager = await seedUser(t, "user:m1", "manager", [storeId])
+
+    await asManager.mutation(api.orders.markCashPaid, { orderId })
+    await asManager.mutation(api.orders.updateStatus, {
+      id: orderId,
+      status: "cancelled" as const,
+      cancellationReason: "plus de stock",
+    })
+
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+    expect(order?.source).toBe("website")
+    expect(order?.paymentStatus).toBe("refund_pending")
+  })
 })
 
 describe("what the establishment will take an order for", () => {

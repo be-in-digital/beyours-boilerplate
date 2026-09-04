@@ -58,7 +58,20 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : 2,
+  // One worker, everywhere — the same setting `apps/reference` already carries.
+  //
+  // This file kept `CI ? 1 : 2` long after the bench had abandoned it, and
+  // nothing caught the difference: the engine's CI runs `--filter=@beyours/reference`,
+  // so the template's suite is only ever run by hand, or by a client.
+  //
+  // Two workers are two processes against ONE Next server and ONE Convex
+  // deployment, and `fullyParallel` splits a single file across them. A spec
+  // that seeds through the app's own functions then seeds twice: measured on
+  // `admin/payments-refund.spec.ts`, where both workers looked up the store's
+  // payments, both found none, and both inserted — two rows of 42,42 € and two
+  // of 13,37 €, so `toHaveCount(1)` failed six tests out of seven. Nothing was
+  // wrong with the product or the spec; the run had simply seeded itself twice.
+  workers: 1,
   // JSON alongside HTML: the HTML report is for a human opening the artifact,
   // the JSON is what scripts/assert-e2e-ran.mjs reads to prove tests actually
   // ran. Playwright exits 0 over an empty run, so something has to count.

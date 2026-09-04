@@ -44,6 +44,37 @@ crons.cron(
   {},
 );
 
+// Drop the provider webhook deliveries whose 30-day replay window has closed.
+// The table is a deduplication window, not an audit log: nothing retries a
+// webhook for anywhere near that long, and without a sweep it only grows.
+// 5am UTC, between the invitation sweep and the win-back, so the three nightly
+// jobs do not land on the same minute.
+crons.cron(
+  "sweep expired payment events",
+  "0 5 * * *",
+  internal.paymentEvents.sweepExpired,
+  {},
+);
+
+// Ask Stripe about the checkouts that never came back paid.
+//
+// Every other path that marks an order paid is a message we have to RECEIVE:
+// the guest landing on the confirmation page, or a webhook delivery. A customer
+// who pays and closes the tab sends neither, and if the delivery is lost too the
+// charge sits in Stripe behind an order at "pending" — money taken, kitchen
+// blind, and nothing anywhere that would ever notice.
+//
+// Every fifteen minutes rather than nightly: the gap between the charge and the
+// kitchen seeing the order is the whole cost of the defect, and a customer who
+// paid at 19:40 cannot wait until 5am. The sweep reads one index range and does
+// nothing at all when it is empty, which is almost always.
+crons.interval(
+  "reconcile pending stripe checkouts",
+  { minutes: 15 },
+  internal.stripe.reconcilePendingCheckouts,
+  {},
+);
+
 // Delete kitchen tickets finished more than 30 days ago. The KDS reads are
 // bounded now, but a bound on the read only moves the problem: the table still
 // grows without limit and the completed history becomes unreadable. 2:30am UTC

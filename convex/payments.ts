@@ -41,7 +41,9 @@ export const create = storeMutation({
 
 export const updateStatus = storeMutation({
   // Same wrong verb as `create`: this moves a payment through its states, it
-  // does not refund anything.
+  // does not refund anything — and it can no longer pretend to. `refunded` and
+  // `partially_refunded` are gone from the argument union, so this doorway
+  // cannot write a refund nobody performed. See the package definition.
   permission: "payments:write",
   storeIdFrom: paymentsStoreId,
   args: defs.updateStatus.args,
@@ -72,8 +74,6 @@ export const internalLoadForRefund = internalQuery({
   },
 });
 
-/** Write down a refund the provider has already confirmed. */
-export const internalRecordRefund = internalMutation(defs.recordRefund);
 export const internalReserveRefund = internalMutation(defs.reserveRefund);
 export const internalConfirmRefund = internalMutation(defs.confirmRefund);
 export const internalReleaseRefund = internalMutation(defs.releaseRefund);
@@ -184,5 +184,45 @@ export const refundPayment = action({
 /** Create payment record without auth — used by payment verification actions */
 export const internalCreate = internalMutation(defs.create);
 
-/** Update payment status without auth — used by webhooks */
+/**
+ * Record a settled provider payment, exactly once — used by every payment
+ * verification action and by the Stripe webhook.
+ *
+ * Replaces the `internalCreate` + `internalUpdateStatus` pair those four call
+ * sites used to run in two separate transactions, which let the return page and
+ * the webhook each write a row for the same charge.
+ */
+export const internalSettle = internalMutation(defs.settlePayment);
+
+/**
+ * Move a payment through its non-refund states without auth.
+ *
+ * `refunded` and `partially_refunded` are absent from the argument union on
+ * purpose — see `updateStatus` in the package. A refund goes through
+ * `refundPayment`, or through `internalRecordProviderRefund` when the provider
+ * performed it on its own side.
+ */
 export const internalUpdateStatus = internalMutation(defs.updateStatus);
+
+// === Provider-side events (Stripe webhook and reconciliation) ===
+
+/**
+ * Settle whatever a `payment_intent.succeeded` already refers to.
+ *
+ * Resolves the order through `payments.externalId`, the only route such an
+ * event leaves open, and then runs the same `settlePayment` as every other
+ * settlement path — so the redundant confirmation cannot produce a second row.
+ */
+export const internalSettleFromCharge = internalMutation(defs.settleFromChargeEvent);
+
+/**
+ * Record a refund or chargeback the provider performed on its own side, so the
+ * refundable balance the admin shows matches the money that is actually left.
+ */
+export const internalRecordProviderRefund = internalMutation(defs.recordProviderRefund);
+
+/** Remember the Stripe Checkout Session an order was sent to pay through. */
+export const internalAttachCheckoutSession = internalMutation(defs.attachCheckoutSession);
+
+/** The orders that took a Stripe checkout and never came back paid. */
+export const internalListStrandedCheckouts = internalQuery(defs.listStrandedCheckouts);

@@ -1,11 +1,30 @@
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import {
+  assertSettlesOrder,
+  paymentStatusAfterSettlement,
+} from "@be-in-digital/convex-functions/paymentSettlement";
 
 /**
  * Stripe webhook handler (Convex HTTP action).
  * Delegates Stripe SDK signature verification to a Node.js internalAction
  * because httpAction cannot use "use node".
+ *
+ * WHY IT HANDLES FIVE EVENT TYPES: it handled one,
+ * `checkout.session.completed`, and answered 200 to the rest. A customer who
+ * paid and closed the tab before the confirmation page left a paid Stripe
+ * charge and an order stuck at `paymentStatus: "pending"` — the kitchen never
+ * saw it. A refund issued from the Stripe dashboard moved real money and left
+ * the admin still offering the whole amount as refundable.
+ *
+ * Only the checkout session carries our `metadata.orderId`. The other four
+ * resolve through `payments.externalId`, the payment intent stored when the
+ * charge was first settled.
+ *
+ * It is one function rather than a router plus handlers because the settlement
+ * guard has to be visibly inside the route that settles: `settlement-binding`
+ * asserts it against this export by name.
  */
 // @guarded-inline: the Stripe SDK verifies the signature in
 // internal.stripeWebhookVerify.verify before anything here reads the event
@@ -29,45 +48,208 @@ export const handleWebhook = httpAction(async (ctx, request) => {
     return new Response("Invalid signature", { status: 400 });
   }
 
-  if (
-    result.eventType === "checkout.session.completed" &&
-    result.orderId &&
-    result.paymentStatus === "paid"
-  ) {
-    const orderId = result.orderId as Id<"orders">;
-    const storeId = result.storeId as Id<"stores"> | null;
+  // Stripe retries a delivery until it gets a 2xx, and says a delivery may
+  // repeat even after one. Nothing here remembered what it had already handled,
+  // so every retry ran the settlement path again from the top.
+  //
+  // This is a different guard from the one in `payments.settlePayment`: that one
+  // stops the return page and this webhook — two DIFFERENT events — writing two
+  // rows for one charge. This one stops ONE delivery being handled twice.
+  // Neither subsumes the other.
+  const eventId = String(result.eventId ?? "");
+  if (!eventId) {
+    // The verifier returns the id on every successful path. Missing it means our
+    // own code moved; handling the event with no deduplication key is exactly
+    // what this guard exists to prevent, so refuse instead.
+    console.error("[Stripe Webhook] verified event carried no id");
+    return new Response("Missing event id", { status: 500 });
+  }
 
-    const order = await ctx.runQuery(internal.orders.internalGetById, {
-      id: orderId,
+  const eventType = String(result.eventType ?? "unknown");
+
+  const admission = await ctx.runMutation(internal.paymentEvents.beginEvent, {
+    provider: "stripe",
+    eventId,
+    eventType,
+  });
+
+  if (admission === "already_processed") {
+    return new Response(JSON.stringify({ received: true, duplicate: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
     });
+  }
 
-    if (order && order.paymentStatus !== "paid") {
-      await ctx.runMutation(internal.orders.internalUpdatePaymentStatus, {
-        id: orderId,
-        paymentStatus: "paid",
-      });
+  /** The payment intent, which is what `payments.externalId` holds. */
+  const paymentIntent = String(result.paymentIntent ?? "");
 
-      try {
-        const paymentId = await ctx.runMutation(
-          internal.payments.internalCreate,
+  try {
+    switch (eventType) {
+      // The only event carrying our order id, because `createCheckoutSession`
+      // writes it into the SESSION metadata.
+      case "checkout.session.completed": {
+        if (!result.orderId || result.paymentStatus !== "paid") break;
+
+        const orderId = result.orderId as Id<"orders">;
+        const storeId = result.storeId as Id<"stores"> | null;
+
+        const order = await ctx.runQuery(internal.orders.internalGetById, {
+          id: orderId,
+        });
+        if (!order) break;
+
+        // The guard belongs here, not in the "use node" verifier: this is the
+        // only place holding BOTH the order and what Stripe claims about the
+        // session. The verifier has the claim and no database.
+        //
+        // Same binding as the return page: the amount and currency Stripe
+        // reports must equal the order, or nothing is marked paid. Checked
+        // before the `paymentStatus !== "paid"` short-circuit so an
+        // already-paid order cannot wave a mismatched delivery through.
+        assertSettlesOrder(
           {
-            orderId,
-            storeId: storeId ?? order.storeId,
-            amount: (result.amountTotal as number) ?? order.total,
-            currency: (result.currency as string) ?? "EUR",
             provider: "stripe",
-            externalId: String(result.paymentIntent ?? ""),
+            reference: orderId,
+            // `amountTotal` is Stripe's `amount_total`: MINOR units already.
+            amountMinor: (result.amountTotal as number | null) ?? null,
+            currency: (result.currency as string | null) ?? null,
+          },
+          { orderId, total: order.total }
+        );
+
+        // What this settlement should do to the ORDER — which is not always
+        // "mark it paid". `refund_pending` (paid, then cancelled, money owed
+        // back) is not "paid", so the old `if (order.paymentStatus !== "paid")`
+        // walked into the branch and wrote the marker away; a Stripe retry or a
+        // refreshed success tab was enough. The payment row is recorded either
+        // way: the money moved, and a refund needs something to point at.
+        const nextPaymentStatus = paymentStatusAfterSettlement(order);
+        if (nextPaymentStatus) {
+          await ctx.runMutation(internal.orders.internalUpdatePaymentStatus, {
+            id: orderId,
+            paymentStatus: nextPaymentStatus,
+          });
+        }
+
+        // One mutation, one transaction. The return page settles this same
+        // charge from a DIFFERENT event; `internalSettle` keys on the payment
+        // intent so whichever arrives second finds the row and writes nothing.
+        //
+        // The intent is required rather than defaulted to "": an empty
+        // `externalId` deduplicates against nothing AND makes `routeRefund` call
+        // the payment unrefundable, so a charge recorded that way could never be
+        // given back.
+        if (!paymentIntent) {
+          console.error("[Stripe Webhook] checkout.session.completed without a payment intent");
+          return new Response("Missing payment intent", { status: 400 });
+        }
+
+        await ctx.runMutation(internal.payments.internalSettle, {
+          orderId,
+          storeId: storeId ?? order.storeId,
+          // The order total, not the provider's number: after the assert they are
+          // equal by construction. Matches stripe.ts, sumup.ts and paypal.ts.
+          amount: order.total,
+          currency: (result.currency as string) ?? "EUR",
+          provider: "stripe",
+          externalId: paymentIntent,
+        });
+        break;
+      }
+
+      // A second, redundant confirmation that the charge went through. When the
+      // return page or the checkout event already settled it this is a no-op —
+      // `settlePayment` finds the row by payment intent and writes nothing. When
+      // neither did, this is what closes the order.
+      case "payment_intent.succeeded": {
+        const outcome = await ctx.runMutation(
+          internal.payments.internalSettleFromCharge,
+          { provider: "stripe", externalId: paymentIntent }
+        );
+        if (outcome.status !== "settled") {
+          // Not an error: the charge may belong to a checkout we hold no row
+          // for. The reconciliation sweep owns that case, because recovering it
+          // needs the checkout session and this event does not carry one.
+          console.log(
+            `[Stripe Webhook] payment_intent.succeeded not settled here: ${outcome.status}`
+          );
+        }
+        break;
+      }
+
+      // Nothing to write: the charge never happened and the order already says
+      // so. Logged rather than silent, because a rising count here is the
+      // difference between a card problem and a configuration one.
+      case "payment_intent.payment_failed": {
+        console.warn(
+          `[Stripe Webhook] payment failed for ${paymentIntent || "unknown intent"}: ` +
+            `${String(result.failureMessage ?? "no reason given")}`
+        );
+        break;
+      }
+
+      // A refund issued outside our UI — from the Stripe dashboard, which is how
+      // an owner in a hurry does it. `amountRefunded` is the running total for
+      // the charge, so recording it as a total makes a replay harmless.
+      case "charge.refunded":
+      // Stripe withdraws the disputed amount immediately, so it is money gone
+      // for the same purpose as a refund: the balance must stop offering it.
+      case "charge.dispute.created": {
+        const reversedMinor =
+          eventType === "charge.refunded"
+            ? Number(result.amountRefunded ?? 0)
+            : Number(result.amountDisputed ?? 0);
+        const reason =
+          eventType === "charge.refunded"
+            ? "Remboursement effectué depuis le tableau de bord Stripe"
+            : `Litige / rétrofacturation (${String(result.disputeReason ?? "motif non précisé")})`;
+
+        if (!paymentIntent) {
+          console.warn(
+            `[Stripe Webhook] ${eventType} carried no payment intent; nothing to record against`
+          );
+          break;
+        }
+
+        const outcome = await ctx.runMutation(
+          internal.payments.internalRecordProviderRefund,
+          {
+            provider: "stripe",
+            externalId: paymentIntent,
+            refundedTotalMinor: Number.isFinite(reversedMinor) ? reversedMinor : 0,
+            reason,
+            externalRefundId: (result.chargeId as string | null) ?? undefined,
           }
         );
-        await ctx.runMutation(internal.payments.internalUpdateStatus, {
-          id: paymentId,
-          status: "succeeded",
-        });
-      } catch {
-        // Payment record may already exist from success page verification
+
+        if (outcome.status !== "recorded") {
+          console.log(
+            `[Stripe Webhook] ${eventType} for ${paymentIntent}: ${outcome.status}`
+          );
+        }
+        break;
       }
+
+      default:
+        // Deliberately ignored, and answered 200 so Stripe stops retrying it.
+        console.log(`[Stripe Webhook] Unhandled event type: ${eventType}`);
     }
+  } catch (err) {
+    // 500, not 200. The delivery stays unprocessed, so Stripe's retry is let
+    // through rather than mistaken for a duplicate and dropped. Answering 200
+    // here — which is what this route did unconditionally — turns a transient
+    // failure into a permanently lost event.
+    console.error(`[Stripe Webhook] Error processing ${eventType}:`, err);
+    return new Response("Processing error", { status: 500 });
   }
+
+  // Only once the work is done. A handler that threw on the way here leaves the
+  // row unprocessed on purpose, so Stripe's next retry is let through rather
+  // than being mistaken for a duplicate and dropped.
+  await ctx.runMutation(internal.paymentEvents.markProcessed, {
+    provider: "stripe",
+    eventId,
+  });
 
   return new Response(JSON.stringify({ received: true }), {
     status: 200,

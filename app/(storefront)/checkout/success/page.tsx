@@ -31,7 +31,26 @@ type Outcome =
       email?: string
     }
   | { state: "pending"; label: string; orderId?: string; viewToken?: string }
+  /** Paid, then cancelled: the money is owed back and has not been sent yet. */
+  | { state: "refund_pending"; orderId?: string; viewToken?: string }
   | { state: "failed"; message: string }
+
+/**
+ * Payment statuses a *customer* may be shown, in French.
+ *
+ * This screen used to print the raw status token straight from the database.
+ * `refund_pending` would therefore have reached a customer verbatim, in
+ * English, under a sentence promising the order would be prepared. Anything
+ * not named here is not shown at all: no detail beats an internal token.
+ */
+const CUSTOMER_PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: "en attente",
+  processing: "en cours de traitement",
+  failed: "échoué",
+  refunded: "remboursé",
+  partially_refunded: "partiellement remboursé",
+  refund_pending: "remboursement en cours",
+}
 
 function CheckoutSuccessContent() {
   const params = useSearchParams()
@@ -106,6 +125,10 @@ function CheckoutSuccessContent() {
             })
             clearCart()
             clearCheckoutAttempt()
+          } else if (state.paymentStatus === "refund_pending") {
+            // Cancelled after payment. Telling this customer their order "sera
+            // préparée dès réception" would be the opposite of the truth.
+            setOutcome({ state: "refund_pending", orderId })
           } else {
             setOutcome({ state: "pending", label: state.paymentStatus })
           }
@@ -197,7 +220,25 @@ function CheckoutSuccessContent() {
     )
   }
 
+  if (outcome.state === "refund_pending") {
+    return (
+      <Shell>
+        <Loader2 className="mx-auto mb-8 h-12 w-12 text-amber-500" />
+        <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
+          Commande annulée
+        </h1>
+        <p className="mb-8 text-lg text-zinc-500">
+          Cette commande a été annulée. Votre remboursement est en cours de
+          traitement et sera crédité sur votre moyen de paiement d&apos;origine.
+        </p>
+        <Actions orderId={outcome.orderId ?? orderId} viewToken={outcome.viewToken} />
+      </Shell>
+    )
+  }
+
   if (outcome.state === "pending") {
+    // Never print the raw token: show the French label, or no detail at all.
+    const statusLabel = CUSTOMER_PAYMENT_STATUS_LABELS[outcome.label]
     return (
       <Shell>
         <Loader2 className="mx-auto mb-8 h-12 w-12 text-amber-500" />
@@ -205,8 +246,9 @@ function CheckoutSuccessContent() {
           Paiement en attente
         </h1>
         <p className="mb-8 text-lg text-zinc-500">
-          Votre banque n&apos;a pas encore confirmé le paiement (statut&nbsp;:{" "}
-          {outcome.label}). La commande sera préparée dès réception.
+          Votre banque n&apos;a pas encore confirmé le paiement
+          {statusLabel ? ` (statut : ${statusLabel})` : ""}. La commande
+          sera préparée dès réception.
         </p>
         <Actions orderId={outcome.orderId ?? orderId} viewToken={outcome.viewToken} />
       </Shell>
