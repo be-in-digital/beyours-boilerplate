@@ -7,7 +7,14 @@ import { query } from "./_generated/server";
 import authConfig from "./auth.config";
 
 // Better Auth component client
-export const authComponent = createClient<DataModel>(components.betterAuth);
+//
+// The type annotation is not decoration. `createClient`'s return type mentions
+// `GenericCtx<DataModel>` a dozen times over, so the inferred type here grows
+// with the schema — and the catalogue translation columns pushed it past what
+// TypeScript will serialise (TS7056). Naming the type keeps the compiler from
+// having to write it out.
+export const authComponent: ReturnType<typeof createClient<DataModel>> =
+  createClient<DataModel>(components.betterAuth);
 
 /**
  * Post one transactional email to the deployment's own `/api/email/send`.

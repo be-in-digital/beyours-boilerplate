@@ -22,8 +22,13 @@ const getClient = cache(() => {
 
 /**
  * Returns the default store slug, or null if no store exists.
+ *
+ * Memoised per render: `generateCmsMetadata` now falls back to this on every
+ * page whose visitor carries no `storeSlug` cookie — which is every visitor,
+ * since nothing writes one — and the page body resolves the same store again.
+ * Without `cache` that is two `stores.list` round trips per render.
  */
-export async function resolveDefaultStoreSlug(): Promise<string | null> {
+export const resolveDefaultStoreSlug = cache(async (): Promise<string | null> => {
   // 1. Try cookie-based store slug.
   //
   // `getBySlug` used to answer for a draft, and the note here said that was how
@@ -49,4 +54,4 @@ export async function resolveDefaultStoreSlug(): Promise<string | null> {
     (s: { status?: string }) => s.status === "open",
   )
   return (openStore ?? stores[0]).slug as string
-}
+})

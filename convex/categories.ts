@@ -1,7 +1,9 @@
 import { query, mutation } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/categories";
 import { requireStorePermission } from "@be-in-digital/convex-functions/auth";
+import { touchesTranslatableText } from "@be-in-digital/convex-functions/autoTranslate";
 import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
+import { scheduleTranslation } from "./autoTranslate";
 
 // === Queries (public for storefront) ===
 
@@ -21,14 +23,25 @@ const categoryStoreId = storeIdFromDocument("Category not found");
 export const create = storeMutation({
   args: defs.create.args,
   permission: "products:write",
-  handler: (ctx, args) => defs.create.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const result = await defs.create.handler(ctx, args);
+    await scheduleTranslation(ctx, result, "categories", args.storeId);
+    return result;
+  },
 });
 
 export const update = storeMutation({
   args: defs.update.args,
   storeIdFrom: categoryStoreId,
   permission: "products:write",
-  handler: (ctx, args) => defs.update.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const storeId = await categoryStoreId(ctx, args);
+    const result = await defs.update.handler(ctx, args);
+    if (touchesTranslatableText(args)) {
+      await scheduleTranslation(ctx, args.id, "categories", storeId);
+    }
+    return result;
+  },
 });
 
 // @guarded-inline: authorises inside the handler

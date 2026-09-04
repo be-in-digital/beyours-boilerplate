@@ -7,6 +7,7 @@
 
 import "server-only"
 import { cookies } from "next/headers"
+import { LOCALE_COOKIE_NAME, normalizeStoredLocale } from "@be-in-digital/core"
 import { fetchCmsPageData } from "@/lib/convex-server"
 import type { CmsFieldValue, CmsBlockValues } from "@be-in-digital/cms"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -76,7 +77,12 @@ const EMPTY_PAGE: ServerCmsPageResult = {
  * Fetch CMS page data server-side.
  *
  * Rule: if locale is provided → use it directly (don't read cookies).
- *       if locale is absent → fallback to cookies().get("locale").
+ *       if locale is absent → fall back to the locale cookie.
+ *
+ * The cookie is `beid_locale`, which is what `setLocale` writes and what
+ * `app/layout.tsx` reads. This function read a cookie called `locale`, which
+ * nothing has ever written, so `resolvedLocale` was always null and every
+ * server-rendered CMS string came back in the source language.
  */
 export async function fetchCmsPage(
   storeId: Id<"stores">,
@@ -84,7 +90,9 @@ export async function fetchCmsPage(
   locale?: string,
 ): Promise<ServerCmsPageResult> {
   // Resolve locale: explicit param > cookie > null
-  const resolvedLocale = locale ?? (await cookies()).get("locale")?.value ?? null
+  const resolvedLocale =
+    locale ??
+    normalizeStoredLocale((await cookies()).get(LOCALE_COOKIE_NAME)?.value)
 
   const data = await fetchCmsPageData(storeId, pageSlug)
   if (!data) return EMPTY_PAGE

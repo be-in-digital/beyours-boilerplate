@@ -3,6 +3,7 @@
 import { StorefrontHeader } from "./storefront-header"
 import { StorefrontFooter } from "./storefront-footer"
 import { StoreClosedBanner } from "./store-closed-banner"
+import { StorefrontI18nProvider } from "./storefront-i18n-provider"
 import { DynamicFavicon } from "../dynamic-favicon"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 import { useStoreStatus } from "@/lib/hooks/use-store-status"
@@ -26,6 +27,7 @@ export function StorefrontShell({ children }: StorefrontShellProps) {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <StorefrontI18nProvider />
       <DynamicFavicon />
       {showBanner && <StoreClosedBanner nextOpenTime={nextOpenTime} />}
       <StorefrontHeader hasBanner={showBanner} />

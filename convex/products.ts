@@ -5,7 +5,9 @@ import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/products";
 import { requireStorePermission } from "@be-in-digital/convex-functions/auth";
 import { claimMenuSyncWindow } from "@be-in-digital/convex-functions/rateLimit";
+import { touchesTranslatableText } from "@be-in-digital/convex-functions/autoTranslate";
 import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
+import { scheduleTranslation } from "./autoTranslate";
 
 // === Queries (public for storefront) ===
 
@@ -104,6 +106,9 @@ export const create = storeMutation({
   handler: async (ctx, args) => {
     const result = await defs.create.handler(ctx, args);
     await scheduleMenuSync(ctx, [args.storeId]);
+    // A new dish always carries a name, so there is always something to
+    // translate for whatever second language the store has switched on.
+    await scheduleTranslation(ctx, result, "products", args.storeId);
     return result;
   },
 });
@@ -116,6 +121,9 @@ export const update = storeMutation({
     const storeId = await productStoreId(ctx, args);
     const result = await defs.update.handler(ctx, args);
     await scheduleMenuSync(ctx, [storeId]);
+    if (touchesTranslatableText(args)) {
+      await scheduleTranslation(ctx, args.id, "products", storeId);
+    }
     return result;
   },
 });

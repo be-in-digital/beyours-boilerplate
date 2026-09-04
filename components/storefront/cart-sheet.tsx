@@ -24,7 +24,7 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from "@be-in-digital/ui/components"
-import { useCartStore, formatPrice } from "@be-in-digital/restaurant"
+import { useCartStore, formatPrice, useTranslation } from "@be-in-digital/restaurant"
 
 interface CartSheetProps {
   open: boolean
@@ -32,6 +32,7 @@ interface CartSheetProps {
 }
 
 export function CartSheet({ open, onOpenChange }: CartSheetProps) {
+  const { t } = useTranslation()
   const items = useCartStore((s) => s.items)
   const updateQuantity = useCartStore((s) => s.updateQuantity)
   const removeItem = useCartStore((s) => s.removeItem)
@@ -75,13 +76,13 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               </div>
               <div>
                 <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
-                  Votre Box
+                  {t("cart.boxTitleFull")}
                 </h2>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
                   {displayCount}{" "}
                   {displayCount > 1
-                    ? "articles sélectionnés"
-                    : "article sélectionné"}
+                    ? t("cart.itemsSelected")
+                    : t("cart.itemSelected")}
                 </p>
               </div>
             </div>
@@ -118,7 +119,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                       </AlertDialogHeader>
                       <AlertDialogFooter className="mt-8 gap-4">
                         <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-zinc-100 hover:bg-zinc-50">
-                          Annuler
+                          {t("common.cancel")}
                         </AlertDialogCancel>
                         <AlertDialogAction
                           onClick={clearCart}
@@ -151,16 +152,14 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 <EmptyMedia variant="icon">
                   <ShoppingBag className="h-5 w-5" />
                 </EmptyMedia>
-                <EmptyTitle>Votre Box est vide</EmptyTitle>
-                <EmptyDescription>
-                  Il semble que vous n&apos;ayez pas encore ajouté de plats à votre Box.
-                </EmptyDescription>
+                <EmptyTitle>{t("cart.boxEmpty")}</EmptyTitle>
+                <EmptyDescription>{t("cart.boxEmptyMessage")}</EmptyDescription>
               </EmptyHeader>
               <Button
                 onClick={() => onOpenChange(false)}
                 className="h-12 rounded-xl bg-[#0D5C3F] px-8 font-bold text-white hover:bg-[#0A412D]"
               >
-                Parcourir le menu
+                {t("cart.browseMenu")}
               </Button>
             </Empty>
           ) : (
@@ -386,12 +385,12 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           <div className="flex flex-col gap-4 border-t border-zinc-100 bg-zinc-50 p-8">
             <div className="w-full space-y-2">
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-400">
-                <span>Sous-total</span>
+                <span>{t("common.subtotal")}</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between pt-4">
                 <span className="text-xl font-black uppercase tracking-tighter text-zinc-800">
-                  Prix Total
+                  {t("cart.totalPrice")}
                 </span>
                 <span className="text-2xl font-black tracking-tighter text-[#0D5C3F]">
                   {formatPrice(subtotal)}
@@ -404,7 +403,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               onClick={() => onOpenChange(false)}
             >
               <Button className="group h-16 w-full rounded-2xl bg-[#0D5C3F] text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 hover:bg-[#0A412D]">
-                Commander maintenant
+                {t("cart.orderNow")}
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>

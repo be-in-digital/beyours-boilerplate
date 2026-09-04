@@ -54,16 +54,28 @@ afterEach(async () => {
 })
 
 /**
- * Every job still outstanding: its function name and the store it targets.
+ * Every platform menu push still outstanding: function name and target store.
  *
  * Cancelled rows stay in `_scheduled_functions`, so the state has to be
  * filtered or a test that cancels its own queue counts it twice.
+ *
+ * Scoped to the two sync functions on purpose. A catalogue write now also
+ * books a debounced translation per document (#147), which is one job per
+ * product by design — this suite is about the platform push not growing with
+ * the import, and counting everything on the scheduler would measure the
+ * wrong thing.
  */
+const MENU_SYNC_JOBS = [
+  "uberEatsMenuSync:internalSyncStore",
+  "deliverooMenuSync:internalSyncStore",
+]
+
 async function queuedSyncs(t: ReturnType<typeof convexTest>) {
   return t.run(async (ctx) => {
     const rows = await ctx.db.system.query("_scheduled_functions").collect()
     return rows
       .filter((row) => row.state.kind === "pending" || row.state.kind === "inProgress")
+      .filter((row) => MENU_SYNC_JOBS.includes(row.name))
       .map((row) => ({
         name: row.name,
         storeId: (row.args[0] as { storeId?: string } | undefined)?.storeId,

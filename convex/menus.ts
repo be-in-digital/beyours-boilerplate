@@ -4,7 +4,9 @@ import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/menus";
 import { claimMenuSyncWindow } from "@be-in-digital/convex-functions/rateLimit";
+import { touchesTranslatableText } from "@be-in-digital/convex-functions/autoTranslate";
 import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
+import { scheduleTranslation } from "./autoTranslate";
 
 // === Queries (public for storefront) ===
 
@@ -69,6 +71,7 @@ export const create = storeMutation({
   handler: async (ctx, args) => {
     const result = await defs.create.handler(ctx, args);
     await scheduleMenuSync(ctx, args.storeId);
+    await scheduleTranslation(ctx, result, "menus", args.storeId);
     return result;
   },
 });
@@ -81,6 +84,9 @@ export const update = storeMutation({
     const storeId = await menuStoreId(ctx, args);
     const result = await defs.update.handler(ctx, args);
     await scheduleMenuSync(ctx, storeId);
+    if (touchesTranslatableText(args)) {
+      await scheduleTranslation(ctx, args.id, "menus", storeId);
+    }
     return result;
   },
 });

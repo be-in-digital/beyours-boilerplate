@@ -23,8 +23,9 @@ import {
   sortProducts,
   useCartStore,
   isProductAvailable,
+  useLocalizedDocuments,
 } from "@be-in-digital/restaurant"
-import type { ProductDoc, ProductSortBy } from "@be-in-digital/restaurant"
+import type { CategoryDoc, ProductDoc, ProductSortBy } from "@be-in-digital/restaurant"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 import { useStoreStatus } from "@/lib/hooks/use-store-status"
@@ -57,11 +58,11 @@ function MenuContent() {
   const [currentPage, setCurrentPage] = useState(1)
 
   // Queries
-  const products = useQuery(
+  const rawProducts = useQuery(
     api.products.list,
     storeId ? { storeId: storeId as Id<"stores"> } : "skip"
   )
-  const categories = useQuery(
+  const rawCategories = useQuery(
     api.categories.list,
     storeId ? { storeId: storeId as Id<"stores"> } : "skip"
   )
@@ -71,6 +72,18 @@ function MenuContent() {
     api.blog.listPublishedArticles,
     storeId ? { storeId: storeId as Id<"stores">, limit: 3 } : "skip"
   )
+
+  // Swap in the visitor's language before anything reads a name. Doing it here
+  // rather than at each render site means the search box, the category chips
+  // and the line the quick-add writes into the cart all speak the same
+  // language as the card the customer clicked.
+  // The generic is spelled out because the Convex queries come back as `any`
+  // — the shared handlers are untyped — and inference would otherwise widen
+  // both lists to the bare translatable shape.
+  const localizedProducts = useLocalizedDocuments<ProductDoc>(rawProducts)
+  const localizedCategories = useLocalizedDocuments<CategoryDoc>(rawCategories)
+  const products = rawProducts === undefined ? undefined : localizedProducts
+  const categories = rawCategories === undefined ? undefined : localizedCategories
 
   // Find active category ID from slug
   const activeCategoryId = useMemo(() => {

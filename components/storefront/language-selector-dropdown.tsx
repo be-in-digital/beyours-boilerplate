@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Globe } from "lucide-react"
 import {
   Popover,
@@ -11,51 +10,57 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@be-in-digital/ui/components"
-import {
-  setLocale as persistLocale,
-  getLocaleFromLocalStorage,
-  COMMON_LANGUAGES,
-  type LanguageConfig,
-} from "@be-in-digital/core"
-import { useQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
-import type { Language } from "@/lib/admin/types"
+import { COMMON_LANGUAGES, type LanguageConfig } from "@be-in-digital/core"
+import { useLanguageStore, useTranslation } from "@be-in-digital/restaurant"
 
+/**
+ * The storefront language picker.
+ *
+ * Two things were wrong here and they compounded. It listed
+ * `api.languages.listAll` — every language of every establishment on the
+ * deployment, not the ones this restaurant has switched on — and it kept the
+ * chosen code in its own `useState`, writing the cookie directly and never
+ * telling the language store. So the store's `locale` stayed at its initial
+ * `'fr'` whatever the customer picked, and `t()` had nothing to resolve
+ * against.
+ *
+ * Now it reads and writes the store, which is the one place that knows both
+ * the establishment's languages and the loaded catalogues. The store persists
+ * to cookie and localStorage on its own.
+ */
 export function LanguageSelectorDropdown({
   variant = "solid",
 }: {
   variant?: "transparent" | "solid"
 }) {
-  const languages = useQuery(api.languages.listAll)
+  const availableLanguages = useLanguageStore((s) => s.availableLanguages)
+  const setLocale = useLanguageStore((s) => s.setLocale)
+  const { t, locale } = useTranslation()
 
-  const [currentLocale, setCurrentLocale] = useState(() => {
-    if (typeof window !== "undefined") {
-      return getLocaleFromLocalStorage() ?? "fr"
-    }
-    return "fr"
-  })
-
-  const activeLanguages: Language[] = languages ?? []
-
-  // Don't render if 0 or 1 language
-  if (activeLanguages.length <= 1) return null
+  // One language is not a choice. Neither is none, which is also what an
+  // establishment looks like before the initialiser has answered.
+  if (availableLanguages.length <= 1) return null
 
   function handleChange(code: string) {
-    setCurrentLocale(code)
-    persistLocale(code)
+    if (code === locale) return
+    setLocale(code)
+    // The server half of the page — `<html lang>`, the CMS text, the SEO tags
+    // — is rendered from the cookie the line above just wrote. A reload is
+    // what makes it agree with the client.
     window.location.reload()
   }
 
   const currentLang =
-    activeLanguages.find((l) => l.code === currentLocale) ??
-    activeLanguages.find((l) => l.isDefault) ??
-    activeLanguages[0]
+    availableLanguages.find((l) => l.code === locale) ??
+    availableLanguages.find((l) => l.isDefault) ??
+    availableLanguages[0]
 
   const fallbackConfig = (code: string): LanguageConfig | undefined =>
     COMMON_LANGUAGES.find((l) => l.code === code)
 
   const isTransparent = variant === "transparent"
-  const tooltipLabel = currentLang?.nativeName ?? "Langue"
+  const label = t("accessibility.changeLanguage")
+  const tooltipLabel = currentLang?.nativeName ?? label
 
   return (
     <Popover>
@@ -70,7 +75,7 @@ export function LanguageSelectorDropdown({
                     ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
                     : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F] hover:bg-zinc-50"
                 }`}
-                aria-label={tooltipLabel}
+                aria-label={label}
               >
                 <Globe className="h-4 w-4" />
               </button>
@@ -86,19 +91,21 @@ export function LanguageSelectorDropdown({
         className="w-56 p-2 rounded-2xl border border-zinc-100 bg-white shadow-xl"
       >
         <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 px-3 pt-2 pb-3">
-          Langue
+          {label}
         </h3>
 
-        <div className="flex flex-col gap-1">
-          {activeLanguages.map((lang) => {
-            const isSelected = lang.code === currentLocale
+        <div className="flex flex-col gap-1" data-testid="language-switcher">
+          {availableLanguages.map((lang) => {
+            const isSelected = lang.code === locale
             const flag = lang.flagEmoji ?? fallbackConfig(lang.code)?.flagEmoji
 
             return (
               <button
-                key={lang._id}
+                key={lang.code}
                 type="button"
                 onClick={() => handleChange(lang.code)}
+                data-testid={`lang-option-${lang.code}`}
+                aria-current={isSelected ? "true" : undefined}
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors flex items-center gap-3 ${
                   isSelected
                     ? "bg-[#0D5C3F]/10 border border-[#0D5C3F]/20"

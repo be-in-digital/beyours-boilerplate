@@ -1,6 +1,6 @@
 "use client"
 
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useAdminStoreId } from "@/lib/admin/hooks"
@@ -64,9 +64,40 @@ export function LanguagesContent({ embedded = false }: LanguagesContentProps) {
   ) as Language[] | undefined
 
   const createLanguage = useMutation(api.languages.create)
+  const translateCatalogue = useAction(api.autoTranslate.translateCatalogue)
   const toggleActive = useMutation(api.languages.toggleActive)
   const setDefaultLanguage = useMutation(api.languages.setDefault)
   const removeLanguage = useMutation(api.languages.remove)
+
+  /**
+   * Translate the catalogue that was already there into the new language.
+   *
+   * The incremental translator only fires on a write, so without this a
+   * restaurant that adds Spanish after filling its menu waits for someone to
+   * re-save sixty dishes one by one. Three batch jobs, one per catalogue
+   * table, whose progress the owner can follow in `translationJobs`.
+   */
+  const backfillCatalogue = async (
+    store: Id<"stores">,
+    targetLang: string
+  ): Promise<void> => {
+    try {
+      const jobs = await Promise.all(
+        (["products", "categories", "menus"] as const).map((entityType) =>
+          translateCatalogue({ storeId: store, targetLang, entityType })
+        )
+      )
+      const total = jobs.reduce((sum, job) => sum + job.totalItems, 0)
+      if (total > 0) {
+        toast.success(`Traduction du catalogue lancée : ${total} éléments`)
+      }
+    } catch (error) {
+      // The language itself was created — that must not be reported as a
+      // failure because the back-fill could not start.
+      toast.warning("La traduction automatique du catalogue n'a pas pu démarrer")
+      console.error(error)
+    }
+  }
 
   const handleAddLanguage = async () => {
     if (!storeId || !code || !name || !nativeName) {
@@ -86,6 +117,14 @@ export function LanguagesContent({ embedded = false }: LanguagesContentProps) {
         isRtl,
       })
       toast.success("Langue ajoutée avec succès")
+
+      // Only worth doing when there is a source language to translate FROM,
+      // and when the new language is not itself becoming that source.
+      const hasSourceLanguage = languages?.some((l) => l.isDefault) ?? false
+      if (!isDefault && hasSourceLanguage) {
+        void backfillCatalogue(storeId, code)
+      }
+
       setIsAddDialogOpen(false)
       // Reset form
       setCode("")

@@ -30,7 +30,6 @@
   "common.subtotal": "Subtotal",
   "common.tax": "IVA",
   "common.includes": "Incluido",
-
   "nav.menu": "Menú",
   "nav.cart": "Carrito",
   "nav.account": "Mi cuenta",
@@ -39,7 +38,9 @@
   "nav.dashboard": "Panel",
   "nav.orders": "Pedidos",
   "nav.home": "Inicio",
-
+  "nav.about": "Acerca de",
+  "nav.blog": "Blog",
+  "nav.contact": "Contacto",
   "storefront.welcome": "Bienvenido",
   "storefront.ourMenu": "Nuestra carta",
   "storefront.featuredProducts": "Productos destacados",
@@ -49,7 +50,8 @@
   "storefront.storeClosedTitle": "Restaurante cerrado",
   "storefront.storeClosedMessage": "Estamos actualmente cerrados. Vuelva durante nuestro horario de apertura.",
   "storefront.storeTempUnavailable": "Temporalmente no disponible",
-
+  "storefront.noDishesFound": "No se encontraron platos",
+  "storefront.noDishesMessage": "Prueba a cambiar tu búsqueda o tus filtros.",
   "product.addToCart": "Agregar al carrito",
   "product.outOfStock": "Agotado",
   "product.options": "Opciones",
@@ -71,7 +73,9 @@
   "product.spiceLevel": "Nivel de picante",
   "product.preparationTime": "Tiempo de preparación",
   "product.minutes": "{count} min",
-
+  "product.otherRestaurant": "Otro restaurante",
+  "product.popular": "Popular",
+  "product.price": "Precio",
   "menu.combo": "Combo",
   "menu.selectOption": "Seleccione una opción",
   "menu.included": "Incluido en el combo",
@@ -79,7 +83,6 @@
   "menu.sections": "Secciones",
   "menu.fixedItem": "Artículo fijo",
   "menu.pickFrom": "Elegir entre",
-
   "cart.title": "Tu carrito",
   "cart.empty": "Tu carrito está vacío",
   "cart.emptyMessage": "Agrega artículos de nuestro menú para iniciar tu pedido.",
@@ -97,7 +100,14 @@
   "cart.freeDeliveryAbove": "Envío gratuito a partir de {amount}",
   "cart.minimumOrder": "Pedido mínimo: {amount}",
   "cart.minimumNotReached": "Pedido mínimo no alcanzado",
-
+  "cart.boxTitle": "Mi Box",
+  "cart.boxTitleFull": "Tu Box",
+  "cart.boxEmpty": "Tu Box está vacía",
+  "cart.boxEmptyMessage": "Parece que aún no has añadido ningún plato a tu Box.",
+  "cart.itemsSelected": "artículos seleccionados",
+  "cart.itemSelected": "artículo seleccionado",
+  "cart.orderNow": "Pedir ahora",
+  "cart.totalPrice": "Precio total",
   "checkout.title": "Finalizar pedido",
   "checkout.orderType": "Tipo de pedido",
   "checkout.dineIn": "En el local",
@@ -119,7 +129,6 @@
   "checkout.phone": "Teléfono",
   "checkout.notes": "Notas",
   "checkout.orderNotes": "Notas del pedido",
-
   "order.status": "Estado",
   "order.pending": "Pendiente",
   "order.confirmed": "Confirmado",
@@ -136,7 +145,6 @@
   "order.details": "Detalles del pedido",
   "order.placedAt": "Realizado el",
   "order.estimatedDelivery": "Entrega estimada",
-
   "payment.card": "Tarjeta",
   "payment.cash": "Efectivo",
   "payment.applePay": "Apple Pay",
@@ -145,7 +153,6 @@
   "payment.success": "Pago exitoso",
   "payment.failed": "Pago fallido",
   "payment.tryAgain": "Reintentar",
-
   "auth.signIn": "Iniciar sesión",
   "auth.signUp": "Registrarse",
   "auth.email": "Correo electrónico",
@@ -160,7 +167,6 @@
   "auth.orContinueWith": "O continuar con",
   "auth.google": "Google",
   "auth.termsAgreement": "Al continuar, aceptas nuestros términos de servicio.",
-
   "store.address": "Dirección",
   "store.phone": "Teléfono",
   "store.email": "Correo electrónico",
@@ -175,12 +181,10 @@
   "store.friday": "Viernes",
   "store.saturday": "Sábado",
   "store.sunday": "Domingo",
-
   "footer.poweredBy": "Desarrollado por BeYours Engine",
   "footer.privacyPolicy": "Política de privacidad",
   "footer.termsOfService": "Términos de servicio",
   "footer.contact": "Contacto",
-
   "error.pageNotFound": "Página no encontrada",
   "error.pageNotFoundMessage": "La página que buscas no existe.",
   "error.goHome": "Ir al inicio",
@@ -190,7 +194,6 @@
   "error.networkErrorMessage": "Verifica tu conexión a internet.",
   "error.unauthorized": "No autorizado",
   "error.forbidden": "Acceso denegado",
-
   "accessibility.openMenu": "Abrir menú",
   "accessibility.closeMenu": "Cerrar menú",
   "accessibility.openCart": "Abrir carrito",
@@ -199,5 +202,6 @@
   "accessibility.decreaseQuantity": "Disminuir cantidad",
   "accessibility.removeItem": "Eliminar artículo",
   "accessibility.productImage": "Imagen del producto",
-  "accessibility.skipToContent": "Ir al contenido principal"
+  "accessibility.skipToContent": "Ir al contenido principal",
+  "accessibility.openBox": "Abrir la Box"
 }

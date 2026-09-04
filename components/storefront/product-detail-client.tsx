@@ -16,6 +16,7 @@ import {
   formatPrice,
   calculateProductPrice,
   isProductAvailable,
+  useLocalizedDocument,
 } from "@be-in-digital/restaurant"
 import type { ProductDoc, CartSelectedOption } from "@be-in-digital/restaurant"
 import { useFavorites } from "@/lib/hooks/use-favorites"
@@ -27,7 +28,13 @@ interface ProductDetailClientProps {
   storeId: string
 }
 
-export function ProductDetailClient({ product, storeId }: ProductDetailClientProps) {
+export function ProductDetailClient({
+  product: sourceProduct,
+  storeId,
+}: ProductDetailClientProps) {
+  // Localised here rather than at each call site: the name this component
+  // renders is also the name it writes into the cart, and the two must agree.
+  const product = useLocalizedDocument(sourceProduct)
   const addItem = useCartStore((s: { addItem: (item: import("@be-in-digital/restaurant").NewCartItem) => void }) => s.addItem)
   const cartStoreId = useCartStore((s: { storeId: string | null }) => s.storeId)
   const { isFavorite, toggleFavorite } = useFavorites()

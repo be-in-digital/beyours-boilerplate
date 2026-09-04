@@ -71,3 +71,16 @@ export function getStaticStrings(locale: string): Record<string, string> | undef
 
 /** Reference keys from French locale (for CI validation) */
 export const REFERENCE_KEYS = Object.keys(frJson) as I18nKey[]
+
+/**
+ * The reference catalogue itself, available synchronously.
+ *
+ * `loadAllStaticStrings` is async, and until it resolves `t()` has nothing to
+ * resolve against and returns the key — so the header would paint `nav.home
+ * nav.menu nav.about` for a frame on every cold load. This is what the store
+ * is seeded with before the first render.
+ */
+export const REFERENCE_STRINGS = frJson as Record<string, string>
+
+/** The language `REFERENCE_STRINGS` is written in. */
+export const REFERENCE_LOCALE = "fr"

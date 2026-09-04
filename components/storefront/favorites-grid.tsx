@@ -11,6 +11,7 @@ import { Skeleton, Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription 
 import {
   isProductAvailable,
   useCartStore,
+  useLocalizedDocuments,
 } from "@be-in-digital/restaurant"
 import type { ProductDoc, NewCartItem } from "@be-in-digital/restaurant"
 import { useFavorites } from "@/lib/hooks/use-favorites"
@@ -39,7 +40,12 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
     api.products.getManyByIds,
     allProductIds.length > 0 ? { ids: allProductIds } : "skip"
   )
-  const products = rawProducts as ProductDoc[] | undefined
+  // Localised before the split, so both the card and the line the quick-add
+  // writes into the cart carry the same language.
+  const localized = useLocalizedDocuments<ProductDoc>(
+    rawProducts as ProductDoc[] | undefined
+  )
+  const products = rawProducts === undefined ? undefined : localized
 
   // Split into current store and other stores
   const { currentStoreFavorites, otherStoreFavorites } = useMemo(() => {

@@ -1,7 +1,12 @@
 "use client"
 
 import { Heart, Plus, ShoppingBag } from "lucide-react"
-import { formatPrice, isProductAvailable } from "@be-in-digital/restaurant"
+import {
+  formatPrice,
+  isProductAvailable,
+  useLocalizedDocument,
+  useTranslation,
+} from "@be-in-digital/restaurant"
 import type { ProductDoc } from "@be-in-digital/restaurant"
 import { Badge } from "@be-in-digital/ui/components"
 
@@ -17,7 +22,7 @@ interface StorefrontProductCardProps {
 }
 
 export function StorefrontProductCard({
-  product,
+  product: sourceProduct,
   storeId,
   isStoreOpen,
   isFavorite: favorited,
@@ -26,6 +31,11 @@ export function StorefrontProductCard({
   onAddToCart,
   otherStore,
 }: StorefrontProductCardProps) {
+  // The card is what the menu, the homepage and the favourites grid all render
+  // through, so localising here is what puts a translated catalogue in front
+  // of a customer everywhere at once.
+  const product = useLocalizedDocument(sourceProduct)
+  const { t } = useTranslation()
   const available = isProductAvailable(product)
   const canAdd = available && isStoreOpen && !otherStore
 
@@ -54,15 +64,15 @@ export function StorefrontProductCard({
         <div className="absolute top-4 left-4 flex gap-2">
           {otherStore ? (
             <Badge variant="secondary" className="bg-white/90 backdrop-blur-md border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
-              Autre restaurant
+              {t("product.otherRestaurant")}
             </Badge>
           ) : product.isFeatured ? (
             <span className="bg-white/90 backdrop-blur-md text-zinc-800 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
-              Populaire
+              {t("product.popular")}
             </span>
           ) : !available ? (
             <span className="bg-white/90 backdrop-blur-md text-zinc-800 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
-              Indisponible
+              {t("product.unavailable")}
             </span>
           ) : null}
         </div>
@@ -105,7 +115,7 @@ export function StorefrontProductCard({
         <div className="mt-auto flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none mb-1">
-              Prix
+              {t("product.price")}
             </span>
             <span className="text-xl font-black text-[#0D5C3F] leading-none">
               {formatPrice(product.price)}

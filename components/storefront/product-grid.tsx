@@ -2,7 +2,7 @@
 
 import { Search, ShoppingBag } from "lucide-react"
 import { Skeleton, Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@be-in-digital/ui/components"
-import { isProductAvailable } from "@be-in-digital/restaurant"
+import { isProductAvailable, useTranslation } from "@be-in-digital/restaurant"
 import type { ProductDoc } from "@be-in-digital/restaurant"
 import { useFavorites } from "@/lib/hooks/use-favorites"
 import { StorefrontProductCard } from "./storefront-product-card"
@@ -23,6 +23,7 @@ export function ProductGrid({
   onAddToCart,
 }: ProductGridProps) {
   const { isFavorite, toggleFavorite } = useFavorites()
+  const { t } = useTranslation()
 
   // Loading state
   if (products === undefined) {
@@ -56,8 +57,8 @@ export function ProductGrid({
           <EmptyMedia variant="icon">
             <Search className="h-5 w-5" />
           </EmptyMedia>
-          <EmptyTitle>Aucun plat trouvé</EmptyTitle>
-          <EmptyDescription>Essayez de modifier votre recherche ou vos filtres.</EmptyDescription>
+          <EmptyTitle>{t("storefront.noDishesFound")}</EmptyTitle>
+          <EmptyDescription>{t("storefront.noDishesMessage")}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     )

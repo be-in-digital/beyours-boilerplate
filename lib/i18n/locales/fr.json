@@ -30,7 +30,6 @@
   "common.subtotal": "Sous-total",
   "common.tax": "TVA",
   "common.includes": "Inclus",
-
   "nav.menu": "Menu",
   "nav.cart": "Panier",
   "nav.account": "Mon compte",
@@ -39,7 +38,9 @@
   "nav.dashboard": "Tableau de bord",
   "nav.orders": "Commandes",
   "nav.home": "Accueil",
-
+  "nav.about": "À propos",
+  "nav.blog": "Blog",
+  "nav.contact": "Contact",
   "storefront.welcome": "Bienvenue",
   "storefront.ourMenu": "Notre carte",
   "storefront.featuredProducts": "Nos produits vedettes",
@@ -49,7 +50,8 @@
   "storefront.storeClosedTitle": "Restaurant fermé",
   "storefront.storeClosedMessage": "Nous sommes actuellement fermés. Veuillez revenir pendant nos heures d'ouverture.",
   "storefront.storeTempUnavailable": "Temporairement indisponible",
-
+  "storefront.noDishesFound": "Aucun plat trouvé",
+  "storefront.noDishesMessage": "Essayez de modifier votre recherche ou vos filtres.",
   "product.addToCart": "Ajouter au panier",
   "product.outOfStock": "Rupture de stock",
   "product.options": "Options",
@@ -71,7 +73,9 @@
   "product.spiceLevel": "Niveau d'épice",
   "product.preparationTime": "Temps de préparation",
   "product.minutes": "{count} min",
-
+  "product.otherRestaurant": "Autre restaurant",
+  "product.popular": "Populaire",
+  "product.price": "Prix",
   "menu.combo": "Formule",
   "menu.selectOption": "Choisissez une option",
   "menu.included": "Inclus dans la formule",
@@ -79,7 +83,6 @@
   "menu.sections": "Sections",
   "menu.fixedItem": "Article fixe",
   "menu.pickFrom": "Choisir parmi",
-
   "cart.title": "Votre panier",
   "cart.empty": "Votre panier est vide",
   "cart.emptyMessage": "Ajoutez des articles depuis notre menu pour commencer votre commande.",
@@ -97,7 +100,14 @@
   "cart.freeDeliveryAbove": "Livraison gratuite à partir de {amount}",
   "cart.minimumOrder": "Commande minimum : {amount}",
   "cart.minimumNotReached": "Minimum de commande non atteint",
-
+  "cart.boxTitle": "Ma Box",
+  "cart.boxTitleFull": "Votre Box",
+  "cart.boxEmpty": "Votre Box est vide",
+  "cart.boxEmptyMessage": "Il semble que vous n’ayez pas encore ajouté de plats à votre Box.",
+  "cart.itemsSelected": "articles sélectionnés",
+  "cart.itemSelected": "article sélectionné",
+  "cart.orderNow": "Commander maintenant",
+  "cart.totalPrice": "Prix Total",
   "checkout.title": "Finaliser la commande",
   "checkout.orderType": "Type de commande",
   "checkout.dineIn": "Sur place",
@@ -119,7 +129,6 @@
   "checkout.phone": "Téléphone",
   "checkout.notes": "Notes",
   "checkout.orderNotes": "Notes de commande",
-
   "order.status": "Statut",
   "order.pending": "En attente",
   "order.confirmed": "Confirmée",
@@ -136,7 +145,6 @@
   "order.details": "Détails de la commande",
   "order.placedAt": "Passée le",
   "order.estimatedDelivery": "Livraison estimée",
-
   "payment.card": "Carte bancaire",
   "payment.cash": "Espèces",
   "payment.applePay": "Apple Pay",
@@ -145,7 +153,6 @@
   "payment.success": "Paiement réussi",
   "payment.failed": "Échec du paiement",
   "payment.tryAgain": "Réessayer le paiement",
-
   "auth.signIn": "Se connecter",
   "auth.signUp": "S'inscrire",
   "auth.email": "Adresse email",
@@ -160,7 +167,6 @@
   "auth.orContinueWith": "Ou continuer avec",
   "auth.google": "Google",
   "auth.termsAgreement": "En continuant, vous acceptez nos conditions d'utilisation.",
-
   "store.address": "Adresse",
   "store.phone": "Téléphone",
   "store.email": "Email",
@@ -175,12 +181,10 @@
   "store.friday": "Vendredi",
   "store.saturday": "Samedi",
   "store.sunday": "Dimanche",
-
   "footer.poweredBy": "Propulsé par BeYours Engine",
   "footer.privacyPolicy": "Politique de confidentialité",
   "footer.termsOfService": "Conditions d'utilisation",
   "footer.contact": "Contact",
-
   "error.pageNotFound": "Page introuvable",
   "error.pageNotFoundMessage": "La page que vous cherchez n'existe pas.",
   "error.goHome": "Retour à l'accueil",
@@ -190,7 +194,6 @@
   "error.networkErrorMessage": "Vérifiez votre connexion internet.",
   "error.unauthorized": "Non autorisé",
   "error.forbidden": "Accès refusé",
-
   "accessibility.openMenu": "Ouvrir le menu",
   "accessibility.closeMenu": "Fermer le menu",
   "accessibility.openCart": "Ouvrir le panier",
@@ -199,5 +202,6 @@
   "accessibility.decreaseQuantity": "Diminuer la quantité",
   "accessibility.removeItem": "Retirer l'article",
   "accessibility.productImage": "Image du produit",
-  "accessibility.skipToContent": "Aller au contenu principal"
+  "accessibility.skipToContent": "Aller au contenu principal",
+  "accessibility.openBox": "Ouvrir la Box"
 }

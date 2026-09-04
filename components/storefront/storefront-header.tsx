@@ -11,23 +11,36 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@be-in-digital/ui/components"
-import { useCartStore } from "@be-in-digital/restaurant"
+import { useCartStore, useTranslation } from "@be-in-digital/restaurant"
 import { useCmsPage } from "@/lib/cms/useCmsPage"
 import { CartSheet } from "./cart-sheet"
 import { StoreSelectorDropdown } from "./store-selector-dropdown"
 import { LanguageSelectorDropdown } from "./language-selector-dropdown"
 import { UserMenu } from "./user-menu"
 
-const navLinks = [
-  { href: "/", label: "Accueil" },
-  { href: "/menu", label: "Menu" },
-  { href: "/about", label: "À propos" },
-  { href: "/blog", label: "Blog" },
-  { href: "/contact", label: "Contact" },
+/**
+ * The five nav entries, by translation key.
+ *
+ * The labels were a module-level constant of French literals, which is a
+ * shape that cannot follow a language switch — the array is built once at
+ * import time, before any locale exists. The hrefs stay constant; only the
+ * label is resolved per render.
+ */
+const NAV_LINKS = [
+  { href: "/", labelKey: "nav.home" },
+  { href: "/menu", labelKey: "nav.menu" },
+  { href: "/about", labelKey: "nav.about" },
+  { href: "/blog", labelKey: "nav.blog" },
+  { href: "/contact", labelKey: "nav.contact" },
 ]
 
 export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean }) {
   const pathname = usePathname()
+  const { t } = useTranslation()
+  const navLinks = NAV_LINKS.map((link) => ({
+    href: link.href,
+    label: t(link.labelKey),
+  }))
   const itemCount = useCartStore((s) => s.getItemCount())
   const cms = useCmsPage("storefront-layout")
   const logoMedia = cms.block("branding").field("logo")
@@ -139,7 +152,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                         ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
                         : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F] hover:bg-zinc-50"
                     }`}
-                    aria-label="Ouvrir la Box"
+                    aria-label={t("accessibility.openBox")}
                   >
                     <ShoppingBag className="h-4 w-4" />
                     {hasMounted && itemCount > 0 && (
@@ -149,7 +162,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                     )}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Ma Box</TooltipContent>
+                <TooltipContent>{t("cart.boxTitle")}</TooltipContent>
               </Tooltip>
 
               <UserMenu variant={showTransparent ? "transparent" : "solid"} />
@@ -169,7 +182,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                   ? "bg-white/10 border-white/20 text-white"
                   : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F]"
               }`}
-              aria-label="Ouvrir la Box"
+              aria-label={t("accessibility.openBox")}
             >
               <ShoppingBag className="h-4 w-4" />
               {hasMounted && itemCount > 0 && (
@@ -187,7 +200,11 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                   ? "bg-white/10 border-white/20 text-white"
                   : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F]"
               }`}
-              aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+              aria-label={
+                isMobileMenuOpen
+                  ? t("accessibility.closeMenu")
+                  : t("accessibility.openMenu")
+              }
             >
               {isMobileMenuOpen ? (
                 <X className="h-4 w-4" />
@@ -226,7 +243,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 border border-white/20 text-white"
-                aria-label="Fermer le menu"
+                aria-label={t("accessibility.closeMenu")}
               >
                 <X className="h-4 w-4" />
               </button>
