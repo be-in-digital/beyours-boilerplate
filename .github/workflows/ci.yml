@@ -176,6 +176,57 @@ jobs:
           path: ~/.cache/convex-e2e
           key: convex-backend-${{ env.CONVEX_BACKEND_VERSION }}
 
+      # The same guard the engine's own e2e workflow carries, and for the same
+      # reason — this is the CI a client's site runs, so it meets the identical
+      # ceiling.
+      #
+      # `convex.json` declares `node.externalPackages`, and `convex deploy`
+      # installs those with a real `npm install` inside the push, under a
+      # 300-second limit the backend enforces and exposes no flag to raise.
+      # Measured on the engine repository: that install took 158-285s on CI
+      # runners and lost seven consecutive runs to `evaluate_push ... 408`.
+      # Fetching the packages first moves the download out of the timed window;
+      # the cache keeps it out on every later run.
+      - name: Cache the npm downloads the Convex push needs
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: convex-external-deps-${{ hashFiles('convex.json', 'package.json') }}
+          restore-keys: |
+            convex-external-deps-
+
+      - name: Pre-fetch the Convex external dependencies
+        run: |
+          set -euo pipefail
+
+          # Read from convex.json rather than restated, so this cannot drift
+          # from what the backend will actually install.
+          SPECS="$(node -e '
+            const fs = require("fs")
+            const cfg = JSON.parse(fs.readFileSync("convex.json", "utf8"))
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"))
+            const pinned = { ...pkg.dependencies, ...pkg.devDependencies }
+            const specs = (cfg.node?.externalPackages ?? [])
+              .filter((n) => n !== "*")
+              .map((n) => (pinned[n] ? `${n}@${pinned[n]}` : n))
+            process.stdout.write(specs.join(" "))
+          ')"
+
+          if [ -z "$SPECS" ]; then
+            echo "No external packages declared — nothing to pre-fetch."
+            exit 0
+          fi
+
+          echo "Warming ~/.npm for: $SPECS"
+
+          # Non-fatal: a warm cache is an optimisation, and a registry hiccup
+          # here must not fail a suite that can still run.
+          npm install --prefix "$RUNNER_TEMP/convex-deps-warm" \
+            --ignore-scripts --no-audit --no-fund --loglevel=error \
+            $SPECS || echo "::warning::Pre-fetch failed; the push will fetch these itself."
+
+          echo "~/.npm is now $(du -sh "$HOME/.npm" 2>/dev/null | cut -f1)."
+
       - name: Start a Convex backend
         run: |
           set -euo pipefail
