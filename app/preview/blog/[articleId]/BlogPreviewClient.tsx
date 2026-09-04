@@ -4,6 +4,7 @@ import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { formatDate } from "@/lib/admin/formatters"
 import DOMPurify from "isomorphic-dompurify"
+import { ARTICLE_SANITIZE_PROFILE } from "@/lib/blog/sanitize-profile"
 import Link from "next/link"
 import { ArrowLeft, Eye } from "lucide-react"
 import { Badge, Button } from "@be-in-digital/ui"
@@ -47,7 +48,7 @@ export function BlogPreviewClient({ articleId }: BlogPreviewClientProps) {
   const tags = article.draftTags ?? []
 
   const sanitizedContent = draft?.content
-    ? DOMPurify.sanitize(draft.content)
+    ? DOMPurify.sanitize(draft.content, ARTICLE_SANITIZE_PROFILE)
     : ""
 
   return (

@@ -106,6 +106,8 @@ export const upsert = mutation({
       frequency: args.frequency,
       preferredWeekdays: args.preferredWeekdays,
       preferredMonthDays: args.preferredMonthDays,
+      preferredHour: args.preferredHour,
+      timezone: args.timezone,
     })
 
     return blogAutoConfigDefs.upsert.handler(ctx, {

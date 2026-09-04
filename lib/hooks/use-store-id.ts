@@ -87,6 +87,31 @@ export function useStoreId(): {
     }
   }, [stores, store, cartStoreId, nearestStore, setStoreId, setCartStoreId])
 
+  /**
+   * Tell the server which establishment this visitor is reading.
+   *
+   * Three server-side readers ask for a `storeSlug` cookie — `generateCmsMetadata`,
+   * `resolveDefaultStoreSlug` and the storefront's own store resolution — and
+   * nothing in the repository had ever written one. So a server render always
+   * fell back to the first published establishment while the browser, resolving
+   * here, could be on a different one: on a multi-store deployment the blog
+   * listed store B's articles and linked to `/blog/<B-slug>`, which the server
+   * then looked for in store A and answered 404 — the very dead links the blog
+   * work set out to remove.
+   *
+   * Written from the client because that is where the choice is made. It is not
+   * a credential: it names a published establishment, which `stores.list`
+   * already gives anyone, and every reader re-resolves it through
+   * `stores.getBySlug`, which refuses a draft to an anonymous caller.
+   */
+  useEffect(() => {
+    const slug = store?.slug
+    if (!slug || typeof document === "undefined") return
+
+    const secure = window.location.protocol === "https:" ? "; Secure" : ""
+    document.cookie = `storeSlug=${encodeURIComponent(slug)}; path=/; max-age=31536000; SameSite=Lax${secure}`
+  }, [store?.slug])
+
   return {
     storeId: store?._id ?? null,
     store,

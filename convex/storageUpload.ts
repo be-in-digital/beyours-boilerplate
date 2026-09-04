@@ -5,7 +5,10 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { getExtensionFromMimeType } from "@be-in-digital/cms";
+import {
+  getExtensionFromMimeType,
+  validateMediaUpload,
+} from "@be-in-digital/cms";
 import { buildMediaUrl } from "@be-in-digital/core/aws/media-url";
 import {
   S3_FOLDERS,
@@ -165,6 +168,22 @@ export const getPresignedUrlForMedia = action({
     if (media.status !== "processing" && media.status !== "failed") {
       throw new Error(
         `Cannot generate upload URL: media status is "${media.status}"`,
+      );
+    }
+
+    // The row's own MIME type becomes the presigned `ContentType`, so this is
+    // where an unacceptable one turns into a signed permission to upload it.
+    // `createMedia` refuses these now, but rows written before that guard
+    // existed still carry whatever they were given, and a retry presign reads
+    // them straight back. Re-check rather than trust the row.
+    const validation = validateMediaUpload(
+      media.filename,
+      media.mimeType,
+      media.size,
+    );
+    if (!validation.valid) {
+      throw new Error(
+        `Cannot generate upload URL: ${validation.error?.message ?? "media refusé"}`,
       );
     }
 

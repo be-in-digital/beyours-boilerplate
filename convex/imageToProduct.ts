@@ -695,14 +695,18 @@ export const analyze = action({
       permission: "products:write",
     })
 
-    // Check Image-to-Product quota
-    const quotaCheck = await ctx.runQuery(
-      internal.authHelpers.checkImageToProductQuota,
+    // Reserve the analysis BEFORE the first paid call. The quota used to be
+    // checked here and incremented after three OpenAI requests had already been
+    // made, so concurrent requests all read the same count and all passed.
+    const reservation = await ctx.runMutation(
+      internal.authHelpers.reserveImageToProductQuota,
       { ownerId }
     )
-    if (!quotaCheck.allowed) {
-      throw new Error(quotaCheck.reason ?? "Quota atteint")
+    if (!reservation.ok) {
+      throw new Error(reservation.reason ?? "Quota atteint")
     }
+
+    try {
 
     // SSRF protection: validate the image URL before any processing
     validateImageUrl(args.imageUrl)
@@ -771,11 +775,6 @@ export const analyze = action({
     const imageCostUsd = productImages.size * DALLE_COST_PER_IMAGE
     const estimatedCostUsd = textCostUsd + imageCostUsd
 
-    // Increment usage quota after successful analysis
-    await ctx.runMutation(internal.authHelpers.incrementImageToProductUsage, {
-      ownerId,
-    })
-
     return {
       mode: args.mode,
       suggestions,
@@ -786,6 +785,14 @@ export const analyze = action({
         imageUpscaled: processed.enhanced,
         imagesGenerated: productImages.size,
       },
+    }
+    } catch (error) {
+      // The analysis produced nothing, so it costs the owner no slot.
+      await ctx.runMutation(
+        internal.authHelpers.releaseImageToProductQuota,
+        { ownerId }
+      )
+      throw error
     }
   },
 })

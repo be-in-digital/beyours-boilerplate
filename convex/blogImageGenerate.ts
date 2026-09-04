@@ -4,9 +4,9 @@
  * Blog Image Generate — Action (Node Runtime)
  *
  * Standalone image generation from a user prompt using GPT Image 1 Mini.
- * Flow: auth → quota check → OpenAI → S3 → cmsMedia → process → increment usage
+ * Flow: auth → store authorisation + quota reservation → OpenAI → S3 → cmsMedia → process
  *
- * Usage is incremented AFTER S3 upload succeeds to avoid consuming quota on failures.
+ * The slot is reserved before the paid call and released if the call fails.
  */
 
 import { v } from "convex/values"
@@ -44,13 +44,13 @@ function buildPublicUrl(key: string): string {
 
 /**
  * Generate a single image from a user-provided prompt.
- * 1. Check image generation quota
+ * 1. Authorise the store, then reserve one image from the monthly quota
  * 2. Call OpenAI gpt-image-1-mini
  * 3. Upload to S3 + create cmsMedia record
  * 4. Schedule image processing (thumb + card variants)
- * 5. Increment image usage (after S3 success)
+ * 5. Release the reservation if anything above failed
  */
-// @guarded-inline: runs _checkImageAccess, which enforces the store quota and rights
+// @guarded-inline: _reserveImageQuota checks content:write on this store, then the plan
 export const generateImage = action({
   args: {
     storeId: v.id("stores"),
@@ -65,14 +65,19 @@ export const generateImage = action({
     // 1b. Input validation
     if (args.prompt.length > 1000) throw new Error("Prompt trop long (max 1000 caractères)")
 
-    // 2. Check image generation quota
-    const access = await ctx.runQuery(
-      internal.blogImageGenerateInternal._checkImageAccess,
-      { ownerId }
+    // 2. Authorise the establishment and take the image slot BEFORE the paid
+    //    call. The store was absent from the old check — it took an `ownerId`
+    //    and nothing else — and the counter moved only after S3 accepted the
+    //    upload, which let concurrent requests past the cap.
+    const reservation = await ctx.runMutation(
+      internal.blogImageGenerateInternal._reserveImageQuota,
+      { storeId: args.storeId }
     )
-    if (!access.allowed) {
-      throw new Error(access.reason ?? "Accès refusé")
+    if (!reservation.ok) {
+      throw new Error(reservation.reason ?? "Quota d'images atteint")
     }
+
+    try {
 
     // 3. Call OpenAI gpt-image-1-mini
     const apiKey = process.env.OPENAI_API_KEY
@@ -145,19 +150,21 @@ export const generateImage = action({
       { mediaId, s3Key, mimeType: "image/png" }
     )
 
-    // 8. Increment image usage AFTER S3 upload succeeds
-    await ctx.runMutation(
-      internal.blogImageGenerateInternal._incrementImageUsage,
-      { ownerId }
-    )
-
-    // 9. Return immediate source URL (variants arrive async)
+    // 8. Return immediate source URL (variants arrive async)
     const sourceUrl = buildPublicUrl(s3Key)
 
-    return {
-      url: sourceUrl,
-      mediaId: mediaId as string,
-      alt: args.prompt,
+      return {
+        url: sourceUrl,
+        mediaId: mediaId as string,
+        alt: args.prompt,
+      }
+    } catch (error) {
+      // Nothing was produced, so the slot goes back.
+      await ctx.runMutation(
+        internal.blogImageGenerateInternal._releaseImageQuota,
+        { ownerId }
+      )
+      throw error
     }
   },
 })

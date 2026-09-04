@@ -7,6 +7,7 @@
 
 import "server-only"
 import { cache } from "react"
+import { cookies } from "next/headers"
 import { ConvexHttpClient } from "convex/browser"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -66,3 +67,28 @@ export const getStorePageData = cache(
     return { store, cms }
   },
 )
+
+/**
+ * The establishment a server render is serving.
+ *
+ * A server render has none of the selection `useStoreId` makes in the browser:
+ * that reads a persisted choice, then geolocation, then falls back to the first
+ * published establishment. The `storeSlug` cookie is the only part of it the
+ * browser sends back, so it wins here; a crawler arrives without one and lands
+ * on the same first published establishment the client would settle on. The two
+ * ends therefore agree on a single-establishment deployment, which is what a
+ * client site is.
+ *
+ * Memoized per request: `generateMetadata` and the page body both need it, and
+ * one render must not resolve it twice.
+ */
+export const resolveStorefrontStore = cache(async () => {
+  const cookieStore = await cookies()
+  const storeSlug = cookieStore.get("storeSlug")?.value
+  if (storeSlug) {
+    const store = await getStoreBySlug(storeSlug)
+    if (store) return store
+  }
+  const stores = await getConvexClient().query(api.stores.list, {})
+  return stores?.[0] ?? null
+})

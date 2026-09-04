@@ -87,4 +87,26 @@ crons.cron(
   {},
 );
 
+// Queue the articles an Auto Blog subscription is due. Hourly, because
+// `preferredHour` is an hour: the planner asks each configuration whether this
+// is its hour in its own timezone, and writes a queue row if it is. It calls
+// no paid API — a sweep that finds nothing costs one indexed read.
+crons.cron(
+  "plan auto blog jobs",
+  "0 * * * *",
+  internal.blogAutoPlanner.planAutoBlogJobs,
+  {},
+);
+
+// Generate what the planner queued. Every 10 minutes rather than hourly: an
+// article scheduled for 09:00 that appears at 09:55 is not the promise the
+// owner configured, and a generation that fails still has its retries inside
+// the hour. The spec asks for 5-15 minutes (tasks/auto-blog-spec.md §4.2).
+crons.interval(
+  "execute auto blog queue",
+  { minutes: 10 },
+  internal.blogAutoGenerate.executeAutoBlogQueue,
+  {},
+);
+
 export default crons;

@@ -13,13 +13,14 @@
  */
 
 import { v } from "convex/values"
-import { action } from "./_generated/server"
+import { action, internalAction } from "./_generated/server"
 import { internal } from "./_generated/api"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
-import sanitizeHtml from "sanitize-html"
 import type { ActionCtx } from "./_generated/server"
 import type { Id } from "./_generated/dataModel"
 import { buildMediaUrl } from "@be-in-digital/core/aws/media-url"
+import { resolveApprovalMode } from "@be-in-digital/convex-functions/blogAutoGuards"
+import { sanitizeArticleHtml } from "@be-in-digital/convex-functions/htmlSanitize"
 
 // ============================================================================
 // S3 Helpers (same pattern as cmsMediaProcess.ts)
@@ -180,6 +181,16 @@ async function downloadAndUploadImage(
 // GPT Image Fallback
 // ============================================================================
 
+/**
+ * The paid image fallback, used up to four times per article.
+ *
+ * Every one of these calls was free of the image quota: `monthlyImageQuota`
+ * existed, `checkImageGenerationAccess` read it, and this path never asked. A
+ * plan with five images a month could produce forty across ten articles. The
+ * slot is now taken before the call and handed back if nothing comes of it —
+ * and running out of images returns null rather than throwing, because the
+ * article itself is still worth having.
+ */
 async function generateWithOpenAI(
   keyword: string,
   caption: string,
@@ -190,6 +201,18 @@ async function generateWithOpenAI(
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) return null
 
+  const reservation = await ctx.runMutation(
+    internal.blogAutoGenerateInternal._reserveImageQuota,
+    { ownerId }
+  )
+  if (!reservation.ok) {
+    console.warn(
+      `[blogAutoGenerate] image quota exhausted, skipping "${keyword}": ${reservation.reason}`
+    )
+    return null
+  }
+
+  let produced = false
   try {
     const prompt = `Photo professionnelle de cuisine/restaurant : ${keyword}. Style éditorial, lumière naturelle, pas de texte, pas de logo, pas de marque.`
 
@@ -255,6 +278,7 @@ async function generateWithOpenAI(
     // Return immediate source URL (variants arrive async)
     const sourceUrl = buildPublicUrl(s3Key)
 
+    produced = true
     return {
       url: sourceUrl,
       alt: caption || keyword,
@@ -264,6 +288,13 @@ async function generateWithOpenAI(
   } catch (err) {
     console.error(`[blogAutoGenerate] GPT image generation failed for "${keyword}":`, err)
     return null
+  } finally {
+    if (!produced) {
+      await ctx.runMutation(
+        internal.blogAutoGenerateInternal._releaseImageQuota,
+        { ownerId }
+      )
+    }
   }
 }
 
@@ -303,92 +334,63 @@ function injectImages(content: string, images: (ImageResult | null)[]): string {
 }
 
 // ============================================================================
-// HTML Sanitization
-// ============================================================================
-
-function sanitizeContent(html: string): string {
-  return sanitizeHtml(html, {
-    allowedTags: [
-      "p", "h2", "h3", "h4",
-      "strong", "em", "u", "s",
-      "ul", "ol", "li",
-      "a", "img",
-      "blockquote", "hr", "br",
-    ],
-    allowedAttributes: {
-      a: ["href", "target", "rel"],
-      img: ["src", "alt", "class"],
-    },
-  })
-}
-
-// ============================================================================
-// Public Action
+// Generation pipeline
 // ============================================================================
 
 /**
- * Generate a blog article using AI with images.
- * 1. OpenAI text → { title, excerpt, content, imageKeywords, imageCaptions }
- * 2. For each keyword: Unsplash (priority) → GPT Image (fallback)
- * 3. Inject images, sanitize HTML, save draft
+ * Everything one article costs, with the caller's authorisation already done.
+ *
+ * Two callers reach it: the "Generate with AI" button, which authorises through
+ * the session, and `executeAutoBlogQueue`, which runs on a cron and has no
+ * session at all — the establishment was authorised when the owner saved the
+ * configuration. Neither has a copy of the other's prompt: this used to be the
+ * action's own body, and a scheduler bolted alongside it would have been a
+ * second one to keep in step.
+ *
+ * The quota is reserved by the caller, before this is entered, and released by
+ * the caller if this throws.
  */
-// @guarded-inline: runs _checkAccess, which enforces the store quota and rights
-export const generateArticle = action({
-  args: {
-    storeId: v.id("stores"),
-    topic: v.string(),
-    tone: v.union(
-      v.literal("formel"),
-      v.literal("decontracte"),
-      v.literal("storytelling")
-    ),
-    locale: v.string(),
-    categoryId: v.id("blogCategories"),
-    autoTranslate: v.optional(v.boolean()),
-  },
-  handler: async (ctx, args): Promise<{ articleId: string }> => {
-    // 1. Auth check
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Not authenticated")
-    const ownerId = identity.subject
+interface GenerationParams {
+  storeId: Id<"stores">
+  categoryId: Id<"blogCategories">
+  ownerId: string
+  topic: string
+  tone: "formel" | "decontracte" | "storytelling"
+  locale: string
+  autoTranslate: boolean
+  approvalMode: "draft_review" | "auto_publish"
+  /** Set on the scheduled path, so the article and its queue row commit together. */
+  jobId?: Id<"blogAutoQueue">
+}
 
-    // 1b. Input validation
-    if (args.topic.length > 500) throw new Error("Topic trop long (max 500 caractères)")
-    if (args.locale.length > 10) throw new Error("Locale invalide")
+async function runGenerationPipeline(
+  ctx: ActionCtx,
+  params: GenerationParams,
+): Promise<{ articleId: string; status: "draft" | "published" }> {
+  // 3. Get store/category context for the prompt
+  const context = await ctx.runQuery(
+    internal.blogAutoGenerateInternal._getGenerationContext,
+    { storeId: params.storeId, categoryId: params.categoryId }
+  )
 
-    // 2. Check entitlements + quota
-    const access = await ctx.runQuery(
-      internal.blogAutoGenerateInternal._checkAccess,
-      { ownerId }
-    )
-    if (!access.allowed) {
-      throw new Error(access.reason ?? "Accès refusé")
-    }
+  // 4. Call OpenAI for text generation
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY not configured")
+  }
 
-    // 3. Get store/category context for the prompt
-    const context = await ctx.runQuery(
-      internal.blogAutoGenerateInternal._getGenerationContext,
-      { storeId: args.storeId, categoryId: args.categoryId }
-    )
+  const toneLabel =
+    params.tone === "formel"
+      ? "formel et professionnel"
+      : params.tone === "decontracte"
+        ? "décontracté et accessible"
+        : "storytelling et immersif"
 
-    // 4. Call OpenAI for text generation
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
-      throw new Error("OPENAI_API_KEY not configured")
-    }
-
-    const toneLabel =
-      args.tone === "formel"
-        ? "formel et professionnel"
-        : args.tone === "decontracte"
-          ? "décontracté et accessible"
-          : "storytelling et immersif"
-
-    const systemPrompt = `Tu es un expert SEO et redacteur de blog professionnel pour un restaurant.
+  const systemPrompt = `Tu es un expert SEO et redacteur de blog professionnel pour un restaurant.
 Tu generes des articles de blog HAUTEMENT OPTIMISES pour le referencement naturel (SEO), en HTML compatible avec l'editeur Tiptap.
 
 Regles generales :
-- Ecris en ${args.locale}
+- Ecris en ${params.locale}
 - Ton : ${toneLabel}
 - Le restaurant s'appelle "${context.storeName}"
 - Categorie de l'article : "${context.categoryName}"
@@ -476,7 +478,7 @@ Regles pour le SEO des metadonnees :
 - metaTitle : différent du titre si possible, max 60 caractères, mot-clé principal au debut
 - metaDescription : max 160 caractères, mot-clé principal, bénéfice clair, appel a l'action (verbe d'action)
 - excerpt : résumé engageant qui donne envie de lire, avec le mot-clé principal
-- tags : 4-6 tags pertinents en ${args.locale}, incluant le mot-clé principal et des variations
+- tags : 4-6 tags pertinents en ${params.locale}, incluant le mot-clé principal et des variations
 
 Regles pour l'image de couverture :
 - coverImageKeyword : 1 mot-clé EN ANGLAIS pour l'image de couverture, TRÈS visuel et accrocheur
@@ -491,135 +493,350 @@ Regles STRICTES pour les images du contenu :
 - imageCaptions : 3 légendes courtes dans la langue de l'article, en rapport direct avec le contenu, incluant des mots-clés
 - Pas de logos, marques ou noms commerciaux dans les keywords`
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.7,
-        max_tokens: 8192,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Ecris un article sur : ${args.topic}` },
-        ],
-      }),
-    })
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+      max_tokens: 8192,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Ecris un article sur : ${params.topic}` },
+      ],
+    }),
+  })
 
-    if (!response.ok) {
-      throw new Error(
-        `OpenAI API error: ${response.status} ${response.statusText}`
+  if (!response.ok) {
+    throw new Error(
+      `OpenAI API error: ${response.status} ${response.statusText}`
+    )
+  }
+
+  const data = (await response.json()) as {
+    choices: Array<{ message: { content: string } }>
+  }
+
+  const rawContent = data.choices[0]?.message?.content?.trim()
+  if (!rawContent) {
+    throw new Error("OpenAI returned empty response")
+  }
+
+  // 5. Parse JSON response
+  let generated: {
+    title: string
+    excerpt: string
+    content: string
+    metaTitle?: string
+    metaDescription?: string
+    tags?: string[]
+    coverImageKeyword?: string
+    coverImageAlt?: string
+    imageKeywords?: string[]
+    imageCaptions?: string[]
+  }
+  try {
+    const cleaned = rawContent
+      .replace(/^```json\s*/i, "")
+      .replace(/```\s*$/, "")
+      .trim()
+    generated = JSON.parse(cleaned)
+  } catch {
+    throw new Error("Failed to parse AI response as JSON")
+  }
+
+  if (!generated.title || !generated.content) {
+    throw new Error("AI response missing required fields (title, content)")
+  }
+
+  // 6. Fetch cover image (dedicated, separate from content images)
+  let coverImageId: Id<"cmsMedia"> | undefined
+  const coverImageAlt = generated.coverImageAlt ?? ""
+  if (generated.coverImageKeyword) {
+    const coverImg = await fetchFromUnsplash(generated.coverImageKeyword)
+    if (coverImg) {
+      // For Unsplash cover: download and upload to S3 as cmsMedia for proper reference
+      const coverMediaId = await downloadAndUploadImage(
+        coverImg.url, generated.coverImageKeyword, ctx, params.storeId, params.ownerId
       )
+      if (coverMediaId) coverImageId = coverMediaId
     }
-
-    const data = (await response.json()) as {
-      choices: Array<{ message: { content: string } }>
-    }
-
-    const rawContent = data.choices[0]?.message?.content?.trim()
-    if (!rawContent) {
-      throw new Error("OpenAI returned empty response")
-    }
-
-    // 5. Parse JSON response
-    let generated: {
-      title: string
-      excerpt: string
-      content: string
-      metaTitle?: string
-      metaDescription?: string
-      tags?: string[]
-      coverImageKeyword?: string
-      coverImageAlt?: string
-      imageKeywords?: string[]
-      imageCaptions?: string[]
-    }
-    try {
-      const cleaned = rawContent
-        .replace(/^```json\s*/i, "")
-        .replace(/```\s*$/, "")
-        .trim()
-      generated = JSON.parse(cleaned)
-    } catch {
-      throw new Error("Failed to parse AI response as JSON")
-    }
-
-    if (!generated.title || !generated.content) {
-      throw new Error("AI response missing required fields (title, content)")
-    }
-
-    // 6. Fetch cover image (dedicated, separate from content images)
-    let coverImageId: Id<"cmsMedia"> | undefined
-    const coverImageAlt = generated.coverImageAlt ?? ""
-    if (generated.coverImageKeyword) {
-      const coverImg = await fetchFromUnsplash(generated.coverImageKeyword)
-      if (coverImg) {
-        // For Unsplash cover: download and upload to S3 as cmsMedia for proper reference
-        const coverMediaId = await downloadAndUploadImage(
-          coverImg.url, generated.coverImageKeyword, ctx, args.storeId, ownerId
-        )
-        if (coverMediaId) coverImageId = coverMediaId
-      }
-      if (!coverImageId) {
-        // Fallback: generate cover with GPT Image
-        const gptCover = await generateWithOpenAI(
-          generated.coverImageKeyword, coverImageAlt, ctx, args.storeId, ownerId
-        )
-        if (gptCover?.mediaId) {
-          coverImageId = gptCover.mediaId
-        }
+    if (!coverImageId) {
+      // Fallback: generate cover with GPT Image
+      const gptCover = await generateWithOpenAI(
+        generated.coverImageKeyword, coverImageAlt, ctx, params.storeId, params.ownerId
+      )
+      if (gptCover?.mediaId) {
+        coverImageId = gptCover.mediaId
       }
     }
+  }
 
-    // 7. Fetch content images (Unsplash priority, GPT Image fallback)
-    const keywords = generated.imageKeywords ?? []
-    const captions = generated.imageCaptions ?? []
-    const images: (ImageResult | null)[] = []
+  // 7. Fetch content images (Unsplash priority, GPT Image fallback)
+  const keywords = generated.imageKeywords ?? []
+  const captions = generated.imageCaptions ?? []
+  const images: (ImageResult | null)[] = []
 
-    for (let i = 0; i < keywords.length; i++) {
-      const keyword = keywords[i]
-      if (!keyword) continue
-      const caption = captions[i] ?? keyword
+  for (let i = 0; i < keywords.length; i++) {
+    const keyword = keywords[i]
+    if (!keyword) continue
+    const caption = captions[i] ?? keyword
 
-      // Try Unsplash first
-      let img = await fetchFromUnsplash(keyword)
+    // Try Unsplash first
+    let img = await fetchFromUnsplash(keyword)
 
-      // Fallback to GPT Image
-      if (!img) {
-        img = await generateWithOpenAI(keyword, caption, ctx, args.storeId, ownerId)
-      }
-
-      images.push(img)
+    // Fallback to GPT Image
+    if (!img) {
+      img = await generateWithOpenAI(keyword, caption, ctx, params.storeId, params.ownerId)
     }
 
-    // 8. Inject images into HTML content
-    let finalContent = injectImages(generated.content, images)
+    images.push(img)
+  }
 
-    // 9. Sanitize HTML
-    finalContent = sanitizeContent(finalContent)
+  // 8. Inject images into HTML content
+  let finalContent = injectImages(generated.content, images)
 
-    // 10. Save article with all fields + increment usage + optional auto-translate
-    const articleId: string = await ctx.runMutation(
+  // 9. Sanitize HTML — the shared allow-list, not a copy of it. This file
+  //    used to carry its own, which is how the two could have drifted.
+  finalContent = sanitizeArticleHtml(finalContent)
+
+  // 10. Save the article, publishing it only where the plan allows.
+  const saved: { articleId: string; status: "draft" | "published" } =
+    await ctx.runMutation(
       internal.blogAutoGenerateInternal._saveGeneratedArticle,
       {
-        storeId: args.storeId,
-        ownerId,
+        storeId: params.storeId,
+        ownerId: params.ownerId,
         title: generated.title,
         excerpt: generated.excerpt || "",
         content: finalContent,
-        categoryId: args.categoryId,
-        authorId: ownerId,
+        categoryId: params.categoryId,
+        authorId: params.ownerId,
         coverImageId,
         coverImageAlt: coverImageAlt || undefined,
         metaTitle: generated.metaTitle || undefined,
         metaDescription: generated.metaDescription || undefined,
         tags: generated.tags,
-        autoTranslate: args.autoTranslate ?? false,
+        autoTranslate: params.autoTranslate,
+        approvalMode: params.approvalMode,
       }
     )
 
-    return { articleId }
+  return saved
+}
+
+// ============================================================================
+// Public Action
+// ============================================================================
+
+/**
+ * Generate a blog article using AI with images.
+ * 1. OpenAI text → { title, excerpt, content, imageKeywords, imageCaptions }
+ * 2. For each keyword: Unsplash (priority) → GPT Image (fallback)
+ * 3. Inject images, sanitize HTML, save draft
+ */
+// @guarded-inline: _reserveQuota checks content:write on this store, then the plan
+export const generateArticle = action({
+  args: {
+    storeId: v.id("stores"),
+    topic: v.string(),
+    tone: v.union(
+      v.literal("formel"),
+      v.literal("decontracte"),
+      v.literal("storytelling")
+    ),
+    locale: v.string(),
+    categoryId: v.id("blogCategories"),
+    autoTranslate: v.optional(v.boolean()),
+    approvalMode: v.optional(
+      v.union(v.literal("draft_review"), v.literal("auto_publish")),
+    ),
+  },
+  handler: async (ctx, args): Promise<{ articleId: string; status: "draft" | "published" }> => {
+    // 1. Auth check
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Not authenticated")
+    const ownerId = identity.subject
+
+    // 1b. Input validation
+    if (args.topic.length > 500) throw new Error("Topic trop long (max 500 caractères)")
+    if (args.locale.length > 10) throw new Error("Locale invalide")
+
+    // 2. Authorise the establishment, and read what the plan allows. The store
+    //    was previously absent from this check, so a plan holder could write
+    //    into any restaurant in the deployment.
+    const access = await ctx.runQuery(
+      internal.blogAutoGenerateInternal._checkAccess,
+      { storeId: args.storeId }
+    )
+    if (!access.allowed) {
+      throw new Error(access.reason ?? "Accès refusé")
+    }
+
+    // 2b. The multi-language gate was a disabled <Switch> and nothing else:
+    //     `autoTranslate` arrived as an argument and was obeyed. The spec
+    //     (tasks/auto-blog-spec.md §5.2) reserves it for Enterprise.
+    const entitlements = access.entitlements
+    const autoTranslate = args.autoTranslate ?? false
+    if (autoTranslate && !entitlements?.autoBlog?.allowMultiLanguage) {
+      throw new Error(
+        "La traduction automatique n'est pas disponible avec votre plan. Passez au plan Enterprise."
+      )
+    }
+
+    // 2c. Reserve the article slot BEFORE the first paid call. Checking the
+    //     quota and incrementing it after the generation left a window several
+    //     minutes wide: ten concurrent requests all read the same count and all
+    //     passed, measured at ten articles against a quota of two — every one
+    //     of them billed. The reservation reads and writes in one transaction.
+    const reservation = await ctx.runMutation(
+      internal.blogAutoGenerateInternal._reserveQuota,
+      { storeId: args.storeId }
+    )
+    if (!reservation.ok) {
+      throw new Error(reservation.reason ?? "Quota mensuel atteint")
+    }
+
+    // Everything below this point can fail, and a failure must not cost the
+    // owner the slot it just took.
+    try {
+      return await runGenerationPipeline(ctx, {
+        storeId: args.storeId,
+        categoryId: args.categoryId,
+        ownerId,
+        topic: args.topic,
+        tone: args.tone,
+        locale: args.locale,
+        autoTranslate,
+        approvalMode: resolveApprovalMode(entitlements, args.approvalMode),
+      })
+    } catch (error) {
+      await ctx.runMutation(
+        internal.blogAutoGenerateInternal._releaseQuota,
+        { ownerId }
+      )
+      throw error
+    }
+  },
+})
+
+// ============================================================================
+// Scheduled execution
+// ============================================================================
+
+/**
+ * How many jobs one sweep will take on.
+ *
+ * A generation is several minutes of OpenAI, and Convex bounds how long an
+ * action may run. Five is a batch a ten-minute sweep finishes comfortably; the
+ * rest wait for the next one, which is what a queue is for.
+ */
+const QUEUE_BATCH_SIZE = 5
+
+/**
+ * Every 10 minutes: generate the articles the planner queued.
+ *
+ * No session, so no `api.*` and no guarded wrapper — the store was authorised
+ * when the owner saved the configuration. A job that throws is recorded on its
+ * own row and the sweep carries on: one restaurant's bad prompt must not stop
+ * every other restaurant's article.
+ */
+export const executeAutoBlogQueue = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ claimed: number; generated: number; failed: number }> => {
+    // The package layer works in plain strings — it has no generated
+    // `dataModel` to import — so the ids are branded back here.
+    const dueIds: string[] = await ctx.runQuery(
+      internal.blogAutoPlanner._dueJobIds,
+      { limit: QUEUE_BATCH_SIZE }
+    )
+    const jobIds = dueIds as Id<"blogAutoQueue">[]
+
+    let claimed = 0
+    let generated = 0
+    let failed = 0
+
+    for (const jobId of jobIds) {
+      const job = await ctx.runMutation(internal.blogAutoPlanner._claimJob, { jobId })
+      // Another sweep took it, the config was switched off, or the
+      // subscription lapsed. `_claimJob` has already recorded which.
+      if (!job) continue
+      claimed++
+
+      // A configuration with no default category cannot produce an article:
+      // `createArticleCore` needs one. That is a setup problem, not a transient
+      // one, so it burns a retry and eventually fails rather than looping.
+      if (!job.categoryId) {
+        await ctx.runMutation(internal.blogAutoPlanner._failJob, {
+          jobId,
+          errorCode: "no_category",
+          errorMessage: "Aucune catégorie par défaut n'est configurée pour le blog automatique.",
+        })
+        failed++
+        continue
+      }
+
+      // The same bounds the button applies. `themes` and `primaryLocale` are
+      // free strings on the configuration row, and a prompt is billed by its
+      // length — the scheduled path must not be the cheap way round the check.
+      if (job.theme.length > 500 || job.locale.length > 10) {
+        await ctx.runMutation(internal.blogAutoPlanner._failJob, {
+          jobId,
+          errorCode: "invalid_config",
+          errorMessage: "La thématique ou la langue configurée dépasse la longueur autorisée.",
+        })
+        failed++
+        continue
+      }
+
+      const reservation = await ctx.runMutation(
+        internal.blogAutoGenerateInternal._reserveQuotaForOwner,
+        { ownerId: job.ownerId }
+      )
+      if (!reservation.ok) {
+        await ctx.runMutation(internal.blogAutoPlanner._failJob, {
+          jobId,
+          errorCode: "quota_exhausted",
+          errorMessage: reservation.reason ?? "Quota mensuel atteint",
+        })
+        failed++
+        continue
+      }
+
+      try {
+        // The job id travels with the request: `_saveGeneratedArticle` writes
+        // the article and completes the queue row in one transaction, so there
+        // is no window in which the article exists and the job still says
+        // `generating` — which is what the recovery sweep would have retried.
+        await runGenerationPipeline(ctx, {
+          storeId: job.storeId as Id<"stores">,
+          categoryId: job.categoryId as Id<"blogCategories">,
+          ownerId: job.ownerId,
+          topic: job.theme,
+          tone: job.tone,
+          locale: job.locale,
+          autoTranslate: job.autoTranslate,
+          approvalMode: job.approvalMode,
+          jobId,
+        })
+        generated++
+      } catch (error) {
+        await ctx.runMutation(
+          internal.blogAutoGenerateInternal._releaseQuota,
+          { ownerId: job.ownerId }
+        )
+        await ctx.runMutation(internal.blogAutoPlanner._failJob, {
+          jobId,
+          errorCode: "generation_failed",
+          errorMessage: error instanceof Error ? error.message : String(error),
+        })
+        failed++
+      }
+    }
+
+    return { claimed, generated, failed }
   },
 })

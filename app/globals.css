@@ -15,6 +15,18 @@
 @source "../../../packages/admin/src/**/*.{ts,tsx}";
 @import "../node_modules/tw-animate-css/dist/tw-animate.css";
 
+/*
+ * Article typography, for the HTML the CMS and the blog store.
+ *
+ * `prose` was already spelled on the blog preview and it did nothing: the
+ * plugin that defines it was never installed, so an article's <h2>, <p> and
+ * <ul> came out with Tailwind's preflight reset still on them — no margins, no
+ * heading sizes, no bullets. It read as one wall of text. The public
+ * `/blog/[slug]` page renders the same stored markup, so it needed the same
+ * plugin rather than a second set of hand-written rules.
+ */
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:is(.dark *));
 
 @layer base {

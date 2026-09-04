@@ -16,7 +16,6 @@ describe("buildContentSecurityPolicy", () => {
   it.each([
     ["object-src", "'none'"],
     ["base-uri", "'self'"],
-    ["frame-ancestors", "'none'"],
     ["form-action", "'self'"],
     ["default-src", "'self'"],
   ])("locks %s to %s in production", (directive, value) => {
@@ -103,6 +102,67 @@ describe("buildContentSecurityPolicy", () => {
 
     it("ignores a value that is not a URL", () => {
       expect(withConvex("not a url")["connect-src"]).toEqual(production()["connect-src"])
+    })
+  })
+
+  describe("framing", () => {
+    // This block replaces an assertion that read
+    // `["frame-ancestors", "'none'"]` and sat in the table above. It was green,
+    // and it was pinning the defect in place: the CMS preview at
+    // `app/preview/[pageSlug]` renders the storefront in a same-origin
+    // <iframe>, and `'none'` refuses that frame, so the preview was blank in
+    // every environment while the suite stayed green.
+    it("admits a same-origin frame, so the CMS preview renders", () => {
+      expect(production()["frame-ancestors"]).toEqual(["'self'"])
+      expect(development()["frame-ancestors"]).toEqual(["'self'"])
+    })
+
+    it("still refuses every other origin", () => {
+      // The point of loosening the directive was the preview, not framing in
+      // general. Nothing here may become '*', 'https:' or a named third party:
+      // clickjacking needs a cross-origin frame and this is what refuses it.
+      const sources = production()["frame-ancestors"]
+      expect(sources).not.toContain("*")
+      expect(sources).not.toContain("https:")
+      expect(sources).toHaveLength(1)
+    })
+
+    describe("the X-Frame-Options header next.config.ts sends beside it", () => {
+      // Where a browser honours both, the header is applied as the stricter of
+      // the two — so `DENY` beside `frame-ancestors 'self'` keeps the preview
+      // blank and makes the directive above a lie. The header is kept rather
+      // than dropped for browsers that never implemented `frame-ancestors`.
+      const frameOptions = async (): Promise<Array<[string, string]>> => {
+        const config = (await import("../../../next.config")).default
+        return (await config.headers!()).flatMap((group) =>
+          group.headers
+            .filter((header) => header.key.toLowerCase() === "x-frame-options")
+            .map((header) => [group.source, header.value] as [string, string]),
+        )
+      }
+
+      it("says SAMEORIGIN on the pages the CSP covers", async () => {
+        const pages = (await frameOptions()).filter(
+          ([source]) => !source.startsWith("/api/files"),
+        )
+
+        expect(pages).toHaveLength(1)
+        expect(pages[0]![1]).toBe("SAMEORIGIN")
+      })
+
+      it("keeps DENY on the user-upload proxy", async () => {
+        // `/api/files/*` answers with `default-src 'none'; sandbox`, and
+        // `default-src` is not a fallback for `frame-ancestors` — this header
+        // is the only thing that has ever stopped an uploaded file being
+        // framed. Widening it for the preview would have been collateral: the
+        // preview frames pages, not the proxy.
+        const uploads = (await frameOptions()).filter(([source]) =>
+          source.startsWith("/api/files"),
+        )
+
+        expect(uploads).toHaveLength(1)
+        expect(uploads[0]![1]).toBe("DENY")
+      })
     })
   })
 

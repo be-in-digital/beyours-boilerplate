@@ -35,9 +35,23 @@ const BASE_DIRECTIVES: Record<string, string[]> = {
   "base-uri": ["'self'"],
   // No <object>/<embed>: legacy plugin content is a scripting surface.
   "object-src": ["'none'"],
-  // Same intent as the X-Frame-Options: DENY alongside it, for browsers that
-  // prefer CSP.
-  "frame-ancestors": ["'none'"],
+  // Same-origin framing only.
+  //
+  // This was `'none'`, which is the right default for a storefront and the
+  // wrong one for this application: the CMS preview at `app/preview/[pageSlug]`
+  // renders the storefront in an `<iframe>` on this very origin, and `'none'`
+  // refuses that too. The frame was blank in every environment, which is not a
+  // rendering bug anyone could find by reading the preview component.
+  //
+  // `'self'` is the narrowest value that lets the preview render. Another site
+  // still cannot frame this one, which is the whole point of the directive —
+  // clickjacking needs a cross-origin frame, and that is still refused.
+  //
+  // The `X-Frame-Options` header set beside this one in `next.config.ts` must
+  // agree: it says `SAMEORIGIN`, not `DENY`. A browser that honours both takes
+  // the header as the stricter of the two, so `DENY` there would have kept the
+  // frame blank however permissive this directive is.
+  "frame-ancestors": ["'self'"],
   // An injected form cannot post the page's fields to another origin.
   "form-action": ["'self'"],
   "style-src": ["'self'", "'unsafe-inline'"],

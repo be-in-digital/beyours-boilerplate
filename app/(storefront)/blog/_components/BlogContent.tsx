@@ -5,81 +5,16 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, BookOpen } from "lucide-react"
 import { motion } from "framer-motion"
-import { useMutation } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useCmsPage } from "@/lib/cms/useCmsPage"
 import { parseColoredText } from "@/lib/parse-colored-text"
 import { useStoreId } from "@/lib/hooks/use-store-id"
+import { articleCategoryClasses, formatArticleDate } from "@/lib/blog/presentation"
 import type { Id } from "@/convex/_generated/dataModel"
 import { toast } from "sonner"
-
-const BLOG_POSTS = [
-    {
-        slug: "secrets-bonne-livraison",
-        date: "12 Mars 2026",
-        category: "Livraison",
-        title: "Les secrets d'une bonne livraison",
-        excerpt: "Découvrez comment nous garantissons que vos plats arrivent chauds et frais, comme s'ils sortaient de la cuisine.",
-        image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop",
-        readTime: "5 min",
-    },
-    {
-        slug: "manger-equilibre",
-        date: "8 Mars 2026",
-        category: "Nutrition",
-        title: "Manger équilibré sans effort",
-        excerpt: "Nos conseils pour maintenir une alimentation saine au quotidien, sans passer des heures en cuisine.",
-        image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800&auto=format&fit=crop",
-        readTime: "4 min",
-    },
-    {
-        slug: "producteurs-locaux",
-        date: "2 Mars 2026",
-        category: "Partenaires",
-        title: "Nos producteurs locaux partenaires",
-        excerpt: "Rencontrez les artisans et producteurs qui fournissent nos ingrédients frais et de qualité chaque jour.",
-        image: "https://images.unsplash.com/photo-1466637574441-749b8f19452f?q=80&w=800&auto=format&fit=crop",
-        readTime: "6 min",
-    },
-    {
-        slug: "tendances-culinaires-2026",
-        date: "25 Fév 2026",
-        category: "Tendances",
-        title: "Les tendances culinaires de 2026",
-        excerpt: "Du plant-based au fermenté, découvrez les saveurs qui marqueront cette année.",
-        image: "https://images.unsplash.com/photo-1606787366850-de6330128bfc?q=80&w=800&auto=format&fit=crop",
-        readTime: "7 min",
-    },
-    {
-        slug: "recette-bowl-quinoa",
-        date: "18 Fév 2026",
-        category: "Recettes",
-        title: "Recette : Bowl Quinoa Avocat",
-        excerpt: "Apprenez à reproduire chez vous notre bowl signature, étape par étape avec des ingrédients simples.",
-        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop",
-        readTime: "3 min",
-    },
-    {
-        slug: "coulisses-cuisine",
-        date: "10 Fév 2026",
-        category: "En coulisses",
-        title: "Dans les coulisses de notre cuisine",
-        excerpt: "Plongez dans le quotidien de notre équipe et découvrez les étapes de préparation de vos plats favoris.",
-        image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=800&auto=format&fit=crop",
-        readTime: "5 min",
-    },
-]
-
-const CATEGORY_COLORS: Record<string, string> = {
-    Livraison: "bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-    Nutrition: "bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    Partenaires: "bg-purple-100 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800",
-    Tendances: "bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800",
-    Recettes: "bg-rose-100 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800",
-    "En coulisses": "bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-}
 
 export default function BlogPage() {
     const { block } = useCmsPage("blog")
@@ -88,14 +23,22 @@ export default function BlogPage() {
     const [newsletterEmail, setNewsletterEmail] = useState("")
     const [subscribing, setSubscribing] = useState(false)
 
+    // Six demo posts used to live in this file, linking to twelve URLs that did
+    // not exist. What the owner publishes in the admin is what belongs here.
+    const articles = useQuery(
+        api.blog.listPublishedArticles,
+        storeId ? { storeId: storeId as Id<"stores"> } : "skip",
+    )
+
     const hero = block("hero")
 
     const heroBadge = hero.field("badge").text ?? "Notre Blog"
     const heroTitle = hero.field("title").text ?? "Saveurs, conseils \n& {inspirations}"
     const heroSubtitle = hero.field("subtitle").text ?? "Restez informé des dernières nouvelles, recettes et conseils de notre équipe culinaire."
 
-    const featured = BLOG_POSTS[0]!
-    const posts = BLOG_POSTS.slice(1)
+    const isLoading = articles === undefined
+    const featured = articles?.[0] ?? null
+    const posts = articles?.slice(1) ?? []
 
     return (
         <div className="min-h-screen bg-[#FDFCF6] dark:bg-zinc-950 text-[#1A1A1A] dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
@@ -125,56 +68,67 @@ export default function BlogPage() {
             </section>
 
             {/* ─── FEATURED POST ─── */}
-            <section className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto -mt-12 relative z-20">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.3 }}
-                >
-                    <Link href={`/blog/${featured.slug}`} className="group block">
-                        <div className="bg-white dark:bg-zinc-900 rounded-[3rem] overflow-hidden shadow-2xl shadow-black/[0.06] border border-zinc-100 dark:border-zinc-800 hover:shadow-3xl transition-all duration-500">
-                            <div className="flex flex-col lg:flex-row">
-                                <div className="relative lg:w-3/5 aspect-[16/10] lg:aspect-auto overflow-hidden">
-                                    <Image
-                                        src={featured.image}
-                                        alt={featured.title}
-                                        fill
-                                        className="object-cover group-hover:scale-105 transition-transform duration-1000"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent" />
-                                    <div className="absolute top-6 left-6">
-                                        <Badge className="bg-orange-500 text-white border-none px-4 py-1.5 rounded-full font-black tracking-widest uppercase text-[10px] shadow-lg">
-                                            À la une
-                                        </Badge>
+            {featured && (
+                <section className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto -mt-12 relative z-20">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.3 }}
+                    >
+                        <Link href={`/blog/${featured.slug}`} className="group block">
+                            <div className="bg-white dark:bg-zinc-900 rounded-[3rem] overflow-hidden shadow-2xl shadow-black/[0.06] border border-zinc-100 dark:border-zinc-800 hover:shadow-3xl transition-all duration-500">
+                                <div className="flex flex-col lg:flex-row">
+                                    <div className="relative lg:w-3/5 aspect-[16/10] lg:aspect-auto overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                                        {featured.coverImage?.url && (
+                                            <Image
+                                                src={featured.coverImage.url}
+                                                alt={featured.coverImage.alt ?? featured.title}
+                                                fill
+                                                className="object-cover group-hover:scale-105 transition-transform duration-1000"
+                                            />
+                                        )}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent" />
+                                        <div className="absolute top-6 left-6">
+                                            <Badge className="bg-orange-500 text-white border-none px-4 py-1.5 rounded-full font-black tracking-widest uppercase text-[10px] shadow-lg">
+                                                À la une
+                                            </Badge>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="lg:w-2/5 p-8 md:p-12 flex flex-col justify-center">
-                                    <Badge className={`w-fit mb-4 px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] ${CATEGORY_COLORS[featured.category] ?? "bg-zinc-100 text-zinc-600"}`}>
-                                        {featured.category}
-                                    </Badge>
-                                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight mb-4 text-zinc-800 dark:text-zinc-100 group-hover:text-[#0D5C3F] dark:group-hover:text-emerald-400 transition-colors">
-                                        {featured.title}
-                                    </h2>
-                                    <p className="text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed mb-6">
-                                        {featured.excerpt}
-                                    </p>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                                            {featured.date} · {featured.readTime} de lecture
-                                        </span>
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-orange-500 flex items-center gap-2 group-hover:gap-3 transition-all">
-                                            Lire <ArrowRight className="h-3 w-3" />
-                                        </span>
+                                    <div className="lg:w-2/5 p-8 md:p-12 flex flex-col justify-center">
+                                        {featured.category && (
+                                            <Badge className={`w-fit mb-4 px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] ${articleCategoryClasses(featured.category.slug)}`}>
+                                                {featured.category.name}
+                                            </Badge>
+                                        )}
+                                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight mb-4 text-zinc-800 dark:text-zinc-100 group-hover:text-[#0D5C3F] dark:group-hover:text-emerald-400 transition-colors">
+                                            {featured.title}
+                                        </h2>
+                                        <p className="text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed mb-6">
+                                            {featured.excerpt}
+                                        </p>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                                                {formatArticleDate(featured.publishedAt)} · {featured.readingMinutes} min de lecture
+                                            </span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-orange-500 flex items-center gap-2 group-hover:gap-3 transition-all">
+                                                Lire <ArrowRight className="h-3 w-3" />
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </Link>
-                </motion.div>
-            </section>
+                        </Link>
+                    </motion.div>
+                </section>
+            )}
 
             {/* ─── POSTS GRID ─── */}
-            <section className="pb-24 px-6 md:px-12 max-w-7xl mx-auto">
+            {/* Only worth a section when there is something under the heading:
+                a store with a single article shows it above, as the featured
+                one, and "Tous les articles (1)" over an empty grid reads as a
+                page that failed to load. */}
+            {(isLoading || articles?.length === 0 || posts.length > 0) && (
+            <section className={`pb-24 px-6 md:px-12 max-w-7xl mx-auto ${featured ? "" : "pt-24"}`}>
                 <div className="flex items-center gap-3 mb-12">
                     <div className="h-10 w-10 rounded-xl bg-[#0D5C3F]/10 dark:bg-emerald-950/30 flex items-center justify-center">
                         <BookOpen className="h-5 w-5 text-[#0D5C3F] dark:text-emerald-400" />
@@ -182,56 +136,85 @@ export default function BlogPage() {
                     <h2 className="text-2xl font-black uppercase tracking-tighter text-zinc-800 dark:text-zinc-100">
                         Tous les articles
                     </h2>
-                    <span className="text-sm font-bold text-zinc-400">({posts.length})</span>
+                    {posts.length > 0 && (
+                        <span className="text-sm font-bold text-zinc-400">({posts.length})</span>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {posts.map((post, i) => (
-                        <motion.div
-                            key={post.slug}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: i * 0.1 }}
-                            viewport={{ once: true }}
-                        >
-                            <Link href={`/blog/${post.slug}`} className="group block h-full">
-                                <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] overflow-hidden shadow-lg shadow-black/[0.03] border border-zinc-100 dark:border-zinc-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
-                                    <div className="relative aspect-[16/10] overflow-hidden">
-                                        <Image
-                                            src={post.image}
-                                            alt={post.title}
-                                            fill
-                                            className="object-cover group-hover:scale-110 transition-all duration-700"
-                                        />
-                                        <div className="absolute top-4 left-4">
-                                            <Badge className={`px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] ${CATEGORY_COLORS[post.category] ?? "bg-zinc-100 text-zinc-600"}`}>
-                                                {post.category}
-                                            </Badge>
+                {isLoading && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {[0, 1, 2].map((i) => (
+                            <div
+                                key={i}
+                                className="h-96 rounded-[2.5rem] bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 animate-pulse"
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {!isLoading && articles?.length === 0 && (
+                    <div className="rounded-[2.5rem] border border-dashed border-zinc-200 dark:border-zinc-800 py-20 text-center">
+                        <BookOpen className="h-8 w-8 mx-auto text-zinc-300 dark:text-zinc-700 mb-4" />
+                        <p className="text-zinc-500 dark:text-zinc-400 font-medium">
+                            Aucun article pour le moment. Revenez bientôt !
+                        </p>
+                    </div>
+                )}
+
+                {posts.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {posts.map((post, i) => (
+                            <motion.div
+                                key={post._id}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: i * 0.1 }}
+                                viewport={{ once: true }}
+                            >
+                                <Link href={`/blog/${post.slug}`} className="group block h-full">
+                                    <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] overflow-hidden shadow-lg shadow-black/[0.03] border border-zinc-100 dark:border-zinc-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
+                                        <div className="relative aspect-[16/10] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                                            {post.coverImage?.url && (
+                                                <Image
+                                                    src={post.coverImage.url}
+                                                    alt={post.coverImage.alt ?? post.title}
+                                                    fill
+                                                    className="object-cover group-hover:scale-110 transition-all duration-700"
+                                                />
+                                            )}
+                                            {post.category && (
+                                                <div className="absolute top-4 left-4">
+                                                    <Badge className={`px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] ${articleCategoryClasses(post.category.slug)}`}>
+                                                        {post.category.name}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            <div className="absolute top-4 right-4 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl shadow-lg border border-zinc-100 dark:border-zinc-800">
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-[#0D5C3F] dark:text-emerald-400">{post.readingMinutes} min</p>
+                                            </div>
                                         </div>
-                                        <div className="absolute top-4 right-4 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl shadow-lg border border-zinc-100 dark:border-zinc-800">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-[#0D5C3F] dark:text-emerald-400">{post.readTime}</p>
+                                        <div className="p-6 md:p-8 flex-1 flex flex-col">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
+                                                {formatArticleDate(post.publishedAt)}
+                                            </p>
+                                            <h3 className="text-xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-tight mb-3 group-hover:text-[#0D5C3F] dark:group-hover:text-emerald-400 transition-colors">
+                                                {post.title}
+                                            </h3>
+                                            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed flex-1">
+                                                {post.excerpt}
+                                            </p>
+                                            <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center text-[10px] font-black uppercase tracking-widest text-orange-500 group-hover:gap-3 gap-2 transition-all">
+                                                Lire la suite <ArrowRight className="h-3 w-3" />
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="p-6 md:p-8 flex-1 flex flex-col">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
-                                            {post.date}
-                                        </p>
-                                        <h3 className="text-xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-tight mb-3 group-hover:text-[#0D5C3F] dark:group-hover:text-emerald-400 transition-colors">
-                                            {post.title}
-                                        </h3>
-                                        <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed flex-1">
-                                            {post.excerpt}
-                                        </p>
-                                        <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center text-[10px] font-black uppercase tracking-widest text-orange-500 group-hover:gap-3 gap-2 transition-all">
-                                            Lire la suite <ArrowRight className="h-3 w-3" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
-                        </motion.div>
-                    ))}
-                </div>
+                                </Link>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </section>
+            )}
 
             {/* ─── NEWSLETTER CTA ─── */}
             <section className="px-6 md:px-12 max-w-7xl mx-auto mb-24">

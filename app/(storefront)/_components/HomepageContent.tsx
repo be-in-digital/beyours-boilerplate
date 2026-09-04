@@ -36,7 +36,12 @@ import {
     TrendingSection,
     CategoriesSection,
 } from "@/components/website"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { useCmsPage } from "@/lib/cms/useCmsPage"
+import { useStoreId } from "@/lib/hooks/use-store-id"
+import { formatArticleDate } from "@/lib/blog/presentation"
 import { parseColoredText } from "@/lib/parse-colored-text"
 
 // ─── Fallback data ──────────────────────────────────────────────────────────
@@ -53,12 +58,6 @@ const TESTIMONIALS = [
     { authorName: "Sophie R.", quote: "J'adore la variété des options végétariennes. C'est si facile de trouver des repas sains qui ont vraiment bon goût sans passer des heures en cuisine.", rating: 5, avatar: "https://i.pravatar.cc/150?u=sophie" },
 ]
 
-const BLOG_POSTS = [
-    { date: "12 Mars", title: "Les secrets d'une bonne livraison", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop" },
-    { date: "8 Mars", title: "Manger équilibré sans effort", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800&auto=format&fit=crop" },
-    { date: "2 Mars", title: "Nos producteurs locaux partenaires", image: "https://images.unsplash.com/photo-1466637574441-749b8f19452f?q=80&w=800&auto=format&fit=crop" },
-]
-
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
@@ -72,6 +71,14 @@ export default function LandingPage() {
     const cta = block("cta")
     const testimonials = block("testimonials")
     const blog = block("blog")
+
+    // Three real articles, or no blog section at all. The teaser used to render
+    // three hard-coded posts that all linked back to /blog.
+    const { storeId } = useStoreId()
+    const latestArticles = useQuery(
+        api.blog.listPublishedArticles,
+        storeId ? { storeId: storeId as Id<"stores">, limit: 3 } : "skip",
+    )
 
     // Hero
     const heroBadge = hero.field("badge").text ?? "Restaurant Premium"
@@ -486,33 +493,35 @@ export default function LandingPage() {
             </section>
 
             {/* ─── BLOG ─── */}
-            <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-white dark:bg-zinc-900/40 rounded-[5rem] shadow-sm mb-24 border border-zinc-100 dark:border-zinc-800 transition-colors duration-500">
-                <div className="flex items-end justify-between mb-16 px-8">
-                    <div>
-                        <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-[0.9] mb-6 whitespace-pre-line">
-                            {parseColoredText(blogTitle, "text-orange-500 italic")}
-                        </h2>
-                        <div className="h-2 w-24 bg-emerald-800 rounded-full" />
-                    </div>
-                    <Link href="/blog">
-                        <Button variant="ghost" className="text-emerald-700 font-black uppercase tracking-widest text-[10px] items-center gap-2 hover:bg-emerald-50">
-                            {blogViewAll} <ChevronRight className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-8">
-                    {BLOG_POSTS.map((post, index) => (
-                        <Link key={index} href="/blog">
-                            <BlogCard
-                                date={post.date}
-                                title={post.title}
-                                image={post.image}
-                            />
+            {(latestArticles?.length ?? 0) > 0 && (
+                <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-white dark:bg-zinc-900/40 rounded-[5rem] shadow-sm mb-24 border border-zinc-100 dark:border-zinc-800 transition-colors duration-500">
+                    <div className="flex items-end justify-between mb-16 px-8">
+                        <div>
+                            <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-[0.9] mb-6 whitespace-pre-line">
+                                {parseColoredText(blogTitle, "text-orange-500 italic")}
+                            </h2>
+                            <div className="h-2 w-24 bg-emerald-800 rounded-full" />
+                        </div>
+                        <Link href="/blog">
+                            <Button variant="ghost" className="text-emerald-700 font-black uppercase tracking-widest text-[10px] items-center gap-2 hover:bg-emerald-50">
+                                {blogViewAll} <ChevronRight className="h-4 w-4" />
+                            </Button>
                         </Link>
-                    ))}
-                </div>
-            </section>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-8">
+                        {latestArticles?.map((post) => (
+                            <Link key={post._id} href={`/blog/${post.slug}`}>
+                                <BlogCard
+                                    date={formatArticleDate(post.publishedAt)}
+                                    title={post.title}
+                                    image={post.coverImage?.url ?? ""}
+                                />
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
         </div>
     )
 }

@@ -5,7 +5,8 @@
  *
  * Verifies that the source file exists in S3, then either:
  *   - Schedules sharp processing for images (non-SVG)
- *   - Marks as ready immediately for SVG, video, files
+ *   - Reads an SVG back and refuses it if it carries active content
+ *   - Marks as ready immediately for video and files
  *
  * Idempotent:
  *   - status=ready → no-op success
@@ -17,9 +18,21 @@
 import { action } from "./_generated/server"
 import { internal } from "./_generated/api"
 import { v } from "convex/values"
-import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3"
-import { getExtensionFromMimeType } from "@be-in-digital/cms"
+import {
+  S3Client,
+  HeadObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3"
+import {
+  getExtensionFromMimeType,
+  inspectSvgForActiveContent,
+  validateMediaUpload,
+} from "@be-in-digital/cms"
 import { buildMediaUrl } from "@be-in-digital/core/aws/media-url"
+
+const SVG_MIME = "image/svg+xml"
 
 function createS3Client() {
   return new S3Client({
@@ -37,6 +50,31 @@ function createS3Client() {
  */
 function buildPublicUrl(key: string): string {
   return buildMediaUrl(key, process.env.AWS_S3_PUBLIC_BASE_URL)
+}
+
+/** Reads an S3 object back as text, whichever body shape the SDK hands over. */
+async function readObjectAsText(
+  client: S3Client,
+  bucketName: string,
+  key: string,
+): Promise<string> {
+  const response = await client.send(
+    new GetObjectCommand({ Bucket: bucketName, Key: key }),
+  )
+  const body = response.Body as
+    | { transformToString?: () => Promise<string> }
+    | AsyncIterable<Uint8Array>
+    | undefined
+
+  if (body && typeof (body as { transformToString?: unknown }).transformToString === "function") {
+    return await (body as { transformToString: () => Promise<string> }).transformToString()
+  }
+
+  const chunks: Uint8Array[] = []
+  for await (const chunk of body as AsyncIterable<Uint8Array>) {
+    chunks.push(chunk)
+  }
+  return Buffer.concat(chunks).toString("utf8")
 }
 
 // @guarded-inline: checks content:write on the store owning the media
@@ -75,6 +113,23 @@ export const confirmUpload = action({
       )
     }
 
+    // The row's MIME type decides which branch below runs, and rows written
+    // before `createMedia` validated can say anything. Refuse rather than
+    // publish something the allow-list would never have accepted.
+    const validation = validateMediaUpload(
+      media.filename,
+      media.mimeType,
+      media.size,
+    )
+    if (!validation.valid) {
+      await ctx.runMutation(internal.cmsMedia.setMediaFailed, {
+        mediaId: args.mediaId,
+        errorCode: "INVALID_UPLOAD",
+        errorMessage: (validation.error?.message ?? "Upload refusé").slice(0, 500),
+      })
+      return { status: "failed" as const }
+    }
+
     // Derive canonical S3 key
     const ext = getExtensionFromMimeType(media.mimeType)
     const s3Key = `cms/${args.mediaId}/source.${ext}`
@@ -102,9 +157,75 @@ export const confirmUpload = action({
       return { status: "failed" as const }
     }
 
+    // An SVG never reaches sharp, so nothing on this path had ever looked at
+    // its bytes: `createMedia` → presign → PUT → confirmUpload marked one
+    // `ready` with `<script>` and `onload=` intact. `cmsSvgUpload.uploadSvg` is
+    // the route the media library's own button takes and it does inspect, but
+    // every one of these is a public Convex function and the browser is not
+    // the only caller. Read it back and apply the same refusal.
+    if (media.mimeType === SVG_MIME) {
+      let svg: string
+      try {
+        svg = await readObjectAsText(client, bucketName, s3Key)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        await ctx.runMutation(internal.cmsMedia.setMediaFailed, {
+          mediaId: args.mediaId,
+          errorCode: "SVG_UNREADABLE",
+          errorMessage: message.slice(0, 500),
+        })
+        return { status: "failed" as const }
+      }
+
+      const report = inspectSvgForActiveContent(svg)
+      if (report.active) {
+        // Refused means gone: leaving the object in the bucket leaves a live
+        // URL, since the key is derivable from the mediaId alone.
+        try {
+          await client.send(
+            new DeleteObjectCommand({ Bucket: bucketName, Key: s3Key }),
+          )
+        } catch (error) {
+          console.error(
+            `[confirmUpload] Could not remove refused SVG ${s3Key}:`,
+            error,
+          )
+        }
+
+        await ctx.runMutation(internal.cmsMedia.setMediaFailed, {
+          mediaId: args.mediaId,
+          errorCode: "SVG_ACTIVE_CONTENT",
+          errorMessage:
+            `Ce SVG contient du contenu actif et a été refusé : ${report.reasons.join(", ")}.`.slice(
+              0,
+              500,
+            ),
+        })
+        return { status: "failed" as const }
+      }
+
+      // The browser PUT this object straight to S3 under a presigned URL, and
+      // a presigned PUT can only carry headers the signature covers — signing
+      // `Content-Disposition` would make every upload send it or fail. So the
+      // object lands without one. `/api/files` forces `attachment` on read, but
+      // a deployment with `AWS_S3_PUBLIC_BASE_URL` set serves the bucket
+      // through a CDN and never passes through it. Rewriting the object here is
+      // what makes its inertness travel with it, the same way `cmsSvgUpload`
+      // and `/api/upload` already do.
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: s3Key,
+          Body: svg,
+          ContentType: SVG_MIME,
+          ContentDisposition: "attachment",
+        }),
+      )
+    }
+
     // Determine processing path
     const isProcessableImage =
-      media.kind === "image" && media.mimeType !== "image/svg+xml"
+      media.kind === "image" && media.mimeType !== SVG_MIME
 
     if (isProcessableImage) {
       // Schedule sharp processing (runs immediately, 0ms delay)

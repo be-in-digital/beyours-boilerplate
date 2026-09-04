@@ -9,6 +9,7 @@
  */
 
 import { internalMutation, internalQuery } from "./_generated/server"
+import { internal } from "./_generated/api"
 import {
   storeQuery,
   storeMutation,
@@ -48,11 +49,30 @@ export const createMedia = storeMutation({
   handler: (ctx, args) => mediaDefs.createMedia.handler(ctx, args),
 })
 
-/** Delete a media item (blocked if referenced) */
+/**
+ * Delete a media item (blocked if referenced), and the S3 objects with it.
+ *
+ * The package handler owns the reference checks and hands back the keys the row
+ * held; the purge is scheduled here because only the app has `internal.*` refs.
+ * Nothing is scheduled when the handler throws, so a media that is still
+ * referenced keeps both its row and its files.
+ */
 export const deleteMedia = storeMutation({
   permission: "content:delete",
   args: mediaDefs.deleteMedia.args,
-  handler: (ctx, args) => mediaDefs.deleteMedia.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const result = await mediaDefs.deleteMedia.handler(ctx, args)
+
+    if (result.s3Keys.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.cmsMediaDelete.purgeS3Objects,
+        { s3Keys: result.s3Keys },
+      )
+    }
+
+    return { deleted: result.deleted }
+  },
 })
 
 // ============================================================================

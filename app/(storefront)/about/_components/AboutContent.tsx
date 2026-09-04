@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useCmsPage } from "@/lib/cms/useCmsPage"
 import { parseColoredText } from "@/lib/parse-colored-text"
+import { CmsRichText } from "@/components/storefront"
 
 const VALUE_ICONS = [Leaf, Heart, Flame]
 const VALUE_COLORS = [
@@ -157,9 +158,18 @@ export default function AboutPage() {
                         <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.9] mb-8 text-zinc-800 dark:text-zinc-100">
                             {parseColoredText(storyTitle, "text-orange-500 italic")}
                         </h2>
-                        <div className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-line font-medium">
-                            {storyDesc}
-                        </div>
+                        {/*
+                          `story.description` is a CMS `richtext` field: the
+                          admin editor stores `editor.getHTML()`. Rendered as a
+                          plain React child it printed its own tags on screen —
+                          a visitor read "<strong>". `whitespace-pre-line` stays
+                          for the code fallback below, which is plain text with
+                          blank lines rather than markup.
+                        */}
+                        <CmsRichText
+                            html={storyDesc}
+                            className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-line font-medium"
+                        />
                     </motion.div>
                 </div>
             </section>

@@ -9,8 +9,10 @@ import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireStorePermission, getAuthUser } from "@be-in-digital/convex-functions/auth";
 import { hasPermission, type Permission } from "@be-in-digital/core/auth/rbac";
-import { checkImageToProductAccess } from "@be-in-digital/convex-functions/blogAutoGuards";
-import { incrementImageToProductUsageCore } from "@be-in-digital/convex-functions/blogAutoGenerate";
+import {
+  releaseImageToProductQuota as releaseImageToProductQuota_,
+  reserveImageToProductQuota as reserveImageToProductQuota_,
+} from "@be-in-digital/convex-functions/blogAutoGuards";
 
 /**
  * Verify the current user has a specific permission on a store.
@@ -29,24 +31,26 @@ export const checkStorePermission = internalQuery({
 });
 
 /**
- * Check Image-to-Product quota for an owner.
- * Call from actions via ctx.runQuery(internal.authHelpers.checkImageToProductQuota, {...})
+ * Take one Image-to-Product analysis out of this month's quota.
+ *
+ * Reserved before the first paid call, not counted after the last one. The
+ * analysis makes three OpenAI requests — a vision pass, an enrichment pass and
+ * up to several image generations — and the counter used to move seventy-five
+ * lines after the check, so concurrent requests all read the same count and all
+ * passed. Reading and writing in one mutation is what makes the cap a cap.
  */
-export const checkImageToProductQuota = internalQuery({
+export const reserveImageToProductQuota = internalMutation({
   args: { ownerId: v.string() },
   handler: async (ctx, { ownerId }) => {
-    return checkImageToProductAccess(ctx, ownerId);
+    return reserveImageToProductQuota_(ctx, ownerId);
   },
 });
 
-/**
- * Increment Image-to-Product usage count for an owner.
- * Call from actions via ctx.runMutation(internal.authHelpers.incrementImageToProductUsage, {...})
- */
-export const incrementImageToProductUsage = internalMutation({
+/** Hand the analysis slot back when nothing came of it. */
+export const releaseImageToProductQuota = internalMutation({
   args: { ownerId: v.string() },
   handler: async (ctx, { ownerId }) => {
-    await incrementImageToProductUsageCore(ctx, ownerId);
+    await releaseImageToProductQuota_(ctx, ownerId);
   },
 });
 

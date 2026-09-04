@@ -28,6 +28,7 @@ import type { ProductDoc, ProductSortBy } from "@be-in-digital/restaurant"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 import { useStoreStatus } from "@/lib/hooks/use-store-status"
+import { formatArticleDate } from "@/lib/blog/presentation"
 import { ProductGrid } from "@/components/storefront/product-grid"
 import { ProductDetailClient } from "@/components/storefront/product-detail-client"
 import { MenuPagination } from "@/components/storefront/menu-pagination"
@@ -63,6 +64,12 @@ function MenuContent() {
   const categories = useQuery(
     api.categories.list,
     storeId ? { storeId: storeId as Id<"stores"> } : "skip"
+  )
+  // The teaser below used to render three hard-coded posts, each linking back
+  // to /blog. These are the owner's three most recent published articles.
+  const latestArticles = useQuery(
+    api.blog.listPublishedArticles,
+    storeId ? { storeId: storeId as Id<"stores">, limit: 3 } : "skip"
   )
 
   // Find active category ID from slug
@@ -409,69 +416,56 @@ function MenuContent() {
       </section>
 
       {/* ─── BLOG SECTION ─── */}
-      <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-white rounded-[5rem] shadow-sm mb-24 border border-zinc-100">
-        <div className="flex items-end justify-between mb-16 px-8">
-          <div>
-            <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-zinc-800 leading-[0.9] mb-6 whitespace-pre-line">
-              Consultez notre{"\n"}
-              <span className="text-orange-500 italic">Blog</span>
-            </h2>
-            <div className="h-2 w-24 bg-emerald-800 rounded-full" />
-          </div>
-          <Link href="/blog">
-            <Button variant="ghost" className="text-emerald-700 font-black uppercase tracking-widest text-[10px] items-center gap-2 hover:bg-emerald-50">
-              Tout voir <ChevronRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-8">
-          {[
-            {
-              date: "12 Mars",
-              title: "Les secrets d\u2019une bonne livraison",
-              image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop",
-              href: "/blog",
-            },
-            {
-              date: "8 Mars",
-              title: "Manger équilibré sans effort",
-              image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800&auto=format&fit=crop",
-              href: "/blog",
-            },
-            {
-              date: "2 Mars",
-              title: "Nos producteurs locaux partenaires",
-              image: "https://images.unsplash.com/photo-1606787366850-de6330128bfc?q=80&w=800&auto=format&fit=crop",
-              href: "/blog",
-            },
-          ].map((post, index) => (
-            <Link key={index} href={post.href} className="group">
-              <div className="bg-zinc-50 rounded-[2.5rem] overflow-hidden shadow-lg shadow-black/[0.03] border border-zinc-100 hover:shadow-xl transition-all h-full flex flex-col">
-                <div className="relative aspect-[16/10] overflow-hidden">
-                  <Image
-                    src={post.image}
-                    alt={post.title}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-all duration-700"
-                  />
-                  <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-2xl shadow-lg border border-zinc-100">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#0D5C3F]">{post.date}</p>
-                  </div>
-                </div>
-                <div className="p-8 flex-1 flex flex-col">
-                  <h3 className="text-xl font-black tracking-tighter text-zinc-800 leading-tight group-hover:text-[#0D5C3F] transition-colors">
-                    {post.title}
-                  </h3>
-                  <div className="mt-auto pt-6 flex items-center text-[10px] font-black uppercase tracking-widest text-orange-500 group-hover:gap-3 gap-2 transition-all">
-                    Lire la suite <ArrowRight className="h-3 w-3" />
-                  </div>
-                </div>
-              </div>
+      {(latestArticles?.length ?? 0) > 0 && (
+        <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-white rounded-[5rem] shadow-sm mb-24 border border-zinc-100">
+          <div className="flex items-end justify-between mb-16 px-8">
+            <div>
+              <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-zinc-800 leading-[0.9] mb-6 whitespace-pre-line">
+                Consultez notre{"\n"}
+                <span className="text-orange-500 italic">Blog</span>
+              </h2>
+              <div className="h-2 w-24 bg-emerald-800 rounded-full" />
+            </div>
+            <Link href="/blog">
+              <Button variant="ghost" className="text-emerald-700 font-black uppercase tracking-widest text-[10px] items-center gap-2 hover:bg-emerald-50">
+                Tout voir <ChevronRight className="h-4 w-4" />
+              </Button>
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-8">
+            {latestArticles?.map((post) => (
+              <Link key={post._id} href={`/blog/${post.slug}`} className="group">
+                <div className="bg-zinc-50 rounded-[2.5rem] overflow-hidden shadow-lg shadow-black/[0.03] border border-zinc-100 hover:shadow-xl transition-all h-full flex flex-col">
+                  <div className="relative aspect-[16/10] overflow-hidden bg-zinc-100">
+                    {post.coverImage?.url && (
+                      <Image
+                        src={post.coverImage.url}
+                        alt={post.coverImage.alt ?? post.title}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-all duration-700"
+                      />
+                    )}
+                    <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-2xl shadow-lg border border-zinc-100">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[#0D5C3F]">
+                        {formatArticleDate(post.publishedAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-8 flex-1 flex flex-col">
+                    <h3 className="text-xl font-black tracking-tighter text-zinc-800 leading-tight group-hover:text-[#0D5C3F] transition-colors">
+                      {post.title}
+                    </h3>
+                    <div className="mt-auto pt-6 flex items-center text-[10px] font-black uppercase tracking-widest text-orange-500 group-hover:gap-3 gap-2 transition-all">
+                      Lire la suite <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ─── PRODUCT DETAIL DIALOG ─── */}
       <Dialog

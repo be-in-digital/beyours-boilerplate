@@ -79,12 +79,35 @@ const nextConfig: NextConfig = {
         source: '/((?!api/files/).*)',
         headers: [
           { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+          // SAMEORIGIN, not DENY. The CMS preview renders the storefront in an
+          // <iframe> on this same origin, and DENY refuses a same-origin frame
+          // as flatly as a cross-origin one — the preview was blank everywhere.
+          // Widening `frame-ancestors` alone would not have fixed it: where a
+          // browser honours both, this header is applied as the stricter of the
+          // two, so DENY here would have overridden the CSP beside it. The two
+          // now say the same thing. Dropping the header was the alternative; it
+          // is kept for the browsers that never implemented `frame-ancestors`,
+          // which would otherwise have no framing protection at all.
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        ],
+      },
+      // The one route that stays at DENY.
+      //
+      // `/api/files/*` proxies bytes a user uploaded. Its own policy
+      // (`default-src 'none'; sandbox`, in `lib/services/file-serving.ts`) is
+      // strict, but `default-src` is not a fallback for `frame-ancestors` —
+      // this header is the only thing that has ever stopped those responses
+      // being framed. The preview frames pages, never the file proxy, so
+      // nothing needs it loosened here.
+      {
+        source: '/api/files/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
         ],
       },
       {
         source: '/(.*)',
         headers: [
-          { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
