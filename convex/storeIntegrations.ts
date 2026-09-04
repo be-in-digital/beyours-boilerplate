@@ -1,4 +1,5 @@
 import { internalMutation, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/storeIntegrations";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
@@ -40,10 +41,53 @@ export const internalGetByBrandId = internalQuery(defs.getByBrandId);
 
 // === Mutations (store-scoped) ===
 
+// Saving the integration card is also how an owner pauses or re-opens the
+// store on the platform: the card's "Statut sur la plateforme" select writes
+// `storeStatus` through here. That value used to stop in Convex — the platform
+// never heard about it — so a paused store kept receiving Uber Eats and
+// Deliveroo orders. Scheduling the push makes the control do what it says.
+//
+// Not on every save, and not only on a change either — both are wrong, for
+// opposite reasons.
+//
+// The admin form initialises the select to "OFFLINE" and falls back to
+// "OFFLINE" for a row that never stored one
+// (`packages/admin/src/pages/stores/use-store-detail.ts:129,137,253,264`).
+// Pushing that would pull a restaurant off the platform the moment someone
+// connected an integration or edited its prep time — an OFFLINE the owner
+// never chose. So an OFFLINE with no established status behind it is ignored.
+//
+// But gating on "the value changed" is worse: it reads Convex's stored value
+// as proof of the platform's. There is no action retrier in this repo, so a
+// push that throws is terminal — Convex says PAUSED, the platform is still
+// live, and saving again does nothing because nothing differs. Re-saving has
+// to be the retry, so any save carrying a real status pushes. The calls are
+// idempotent, and a human clicking Save cannot approach Uber's one-change-
+// per-second-per-store limit.
 export const upsert = storeMutation({
   permission: "settings:write",
   args: defs.upsert.args,
-  handler: (ctx, args) => defs.upsert.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const before = (await defs.getByStorePlatform.handler(ctx, {
+      storeId: args.storeId,
+      platform: args.platform,
+    })) as { storeStatus?: "ONLINE" | "PAUSED" | "OFFLINE" } | null;
+
+    const result = await defs.upsert.handler(ctx, args);
+
+    // An OFFLINE is only believed once the integration has had a status of its
+    // own; before that it is indistinguishable from the form's default.
+    const isDefaultedOffline =
+      args.storeStatus === "OFFLINE" && (before === null || before.storeStatus === undefined);
+
+    if (args.storeStatus !== undefined && !isDefaultedOffline) {
+      await ctx.scheduler.runAfter(0, internal.platformStoreStatus.pushStoreStatus, {
+        storeId: args.storeId,
+        platform: args.platform,
+      });
+    }
+    return result;
+  },
 });
 
 export const updateMenuSyncStatus = storeMutation({

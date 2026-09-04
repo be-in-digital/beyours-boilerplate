@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
+import { getPackageEnv, isSandbox } from "@be-in-digital/core/env";
 
 // Input validation patterns
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -134,10 +134,9 @@ export const validate = action({
       }
 
       const pkg = getPackageEnv();
-      const siteE = getSiteEnv();
       const clientId = pkg.UBER_EATS_CLIENT_ID;
       const clientSecret = pkg.UBER_EATS_CLIENT_SECRET;
-      const sandboxMode = siteE.UBER_EATS_SANDBOX_MODE === "true";
+      const sandboxMode = isSandbox("uberEats");
 
       if (!clientId || !clientSecret) {
         return {
@@ -201,10 +200,9 @@ export const validate = action({
       }
 
       const pkg = getPackageEnv();
-      const siteE = getSiteEnv();
       const clientId = pkg.DELIVEROO_CLIENT_ID;
       const clientSecret = pkg.DELIVEROO_CLIENT_SECRET;
-      const sandboxMode = siteE.DELIVEROO_IS_SANDBOX === "true";
+      const sandboxMode = isSandbox("deliveroo");
 
       if (!clientId || !clientSecret) {
         return {

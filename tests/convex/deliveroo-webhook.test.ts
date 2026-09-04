@@ -1,0 +1,567 @@
+// @vitest-environment edge-runtime
+/// <reference types="vite/client" />
+
+/**
+ * The Deliveroo order webhook, end to end, through the real HTTP route.
+ *
+ * Three defects lived here, all of them invisible to the unit tests around
+ * them:
+ *
+ *  - #134 — a Deliveroo order was written to the database and stopped there.
+ *    No kitchen ticket, so no slip, no screen, no printer, and the accept
+ *    button in `TicketCard` unreachable because it acts on a ticket. The Uber
+ *    Eats path had always created one. Nothing compared the two.
+ *  - #163.2 — the status map spoke a vocabulary Deliveroo does not: it matched
+ *    `cancelled` (two l) where Deliveroo sends `canceled`, had no `confirmed`
+ *    case, invented four statuses that are prep stages we push rather than
+ *    events we receive, and defaulted the rest to `pending` — dragging orders
+ *    backwards.
+ *  - #163.8 — every outcome was acknowledged with 200, including failure.
+ *    Deliveroo retries only on a non-2xx, so a failed order was lost in
+ *    silence.
+ *
+ * These drive the signed HTTP endpoint rather than the internals, because the
+ * bug in each case was at a seam: between the processor and its caller, or
+ * between our vocabulary and Deliveroo's.
+ */
+
+import { convexTest } from "convex-test"
+import { afterEach, beforeAll, describe, expect, test } from "vitest"
+import type { Id } from "../../convex/_generated/dataModel"
+import { mapDeliverooStatus } from "../../convex/deliverooWebhook"
+import schema from "../../convex/schema"
+
+const modules = import.meta.glob("../../convex/**/*.ts")
+
+const NOW = 1_700_000_000_000
+const SECRET = "test-deliveroo-webhook-secret"
+const GUID = "11111111-2222-3333-4444-555555555555"
+const SITE_ID = "site-42"
+
+beforeAll(() => {
+  // The handler reads its signing secret from the platform env. OPENAI_API_KEY
+  // is required by the same schema, so it has to be present for the parse to
+  // succeed at all — without it the handler fails for the wrong reason and a
+  // response-policy assertion passes on a lie.
+  process.env.OPENAI_API_KEY = "sk-test"
+  process.env.DELIVEROO_WEBHOOK_SECRET = SECRET
+  // No client credentials: the webhook must reach the kitchen whether or not
+  // we can talk back to Deliveroo, and no test should depend on the network.
+  delete process.env.DELIVEROO_CLIENT_ID
+  delete process.env.DELIVEROO_CLIENT_SECRET
+})
+
+const harnesses: ReturnType<typeof convexTest>[] = []
+
+function newHarness() {
+  const t = convexTest(schema, modules)
+  harnesses.push(t)
+  return t
+}
+
+/** Cancel whatever the test left on the scheduler — see `order-lifecycle`. */
+afterEach(async () => {
+  for (const t of harnesses) {
+    await t.run(async (ctx) => {
+      const pending = await ctx.db.system.query("_scheduled_functions").collect()
+      for (const job of pending) {
+        if (job.state.kind === "pending" || job.state.kind === "inProgress") {
+          await ctx.scheduler.cancel(job._id)
+        }
+      }
+    })
+  }
+  harnesses.length = 0
+})
+
+// ===========================================================================
+// Signing — the real header scheme, so the tests go through the real door
+// ===========================================================================
+
+/** HMAC-SHA256 over `sequence_guid + " " + raw_body`, hex, as Deliveroo signs. */
+async function sign(body: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  )
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(`${GUID} ${body}`))
+  return [...new Uint8Array(signature)].map((b) => b.toString(16).padStart(2, "0")).join("")
+}
+
+async function postSigned(t: ReturnType<typeof convexTest>, body: string) {
+  return t.fetch("/webhooks/deliveroo", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-deliveroo-hmac-sha256": await sign(body),
+      "x-deliveroo-sequence-guid": GUID,
+    },
+    body,
+  })
+}
+
+// ===========================================================================
+// Fixtures
+// ===========================================================================
+
+async function seedStore(t: ReturnType<typeof convexTest>) {
+  return t.run((ctx) =>
+    ctx.db.insert("stores", {
+      name: "Chez Luigi",
+      slug: "chez-luigi",
+      address: {
+        street: "1 rue de la Paix",
+        city: "Paris",
+        postalCode: "75002",
+        country: "France",
+      },
+      hours: [],
+      status: "open" as const,
+      createdAt: NOW,
+      updatedAt: NOW,
+    })
+  )
+}
+
+async function seedIntegration(
+  t: ReturnType<typeof convexTest>,
+  storeId: Id<"stores">
+) {
+  await t.run((ctx) =>
+    ctx.db.insert("storeIntegrations", {
+      storeId,
+      platform: "deliveroo" as const,
+      platformStoreId: SITE_ID,
+      syncMenu: false,
+      autoAccept: false,
+      // Manual: the staff decides in the KDS, which is precisely the screen a
+      // Deliveroo order never reached.
+      orderMode: "manual" as const,
+      enabled: true,
+      createdAt: NOW,
+      updatedAt: NOW,
+    })
+  )
+}
+
+/** An `order.new` payload shaped as Deliveroo sends it. */
+function newOrderPayload(
+  overrides: {
+    id?: string
+    siteId?: string
+    itemNotes?: string
+  } = {}
+) {
+  return JSON.stringify({
+    event: "order.new",
+    body: {
+      order: {
+        id: overrides.id ?? "gb:deliveroo:order:ABC12345",
+        order_number: "D-1234",
+        location_id: overrides.siteId ?? SITE_ID,
+        status: "placed",
+        fulfillment_type: "delivery",
+        asap: true,
+        items: [
+          {
+            pos_item_id: "prod-1",
+            name: "Margherita",
+            quantity: 2,
+            unit_price: { fractional: 1200, currency_code: "EUR" },
+            modifiers: [
+              {
+                pos_item_id: "mod-1",
+                name: "Extra basilic",
+                unit_price: { fractional: 100, currency_code: "EUR" },
+              },
+            ],
+            notes: overrides.itemNotes ?? "allergie arachides — sauce à part",
+          },
+        ],
+        customer: {
+          first_name: "Camille",
+          last_name: "Roy",
+          phone_number: "0600000000",
+        },
+        notes: "Sonner deux fois",
+        total_price: { fractional: 2500, currency_code: "EUR" },
+      },
+    },
+  })
+}
+
+// ===========================================================================
+// #134 — the order reaches the kitchen
+// ===========================================================================
+
+describe("a signed Deliveroo order.new", () => {
+  test("produces both an order and a kitchen ticket", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    const response = await postSigned(t, newOrderPayload())
+    expect(response.status).toBe(200)
+
+    const orders = await t.run((ctx) => ctx.db.query("orders").collect())
+    expect(orders).toHaveLength(1)
+    expect(orders[0]!.source).toBe("deliveroo")
+
+    const tickets = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(tickets, "a Deliveroo order never reached the kitchen").toHaveLength(1)
+
+    const ticket = tickets[0]!
+    expect(ticket.orderId).toEqual(orders[0]!._id)
+    expect(ticket.storeId).toEqual(storeId)
+    expect(ticket.source).toBe("deliveroo")
+    expect(ticket.orderType).toBe("delivery")
+    expect(ticket.customerName).toBe("Camille Roy")
+    // `dl-` so a token found in a log or a URL names its platform, the way
+    // the Uber Eats path uses `ue-`.
+    expect(ticket.trackingToken.startsWith("dl-")).toBe(true)
+  })
+
+  test("keeps the line's instruction all the way to the slip", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    await postSigned(t, newOrderPayload())
+
+    // An instruction on a line can be an allergy. It has to survive the item
+    // mapping, the order validator and the ticket insert — the exact seam that
+    // lost it on the Uber Eats path.
+    const [order] = await t.run((ctx) => ctx.db.query("orders").collect())
+    expect(order!.items[0]!.notes).toContain("arachides")
+
+    const [ticket] = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(ticket!.items[0]!.notes).toContain("arachides")
+    expect(ticket!.items[0]!.productName).toBe("Margherita")
+    expect(ticket!.items[0]!.quantity).toBe(2)
+    expect(ticket!.items[0]!.options).toContain("Extra basilic")
+  })
+
+  test("does not print the same order twice when Deliveroo retries", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    const payload = newOrderPayload({ id: "gb:deliveroo:order:RETRY" })
+    expect((await postSigned(t, payload)).status).toBe(200)
+    expect((await postSigned(t, payload)).status).toBe(200)
+
+    expect(await t.run((ctx) => ctx.db.query("orders").collect())).toHaveLength(1)
+    expect(await t.run((ctx) => ctx.db.query("kitchenTickets").collect())).toHaveLength(1)
+  })
+})
+
+// ===========================================================================
+// #163.2 — the status vocabulary is Deliveroo's, not one we invented
+// ===========================================================================
+
+describe("mapDeliverooStatus", () => {
+  // The whole vocabulary an order event can carry, from the Order API
+  // contract: pending, placed, accepted, confirmed, rejected, canceled.
+  // `canceled` has ONE l — matching the British spelling meant a cancellation
+  // never cancelled anything.
+  const vocabulary = [
+    ["pending", "pending"],
+    ["placed", "pending"],
+    ["accepted", "confirmed"],
+    ["confirmed", "confirmed"],
+    ["rejected", "cancelled"],
+    ["canceled", "cancelled"],
+  ] as const
+
+  test.each(vocabulary)("maps %s to %s", (deliverooStatus, expected) => {
+    expect(mapDeliverooStatus(deliverooStatus)).toBe(expected)
+  })
+
+  test("tolerates the British spelling as an alias", () => {
+    // Deliveroo sends "canceled". Our own fixtures and sandbox scenarios were
+    // written against "cancelled", and accepting both costs nothing because
+    // Deliveroo owns the other spelling.
+    expect(mapDeliverooStatus("cancelled")).toBe("cancelled")
+  })
+
+  // Pushed by us to `/prep_stage`; never received as an order status. Mapping
+  // them here is what let a Deliveroo webhook claim an order was `preparing`,
+  // `ready`, `out_for_delivery` or `completed` on a vocabulary Deliveroo does
+  // not speak.
+  const prepStages = [
+    "started_preparing",
+    "ready_for_collection",
+    "out_for_delivery",
+    "delivered",
+  ]
+
+  test.each(prepStages)("refuses to read the prep stage %s as a status", (stage) => {
+    expect(mapDeliverooStatus(stage)).toBeNull()
+  })
+
+  test("returns null rather than guessing at an unknown status", () => {
+    // The old default was `pending`, which moved orders BACKWARDS: a confirmed
+    // order answered "pending" and the kitchen was told to start again.
+    expect(mapDeliverooStatus("some_status_added_in_2027")).toBeNull()
+    expect(mapDeliverooStatus("")).toBeNull()
+  })
+})
+
+describe("a status update the mapper does not recognise", () => {
+  async function seedConfirmedOrder(t: ReturnType<typeof convexTest>, id: string) {
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+    await postSigned(t, newOrderPayload({ id }))
+    const [created] = await t.run((ctx) => ctx.db.query("orders").collect())
+    await t.run((ctx) => ctx.db.patch(created!._id, { status: "confirmed" as const }))
+  }
+
+  async function statusUpdate(
+    t: ReturnType<typeof convexTest>,
+    id: string,
+    status: string
+  ) {
+    return postSigned(
+      t,
+      JSON.stringify({
+        event: "order.status_update",
+        body: { order: { id, location_id: SITE_ID, status } },
+      })
+    )
+  }
+
+  test("leaves the order where it was", async () => {
+    const t = newHarness()
+    await seedConfirmedOrder(t, "gb:deliveroo:order:STATUS")
+
+    expect(
+      (await statusUpdate(t, "gb:deliveroo:order:STATUS", "some_status_added_in_2027")).status
+    ).toBe(200)
+
+    const [after] = await t.run((ctx) => ctx.db.query("orders").collect())
+    expect(after!.status).toBe("confirmed")
+  })
+
+  test("does not let a prep stage move the order", async () => {
+    const t = newHarness()
+    await seedConfirmedOrder(t, "gb:deliveroo:order:STAGE")
+
+    // `started_preparing` is a stage we PUSH, never an order status we
+    // receive — and `confirmed -> preparing` is a legal internal move, so the
+    // status machine would happily accept the guess. Nothing downstream can
+    // catch this one: the mapper has to refuse it here or the order advances
+    // on an event Deliveroo never sent.
+    expect(
+      (await statusUpdate(t, "gb:deliveroo:order:STAGE", "started_preparing")).status
+    ).toBe(200)
+
+    const [after] = await t.run((ctx) => ctx.db.query("orders").collect())
+    expect(after!.status).toBe("confirmed")
+  })
+
+  test("still applies a status it does recognise", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    await postSigned(t, newOrderPayload({ id: "gb:deliveroo:order:CANCEL" }))
+
+    const cancel = JSON.stringify({
+      event: "order.status_update",
+      body: {
+        order: {
+          id: "gb:deliveroo:order:CANCEL",
+          location_id: SITE_ID,
+          // One l, as Deliveroo spells it.
+          status: "canceled",
+          cancellation_reason: "customer_request",
+        },
+      },
+    })
+    expect((await postSigned(t, cancel)).status).toBe(200)
+
+    const [after] = await t.run((ctx) => ctx.db.query("orders").collect())
+    expect(after!.status).toBe("cancelled")
+    expect(after!.cancellationReason).toBe("customer_request")
+  })
+})
+
+// ===========================================================================
+// The batch's own acceptance criteria, for this platform
+// ===========================================================================
+
+describe("a Deliveroo order is priced the way the storefront prices one", () => {
+  test("stores the unit price and multiplies modifiers per unit", async () => {
+    // Deliveroo sends a genuine `unit_price`, which is why this platform never
+    // showed the ~2x inflation the Uber path had. It is asserted here anyway:
+    // the two platforms feed the same mutation, and the whole point of the
+    // pricing fix is that they now agree with each other AND with
+    // `verifyOrderLine`, which computes `(price + options) * quantity`.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    await postSigned(t, newOrderPayload({ id: "gb:deliveroo:order:PRICE" }))
+
+    const [order] = await t.run((ctx) => ctx.db.query("orders").collect())
+    const line = order!.items[0]!
+    // 2 x Margherita @ 1200 with "Extra basilic" @ 100.
+    expect(line.unitPrice).toBe(1200)
+    expect(line.subtotal).toBe((1200 + 100) * 2)
+  })
+})
+
+describe("a Deliveroo cancellation stops the kitchen", () => {
+  test("takes the ticket off the pass, not just the order", async () => {
+    // Cancelling the order row is not enough: the kitchen reads tickets. The
+    // staff-facing `updateStatus` cascaded to the ticket; `updateFromWebhook` —
+    // the path every platform cancellation takes — did not, so the order read
+    // `cancelled` while the slip stayed live on the display and in the print
+    // queue.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+    await postSigned(t, newOrderPayload({ id: "gb:deliveroo:order:KDS" }))
+
+    const before = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(before).toHaveLength(1)
+    expect(before[0]!.status).not.toBe("cancelled")
+
+    await postSigned(
+      t,
+      JSON.stringify({
+        event: "order.status_update",
+        body: {
+          order: {
+            id: "gb:deliveroo:order:KDS",
+            location_id: SITE_ID,
+            status: "canceled",
+          },
+        },
+      })
+    )
+
+    const [order] = await t.run((ctx) => ctx.db.query("orders").collect())
+    const [ticket] = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(order!.status).toBe("cancelled")
+    expect(order!.cancelledAt).toBeTypeOf("number")
+    expect(ticket!.status).toBe("cancelled")
+  })
+
+  test("is honoured for an order the kitchen has already started", async () => {
+    // The narrow window: the order lifecycle stops the cancellation window at
+    // `confirmed` for an OUTBOUND reason (Deliveroo refuses to cancel food
+    // already being made). Applied to an INBOUND notification it silently
+    // dropped real cancellations for anything past that point.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+    await postSigned(t, newOrderPayload({ id: "gb:deliveroo:order:COOKING" }))
+
+    const [created] = await t.run((ctx) => ctx.db.query("orders").collect())
+    await t.run((ctx) => ctx.db.patch(created!._id, { status: "preparing" as const }))
+
+    await postSigned(
+      t,
+      JSON.stringify({
+        event: "order.status_update",
+        body: {
+          order: {
+            id: "gb:deliveroo:order:COOKING",
+            location_id: SITE_ID,
+            status: "canceled",
+          },
+        },
+      })
+    )
+
+    const [order] = await t.run((ctx) => ctx.db.query("orders").collect())
+    const [ticket] = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(order!.status).toBe("cancelled")
+    expect(ticket!.status).toBe("cancelled")
+  })
+})
+
+// ===========================================================================
+// #163.8 — 200 acknowledges, 500 asks for a retry
+// ===========================================================================
+
+describe("the HTTP response the webhook returns", () => {
+  test("is 500 when the order could not be processed, so Deliveroo retries", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    // A real order for a site we cannot route. A 200 here loses it outright:
+    // Deliveroo treats the event as delivered and never sends it again.
+    const response = await postSigned(t, newOrderPayload({ siteId: "site-not-ours" }))
+    expect(response.status, "a lost order was acknowledged as handled").toBe(500)
+    expect(await t.run((ctx) => ctx.db.query("orders").collect())).toHaveLength(0)
+  })
+
+  test("is 200 for a duplicate, which must never be retried", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    const payload = newOrderPayload({ id: "gb:deliveroo:order:DUP" })
+    expect((await postSigned(t, payload)).status).toBe(200)
+    expect((await postSigned(t, payload)).status).toBe(200)
+  })
+
+  test("is 200 for an event type we do not handle", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    // Nothing was lost and a redelivery would be ignored again. Answering 500
+    // would spend retries — and the Order API success rate — on a no-op.
+    const rider = JSON.stringify({
+      event: "rider.status_update",
+      rider: { status: "assigned" },
+    })
+    expect((await postSigned(t, rider)).status).toBe(200)
+  })
+
+  test("is 200 for an order event we do not handle", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    const unknown = JSON.stringify({
+      event: "order.some_future_event",
+      body: { order: { id: "gb:deliveroo:order:X", location_id: SITE_ID, status: "placed" } },
+    })
+    expect((await postSigned(t, unknown)).status).toBe(200)
+  })
+
+  test("is 200 for a payload no redelivery could fix", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    // An `order.` event carrying no order. The same bytes come back on every
+    // retry, so asking for one only burns attempts against the 98% Order API
+    // success rate.
+    const empty = JSON.stringify({ event: "order.new" })
+    expect((await postSigned(t, empty)).status).toBe(200)
+  })
+
+  test("is 401 for an unsigned request, before any processing", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    const response = await t.fetch("/webhooks/deliveroo", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: newOrderPayload(),
+    })
+    expect(response.status).toBe(401)
+    expect(await t.run((ctx) => ctx.db.query("orders").collect())).toHaveLength(0)
+  })
+})

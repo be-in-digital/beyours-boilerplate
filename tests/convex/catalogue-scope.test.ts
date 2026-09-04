@@ -213,13 +213,17 @@ describe("products.updateWithPropagation", () => {
 
     const asOwner = await seedUser(t, "user:a1", "client_admin", [a, b])
 
+    // `storeIds` is what the wrapper schedules the platform menu push against:
+    // both establishments here, and no others. A propagation that reported only
+    // the named product's store would leave every twin stale on Uber Eats and
+    // Deliveroo the moment the sync stopped sweeping every restaurant.
     await expect(
       asOwner.mutation(api.products.updateWithPropagation, {
         productId: root,
         updates: { price: 1500 },
         scope: "all",
       })
-    ).resolves.toEqual({ updated: 2 })
+    ).resolves.toEqual({ updated: 2, storeIds: [a, b] })
 
     const updated = await t.run((ctx) => ctx.db.get(twin))
     expect(updated?.price).toBe(1500)

@@ -5,12 +5,12 @@
  * Uses the Deliveroo client from @be-in-digital/integrations
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { deliveroo } from "@be-in-digital/integrations";
 
 const { fetchDeliveroo, getAccessToken, clearTokenCache } = deliveroo;
 type DeliverooCredentials = Parameters<typeof getAccessToken>[0];
-import { config, hasDeliverooSandbox, log } from "../test-config";
+import { announceSkippedLiveRun, config, hasDeliverooSandbox, log } from "../test-config";
 
 // ============================================================================
 // Credentials for sandbox
@@ -69,6 +69,12 @@ describe("Deliveroo Menu - Scenario 1: Fetch Brand ID", () => {
     log.info(`Sandbox Mode: ${config.IS_SANDBOX}`);
     log.info(`Site ID: ${config.SITE_ID}`);
     log.info(`Brand ID (configured): ${config.BRAND_ID}`);
+    announceSkippedLiveRun(
+      "Deliveroo Menu - Scenario 1: Fetch Brand ID",
+      "5 tests that call the Deliveroo sandbox API — OAuth token retrieval, " +
+        "brand lookup and API-type routing",
+      "sandbox",
+    );
   });
 
   // ========================================================================
@@ -356,36 +362,63 @@ describe("Deliveroo Menu - Brand ID Error Handling", () => {
   // Test 4: Handle 500 Server Error
   // ========================================================================
 
-  it("should surface 500 Server Error without retrying", async () => {
+  it("should back off on a 500, a bounded number of times, without re-minting the token", async () => {
     log.test("Error Test 4: Handling 500 Server Error");
 
-    // A 500 is the upstream's problem, not a stale token: the client must hand
-    // it back untouched instead of burning a retry and a fresh token on it.
+    // REWRITTEN. This test used to assert exactly one attempt — "surface 500
+    // without retrying". That blessed the defect: Deliveroo documents
+    // 500/502/503/504 as "server error on Deliveroo's side — retry after
+    // backoff", and this is an idempotent GET, so replaying it is safe. The
+    // client had no backoff at all, so one transient 500 failed a menu push
+    // outright.
+    //
+    // What the old test was really protecting still holds, and is asserted
+    // below: a 500 is NOT a stale token. The token refresh stays gated on
+    // 401/403, so the whole sequence mints exactly one token, and the body is
+    // handed back untouched once the attempts run out — the caller decides
+    // what a persistent 500 means.
+    //
+    // Fake timers: the real delays are hundreds of milliseconds of deliberate
+    // sleep, and a suite that actually waits them out is a suite that times out.
     const calls: string[] = [];
 
-    await withMockedFetch(
-      (url) => {
-        calls.push(url);
-        return url.endsWith("/oauth2/token")
-          ? jsonResponse({ access_token: "token-1", token_type: "Bearer", expires_in: 3600 }, 200)
-          : new Response("upstream exploded", { status: 500 });
-      },
-      async () => {
-        const response = await fetchDeliveroo(
-          credentials,
-          "/v1/brands/brand-1/sites/site-1/status",
-          { method: "GET" },
-          "site",
-        );
+    vi.useFakeTimers();
+    try {
+      await withMockedFetch(
+        (url) => {
+          calls.push(url);
+          return url.endsWith("/oauth2/token")
+            ? jsonResponse({ access_token: "token-1", token_type: "Bearer", expires_in: 3600 }, 200)
+            : new Response("upstream exploded", { status: 500 });
+        },
+        async () => {
+          const pending = fetchDeliveroo(
+            credentials,
+            "/v1/brands/brand-1/sites/site-1/status",
+            { method: "GET" },
+            "site",
+          );
 
-        expect(response.status).toBe(500);
-        expect(await response.text()).toBe("upstream exploded");
-      },
-    );
+          await vi.runAllTimersAsync();
+          const response = await pending;
 
-    expect(calls.filter((u) => !u.endsWith("/oauth2/token"))).toHaveLength(1);
+          expect(response.status).toBe(500);
+          expect(await response.text()).toBe("upstream exploded");
+        },
+      );
+    } finally {
+      vi.useRealTimers();
+    }
 
-    log.success("500 is returned as-is, with no retry");
+    const apiCalls = calls.filter((u) => !u.endsWith("/oauth2/token"));
+    const tokenCalls = calls.filter((u) => u.endsWith("/oauth2/token"));
+
+    // Bounded, so a platform outage costs three requests and not a loop.
+    expect(apiCalls).toHaveLength(3);
+    // The original point of this test: no fresh token burnt on a 500.
+    expect(tokenCalls).toHaveLength(1);
+
+    log.success("500 is retried with backoff, bounded, and on one token");
   });
 
   it("should raise an IntegrationError when the OAuth endpoint fails", async () => {

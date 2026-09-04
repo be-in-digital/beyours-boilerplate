@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
+import { getPackageEnv, isSandbox } from "@be-in-digital/core/env";
 
 /**
  * Admin actions wrapping each Uber Eats endpoint required by production validation.
@@ -23,7 +23,6 @@ type UberCreds = {
 
 function readCredentials(): UberCreds {
   const pkg = getPackageEnv();
-  const site = getSiteEnv();
   const clientId = pkg.UBER_EATS_CLIENT_ID;
   const clientSecret = pkg.UBER_EATS_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
@@ -32,7 +31,7 @@ function readCredentials(): UberCreds {
   return {
     clientId,
     clientSecret,
-    sandboxMode: site.UBER_EATS_SANDBOX_MODE === "true",
+    sandboxMode: isSandbox("uberEats"),
   };
 }
 

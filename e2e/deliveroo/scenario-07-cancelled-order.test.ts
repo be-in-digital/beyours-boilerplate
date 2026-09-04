@@ -145,26 +145,33 @@ describe("Scenario 7: Cancelled Order", () => {
     // for collection, or with a rider. The internal status machine has to say
     // the same thing — asserted here against the production mapper and the
     // production transition table, not against a restatement of either.
-    const cancellable = ["placed", "accepted"];
-    const notCancellable = [
-      "started_preparing",
-      "ready_for_collection",
-      "out_for_delivery",
-    ];
-
-    for (const deliverooStatus of cancellable) {
+    //
+    // This used to feed `started_preparing`, `ready_for_collection` and
+    // `out_for_delivery` to the mapper and assert they were not cancellable.
+    // Deliveroo sends none of them: they are prep STAGES we push to
+    // `/prep_stage`, not order statuses we receive (04-order-api.md). The
+    // mapper answered "pending" for all three — which IS cancellable — and the
+    // assertion only held because `canTransitionTo("pending", "cancelled")`
+    // was never what it was really asking. The two claims are separated below.
+    const cancellableOnDeliveroo = ["placed", "accepted", "confirmed"];
+    for (const deliverooStatus of cancellableOnDeliveroo) {
       const internal = mapDeliverooStatus(deliverooStatus);
       expect(
-        canTransitionTo(internal, "cancelled"),
+        internal,
+        `${deliverooStatus} is part of Deliveroo's order vocabulary`,
+      ).not.toBeNull();
+      expect(
+        canTransitionTo(internal!, "cancelled"),
         `${deliverooStatus} (${internal}) should be cancellable`,
       ).toBe(true);
     }
 
-    for (const deliverooStatus of notCancellable) {
-      const internal = mapDeliverooStatus(deliverooStatus);
+    // Once the kitchen has the order, our own machine refuses — whoever asks.
+    const notCancellable = ["preparing", "ready", "out_for_delivery"] as const;
+    for (const internal of notCancellable) {
       expect(
         canTransitionTo(internal, "cancelled"),
-        `${deliverooStatus} (${internal}) must not be cancellable`,
+        `${internal} must not be cancellable`,
       ).toBe(false);
     }
 

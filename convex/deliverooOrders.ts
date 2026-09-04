@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 import { api, internal } from "./_generated/api";
-import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
+import { getPackageEnv, isSandbox } from "@be-in-digital/core/env";
 
 /**
  * Accept a Deliveroo order.
@@ -55,10 +55,9 @@ export const acceptOrder = action({
 
       // 3. Get credentials from env
       const pkg = getPackageEnv();
-      const site = getSiteEnv();
       const clientId = pkg.DELIVEROO_CLIENT_ID;
       const clientSecret = pkg.DELIVEROO_CLIENT_SECRET;
-      const sandboxMode = site.DELIVEROO_IS_SANDBOX === "true";
+      const sandboxMode = isSandbox("deliveroo");
 
       if (!clientId || !clientSecret) {
         return { success: false, error: "Deliveroo API credentials not configured" };
@@ -138,10 +137,9 @@ export const rejectOrder = action({
 
       // 3. Get credentials from env
       const pkg = getPackageEnv();
-      const site = getSiteEnv();
       const clientId = pkg.DELIVEROO_CLIENT_ID;
       const clientSecret = pkg.DELIVEROO_CLIENT_SECRET;
-      const sandboxMode = site.DELIVEROO_IS_SANDBOX === "true";
+      const sandboxMode = isSandbox("deliveroo");
 
       if (!clientId || !clientSecret) {
         return { success: false, error: "Deliveroo API credentials not configured" };
@@ -222,10 +220,9 @@ export const updatePrepStage = action({
 
       // 3. Get credentials from env
       const pkg = getPackageEnv();
-      const site = getSiteEnv();
       const clientId = pkg.DELIVEROO_CLIENT_ID;
       const clientSecret = pkg.DELIVEROO_CLIENT_SECRET;
-      const sandboxMode = site.DELIVEROO_IS_SANDBOX === "true";
+      const sandboxMode = isSandbox("deliveroo");
 
       if (!clientId || !clientSecret) {
         return { success: false, error: "Deliveroo API credentials not configured" };

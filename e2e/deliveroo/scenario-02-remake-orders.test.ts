@@ -20,6 +20,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  announceSkippedLiveRun,
   assertRemakeDetails,
   assertWebhookSuccess,
   config,
@@ -50,6 +51,12 @@ describe("Scenario 2: Remake Orders", () => {
     log.info("Starting Remake Orders Test Suite");
     log.info(`Convex Site URL: ${config.CONVEX_SITE_URL}`);
     log.info(`Sandbox Mode: ${config.IS_SANDBOX}`);
+    announceSkippedLiveRun(
+      "Scenario 2: Remake Orders",
+      "6 tests that POST signed webhooks at the Convex endpoint — every " +
+        "assertion about how the backend handles a remake order",
+      "webhook",
+    );
   });
 
   afterAll(() => {

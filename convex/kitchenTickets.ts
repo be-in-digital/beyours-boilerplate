@@ -186,12 +186,11 @@ export const incrementPrintCount = storeMutation({
  * Helper: get Uber Eats credentials from env vars.
  */
 async function getUberEatsCredentials() {
-  const { getPackageEnv, getSiteEnv } = await import("@be-in-digital/core/env");
+  const { getPackageEnv, isSandbox } = await import("@be-in-digital/core/env");
   const pkg = getPackageEnv();
-  const site = getSiteEnv();
   const clientId = pkg.UBER_EATS_CLIENT_ID;
   const clientSecret = pkg.UBER_EATS_CLIENT_SECRET;
-  const sandboxMode = site.UBER_EATS_SANDBOX_MODE === "true";
+  const sandboxMode = isSandbox("uberEats");
   if (!clientId || !clientSecret) return null;
   return { clientId, clientSecret, sandboxMode };
 }
@@ -200,12 +199,11 @@ async function getUberEatsCredentials() {
  * Helper: get Deliveroo credentials from env vars.
  */
 async function getDeliverooCredentials() {
-  const { getPackageEnv, getSiteEnv } = await import("@be-in-digital/core/env");
+  const { getPackageEnv, isSandbox } = await import("@be-in-digital/core/env");
   const pkg = getPackageEnv();
-  const site = getSiteEnv();
   const clientId = pkg.DELIVEROO_CLIENT_ID;
   const clientSecret = pkg.DELIVEROO_CLIENT_SECRET;
-  const sandboxMode = site.DELIVEROO_IS_SANDBOX === "true";
+  const sandboxMode = isSandbox("deliveroo");
   if (!clientId || !clientSecret) return null;
   return { clientId, clientSecret, sandboxMode };
 }
@@ -336,16 +334,15 @@ export const readyTicket = action({
       }
     } else if (ticket.source === "uber_eats" && externalId) {
       try {
-        const { getPackageEnv, getSiteEnv } = await import("@be-in-digital/core/env");
+        const { getPackageEnv, isSandbox } = await import("@be-in-digital/core/env");
         const pkg = getPackageEnv();
-        const site = getSiteEnv();
         if (pkg.UBER_EATS_CLIENT_ID && pkg.UBER_EATS_CLIENT_SECRET) {
           const { uberEats } = await import("@be-in-digital/integrations");
           await uberEats.markOrderAsReady(
             {
               clientId: pkg.UBER_EATS_CLIENT_ID,
               clientSecret: pkg.UBER_EATS_CLIENT_SECRET,
-              sandboxMode: site.UBER_EATS_SANDBOX_MODE === "true",
+              sandboxMode: isSandbox("uberEats"),
             },
             externalId
           );

@@ -18,7 +18,9 @@ import { encrypt, decrypt } from "@be-in-digital/convex-functions/encryption";
 const REDIRECT_PATH = "/connect/uber-eats/callback";
 
 async function readCredentials() {
-  const { getPackageEnv, getSiteEnv } = await import("@be-in-digital/core/env");
+  const { getPackageEnv, getSiteEnv, isSandbox } = await import(
+    "@be-in-digital/core/env"
+  );
   const pkg = getPackageEnv();
   const site = getSiteEnv();
   const clientId = pkg.UBER_EATS_CLIENT_ID;
@@ -30,7 +32,7 @@ async function readCredentials() {
     credentials: {
       clientId,
       clientSecret,
-      sandboxMode: site.UBER_EATS_SANDBOX_MODE === "true",
+      sandboxMode: isSandbox("uberEats"),
     },
     siteUrl: site.CONVEX_SITE_URL as string | undefined,
     adminUrl: (site.ADMIN_URL as string | undefined) ?? "http://localhost:3000",

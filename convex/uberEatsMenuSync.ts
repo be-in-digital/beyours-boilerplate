@@ -10,7 +10,7 @@ import {
   type ProductRecord,
   type CategoryRecord,
 } from "@be-in-digital/convex-functions/uberEatsMenuSync";
-import { getPackageEnv, getSiteEnv } from "@be-in-digital/core/env";
+import { getPackageEnv, isSandbox } from "@be-in-digital/core/env";
 
 /**
  * Sync menu to a single Uber Eats store.
@@ -115,10 +115,9 @@ export const internalSyncStore = internalAction({
 
       // 8. Read credentials from environment
       const pkg = getPackageEnv();
-      const site = getSiteEnv();
       const clientId = pkg.UBER_EATS_CLIENT_ID;
       const clientSecret = pkg.UBER_EATS_CLIENT_SECRET;
-      const sandboxMode = site.UBER_EATS_SANDBOX_MODE === "true";
+      const sandboxMode = isSandbox("uberEats");
 
       if (!clientId || !clientSecret) {
         throw new Error("Uber Eats API credentials not configured in environment");
@@ -157,11 +156,28 @@ export const internalSyncStore = internalAction({
 });
 
 /**
+ * Spacing between the pushes one sweep books.
+ *
+ * `runAfter(0)` for every store fired the whole fleet at once. One account,
+ * one set of credentials: a deployment with thirty establishments opened thirty
+ * simultaneous menu uploads, and Uber's own guidance puts the menu endpoint at
+ * roughly one call a minute per store with the token endpoint capped at a
+ * hundred an hour. Two seconds apart turns a stampede into a queue.
+ */
+const SWEEP_STAGGER_MS = 2_000;
+
+/**
  * Sync menu to ALL stores that have Uber Eats sync enabled.
  *
- * This is an internal action triggered automatically after product mutations.
- * It queries all enabled Uber Eats integrations with syncMenu=true and
- * schedules individual syncStore actions for each.
+ * A deliberate full sweep — an operator asking for everything to be re-pushed,
+ * or a future cron. It is NOT what a catalogue edit triggers any more: product
+ * and menu mutations book `internalSyncStore` for the one establishment they
+ * changed, through the per-store window in `claimMenuSyncWindow`. Calling this
+ * on every edit is what turned a fifty-product import into a hundred sweeps,
+ * each of them uploading every restaurant's menu.
+ *
+ * The pushes are spaced by `SWEEP_STAGGER_MS` so a fleet does not arrive at the
+ * platform in one burst.
  */
 export const syncAllStores = internalAction({
   args: {},
@@ -182,10 +198,10 @@ export const syncAllStores = internalAction({
       return { synced: 0 };
     }
 
-    // Schedule sync for each store (runs in parallel as separate actions)
-    for (const integration of syncableIntegrations) {
+    // One push per store, spaced out rather than all at once.
+    for (const [index, integration] of syncableIntegrations.entries()) {
       await ctx.scheduler.runAfter(
-        0,
+        index * SWEEP_STAGGER_MS,
         internal.uberEatsMenuSync.internalSyncStore,
         { storeId: integration.storeId as Id<"stores"> }
       );

@@ -21,6 +21,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  announceSkippedLiveRun,
   assertWebhookSuccess,
   config,
   createNewOrderWebhook,
@@ -47,6 +48,12 @@ describe("Scenario 8: Discounted Order", () => {
     log.info("Starting Discounted Order Test Suite");
     log.info(`Convex Site URL: ${config.CONVEX_SITE_URL}`);
     log.info(`Sandbox Mode: ${config.IS_SANDBOX}`);
+    announceSkippedLiveRun(
+      "Scenario 8: Discounted Order",
+      "2 tests that POST signed webhooks at the Convex endpoint — every " +
+        "assertion about how the backend handles offer_discount",
+      "webhook",
+    );
   });
 
   afterAll(() => {

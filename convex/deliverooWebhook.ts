@@ -5,6 +5,8 @@ import { internalAction } from "./_generated/server";
 import type { ActionCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { toKitchenTicketItemsFromPlatform } from "@be-in-digital/convex-functions/orders";
+import { resolveStoreIntegration } from "@be-in-digital/convex-functions/platformWebhook";
 
 // ============================================================================
 // Types
@@ -118,43 +120,63 @@ type StoreIntegrationRecord = {
 // ============================================================================
 
 async function getDeliverooCredentials() {
-  const { getPackageEnv, getSiteEnv } = await import("@be-in-digital/core/env");
+  const { getPackageEnv, isSandbox } = await import("@be-in-digital/core/env");
   const pkg = getPackageEnv();
-  const site = getSiteEnv();
   const clientId = pkg.DELIVEROO_CLIENT_ID;
   const clientSecret = pkg.DELIVEROO_CLIENT_SECRET;
-  const sandboxMode = site.DELIVEROO_IS_SANDBOX === "true";
+  const sandboxMode = isSandbox("deliveroo");
   if (!clientId || !clientSecret) return null;
   return { clientId, clientSecret, sandboxMode };
 }
 
 /**
- * Map Deliveroo status to internal order status
+ * Map a Deliveroo order status to the internal one.
+ *
+ * The vocabulary is the Order API's, and only the Order API's:
+ * `pending`, `placed`, `accepted`, `confirmed`, `rejected`, `canceled`. That
+ * is the whole set an order event can carry — the state machine is
+ * `pending → placed → accepted → confirmed`, with `rejected` and `canceled`
+ * as exits.
+ *
+ * Three consequences, each one a bug this function used to have:
+ *
+ *  - `canceled` is spelled with ONE l. The old code matched `"cancelled"`,
+ *    which Deliveroo never sends, so a cancellation never cancelled anything.
+ *    Both spellings are accepted below: the two-l form costs nothing, older
+ *    fixtures and the sandbox scenarios use it, and tolerating it cannot
+ *    mis-map anything since Deliveroo owns the other spelling.
+ *  - `confirmed` had no case at all and fell through to the default.
+ *  - `started_preparing`, `ready_for_collection`, `out_for_delivery` and
+ *    `delivered` are prep *stages* we PUSH (`/prep_stage`), never statuses we
+ *    receive. Mapping them here invented a vocabulary Deliveroo does not
+ *    speak.
+ *
+ * An unrecognised status returns `null` rather than a guess. The old
+ * `default: return "pending"` dragged orders backwards — a confirmed order
+ * answered "pending" and the kitchen was told to start again. The caller must
+ * skip the update and log; see `handleStatusUpdate`.
  *
  * Exported so tests can assert the Deliveroo vocabulary against the internal
  * status machine rather than restating the mapping and letting it drift.
  */
 export function mapDeliverooStatus(
   deliverooStatus: string
-): "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "completed" | "cancelled" {
+): "pending" | "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "completed" | "cancelled" | null {
   switch (deliverooStatus) {
+    case "pending":
     case "placed":
       return "pending";
     case "accepted":
+    case "confirmed":
       return "confirmed";
-    case "started_preparing":
-      return "preparing";
-    case "ready_for_collection":
-      return "ready";
-    case "out_for_delivery":
-      return "out_for_delivery";
-    case "delivered":
-      return "completed";
-    case "cancelled":
     case "rejected":
+    case "canceled":
+    // Tolerated alias: Deliveroo sends "canceled", but our own fixtures and
+    // sandbox scenarios were written against the British spelling.
+    case "cancelled":
       return "cancelled";
     default:
-      return "pending";
+      return null;
   }
 }
 
@@ -163,15 +185,34 @@ export function mapDeliverooStatus(
 // ============================================================================
 
 /**
+ * What a webhook processor tells its HTTP caller.
+ *
+ * `retryable` is the only field the HTTP layer reads on a failure, and it
+ * decides whether Deliveroo is asked to send the event again. It is optional
+ * and absence means "retry": a failure nobody classified is more safely
+ * redelivered than silently dropped, which is the exact bug this field exists
+ * to close.
+ */
+type DeliverooWebhookOutcome = {
+  success: boolean;
+  retryable?: boolean;
+  error?: string;
+  internalOrderId?: Id<"orders">;
+  scheduled?: boolean;
+  duplicate?: boolean;
+  status?: ReturnType<typeof mapDeliverooStatus>;
+};
+
+/**
  * Process Deliveroo order webhook.
  *
  * Handles two event types:
  * - order.new: New order placed, create internally + sync status + auto-accept if ASAP
- * - order.status_update: Status change (accepted, rejected, cancelled, etc.)
+ * - order.status_update: Status change (accepted, rejected, canceled, etc.)
  */
 export const processOrderWebhook = internalAction({
   args: { payload: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<DeliverooWebhookOutcome> => {
     try {
       const webhookData = JSON.parse(args.payload) as DeliverooWebhookPayload;
       const event = webhookData.event ?? "";
@@ -181,7 +222,10 @@ export const processOrderWebhook = internalAction({
 
       if (!order) {
         console.error("No order data in webhook payload");
-        return { success: false, error: "No order data in payload" };
+        // A redelivery carries the same bytes, so a retry cannot help. Ask for
+        // one anyway and we burn seven attempts against the 98% Order API
+        // success rate for a body that will never parse into an order.
+        return { success: false, retryable: false, error: "No order data in payload" };
       }
 
       // Determine site_id for integration lookup
@@ -193,17 +237,39 @@ export const processOrderWebhook = internalAction({
         { platform: "deliveroo" }
       )) as StoreIntegrationRecord[];
 
-      const integration = allIntegrations.find(
-        (i) => i.platformStoreId === siteId
-      );
+      // One refusal policy for both platforms. A bare `.find()` on `siteId`
+      // matches an integration whose `platformStoreId` is the empty string when
+      // the payload carries no site reference — the same class of mistake as
+      // the Uber path's `allIntegrations[0]`, and the same consequence: an
+      // order in a kitchen that did not sell it.
+      const resolution = resolveStoreIntegration(allIntegrations, siteId);
 
-      if (!integration) {
-        console.error(`No Deliveroo integration found for site_id: ${siteId}`);
+      if (!resolution.ok) {
+        console.error(
+          `No Deliveroo integration for site_id "${siteId}" (${resolution.reason})`
+        );
+        // Kept, with the body, so it can be replayed once the cause is fixed.
+        await ctx.runMutation(internal.platformWebhookFailures.record, {
+          platform: "deliveroo" as const,
+          eventType: "order.new",
+          externalOrderId: order.id ?? undefined,
+          platformStoreId: siteId || undefined,
+          reason: resolution.reason,
+          detail: `No enabled Deliveroo integration matches site ${siteId || "(absent)"}`,
+          rawBody: args.payload,
+        });
+        // Retryable: this is a real order for a site we could not route, and
+        // the row may simply not be there yet — the same race this file
+        // already retries for in `handleStatusUpdate`. A 200 here is how an
+        // order disappears with nothing left but a log line.
         return {
           success: false,
+          retryable: true,
           error: `No integration found for site_id: ${siteId}`,
         };
       }
+
+      const integration = resolution.integration;
 
       const credentials = await getDeliverooCredentials();
 
@@ -221,13 +287,18 @@ export const processOrderWebhook = internalAction({
         return await handleStatusUpdate(ctx, order, integration, credentials);
       }
 
+      // An event we do not handle is not a failure: nothing was lost, and a
+      // retry would only re-deliver something we will ignore again.
       console.log(`Unhandled Deliveroo order event: ${event}`);
       return { success: true };
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       console.error(`Failed to process Deliveroo order webhook:`, errorMessage);
-      return { success: false, error: errorMessage };
+      // Unexpected, therefore assumed transient: a failed mutation, a write
+      // conflict, a blip talking to Deliveroo. This is the case a retry exists
+      // for.
+      return { success: false, retryable: true, error: errorMessage };
     }
   },
 });
@@ -254,6 +325,12 @@ async function handleNewOrder(
     ?? (`${order.customer?.first_name ?? ""} ${order.customer?.last_name ?? ""}`.trim()
     || "Client Deliveroo");
 
+  // What the kitchen calls the order. Deliveroo's own short reference when it
+  // sends one, so the slip matches the tablet and the rider's paperwork.
+  const orderNumber = order.order_number
+    ?? order.display_id
+    ?? `DL-${order.id.slice(-6).toUpperCase()}`;
+
   // Determine order type from fulfillment_type or order_type
   const fulfillmentType = order.fulfillment_type ?? order.order_type ?? "deliveroo";
   const orderType = fulfillmentType === "collection" || fulfillmentType === "pickup"
@@ -278,6 +355,11 @@ async function handleNewOrder(
         price: opt.price?.fractional ?? 0,
       })),
     ],
+    // "allergie arachides — sauce à part". Dropped here until now, exactly as
+    // it was on the Uber Eats path: an instruction on a line can be an
+    // allergy, so losing it is a food-safety defect. The order validator has
+    // carried the field since #135; this is the caller that never filled it.
+    notes: item.notes,
   }));
 
   // Log missing PLUs (Scenario 11)
@@ -335,6 +417,38 @@ async function handleNewOrder(
   if (!created) {
     console.log(`Duplicate Deliveroo order.new for ${order.id} — skipping re-accept`);
     return { success: true, internalOrderId, duplicate: true };
+  }
+
+  // Create kitchen ticket for KDS.
+  //
+  // Without this a Deliveroo order existed in the database and nowhere else:
+  // no slip, no screen, no printer, and the accept button in `TicketCard`
+  // unreachable because it acts on a ticket. The Uber Eats path has always
+  // done this (`uberEatsWebhook.ts`); this is the same call, same mapper,
+  // `source: "deliveroo"`. It sits before the credentials check on purpose —
+  // the kitchen must be told about the order whether or not we can talk back
+  // to Deliveroo.
+  try {
+    const trackingToken = `dl-${order.id.slice(-8)}-${Date.now().toString(36)}`;
+
+    await ctx.runMutation(internal.kitchenTickets.internalCreate, {
+      storeId,
+      orderId: internalOrderId as Id<"orders">,
+      orderNumber,
+      orderType,
+      // One mapping, in the package, tested across the seam. Hand-rolling it
+      // is what dropped the allergy note on the Uber path.
+      items: toKitchenTicketItemsFromPlatform(items),
+      priority: "normal" as const,
+      source: "deliveroo" as const,
+      trackingToken,
+      customerName,
+      customerPhone: order.customer?.phone_number ?? order.customer?.phone,
+      deliveryNotes: order.notes,
+    });
+    console.log(`Created kitchen ticket for Deliveroo order ${orderNumber}`);
+  } catch (error) {
+    console.error(`Failed to create kitchen ticket:`, error);
   }
 
   if (!credentials) {
@@ -443,28 +557,38 @@ async function handleStatusUpdate(
 
   console.log(`Deliveroo status update: ${orderId} -> ${status} (internal: ${internalStatus})`);
 
-  // Update internal order status (with retry for race condition)
-  let _updateSuccess = false;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      await ctx.runMutation(internal.orders.updateFromWebhook, {
-        externalOrderId: orderId,
-        platform: "deliveroo" as const,
-        status: internalStatus,
-        cancellationReason: order.cancellation_reason ?? order.rejection_reason,
-        updatedAt: Date.now(),
-      });
-      _updateSuccess = true;
-      break;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (msg.includes("not found") && attempt < 2) {
-        // Order may not exist yet (status_update arrived before order.new finished)
-        console.warn(`Order ${orderId} not found yet, retrying in ${(attempt + 1) * 2}s... (attempt ${attempt + 1}/3)`);
-        await new Promise((r) => setTimeout(r, (attempt + 1) * 2000));
-      } else {
-        console.error(`Failed to update order ${orderId}:`, error);
+  // A status outside Deliveroo's order vocabulary is left alone. Writing a
+  // guess here is how a confirmed order went back to `pending`; the rest of
+  // the handler (sync status) still runs, because it keys on the status log
+  // rather than on this mapping.
+  if (internalStatus === null) {
+    console.warn(
+      `[Deliveroo] Unrecognised order status "${status}" for ${orderId} — leaving the internal status untouched`
+    );
+  } else {
+    // Update internal order status (with retry for race condition)
+    let _updateSuccess = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await ctx.runMutation(internal.orders.updateFromWebhook, {
+          externalOrderId: orderId,
+          platform: "deliveroo" as const,
+          status: internalStatus,
+          cancellationReason: order.cancellation_reason ?? order.rejection_reason,
+          updatedAt: Date.now(),
+        });
+        _updateSuccess = true;
         break;
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("not found") && attempt < 2) {
+          // Order may not exist yet (status_update arrived before order.new finished)
+          console.warn(`Order ${orderId} not found yet, retrying in ${(attempt + 1) * 2}s... (attempt ${attempt + 1}/3)`);
+          await new Promise((r) => setTimeout(r, (attempt + 1) * 2000));
+        } else {
+          console.error(`Failed to update order ${orderId}:`, error);
+          break;
+        }
       }
     }
   }
@@ -560,7 +684,7 @@ async function handleStatusUpdate(
     } catch (error) {
       console.error(`Failed to send sync status for ${orderId}:`, error);
     }
-  } else if (status === "cancelled") {
+  } else if (status === "canceled" || status === "cancelled") {
     console.log(`Order ${orderId} is CANCELLED. No sync status needed.`);
   } else if (status === "rejected") {
     console.log(`Order ${orderId} is REJECTED. No sync status needed.`);
@@ -612,7 +736,7 @@ export const processMenuWebhook = internalAction({
     siteId: v.string(),
     payload: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<DeliverooWebhookOutcome> => {
     try {
       const allIntegrations = (await ctx.runQuery(
         internal.storeIntegrations.internalListByPlatformEnabled,
@@ -637,6 +761,7 @@ export const processMenuWebhook = internalAction({
         );
         return {
           success: false,
+          retryable: true,
           error: `No integration found for siteId: ${args.siteId}, brandId: ${args.brandId}`,
         };
       }
@@ -699,7 +824,7 @@ export const processMenuWebhook = internalAction({
         `Failed to process Deliveroo menu webhook:`,
         errorMessage
       );
-      return { success: false, error: errorMessage };
+      return { success: false, retryable: true, error: errorMessage };
     }
   },
 });

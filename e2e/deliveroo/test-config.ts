@@ -54,15 +54,122 @@ export const hasDeliverooSandbox = Boolean(
 // exporting that would give the export an inferred type TypeScript cannot
 // name (TS2742/TS4023) — each suite declares its own local wrapper instead.
 
+/**
+ * Set `DELIVEROO_E2E_REQUIRE_LIVE=1` to turn a skipped live suite into a
+ * failure.
+ *
+ * A job that exists to exercise the live webhook has no business exiting 0
+ * because its credentials were not wired up. Set this in that job and a
+ * missing variable is a red build instead of a quiet nothing.
+ */
+const requireLiveRun = process.env.DELIVEROO_E2E_REQUIRE_LIVE === "1";
+
+/** Which variables a live webhook run needs, and which are missing right now. */
+function missingWebhookVars(): string[] {
+  const missing: string[] = [];
+  if (!process.env.CONVEX_SITE_URL) missing.push("CONVEX_SITE_URL");
+  if (!process.env.DELIVEROO_WEBHOOK_SECRET && !process.env.DELIVEROO_CLIENT_SECRET) {
+    missing.push("DELIVEROO_WEBHOOK_SECRET (or DELIVEROO_CLIENT_SECRET)");
+  }
+  return missing;
+}
+
+/** Which variables a Deliveroo sandbox API run needs, and which are missing. */
+function missingSandboxVars(): string[] {
+  const missing: string[] = [];
+  if (!config.CLIENT_ID) missing.push("DELIVEROO_CLIENT_ID");
+  if (!config.CLIENT_SECRET) missing.push("DELIVEROO_CLIENT_SECRET");
+  if (!config.BRAND_ID) missing.push("DELIVEROO_BRAND_ID");
+  return missing;
+}
+
+/**
+ * Announce, unmissably, that a suite did not do the thing it is named after.
+ *
+ * Call from `beforeAll`. `it.runIf` produces a skipped entry and Vitest folds
+ * those into a single "N skipped" line under several hundred lines of test
+ * logging; the suite file itself still reports as passed. That is how a
+ * signature bug survived here — every run was green, and no run had ever sent
+ * a byte at a verifier. This prints a banner naming what was not exercised and
+ * which variables would have exercised it, and throws outright under
+ * `DELIVEROO_E2E_REQUIRE_LIVE=1`.
+ *
+ * @param suiteName   the suite announcing the gap
+ * @param whatIsSkipped what goes unexercised, in plain words
+ * @param kind        which set of variables gates it
+ */
+export function announceSkippedLiveRun(
+  suiteName: string,
+  whatIsSkipped: string,
+  kind: "webhook" | "sandbox",
+): void {
+  const missing = kind === "webhook" ? missingWebhookVars() : missingSandboxVars();
+  if (missing.length === 0) return;
+
+  const banner = [
+    "",
+    "==========================================================================",
+    `  NOT RUN — ${suiteName}`,
+    "==========================================================================",
+    `  Skipped: ${whatIsSkipped}`,
+    `  Missing: ${missing.join(", ")}`,
+    "",
+    "  These assertions did NOT execute. A green result for this file says",
+    "  nothing about them. Set the variables above to actually run them, or",
+    "  set DELIVEROO_E2E_REQUIRE_LIVE=1 to make this omission a failure.",
+    "==========================================================================",
+    "",
+  ].join("\n");
+
+  if (requireLiveRun) {
+    throw new Error(
+      `${banner}\nDELIVEROO_E2E_REQUIRE_LIVE=1 is set: refusing to report a pass for a suite that did not run.`,
+    );
+  }
+
+  console.warn(banner);
+}
+
 // ============================================================================
 // Utilities
 // ============================================================================
 
 /**
- * Create HMAC SHA256 signature for webhook authentication
+ * The byte that joins the sequence GUID to the body in the signed message.
+ *
+ * A single space for every modern webhook — order events, rider events, menu,
+ * picking, catalogue, Express and Signature. The legacy POS webhook
+ * (`new_order` / `cancel_order`) uses `" \n "` instead, and nothing in these
+ * suites sends one. Getting this wrong is invisible until a live run: the
+ * request is well-formed and the verifier simply answers 401.
  */
-export function createSignature(payload: string, secret: string): string {
-  return crypto.createHmac("sha256", secret).update(payload).digest("hex");
+export const SIGNATURE_SEPARATOR = " ";
+
+/**
+ * Create the HMAC-SHA256 signature Deliveroo puts in `X-Deliveroo-Hmac-Sha256`.
+ *
+ * The signed message is `sequence_guid + " " + raw body bytes`, hex-encoded,
+ * keyed on the webhook secret — NOT the body alone. Signing the body alone is
+ * exactly what this function used to do, and because these suites skip
+ * whenever no live target is configured, eleven green runs never once proved
+ * the verifier accepted anything. `apps/reference/convex/deliverooWebhookHandler.ts`
+ * builds the same message from raw bytes and rejects everything else with 401.
+ *
+ * The body is taken as bytes, not as a string, so the bytes that get signed
+ * are provably the bytes that get sent — re-serializing JSON between the two
+ * changes the signature.
+ */
+export function createSignature(
+  sequenceGuid: string,
+  payload: Uint8Array,
+  secret: string,
+): string {
+  return crypto
+    .createHmac("sha256", secret)
+    .update(sequenceGuid)
+    .update(SIGNATURE_SEPARATOR)
+    .update(payload)
+    .digest("hex");
 }
 
 /**
@@ -76,10 +183,12 @@ export async function sendWebhook(payload: unknown, path?: string): Promise<Resp
     );
   }
 
-  const payloadString = JSON.stringify(payload);
+  // Serialize once. `payloadBytes` is both what gets signed and what gets
+  // sent, so the two cannot drift.
+  const payloadBytes = Buffer.from(JSON.stringify(payload), "utf8");
   const signingSecret = config.WEBHOOK_SECRET || config.CLIENT_SECRET;
-  const signature = createSignature(payloadString, signingSecret);
   const sequenceGuid = crypto.randomUUID();
+  const signature = createSignature(sequenceGuid, payloadBytes, signingSecret);
 
   const url = `${config.CONVEX_SITE_URL}${path || config.ORDER_WEBHOOK_PATH}`;
 
@@ -91,7 +200,7 @@ export async function sendWebhook(payload: unknown, path?: string): Promise<Resp
       "x-deliveroo-sequence-guid": sequenceGuid,
       "x-deliveroo-request-id": sequenceGuid,
     },
-    body: payloadString,
+    body: payloadBytes,
   });
 }
 
