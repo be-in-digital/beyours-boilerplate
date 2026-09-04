@@ -127,6 +127,16 @@ export const markPickedUp = storeMutation({
   handler: (ctx, args) => defs.markPickedUp.handler(ctx, args),
 });
 
+// Taking a ticket is a kitchen write, and it must be reachable by whichever
+// tablet is watching the queue — the claim is the thing that stops two of them
+// printing the same slip.
+export const claimForPrint = storeMutation({
+  permission: "kitchen:write",
+  storeIdFrom: kitchenTicketsStoreId,
+  args: defs.claimForPrint.args,
+  handler: (ctx, args) => defs.claimForPrint.handler(ctx, args),
+});
+
 export const markPrintSent = storeMutation({
   permission: "kitchen:write",
   storeIdFrom: kitchenTicketsStoreId,
@@ -497,5 +507,36 @@ export const cancelTicket = action({
         console.error("Failed to reject order on Deliveroo:", error);
       }
     }
+  },
+});
+
+// === RETENTION (cron) ===
+
+/**
+ * Delete finished tickets past the retention window.
+ *
+ * Scheduled nightly from `crons.ts`; internal because a sweep runs with no user
+ * identity. One batch per call, and it queues the next one itself while there
+ * is more to delete — a single nightly batch would take months to drain a
+ * deployment that turns retention on with a year of history behind it, and
+ * would never catch up with the day's own orders.
+ *
+ * A minute apart, so a large backlog drains without monopolising the backend
+ * during service.
+ */
+export const purgeExpiredTickets = internalMutation({
+  args: defs.purgeExpiredTickets.args,
+  handler: async (ctx, args) => {
+    const result = await defs.purgeExpiredTickets.handler(ctx, args);
+
+    if (result.hasMore) {
+      await ctx.scheduler.runAfter(
+        60_000,
+        internal.kitchenTickets.purgeExpiredTickets,
+        args,
+      );
+    }
+
+    return result;
   },
 });

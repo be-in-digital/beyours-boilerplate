@@ -20,7 +20,7 @@
 
 import { convexTest } from "convex-test"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-import { api } from "../../convex/_generated/api"
+import { api, internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
 
@@ -432,6 +432,14 @@ describe("an order that is entirely serviceable", () => {
 
     const order = await t.run((ctx) => ctx.db.get(orderId as Id<"orders">))
     expect(order?.subtotal).toBe((1200 + 300 + 150) * 2)
+
+    // The slip goes on the pass when the payment lands, not at checkout (#136).
+    await t.run((ctx) =>
+      ctx.runMutation(internal.orders.internalUpdatePaymentStatus, {
+        id: orderId as Id<"orders">,
+        paymentStatus: "paid" as const,
+      })
+    )
 
     const tickets = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
     expect(tickets).toHaveLength(1)

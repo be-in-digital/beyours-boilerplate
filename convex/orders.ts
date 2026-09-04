@@ -179,22 +179,15 @@ export const internalUpdateStatus = internalMutation({
   handler: (ctx, args) => advanceOrder(ctx, args),
 });
 
-/** Update only paymentStatus — used by payment actions and webhooks */
+/**
+ * Update only paymentStatus — used by payment actions and webhooks.
+ *
+ * Transport over `defs.recordPaymentStatus`, which is where "a paid order
+ * feeds the kitchen" lives. Patching `paymentStatus` here directly is what
+ * left the Stripe, PayPal and SumUp paths each responsible for remembering to
+ * tell the kitchen, and none of them did.
+ */
 export const internalUpdatePaymentStatus = internalMutation({
-  args: {
-    id: v.id("orders"),
-    paymentStatus: v.union(
-      v.literal("pending"),
-      v.literal("paid"),
-      v.literal("failed"),
-      v.literal("refunded"),
-      v.literal("partially_refunded")
-    ),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
-      paymentStatus: args.paymentStatus,
-      updatedAt: Date.now(),
-    });
-  },
+  args: defs.recordPaymentStatus.args,
+  handler: (ctx, args) => defs.recordPaymentStatus.handler(ctx, args),
 });

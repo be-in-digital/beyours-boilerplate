@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useQuery } from "convex/react"
+import { usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import type { KitchenTicket } from "@/lib/admin/types"
@@ -14,8 +14,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import { Button } from "@/components/ui/button"
 import { Search } from "lucide-react"
 import { TicketCard } from "./TicketCard"
+
+/** One page of history. Large enough to fill the grid, small enough to be cheap. */
+const COMPLETED_PAGE_SIZE = 50
 
 type Source = "all" | "website" | "uber_eats" | "deliveroo" | "pos"
 type OrderType = "all" | "delivery" | "pickup" | "dine_in"
@@ -44,15 +48,26 @@ export function CompletedTickets({ storeId }: CompletedTicketsProps) {
   const [sourceFilter, setSourceFilter] = useState<Source>("all")
   const [typeFilter, setTypeFilter] = useState<OrderType>("all")
 
-  const tickets = useQuery(
+  // The completed history is the class that grows for ever, and this screen
+  // used to ask for all of it at once: one `.collect()` over every ticket the
+  // establishment had ever finished, materialised on the tablet. It is the tab
+  // that dies first, and it takes the kitchen's own screen with it.
+  //
+  // A page at a time, on Convex's own cursor.
+  const {
+    results: tickets,
+    status: pageStatus,
+    loadMore,
+  } = usePaginatedQuery(
     api.kitchenTickets.getByStatus,
-    { storeId, status: "completed" }
-  ) as KitchenTicket[] | undefined
+    { storeId, status: "completed" },
+    { initialNumItems: COMPLETED_PAGE_SIZE }
+  )
 
   const filteredTickets = useMemo(() => {
-    if (!tickets) return null
+    if (pageStatus === "LoadingFirstPage") return null
 
-    return tickets.filter((ticket: KitchenTicket) => {
+    return (tickets as KitchenTicket[]).filter((ticket: KitchenTicket) => {
       // Source filter
       if (sourceFilter !== "all" && ticket.source !== sourceFilter) return false
 
@@ -72,7 +87,7 @@ export function CompletedTickets({ storeId }: CompletedTicketsProps) {
 
       return true
     })
-  }, [tickets, search, sourceFilter, typeFilter])
+  }, [tickets, pageStatus, search, sourceFilter, typeFilter])
 
   return (
     <div className="space-y-4">
@@ -131,10 +146,32 @@ export function CompletedTickets({ storeId }: CompletedTicketsProps) {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTickets.map((ticket: KitchenTicket) => (
-            <TicketCard key={ticket._id} ticket={ticket} />
-          ))}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredTickets.map((ticket: KitchenTicket) => (
+              <TicketCard key={ticket._id} ticket={ticket} />
+            ))}
+          </div>
+
+          {pageStatus !== "Exhausted" && (
+            <div className="flex flex-col items-center gap-2 pt-2">
+              {/* Say what is on screen, because the filters above search only
+                  what has been loaded — a silent window reads as "no result". */}
+              <p className="text-xs text-muted-foreground">
+                {tickets.length} commande{tickets.length > 1 ? "s" : ""} chargée
+                {tickets.length > 1 ? "s" : ""}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="load-more-completed"
+                disabled={pageStatus === "LoadingMore"}
+                onClick={() => loadMore(COMPLETED_PAGE_SIZE)}
+              >
+                {pageStatus === "LoadingMore" ? "Chargement…" : "Charger les suivantes"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

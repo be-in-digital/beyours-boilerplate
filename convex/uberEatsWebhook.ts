@@ -1,6 +1,7 @@
 import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { toKitchenTicketItemsFromPlatform } from "@be-in-digital/convex-functions/orders";
 
 type StoreIntegrationRecord = {
   _id: Id<"storeIntegrations">
@@ -150,6 +151,9 @@ export const handleWebhook = httpAction(async (ctx, request) => {
               name: mod.name,
               price: mod.price,
             })),
+            // "allergie arachides — sauce à part": the mapper folds
+            // `special_instructions` and `customer_request.allergy` into this.
+            notes: item.notes,
           })) ?? [{
             externalId: "unknown",
             name: "Commande Uber Eats",
@@ -180,16 +184,12 @@ export const handleWebhook = httpAction(async (ctx, request) => {
             orderId: internalOrderId as Id<"orders">,
             orderNumber,
             orderType: unifiedOrder?.type ?? "delivery",
-            items: unifiedOrder?.items.map(item => ({
-              productName: item.name,
-              quantity: item.quantity,
-              options: item.modifiers.map(mod => mod.name),
-              notes: undefined,
-            })) ?? [{
-              productName: "Commande Uber Eats",
-              quantity: 1,
-              options: [],
-            }],
+            // One mapping, in the package, tested across the seam: this is
+            // where `notes: undefined` was hard-coded, one call after the
+            // mapper had extracted the customer's instruction and allergy.
+            items: unifiedOrder
+              ? toKitchenTicketItemsFromPlatform(unifiedOrder.items)
+              : [{ productName: "Commande Uber Eats", quantity: 1, options: [] }],
             priority: "normal" as const,
             source: "uber_eats" as const,
             trackingToken,

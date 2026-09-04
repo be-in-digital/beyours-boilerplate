@@ -44,4 +44,16 @@ crons.cron(
   {},
 );
 
+// Delete kitchen tickets finished more than 30 days ago. The KDS reads are
+// bounded now, but a bound on the read only moves the problem: the table still
+// grows without limit and the completed history becomes unreadable. 2:30am UTC
+// — clear of the invitation sweep at 4am, and outside service everywhere.
+// The job reschedules itself a minute later while there is more to delete.
+crons.cron(
+  "purge expired kitchen tickets",
+  "30 2 * * *",
+  internal.kitchenTickets.purgeExpiredTickets,
+  {},
+);
+
 export default crons;

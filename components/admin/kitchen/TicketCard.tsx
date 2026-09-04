@@ -51,6 +51,8 @@ const STATUS_ACTIONS: Record<TicketStatus, { label: string; nextStatus: TicketSt
 
 const PRINT_STATUS_ICON: Record<string, string> = {
   pending: "...",
+  // A tablet is holding this one and has the dialog open.
+  printing: ">>",
   printed: "OK",
   failed: "!",
   not_required: "",
@@ -66,8 +68,17 @@ const DELIVEROO_REJECT_REASONS = [
   { value: "other", label: "Autre raison" },
 ] as const
 
+/**
+ * A slip that asked to be printed two minutes ago and still has not been.
+ *
+ * `printing` counts as well as `pending`: a tablet that took the ticket and
+ * then went to sleep leaves it claimed, and reading only `pending` would have
+ * made the claim lock hide exactly the case this warning exists for.
+ */
 function isPrintStuck(ticket: KitchenTicket): boolean {
-  if (ticket.printStatus !== "pending") return false
+  if (ticket.printStatus !== "pending" && ticket.printStatus !== "printing") {
+    return false
+  }
   if (!ticket.printRequestedAt) return false
   return Date.now() - ticket.printRequestedAt > 2 * 60 * 1000
 }

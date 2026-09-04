@@ -19,7 +19,17 @@ export type TicketStatus = "pending" | "in_progress" | "ready" | "completed" | "
 export type TicketSource = "website" | "uber_eats" | "deliveroo" | "pos"
 export type TicketOrderType = "delivery" | "pickup" | "dine_in"
 export type TicketPriority = "normal" | "urgent" | "vip"
-export type TicketPrintStatus = "pending" | "printed" | "failed" | "not_required"
+/**
+ * `printing` is a claim held by one tablet, not a state the kitchen cares
+ * about: two screens on the same pass both read `pending` and both printed
+ * the slip, so a ticket is now taken before it is rendered (#164).
+ */
+export type TicketPrintStatus =
+  | "pending"
+  | "printing"
+  | "printed"
+  | "failed"
+  | "not_required"
 
 export type KitchenTicket = {
   _id: Id<"kitchenTickets">
@@ -49,6 +59,7 @@ export type KitchenTicket = {
   printStatus: TicketPrintStatus
   printAttempts: number
   printRequestedAt?: number
+  printClaimedAt?: number
   printTrigger?: "confirmed" | "ready" | "reprint"
   lastPrintAt?: number
   printFailedAt?: number

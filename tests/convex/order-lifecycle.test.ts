@@ -15,7 +15,7 @@
 
 import { convexTest } from "convex-test"
 import { afterEach, describe, expect, test } from "vitest"
-import { api } from "../../convex/_generated/api"
+import { api, internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
 
@@ -201,6 +201,27 @@ function orderArgs(
   }
 }
 
+
+/**
+ * Confirm the payment, which is what now puts the slip on the pass.
+ *
+ * The kitchen ticket used to be written inside checkout, before any provider
+ * redirect — so an abandoned payment left the kitchen cooking (#136). These
+ * tests are about what happens to a ticket, so they have to get one the way
+ * the product now does.
+ */
+async function payOrder(
+  t: ReturnType<typeof convexTest>,
+  orderId: Id<"orders">
+) {
+  await t.run((ctx) =>
+    ctx.runMutation(internal.orders.internalUpdatePaymentStatus, {
+      id: orderId,
+      paymentStatus: "paid" as const,
+    })
+  )
+}
+
 describe("a second click on Payer", () => {
   test("returns the order that already exists", async () => {
     const t = newHarness()
@@ -225,8 +246,12 @@ describe("a second click on Payer", () => {
     const productId = await seedProduct(t, storeId)
     const args = orderArgs(storeId, productId, { idempotencyKey: "attempt-1" })
 
-    await t.mutation(api.orders.create, args)
-    await t.mutation(api.orders.create, args)
+    const first = await t.mutation(api.orders.create, args)
+    const second = await t.mutation(api.orders.create, args)
+
+    // The replay returns the same order, and the payment confirms once.
+    expect(second).toBe(first)
+    await payOrder(t, first as Id<"orders">)
 
     const tickets = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
     expect(tickets).toHaveLength(1)
@@ -382,6 +407,7 @@ describe("cancelling an order", () => {
     const storeId = await seedStore(t)
     const productId = await seedProduct(t, storeId)
     const orderId = await t.mutation(api.orders.create, orderArgs(storeId, productId))
+    await payOrder(t, orderId as Id<"orders">)
     const asManager = await seedUser(t, "user:m1", "manager", [storeId])
 
     await asManager.mutation(api.orders.updateStatus, {
@@ -400,6 +426,7 @@ describe("cancelling an order", () => {
     const storeId = await seedStore(t)
     const productId = await seedProduct(t, storeId)
     const orderId = await t.mutation(api.orders.create, orderArgs(storeId, productId))
+    await payOrder(t, orderId as Id<"orders">)
     const asManager = await seedUser(t, "user:m1", "manager", [storeId])
 
     const ticket = await t.run(async (ctx) => {
