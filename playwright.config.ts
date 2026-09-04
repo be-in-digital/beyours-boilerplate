@@ -105,6 +105,9 @@ export default defineConfig({
       testMatch: [
         /auth\/.+\.spec\.ts/,
         /storefront\/.+\.spec\.ts/,
+        // The player route is unauthenticated by design: a customer scans a
+        // table QR code and plays. It belongs in this project, not `admin`.
+        /game\/.+\.spec\.ts/,
         /auth-responsive\.spec\.ts/,
         /auth-a11y\.spec\.ts/,
         /address-autocomplete\.spec\.ts/,

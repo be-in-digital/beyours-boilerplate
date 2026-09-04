@@ -2,18 +2,15 @@ import { test, expect } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
 
 test.describe("Coming Soon Pages", () => {
-  // DELIBERATE DIVERGENCE from apps/reference — do not align.
-  // /dashboard/games/settings is in this list here and absent there: the bench
-  // deleted the route because nothing linked to it, while this template keeps
-  // it as one more gamification screen behind ComingSoon. See
-  // app/(admin)/dashboard/games/settings/page.tsx.
+  // The four gamification screens left this list when the player flow moved to
+  // `@be-in-digital/admin/game`: both apps now render the real
+  // `Game{Catalog,QrCodes,Actions,Winners}Page`, and `games.spec.ts` asserts
+  // them. `/dashboard/games/settings` is absent for a different reason — the
+  // route has no page in either app. It was declared in `adminRoutes` and
+  // linked from nowhere, so the constant went rather than the 404 being
+  // tolerated here.
   const comingSoonPages = [
     "/dashboard/customers",
-    "/dashboard/games/catalog",
-    "/dashboard/games/qr-codes",
-    "/dashboard/games/actions",
-    "/dashboard/games/winners",
-    "/dashboard/games/settings",
     "/dashboard/email",
     "/dashboard/email/campaigns",
     "/dashboard/content/pages",

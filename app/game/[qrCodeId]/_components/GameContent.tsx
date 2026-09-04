@@ -1,37 +1,43 @@
 "use client"
 
-// DELIBERATE DIVERGENCE from apps/reference — do not align.
-// The bench implements the whole player flow here (welcome → actions →
-// wheel/scratch → result → claim → reward, plus the cooldown and referral
-// exits) across ten sibling components and lib/game. None of it ships in the
-// template: gamification is not part of what a client buys today, so this is
-// a CMS-editable placeholder rather than a copy left to rot out of step with
-// the engine. The admin half is stubbed the same way — see
-// app/(admin)/dashboard/games/*/page.tsx.
-
 import { useParams } from "next/navigation"
+import { GamePlayerFlow } from "@be-in-digital/admin/game"
+import { api } from "@/convex/_generated/api"
 import { useCmsPage } from "@/lib/cms"
 
+/**
+ * The player flow itself lives in `@be-in-digital/admin/game` so that the
+ * bench and the client template render the same screens instead of drifting
+ * apart — which is what happened while the template shipped a placeholder.
+ *
+ * What stays here is what is genuinely per-app: the generated Convex API, the
+ * CMS hook (bound to this app's api and store selection), and the route shape.
+ */
 export default function GamePageContent() {
   const params = useParams<{ qrCodeId: string }>()
 
   const { block } = useCmsPage("game")
   const hero = block("hero")
+  const results = block("results")
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-        <h1 className="text-3xl font-bold text-center mb-4">
-          {hero.field("title").text ?? "Play & Win!"}
-        </h1>
-        <p className="text-center text-muted-foreground mb-6">
-          QR Code: {params.qrCodeId}
-        </p>
-        <p className="text-sm text-center text-muted-foreground">
-          {hero.field("subtitle").text ??
-            "Gamification flow will be implemented here."}
-        </p>
-      </div>
-    </div>
+    <GamePlayerFlow
+      qrCode={params.qrCodeId}
+      api={{
+        getSession: api.gamePlay.getSession,
+        recordScan: api.gamePlay.recordScan,
+        play: api.gamePlay.play,
+        claim: api.gamePlay.claim,
+        ensureReferralCode: api.gamePlay.ensureReferralCode,
+      }}
+      copy={{
+        heroTitle: hero.field("title").text,
+        heroSubtitle: hero.field("subtitle").text,
+        winTitle: results.field("winTitle").text,
+        winDescription: results.field("winDescription").text,
+        loseTitle: results.field("loseTitle").text,
+        loseDescription: results.field("loseDescription").text,
+      }}
+    />
   )
 }
