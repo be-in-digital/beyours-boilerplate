@@ -89,7 +89,6 @@ export function TrendingSection({ sectionTitle, viewAllLabel }: TrendingSectionP
                                 id={product._id}
                                 title={product.name}
                                 price={product.price / 100}
-                                rating={4.5}
                                 time={product.preparationTime ? `${product.preparationTime} mins` : "20-30 mins"}
                                 image={product.images?.[0] ?? "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=400&auto=format&fit=crop"}
                             />

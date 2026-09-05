@@ -88,7 +88,6 @@
     <div class="navitem on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> <b>Vue d'ensemble</b></div>
     <div class="navitem"><svg viewBox="0 0 24 24"><path d="M3 3h18v4H3zM6 7v14M18 7v14M3 12h18"/></svg> Commandes</div>
     <div class="navitem"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg> Cuisine (KDS)</div>
-    <div class="navitem"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg> Statistiques</div>
     <div class="navitem"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg> Menu &amp; CMS</div>
     <div class="spacer"></div>
     <div class="who"><span class="av" id="av">R</span><div><div style="font-weight:600" id="who">Restaurateur</div><div style="color:var(--mut);font-size:12px">Gérant</div></div></div>
@@ -108,7 +107,7 @@
         <div class="kds" id="kds"></div>
       </div>
     </div>
-    <p class="note">Maquette de démonstration : données simulées côté navigateur pour montrer l'expérience restaurateur. Dans le produit réel, les commandes du site vitrine arrivent ici en direct (Convex), l'écran cuisine tourne sur tablette, et les statistiques sont réelles.</p>
+    <p class="note">Maquette de démonstration : données simulées côté navigateur pour montrer l'expérience restaurateur. Dans le produit réel, les commandes du site vitrine arrivent ici en direct, l'écran cuisine tourne sur tablette, et les chiffres du jour sont ceux de votre établissement.</p>
   </main>
 </div>
 
@@ -137,7 +136,10 @@
   document.getElementById("back").href = `home.html?t=${tid}`;
   document.title = `Tableau de bord · ${brandTxt} (démo)`;
 
-  const MODES = ["Sur place", "À emporter", "Livraison", "Click & collect"];
+  // Three, because the product has three order types: dine-in, pickup and
+// delivery. "Click & collect" is not a fourth — it is what "À emporter"
+// is called on the sales page, and showing both invented a mode.
+  const MODES = ["Sur place", "À emporter", "Livraison"];
   const NAMES = ["Camille R.", "Yanis B.", "Fatou D.", "Léa M.", "Hugo T.", "Inès K.", "Marc V.", "Sofia L.", "Tom P.", "Awa S."];
   let seq = 412;
   function rnd(a) { return a[Math.floor(Math.random() * a.length)]; }

@@ -152,28 +152,64 @@ export const PUBLIC_STOREFRONT_ROUTES: readonly StorefrontRoute[] = [
 /**
  * Path prefixes no crawler is invited into, in `robots.txt` order.
  *
- * Three kinds sit here. What belongs to one customer (`/account/`, `/cart`,
- * `/checkout`, `/order/`, `/track/`); what belongs to the staff (`/dashboard/`,
- * `/display/`, `/preview/`, the auth pages); and what is not a page at all
- * (`/api/`). A game QR code is printed on one table and is worthless in a
- * search result, so it joins them.
+ * Three kinds sit here. What belongs to one customer (`/account`, `/cart`,
+ * `/checkout`, `/order/`, `/track/`); what belongs to the staff (`/dashboard`,
+ * the admin screens, `/display/`, `/preview/`, the auth pages); and what is not
+ * a page at all (`/api/`). A game QR code is printed on one table and is
+ * worthless in a search result, so it joins them.
+ *
+ * Most of this list is admin, and that is the correction. A route GROUP adds no
+ * URL segment, so every page under `app/(admin)` also resolves at its bare
+ * top-level path: `/products`, `/orders`, `/settings`, `/team`, `/stores` and
+ * the rest answer exactly as `/dashboard/products` does. Only `/dashboard/` was
+ * listed, and the admin layout gates client-side — the server still returns 200
+ * with an HTML shell — so a crawler indexed the back office of every
+ * deployment through the front door nobody had thought to close.
+ *
+ * Trailing slashes are deliberate, not decorative. `robots.txt` matches by
+ * prefix, so `/dashboard/` does NOT match `/dashboard`, and the dashboard index
+ * itself was reachable under the old list for the same reason. A rule carries a
+ * trailing slash only where the segment has no page of its own (`/api/`,
+ * `/display/`, `/game/`, `/invite/`, `/order/`, `/preview/`, `/track/`).
+ *
+ * Nothing here may swallow a public page, and three pairs sit one character
+ * apart: `/contact` against `/content`, `/product/[id]` against `/products`,
+ * `/store-selector` against `/stores`. `tests/seo/sitemap-robots.test.ts` walks
+ * the real route tree and checks both directions, which is the only reason it
+ * is safe to keep these rules this short.
  */
 export const CRAWLER_DISALLOWED_PATHS: readonly string[] = [
-  "/account/",
-  "/api/",
+  "/account",
   "/address-test",
+  "/api/",
   "/cart",
+  "/categories",
   "/checkout",
-  "/dashboard/",
+  "/content",
+  "/customers",
+  "/dashboard",
   "/display/",
+  "/email",
   "/forgot-password",
   "/game/",
+  "/games",
+  "/inventory",
+  "/invite/",
+  "/languages",
   "/order/",
+  "/orders",
   "/preview/",
+  "/products",
+  "/promotions",
   "/reset-password",
+  "/settings",
   "/setup",
   "/sign-in",
   "/sign-up",
+  "/stores",
+  "/subscription",
+  "/system",
+  "/team",
   "/track/",
 ]
 

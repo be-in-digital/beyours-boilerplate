@@ -52,10 +52,26 @@ test.describe("Settings Page", () => {
       await waitForAdminPage(page)
     })
 
-    test("should display currency select", async ({ page }) => {
+    test("should display currency select, and say it is not applied", async ({
+      page,
+    }) => {
+      // `exact: true` matches the <Label> and nothing else. A substring match
+      // now resolves to three nodes — the label, the "Indisponible" badge
+      // beside it, and the sentence below that legitimately says "devise"
+      // twice — and strict mode refuses to choose between them.
       await expect(
-        page.getByText("Devise", { exact: false })
+        page.getByText("Devise", { exact: true })
       ).toBeVisible({ timeout: 15_000 })
+
+      // The picker stores a currency the storefront never reads, so it is
+      // deliberately inert. If someone re-enables it without wiring the
+      // storefront's formatPrice call sites, this is what fails.
+      await expect(page.getByLabel("Devise")).toBeDisabled()
+      await expect(
+        page.getByText("affiche encore tous les prix en euros", {
+          exact: false,
+        })
+      ).toBeVisible()
     })
 
     test("should display timezone select", async ({ page }) => {
@@ -77,15 +93,21 @@ test.describe("Settings Page", () => {
       await expect(
         generalPanel.getByText("Sur place", { exact: false })
       ).toBeVisible({ timeout: 15_000 })
+      // Exact, because the Click & Collect note below these switches points
+      // the owner at « À emporter » by name.
       await expect(
-        generalPanel.getByText("À emporter", { exact: false })
+        generalPanel.getByText("À emporter", { exact: true })
       ).toBeVisible()
       await expect(
         generalPanel.getByText("Livraison", { exact: true }).first()
       ).toBeVisible()
       await expect(
-        generalPanel.getByText("Click & Collect", { exact: false })
+        generalPanel.getByText("Click & Collect", { exact: true })
       ).toBeVisible()
+
+      // Present but inert: ORDER_TYPE_SERVICE maps the three real order types
+      // onto the switches above and never reads this one.
+      await expect(generalPanel.getByLabel("Click & Collect")).toBeDisabled()
     })
 
     test("should display save button", async ({ page }) => {

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
 
-test.describe("Coming Soon Pages", () => {
+test.describe("Screens that must render, whether or not they are built", () => {
   // The four gamification screens left this list when the player flow moved to
   // `@be-in-digital/admin/game`: both apps now render the real
   // `Game{Catalog,QrCodes,Actions,Winners}Page`, and `games.spec.ts` asserts
@@ -9,15 +9,21 @@ test.describe("Coming Soon Pages", () => {
   // route has no page in either app. It was declared in `adminRoutes` and
   // linked from nowhere, so the constant went rather than the 404 being
   // tolerated here.
-  const comingSoonPages = [
+  // The list was named for a fact that had stopped being true: only
+  // `/dashboard/customers` and `/dashboard/content/components` still render
+  // `<ComingSoon/>`. Email, CMS pages and blog are real screens now. They stay
+  // in the list — a smoke test over the routes an owner opens first is worth
+  // keeping — but neither the name nor the describe claims otherwise any more.
+  const smokeTestedPages = [
     "/dashboard/customers",
+    "/dashboard/content/components",
     "/dashboard/email",
     "/dashboard/email/campaigns",
     "/dashboard/content/pages",
     "/dashboard/content/blog",
   ]
 
-  for (const pagePath of comingSoonPages) {
+  for (const pagePath of smokeTestedPages) {
     test(`should render ${pagePath} without crashing`, async ({ page }) => {
       const { getErrors, cleanup } = collectConsoleErrors(page)
 

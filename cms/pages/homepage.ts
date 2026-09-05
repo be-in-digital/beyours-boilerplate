@@ -188,36 +188,6 @@ export const homepagePage: PageDefinition = {
       },
     },
     {
-      key: "vegetarianMeals",
-      label: "Section plats végétariens",
-      fields: {
-        badge: {
-          type: "text",
-          label: "Badge section",
-          maxLength: 50,
-          hasCodeFallback: true,
-        },
-        sectionTitle: {
-          type: "text",
-          label: "Titre de section",
-          maxLength: 120,
-          hasCodeFallback: true,
-        },
-        description: {
-          type: "text",
-          label: "Description",
-          maxLength: 300,
-          hasCodeFallback: true,
-        },
-        viewAllLabel: {
-          type: "text",
-          label: "Texte lien tout voir",
-          maxLength: 50,
-          hasCodeFallback: true,
-        },
-      },
-    },
-    {
       key: "cta",
       label: "Section appel à l'action",
       fields: {
@@ -249,24 +219,6 @@ export const homepagePage: PageDefinition = {
           type: "image",
           label: "Image de fond",
           translatable: false,
-          hasCodeFallback: true,
-        },
-      },
-    },
-    {
-      key: "testimonials",
-      label: "Section témoignages",
-      fields: {
-        badge: {
-          type: "text",
-          label: "Badge section",
-          maxLength: 50,
-          hasCodeFallback: true,
-        },
-        sectionTitle: {
-          type: "text",
-          label: "Titre de section",
-          maxLength: 120,
           hasCodeFallback: true,
         },
       },

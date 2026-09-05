@@ -194,7 +194,6 @@ export default function AccountPage() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [emailNotifs, setEmailNotifs] = useState(DEFAULT_NOTIFICATION_PREFERENCES.email)
-  const [smsNotifs, setSmsNotifs] = useState(DEFAULT_NOTIFICATION_PREFERENCES.sms)
   const [isSavingPrefs, setIsSavingPrefs] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -224,7 +223,6 @@ export default function AccountPage() {
       // has made no choice, and the defaults are what it has been getting.
       const prefs = profile.notificationPreferences ?? DEFAULT_NOTIFICATION_PREFERENCES
       setEmailNotifs(prefs.email)
-      setSmsNotifs(prefs.sms)
     }
   }, [profile])
 
@@ -331,11 +329,16 @@ export default function AccountPage() {
   /**
    * The apply button had no `onClick` at all.
    *
-   * The switches moved, the customer pressed "Appliquer", and nothing was sent
-   * anywhere — no request, no error, no feedback. On the next visit the
-   * switches read back whatever the defaults were, so the choice had never
-   * existed. Both channels are submitted together, because the pair shown is
-   * the pair the customer just read.
+   * The switch moved, the customer pressed "Appliquer", and nothing was sent
+   * anywhere — no request, no error, no feedback. On the next visit it read
+   * back whatever the default was, so the choice had never existed.
+   *
+   * Only the email channel is offered. The SMS switch that used to sit beside
+   * it was removed because no SMS is sent anywhere in the engine — there is no
+   * provider, no sender, no job — so it collected a preference nothing could
+   * honour. The stored value is still submitted untouched: the validator
+   * requires both channels together, and a screen that shows no SMS control
+   * has no business overwriting what an earlier one recorded.
    */
   const handleUpdateNotificationPreferences = async () => {
     if (isSavingPrefs) return
@@ -343,7 +346,12 @@ export default function AccountPage() {
     setIsSavingPrefs(true)
     try {
       await updateMyProfile({
-        notificationPreferences: { email: emailNotifs, sms: smsNotifs },
+        notificationPreferences: {
+          email: emailNotifs,
+          sms:
+            profile?.notificationPreferences?.sms ??
+            DEFAULT_NOTIFICATION_PREFERENCES.sms,
+        },
       })
       toast.success("Préférences enregistrées")
     } catch {
@@ -763,21 +771,6 @@ export default function AccountPage() {
                     <Switch
                       checked={emailNotifs}
                       onCheckedChange={setEmailNotifs}
-                      className="data-[state=checked]:bg-[#0D5C3F]"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label className="text-sm font-black text-zinc-900 tracking-tight">
-                        Notifications SMS
-                      </Label>
-                      <p className="text-xs font-medium text-zinc-500 pr-8">
-                        Alertes en temps réel pour la livraison
-                      </p>
-                    </div>
-                    <Switch
-                      checked={smsNotifs}
-                      onCheckedChange={setSmsNotifs}
                       className="data-[state=checked]:bg-[#0D5C3F]"
                     />
                   </div>

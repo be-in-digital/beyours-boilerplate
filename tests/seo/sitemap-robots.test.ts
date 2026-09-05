@@ -1,6 +1,14 @@
 /**
  * What the storefront publishes about itself (#168, TECH-09).
  *
+ * The route tree is walked here rather than listed, so a page added tomorrow
+ * is covered tonight: every path `app/` resolves must either be on the public
+ * inventory or be blocked by `robots.txt`, with nothing in between. That is
+ * what the second gap needed. A route GROUP adds no URL segment, so every
+ * `app/(admin)` page also answers at a bare top-level path — `/products`,
+ * `/orders`, `/settings`, `/team` — and only `/dashboard/` was disallowed;
+ * the admin layout gates client-side, so a crawler got 200 and an HTML shell.
+ *
  * `sitemap.ts` emitted `/s/{slug}` and `/s/{slug}/menu` — a routing scheme that
  * was removed — so measured at HEAD it advertised
  * `https://…/s/chez-luigi` and `https://…/s/chez-luigi/menu` and every URL in
@@ -58,7 +66,7 @@ const { PUBLIC_STOREFRONT_ROUTES, isDisallowedPath } = await import(
   "@/lib/crawler-policy"
 )
 
-/** Every path the App Router actually serves under `(storefront)`. */
+/** Every path the App Router actually serves under `dir`. */
 function routeTree(dir: string, prefix = ""): string[] {
   const found: string[] = []
   for (const entry of readdirSync(dir)) {
@@ -76,12 +84,34 @@ function routeTree(dir: string, prefix = ""): string[] {
 
 const STOREFRONT_DIR = join(process.cwd(), "app/(storefront)")
 
+/** The whole app, not just the storefront: admin, auth, display, game, preview. */
+const APP_DIR = join(process.cwd(), "app")
+
+/**
+ * Every page a crawler is invited into.
+ *
+ * The fixed inventory, plus the two dynamic templates the sitemap fills from
+ * the catalogue. Anything else `app/` serves is private by default — which is
+ * the right default for a route tree where the back office resolves at bare
+ * top-level paths.
+ */
+const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
+  ...PUBLIC_STOREFRONT_ROUTES.map((route) => route.path),
+  "/product/[productId]",
+  "/blog/[slug]",
+])
+
 function disallowedRules(): string[] {
   const rules = robots().rules
   const list = Array.isArray(rules) ? rules : [rules]
   return list.flatMap((rule) =>
     Array.isArray(rule.disallow) ? rule.disallow : rule.disallow ? [rule.disallow] : [],
   )
+}
+
+/** `robots.txt` prefix semantics, read off the file the app actually emits. */
+function blockedByRobotsTxt(path: string): boolean {
+  return disallowedRules().some((rule) => path.startsWith(rule))
 }
 
 describe("sitemap.xml", () => {
@@ -138,7 +168,9 @@ describe("robots.txt", () => {
   it("disallows the account, the basket, the checkout and the order pages", () => {
     const blocked = disallowedRules()
 
-    for (const path of ["/account/", "/cart", "/checkout", "/order/", "/track/"]) {
+    // `/account`, not `/account/`: a prefix rule with a trailing slash does not
+    // match the index page it is named after, and `/account` is a real page.
+    for (const path of ["/account", "/cart", "/checkout", "/order/", "/track/"]) {
       expect(blocked).toContain(path)
     }
   })
@@ -146,7 +178,7 @@ describe("robots.txt", () => {
   it("still disallows the staff and machine surfaces", () => {
     const blocked = disallowedRules()
 
-    for (const path of ["/api/", "/dashboard/", "/preview/", "/sign-in", "/sign-up"]) {
+    for (const path of ["/api/", "/dashboard", "/preview/", "/sign-in", "/sign-up"]) {
       expect(blocked).toContain(path)
     }
   })
@@ -177,6 +209,36 @@ describe("robots.txt", () => {
 
   it("points at a sitemap on the configured origin", () => {
     expect(robots().sitemap).toBe("https://chez-luigi.fr/sitemap.xml")
+  })
+})
+
+describe("robots.txt covers the route tree", () => {
+  it("blocks every page that is not on the public inventory", () => {
+    const exposed = routeTree(APP_DIR)
+      .filter((path) => !PUBLIC_ROUTES.has(path))
+      .filter((path) => !blockedByRobotsTxt(path))
+
+    expect(
+      exposed,
+      `served to crawlers with no disallow rule: ${exposed.join(", ")}`,
+    ).toEqual([])
+  })
+
+  it("blocks no page that is on the public inventory", () => {
+    // The rules sit one character from three public paths — `/content` from
+    // `/contact`, `/products` from `/product/[id]`, `/stores` from
+    // `/store-selector` — so this direction is not a formality.
+    const swallowed = [...PUBLIC_ROUTES].filter((path) => blockedByRobotsTxt(path))
+
+    expect(swallowed, `public but disallowed: ${swallowed.join(", ")}`).toEqual([])
+  })
+
+  it("advertises a public inventory the app still serves", () => {
+    const routes = new Set(routeTree(APP_DIR))
+
+    for (const path of PUBLIC_ROUTES) {
+      expect(routes.has(path), `${path} is on the inventory but is not a route`).toBe(true)
+    }
   })
 })
 

@@ -71,25 +71,21 @@ export default function AboutPage() {
         },
     ]
 
-    // Stats
-    const statItems = [
-        {
-            value: stats.field("stat1Value").text ?? "10K+",
-            label: stats.field("stat1Label").text ?? "Clients satisfaits",
-        },
-        {
-            value: stats.field("stat2Value").text ?? "15 min",
-            label: stats.field("stat2Label").text ?? "Temps moyen de livraison",
-        },
-        {
-            value: stats.field("stat3Value").text ?? "4.9/5",
-            label: stats.field("stat3Label").text ?? "Note moyenne",
-        },
-        {
-            value: stats.field("stat4Value").text ?? "3",
-            label: stats.field("stat4Label").text ?? "Restaurants",
-        },
-    ]
+    /* Stats — no code fallbacks, deliberately.
+       These used to default to "10K+ clients satisfaits" and "4.9/5 note
+       moyenne", so a restaurant that had never opened its CMS published a
+       customer count and an average rating it had never measured. A figure
+       about the establishment is only ever the establishment's to state, so
+       an empty field now renders nothing and an empty section disappears. */
+    const statItems = [1, 2, 3, 4]
+        .map((n) => ({
+            value: stats.field(`stat${n}Value`).text,
+            label: stats.field(`stat${n}Label`).text,
+            icon: STAT_ICONS[n - 1]!,
+        }))
+        .filter((s): s is { value: string; label: string; icon: (typeof STAT_ICONS)[number] } =>
+            Boolean(s.value && s.label),
+        )
 
     // CTA
     const ctaTitle = cta.field("title").text ?? "Prêt à {découvrir} nos saveurs ?"
@@ -219,6 +215,7 @@ export default function AboutPage() {
             </section>
 
             {/* ─── STATS ─── */}
+            {statItems.length > 0 && (
             <section className="py-24 px-6 md:px-12">
                 <div className="max-w-7xl mx-auto">
                     <div className="bg-[#0D5C3F] rounded-[3rem] md:rounded-[4rem] p-10 md:p-16 relative overflow-hidden">
@@ -229,7 +226,7 @@ export default function AboutPage() {
 
                         <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
                             {statItems.map((stat, i) => {
-                                const Icon = STAT_ICONS[i]!
+                                const Icon = stat.icon
                                 return (
                                     <motion.div
                                         key={i}
@@ -255,6 +252,7 @@ export default function AboutPage() {
                     </div>
                 </div>
             </section>
+            )}
 
             {/* ─── CTA ─── */}
             <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto mb-16">

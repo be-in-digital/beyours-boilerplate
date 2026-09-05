@@ -13,24 +13,12 @@ import {
     ArrowRight,
     ChevronRight,
     Play,
-    Heart,
-    Users,
-    Quote,
 } from "lucide-react"
 import { motion } from "framer-motion"
-import {
-    Carousel,
-    CarouselContent,
-    CarouselItem,
-    CarouselPrevious,
-    CarouselNext,
-} from "@/components/ui/carousel"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
 import {
     Heading,
-    MealCard,
     FeatureItem,
     BlogCard,
     TrendingSection,
@@ -44,20 +32,6 @@ import { useStoreId } from "@/lib/hooks/use-store-id"
 import { formatArticleDate } from "@/lib/blog/presentation"
 import { parseColoredText } from "@/lib/parse-colored-text"
 
-// ─── Fallback data ──────────────────────────────────────────────────────────
-
-const VEGETARIAN_MEALS = [
-    { title: "Avocado Quinoa Bowl", price: 16.00, rating: 4.7, time: "15-25 mins", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1780&auto=format&fit=crop", isVeg: true },
-    { title: "Mediterranean Salad Pie", price: 18.00, rating: 4.8, time: "20-30 mins", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=2070&auto=format&fit=crop", isVeg: true },
-]
-
-
-const TESTIMONIALS = [
-    { authorName: "Emma L.", quote: "Enfin une plateforme de livraison qui se soucie de la qualité ! J'apprécie les options de repas sains et la rapidité de livraison. Hautement recommandé !", rating: 5, avatar: "https://i.pravatar.cc/150?u=emma" },
-    { authorName: "Marc D.", quote: "Expérience utilisateur incroyable. La gestion des commandes est parfaite et la nourriture arrive chaude et fraîche à chaque fois.", rating: 5, avatar: "https://i.pravatar.cc/150?u=marc" },
-    { authorName: "Sophie R.", quote: "J'adore la variété des options végétariennes. C'est si facile de trouver des repas sains qui ont vraiment bon goût sans passer des heures en cuisine.", rating: 5, avatar: "https://i.pravatar.cc/150?u=sophie" },
-]
-
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
@@ -67,9 +41,7 @@ export default function LandingPage() {
     const features = block("features")
     const trending = block("trendingMeals")
     const cats = block("categories")
-    const veg = block("vegetarianMeals")
     const cta = block("cta")
-    const testimonials = block("testimonials")
     const blog = block("blog")
 
     // Three real articles, or no blog section at all. The teaser used to render
@@ -116,11 +88,6 @@ export default function LandingPage() {
     const catsTitle = cats.field("sectionTitle").text ?? "Best Categories We Have"
     const catsDesc = cats.field("description").text ?? "Explore our wide variety of culinary categories, from juicy burgers to fresh healthy salads."
 
-    // Vegetarian
-    const vegBadge = veg.field("badge").text ?? "Pure Healthy"
-    const vegTitle = veg.field("sectionTitle").text ?? "Great for vegetarians"
-    const vegDesc = veg.field("description").text ?? "Delicious plant-based options that don't compromise on flavor."
-    const vegViewAll = veg.field("viewAllLabel").text ?? "Tout voir"
 
     // CTA
     const ctaBadge = cta.field("badge").text ?? "Limited Time Offer"
@@ -129,9 +96,6 @@ export default function LandingPage() {
     const ctaButtonText = cta.field("buttonText").text ?? "Explorer le Menu"
     const ctaBgImage = cta.field("backgroundImage").mediaUrl ?? "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop"
 
-    // Testimonials
-    const testBadge = testimonials.field("badge").text ?? "Success Stories"
-    const testTitle = testimonials.field("sectionTitle").text ?? "What our {beloved} \n clients say."
 
     // Blog
     const blogTitle = blog.field("sectionTitle").text ?? "Consultez notre \n {Blog}"
@@ -262,38 +226,6 @@ export default function LandingPage() {
                 description={catsDesc}
             />
 
-            {/* ─── VEGETARIAN ─── */}
-            <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-emerald-50/50 dark:bg-emerald-950/10 rounded-[4rem] overflow-hidden transition-colors duration-500">
-                <Heading
-                    badge={vegBadge}
-                    badgeColor="bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
-                    title={vegTitle}
-                    description={vegDesc}
-                    viewAll={{ label: vegViewAll, href: "/menu" }}
-                />
-
-                <Carousel opts={{ align: "start", loop: true }} className="w-full relative">
-                    <CarouselContent className="-ml-4 pb-8">
-                        {VEGETARIAN_MEALS.map((meal, index) => (
-                            <CarouselItem key={index} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/4">
-                                <MealCard
-                                    title={meal.title}
-                                    price={meal.price}
-                                    rating={meal.rating}
-                                    time={meal.time}
-                                    image={meal.image}
-                                    isVeg={meal.isVeg}
-                                />
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                    <div className="flex justify-center md:justify-end gap-4 mt-8">
-                        <CarouselPrevious className="static translate-y-0 h-12 w-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all bg-white dark:bg-zinc-900 dark:text-zinc-100" />
-                        <CarouselNext className="static translate-y-0 h-12 w-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center bg-emerald-600 text-white hover:scale-105 transition-all" />
-                    </div>
-                </Carousel>
-            </section>
-
             {/* ─── CTA / PROMO BANNER ─── */}
             <section className="py-12 md:py-32 px-0 md:px-6 relative overflow-hidden">
                 <div className="max-w-7xl mx-auto bg-[#0A3D2E] rounded-none md:rounded-[6rem] overflow-hidden relative p-12 md:p-16 lg:p-24 shadow-3xl shadow-emerald-950/40">
@@ -324,12 +256,6 @@ export default function LandingPage() {
                                             <Truck className="h-5 w-5 text-orange-400" />
                                         </div>
                                         <span className="text-white font-bold text-sm">Livraison Gratuite</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10">
-                                            <Star className="h-5 w-5 text-orange-400" />
-                                        </div>
-                                        <span className="text-white font-bold text-sm">4.9/5 Rating</span>
                                     </div>
                                 </div>
 
@@ -374,119 +300,6 @@ export default function LandingPage() {
                                     </div>
                                 </motion.div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ─── TESTIMONIALS ─── */}
-            <section className="py-32 px-6 relative overflow-hidden bg-zinc-50 dark:bg-zinc-950/50 transition-colors duration-500">
-                <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-orange-100/30 dark:bg-orange-950/10 rounded-full blur-[120px] pointer-events-none" />
-
-                <div className="max-w-7xl mx-auto">
-                    <div className="mb-20 lg:mb-32">
-                        <Heading
-                            align="center"
-                            badge={testBadge}
-                            title={testTitle}
-                            textColor="text-zinc-800 dark:text-zinc-100"
-                        />
-                    </div>
-
-                    <div className="flex flex-col lg:flex-row items-center gap-20">
-                        <div className="flex-1 relative w-full mb-12 lg:mb-0">
-                            <div className="relative z-10 rounded-[3rem] overflow-hidden shadow-2xl border-[12px] border-white">
-                                <Image
-                                    src="https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=2070&auto=format&fit=crop"
-                                    alt="Happy Chef"
-                                    width={600}
-                                    height={700}
-                                    className="object-cover aspect-[4/5] hover:scale-105 transition-transform duration-1000"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                                <motion.div
-                                    initial={{ x: -20, opacity: 0 }}
-                                    whileInView={{ x: 0, opacity: 1 }}
-                                    className="absolute top-12 -left-8 bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-xl border border-zinc-100 dark:border-zinc-800 hidden md:block"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-2xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-                                            <Heart className="h-6 w-6 fill-current" />
-                                        </div>
-                                        <div>
-                                            <p className="font-black text-xl leading-none">4.9/5</p>
-                                            <p className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mt-1 text-nowrap">Average Rating</p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-
-                                <motion.div
-                                    initial={{ x: 20, opacity: 0 }}
-                                    whileInView={{ x: 0, opacity: 1 }}
-                                    className="absolute bottom-12 -right-8 bg-[#0D5C3F] p-6 rounded-3xl shadow-xl border border-emerald-900 hidden md:block"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-white border border-white/20">
-                                            <Users className="h-6 w-6" />
-                                        </div>
-                                        <div>
-                                            <p className="font-black text-xl leading-none text-white">10K+</p>
-                                            <p className="text-[10px] font-black text-emerald-100/50 uppercase tracking-widest mt-1 text-nowrap">Happy Customers</p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            </div>
-                            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[radial-gradient(#e5e7eb_2px,transparent_2px)] [background-size:20px_20px] opacity-100" />
-                        </div>
-
-                        <div className="flex-1 w-full max-w-xl">
-                            <Carousel opts={{ align: "start", loop: true }} className="w-full relative">
-                                <CarouselContent>
-                                    {TESTIMONIALS.map((testimonial, index) => (
-                                        <CarouselItem key={index}>
-                                            <div className="space-y-8 py-4">
-                                                <div className="relative">
-                                                    <Quote className="h-20 w-20 text-emerald-500/10 absolute -top-10 -left-6 rotate-12" />
-                                                    <p className="text-2xl md:text-3xl font-bold leading-relaxed tracking-tight text-zinc-700 dark:text-zinc-300 italic relative z-10">
-                                                        &ldquo;{testimonial.quote}&rdquo;
-                                                    </p>
-                                                </div>
-
-                                                <div className="flex items-center gap-5 pt-4">
-                                                    <div className="h-16 w-16 rounded-2xl bg-orange-100 dark:bg-orange-950/30 overflow-hidden border-2 border-white dark:border-zinc-800 shadow-lg ring-4 ring-orange-100/30">
-                                                        <Image
-                                                            src={testimonial.avatar}
-                                                            width={80}
-                                                            height={80}
-                                                            alt={testimonial.authorName}
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-black text-xl leading-none mb-1.5 text-zinc-900 dark:text-zinc-100">{testimonial.authorName}</p>
-                                                        <div className="flex items-center gap-1 text-orange-400">
-                                                            {Array.from({ length: 5 }).map((_, i) => (
-                                                                <Star
-                                                                    key={i}
-                                                                    className={cn(
-                                                                        "h-3 w-3 fill-current",
-                                                                        i >= testimonial.rating && "text-zinc-200 fill-zinc-200"
-                                                                    )}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </CarouselItem>
-                                    ))}
-                                </CarouselContent>
-                                <div className="flex items-center gap-4 mt-16 lg:mt-24">
-                                    <CarouselPrevious className="static translate-y-0 h-14 w-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-[#0D5C3F] hover:border-[#0D5C3F] hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all bg-white dark:bg-zinc-900 shadow-sm" />
-                                    <CarouselNext className="static translate-y-0 h-14 w-14 rounded-2xl bg-[#0D5C3F] flex items-center justify-center text-white hover:bg-emerald-900 transition-all border-none shadow-xl shadow-emerald-950/20" />
-                                </div>
-                            </Carousel>
                         </div>
                     </div>
                 </div>

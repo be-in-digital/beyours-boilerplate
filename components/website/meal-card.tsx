@@ -20,7 +20,7 @@ interface MealCardProps {
     id?: string | number;
     title: string;
     price: number;
-    rating: number;
+    rating?: number;
     time: string;
     image: string;
     category?: string;
@@ -95,9 +95,7 @@ export function MealCard({
                     />
                 )}
                 <div className="absolute top-4 left-4 flex gap-2">
-                    {rating >= 4.8 ? (
-                        <Badge className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-zinc-800 dark:text-zinc-100 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">Trending</Badge>
-                    ) : isVeg ? (
+                    {isVeg ? (
                         <Badge className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-zinc-800 dark:text-zinc-100 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">Veg</Badge>
                     ) : isSpicy ? (
                         <Badge className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-zinc-800 dark:text-zinc-100 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">Spicy</Badge>
@@ -111,12 +109,14 @@ export function MealCard({
                 <h3 className="text-lg font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-tight mb-3 group-hover:text-emerald-700 dark:group-hover:text-emerald-500 transition-colors uppercase">
                     {title}
                 </h3>
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 rounded-lg text-[10px] font-black">
-                        <Star className="h-3 w-3 fill-current" />
-                        {rating}
+                {rating !== undefined && (
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 rounded-lg text-[10px] font-black">
+                            <Star className="h-3 w-3 fill-current" />
+                            {rating}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div className="mt-auto flex items-center justify-between gap-4">
                     <div className="flex flex-col">

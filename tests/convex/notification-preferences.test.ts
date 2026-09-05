@@ -13,6 +13,16 @@
  * the schema, from `updateProfile` and from `updateMyProfile`. These tests run
  * the real mutation against the real schema and read the row back, so they
  * assert what is in the database rather than what a spy was handed.
+ *
+ * What these tests cover, and what they no longer imply: the account screen
+ * now offers the email channel only. The SMS switch was removed because the
+ * engine sends no SMS — no provider, no sender, no job — so the preference was
+ * collected and honoured by nothing. The mutation and the column are unchanged
+ * and are what is asserted here: `sms` is still accepted, still stored, still
+ * required as half of the pair, and the screen passes the stored value back
+ * untouched rather than resetting a choice it no longer displays. A future SMS
+ * channel inherits a contract that already works; none of these cases asserts
+ * that a customer is offered the choice.
  */
 
 import { convexTest } from "convex-test"
@@ -94,7 +104,7 @@ describe("notification preferences", () => {
 
   test("are absent, not false, on a profile that predates the field", async () => {
     // The account screen applies the defaults to this case. Absence must not be
-    // read as a refusal of every channel.
+    // read as a refusal of every channel, and must not be written back as one.
     const { as } = harness()
 
     await as.mutation(api.userProfiles.updateMyProfile, { language: "fr" })
