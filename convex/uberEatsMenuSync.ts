@@ -6,6 +6,7 @@ import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import {
   buildUberEatsMenuPayload,
+  collectUnsyncableAllergens,
   type StoreIntegrationRecord,
   type ProductRecord,
   type CategoryRecord,
@@ -112,6 +113,28 @@ export const internalSyncStore = internalAction({
 
       // 7. Build menu payload, applying markup or individual product overrides
       const menuPayload = buildUberEatsMenuPayload(products, categories, priceMarkup);
+
+      // Allergen names the shared vocabulary could not map have no enum member
+      // to travel in, so they are not on the wire. That is a gap in a legal
+      // disclosure, and it used to be invisible because *every* allergen was
+      // dropped. Name the products here so the gap is diagnosable.
+      //
+      // This is a log, not a dashboard: `menuSyncError` is already stored and
+      // already rendered nowhere, and adding a second field nothing displays
+      // would repeat the mistake. The product form now offers the canonical
+      // list, so an unmapped value is a deliberate free-text entry rather than
+      // the default outcome.
+      const unsyncable = collectUnsyncableAllergens(products);
+      if (unsyncable.length > 0) {
+        console.warn(
+          `Uber Eats menu sync for store ${args.storeId}: ` +
+            `${unsyncable.length} product(s) declare an allergen that is not in the ` +
+            `canonical vocabulary, so it was not sent. ` +
+            unsyncable
+              .map((r) => `${r.productName} (${r.productId}): ${r.values.join(", ")}`)
+              .join(" | ")
+        );
+      }
 
       // 8. Read credentials from environment
       const pkg = getPackageEnv();

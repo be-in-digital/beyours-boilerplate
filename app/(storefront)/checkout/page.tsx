@@ -51,7 +51,7 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { storeId, isLoading: isResolvingStore } = useStoreId()
   const cartHydrated = useCartHydrated()
-  const { isOpen } = useStoreStatus(storeId)
+  const { isOpen, services } = useStoreStatus(storeId)
   const { data: session } = authClient.useSession()
 
   const items = useCartStore((s) => s.items)
@@ -403,6 +403,7 @@ export default function CheckoutPage() {
     email?: string
     phone?: string
     paymentMethod: "card" | "paypal" | "cash"
+    tableNumber?: string
     deliveryAddress?: {
       street: string
       city: string
@@ -508,6 +509,10 @@ export default function CheckoutPage() {
           : undefined,
         deliveryAddress:
           orderType === "delivery" ? data.deliveryAddress : undefined,
+        // Gated the same way, and for the same reason: the server rejects a
+        // table number on an order that is not `dine_in`, so a type switched
+        // after the table was typed cannot smuggle a stale one through.
+        tableNumber: orderType === "dine_in" ? data.tableNumber : undefined,
         // Only the id: the server reads the fee from the quote it stored.
         uberDirectEstimateId: orderQuote?.estimateId,
         idempotencyKey: attempt.key,
@@ -633,6 +638,7 @@ export default function CheckoutPage() {
                 email: session.user.email ?? undefined,
               } : undefined}
               onAddressChange={handleAddressChange}
+              services={services}
             />
           </div>
 

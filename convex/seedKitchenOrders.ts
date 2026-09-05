@@ -55,6 +55,14 @@ const SOURCES = ["website", "uber_eats", "website", "pos", "deliveroo", "website
 const PRIORITIES = ["normal", "normal", "urgent", "normal", "normal", "vip", "normal", "normal"] as const
 const STATIONS = [undefined, "mains", "starters", undefined, "mains", "mains", "starters", undefined]
 
+/**
+ * One per seeded order, `undefined` wherever `ORDER_TYPES` is not `dine_in`.
+ * Mixed on purpose — a plain number, a room letter and a named area — because
+ * that is what dining rooms actually use, and a demo of nothing but `1..8`
+ * would suggest the field only takes integers.
+ */
+const TABLE_NUMBERS = ["12", undefined, undefined, "A3", undefined, undefined, "7", "Terrasse 2"] as const
+
 function generateNanoid(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
   let result = ""
@@ -101,6 +109,7 @@ export const seedKitchenOrders = storeMutation({
           phone: `+33 6 ${String(10 + i).padStart(2, "0")} ${String(20 + i).padStart(2, "0")} ${String(30 + i).padStart(2, "0")} ${String(40 + i).padStart(2, "0")}`,
         },
         type: orderType,
+        tableNumber: orderType === "dine_in" ? TABLE_NUMBERS[i] : undefined,
         status: "preparing",
         items: items.map((item) => ({
           productName: item.productName,
@@ -184,6 +193,7 @@ export const seedKitchenOrders = storeMutation({
         estimatedReadyAt: ticketCreatedAt + prepTime * 60_000,
         customerName: orderType === "delivery" ? customerName : undefined,
         customerPhone: orderType === "delivery" ? `+33 6 ${String(10 + i).padStart(2, "0")} 00 00 00` : undefined,
+        tableNumber: orderType === "dine_in" ? TABLE_NUMBERS[i] : undefined,
         deliveryNotes: i === 1 ? "2eme étage, code 4578" : undefined,
         allergens: i === 2 ? ["arachides"] : undefined,
         status: ticketStatus,

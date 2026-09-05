@@ -17,6 +17,7 @@ import {
   MapPinOff,
   CheckCircle2,
   Banknote,
+  Utensils,
 } from "lucide-react"
 import {
   Button,
@@ -24,7 +25,12 @@ import {
   Label,
   Separator,
 } from "@be-in-digital/ui/components"
-import { useCartStore } from "@be-in-digital/restaurant"
+import { useCartStore, type OrderType } from "@be-in-digital/restaurant"
+import { isOrderTypeOffered, type StoreServices } from "@be-in-digital/convex-schema"
+import {
+  MAX_TABLE_NUMBER_LENGTH,
+  normalizeTableNumber,
+} from "@be-in-digital/core/dining"
 import { useGooglePlacesAutocomplete } from "@/hooks/useGooglePlacesAutocomplete"
 import type { AddressValue } from "@/lib/address"
 import type { SavedAddress } from "@/lib/stores/addresses-store"
@@ -53,6 +59,8 @@ interface CheckoutFormProps {
     email?: string
     phone?: string
     paymentMethod: PaymentMethod
+    /** Set only for `dine_in`; the server rejects it on the other types. */
+    tableNumber?: string
     deliveryAddress?: {
       street: string
       city: string
@@ -75,12 +83,28 @@ interface CheckoutFormProps {
   onAddressChange?: (
     address: { latitude?: number; longitude?: number } | null
   ) => void
+  /**
+   * The services the store actually offers, or `null` while they load.
+   *
+   * This form used to carry its own two-option fulfilment toggle that knew
+   * nothing about them, so a cart set to `dine_in` showed "À emporter"
+   * selected and one click rewrote the type to `pickup` — the customer sat at
+   * a table and the kitchen was told to bag the order. The toggle is now the
+   * same three types the cart offers, filtered by the same predicate the
+   * server validates against.
+   */
+  services?: StoreServices | null
 }
 
-const fulfillmentOptions = [
-  { type: "delivery" as const, label: "Livraison", icon: Truck },
-  { type: "pickup" as const, label: "À emporter", icon: ShoppingBag },
-] as const
+const fulfillmentOptions: {
+  type: OrderType
+  label: string
+  icon: typeof Truck
+}[] = [
+  { type: "delivery", label: "Livraison", icon: Truck },
+  { type: "pickup", label: "À emporter", icon: ShoppingBag },
+  { type: "dine_in", label: "Sur place", icon: Utensils },
+]
 
 export function CheckoutForm({
   onSubmit,
@@ -89,10 +113,22 @@ export function CheckoutForm({
   isAuthenticated,
   user,
   onAddressChange,
+  services,
 }: CheckoutFormProps) {
   const orderType = useCartStore((s) => s.orderType)
   const setOrderType = useCartStore((s) => s.setOrderType)
   const isDelivery = orderType === "delivery"
+  const isDineIn = orderType === "dine_in"
+
+  // Nothing is offered until the services are known. `null` here means "still
+  // loading", not "everything" — guessing is what put Livraison in front of a
+  // restaurant that does not deliver.
+  const availableFulfillment = services
+    ? fulfillmentOptions.filter((opt) => isOrderTypeOffered(opt.type, services))
+    : []
+
+  const [tableNumber, setTableNumber] = useState("")
+  const [tableNumberError, setTableNumberError] = useState<string | null>(null)
 
   const globalSettings = useQuery(api.globalSettings.get)
   const payments = globalSettings?.payments
@@ -218,11 +254,36 @@ export function CheckoutForm({
       }
     }
 
+    // The table is required here and optional on the server. The server has to
+    // accept a `dine_in` order without one — Uber Eats and Deliveroo forward
+    // those and they carry no table — but a diner checking out on the
+    // storefront is demonstrably sitting at one, and a slip with no table is
+    // the defect this field exists to close.
+    let table: string | undefined
+    if (isDineIn) {
+      table = normalizeTableNumber(tableNumber)
+      if (!table) {
+        setTableNumberError("Indiquez votre numéro de table")
+        return
+      }
+      if (table.length > MAX_TABLE_NUMBER_LENGTH) {
+        setTableNumberError(
+          `Numéro de table trop long (${MAX_TABLE_NUMBER_LENGTH} caractères maximum)`
+        )
+        return
+      }
+      setTableNumberError(null)
+    }
+
     onSubmit({
       name: data.name,
       email: data.email || undefined,
       phone: data.phone || undefined,
       paymentMethod: effectivePaymentMethod,
+      // Sent only for dine-in. Switching the type away from `sur place` must
+      // not leave a stale table on the order — the server rejects one on a
+      // delivery or pickup order precisely to catch that.
+      tableNumber: table,
       deliveryAddress,
     })
   }
@@ -230,20 +291,27 @@ export function CheckoutForm({
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
       {/* Fulfillment Method Selection */}
-      <div className="grid grid-cols-2 gap-4">
-        {fulfillmentOptions.map((opt) => {
+      <div
+        className={`grid gap-4 ${
+          availableFulfillment.length === 3
+            ? "grid-cols-3"
+            : availableFulfillment.length === 2
+              ? "grid-cols-2"
+              : "grid-cols-1"
+        }`}
+      >
+        {availableFulfillment.map((opt) => {
           const Icon = opt.icon
-          const isSelected =
-            (opt.type === "delivery" && orderType === "delivery") ||
-            (opt.type === "pickup" && orderType !== "delivery")
+          // Exact, not a `!== "delivery"` catch-all: that catch-all is what
+          // showed "À emporter" lit up for a dine-in cart and then wrote
+          // `pickup` over it on the next click.
+          const isSelected = orderType === opt.type
 
           return (
             <button
               key={opt.type}
               type="button"
-              onClick={() =>
-                setOrderType(opt.type === "delivery" ? "delivery" : "pickup")
-              }
+              onClick={() => setOrderType(opt.type)}
               className={`group flex h-24 flex-col items-center justify-center gap-2 rounded-[2rem] border-2 transition-all ${
                 isSelected
                   ? "border-[#0D5C3F] bg-[#0D5C3F] text-white shadow-xl shadow-emerald-900/10"
@@ -264,6 +332,42 @@ export function CheckoutForm({
           )
         })}
       </div>
+
+      {/* Table number — dine-in only */}
+      {isDineIn && (
+        <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
+          <div className="p-8 space-y-2">
+            <Label htmlFor="tableNumber" className="flex items-center gap-2">
+              <Utensils className="h-4 w-4" />
+              Numéro de table
+            </Label>
+            <Input
+              id="tableNumber"
+              value={tableNumber}
+              onChange={(e) => {
+                setTableNumber(e.target.value)
+                if (tableNumberError) setTableNumberError(null)
+              }}
+              maxLength={MAX_TABLE_NUMBER_LENGTH}
+              placeholder="12, A3, Terrasse 4…"
+              aria-invalid={tableNumberError ? true : undefined}
+              aria-describedby={
+                tableNumberError ? "tableNumber-error" : "tableNumber-hint"
+              }
+            />
+            {tableNumberError ? (
+              <p id="tableNumber-error" role="alert" className="text-sm text-destructive">
+                {tableNumberError}
+              </p>
+            ) : (
+              <p id="tableNumber-hint" className="text-sm text-muted-foreground">
+                Le numéro figure sur votre table. Il est imprimé sur le ticket
+                de cuisine pour que votre commande vous soit apportée.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Contact Information */}
       <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">

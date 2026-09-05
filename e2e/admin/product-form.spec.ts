@@ -44,7 +44,7 @@ test.describe("Product Form", () => {
       await expect(backLink).toBeVisible({ timeout: 15_000 })
     })
 
-    test("should display 4 form tabs: General, Options, Stock, Planification", async ({
+    test("should display 5 form tabs: General, Options, Stock, Planification, Allergenes", async ({
       page,
     }) => {
       await expect(
@@ -63,6 +63,13 @@ test.describe("Product Form", () => {
 
       await expect(
         page.getByRole("tab", { name: "Planification" })
+      ).toBeVisible()
+
+      // The allergen tab is the one a restaurateur needs to meet the INCO
+      // 1169/2011 disclosure. It did not exist: `allergens` was declared in the
+      // form's zod schema and defaulted to `[]`, and no control rendered it.
+      await expect(
+        page.getByRole("tab", { name: "Allergènes" })
       ).toBeVisible()
     })
 

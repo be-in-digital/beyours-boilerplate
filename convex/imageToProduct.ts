@@ -17,6 +17,11 @@ import type {
   ParsingWarning,
 } from "@be-in-digital/convex-schema/types"
 import { buildMediaUrl, mediaKeyFromUrl } from "@be-in-digital/core/aws/media-url"
+import {
+  ALLERGEN_KIND,
+  KNOWN_ALLERGENS,
+  resolveAllergens,
+} from "@be-in-digital/core/allergens"
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -205,9 +210,73 @@ async function processImage(imageUrl: string): Promise<ProcessedImage> {
   }
 }
 
+// ─── Allergens ───────────────────────────────────────────────────────────────
+
+/*
+ * This action is the only thing in production that writes `products.allergens`
+ * without a human typing the value, so whatever the model answers is what a
+ * diner is eventually shown. Asked in French for "les allergènes très
+ * probables", it answered in free prose — a different wording every run — and
+ * none of that resolves against the vocabulary in
+ * `@be-in-digital/core/allergens`. Every surface downstream then has to render
+ * it as unverified, which is how an unrecognised value entered the database in
+ * the first place.
+ *
+ * So the model is steered at the vocabulary rather than left to invent one,
+ * and its answer is resolved through `normalizeAllergen` before storage. There
+ * is no second alias table here: this file consults the same one the badge,
+ * the ticket, the product form and the Uber Eats sync consult.
+ */
+
+/**
+ * The keys offered to the model, comma-separated.
+ *
+ * Dietary markers are deliberately excluded. `vegetarian` and `vegan` are part
+ * of the vocabulary but they are not allergens, and inviting the model to put
+ * them in an allergen field is how "Allergène : Végan" ends up in front of a
+ * diner. The owner declares those in the product form.
+ */
+const AI_ALLERGEN_VOCABULARY = KNOWN_ALLERGENS.filter(
+  (allergen) => ALLERGEN_KIND[allergen] === "allergen"
+).join(", ")
+
+/**
+ * The allergen instruction shared by both vision prompts, so the single-dish
+ * and menu paths cannot drift apart.
+ *
+ * It overrides the prompt's closing language instruction for this one field:
+ * the keys are identifiers, not copy, and a translated key resolves to nothing.
+ */
+const ALLERGEN_PROMPT_RULES = `  * Choisis les valeurs dans cette liste, en anglais, recopiées telles quelles : ${AI_ALLERGEN_VOCABULARY}
+  * Ces identifiants ne se traduisent pas et ne se reformulent pas, malgré la consigne de langue en fin de message.
+  * Un allergène certain qui manque à cette liste : nomme-le en français, en un ou deux mots. Jamais une phrase.
+  * Aucun allergène probable : tableau vide. Jamais de mention négative comme "sans gluten".`
+
+/**
+ * Reduce the model's answer to the canonical vocabulary before it is stored.
+ *
+ * A value the vocabulary recognises — under any spelling, French or English —
+ * becomes its canonical key, so the badge, the kitchen ticket and the Uber Eats
+ * payload all read the same thing. A value it does not recognise is KEPT, in
+ * the model's own wording: it may name a real allergen this list has never
+ * heard of, and dropping it would delete a declaration. It simply stays
+ * unverified, which every rendering surface already handles.
+ *
+ * Deduplication follows `resolveAllergens`: "Lactose" and "lait" are one
+ * declaration, and an unrecognised value dedupes on its normalised form.
+ */
+export function normalizeExtractedAllergens(values: readonly string[]): string[] {
+  // Delegates rather than re-deriving. This function used to carry its own copy
+  // of the resolve-and-dedupe loop, and the copy is where a defect lived: it
+  // keyed unrecognised values by `normalizeAllergenKey`, which collapses
+  // anything outside [a-z0-9] to the empty string, so a model answering with
+  // two CJK allergen names had the second deleted before it was ever stored.
+  return resolveAllergens(values).map((entry) => entry.allergen ?? entry.raw)
+}
+
 // ─── Vision Analysis ─────────────────────────────────────────────────────────
 
-const SINGLE_SYSTEM_PROMPT = `Tu es un expert en restauration, gastronomie et redaction SEO pour sites de commande en ligne.
+export const SINGLE_SYSTEM_PROMPT = `Tu es un expert en restauration, gastronomie et redaction SEO pour sites de commande en ligne.
 Analyse cette photo d'un plat de restaurant.
 Retourne un JSON strictement conforme au schema fourni.
 
@@ -223,6 +292,7 @@ Regles :
 - "price" : en euros decimaux (ex: 12.50 pour 12,50 EUR). source="detected" si visible, sinon value=null.
 - "ingredients" : liste les ingredients visibles ou hautement probables. source="detected" pour les visibles, source="inferred" pour les deduits.
 - "allergens" : TOUJOURS source="inferred", JAMAIS source="detected". Indique uniquement les allergènes très probables vu les ingrédients.
+${ALLERGEN_PROMPT_RULES}
 - "detectedCategoryName" : source="detected" si section visible sur l'image, sinon value=null avec source="inferred".
 - "suggestedCategoryName" : toujours rempli (Entree, Plat principal, Dessert, Boisson, etc.), source="inferred".
 - "confidence" : 0.0 a 1.0, ta certitude pour CE champ specifiquement.
@@ -230,7 +300,7 @@ Regles :
 
 Langue : francais.`
 
-const MENU_SYSTEM_PROMPT = `Tu es un expert en restauration, OCR de menus et redaction SEO pour sites de commande en ligne.
+export const MENU_SYSTEM_PROMPT = `Tu es un expert en restauration, OCR de menus et redaction SEO pour sites de commande en ligne.
 Analyse cette photo de menu/carte de restaurant.
 Extrais TOUS les plats, boissons et items visibles.
 Retourne un JSON conforme au schema fourni, avec un tableau "products".
@@ -249,6 +319,7 @@ Regles par champ :
   * source="generated", confidence=0.7.
 - "ingredients" : source="detected" si listes. Sinon value=[] avec source="inferred" et confidence=0.
 - "allergens" : TOUJOURS source="inferred". Déduis uniquement à partir du nom du plat et des ingrédients détectés.
+${ALLERGEN_PROMPT_RULES}
 - "warnings" : un par ambiguite (prix coupe, nom tronque, section incertaine, texte flou).
 
 Langue : francais.`
@@ -319,8 +390,11 @@ function wrapRawProduct(raw: RawVisionProduct): WrappedProduct {
       source: raw.ingredients.length > 0 ? "detected" : "generated",
       confidence: raw.ingredients.length > 0 ? 0.7 : 0,
     },
+    // Resolved against the canonical vocabulary here, at the only boundary the
+    // model's answer crosses on its way to the database. Unrecognised values
+    // survive as written — see `normalizeExtractedAllergens`.
     allergens: {
-      value: raw.allergens,
+      value: normalizeExtractedAllergens(raw.allergens),
       source: "inferred",
       confidence: 0.5,
     },
