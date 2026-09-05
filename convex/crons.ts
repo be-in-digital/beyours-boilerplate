@@ -87,6 +87,23 @@ crons.cron(
   {},
 );
 
+// Carry away the personal data that has outlived the retention window — the
+// diner's, not the establishment's. 3:15am UTC: clear of the kitchen-ticket
+// purge at 2:30 and the invitation sweep at 4:00, so the three destructive
+// nightly jobs never share a minute or a transaction budget.
+//
+// An order past the window is ANONYMISED, never deleted: it is the
+// establishment's accounting record and art. L123-22 of the Code de commerce
+// wants ten years of it. A game play, a contact message and a saved address
+// are deleted outright — none of them is one. The window itself lives in
+// `globalSettings.dataRetention` and defaults to the CNIL's three years.
+crons.cron(
+  "purge expired customer data",
+  "15 3 * * *",
+  internal.privacy.sweepExpiredCustomerData,
+  {},
+);
+
 // Queue the articles an Auto Blog subscription is due. Hourly, because
 // `preferredHour` is an hour: the planner asks each configuration whether this
 // is its hour in its own timezone, and writes a queue row if it is. It calls

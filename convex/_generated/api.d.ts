@@ -84,6 +84,7 @@ import type * as payments from "../payments.js";
 import type * as paypal from "../paypal.js";
 import type * as platformStoreStatus from "../platformStoreStatus.js";
 import type * as platformWebhookFailures from "../platformWebhookFailures.js";
+import type * as privacy from "../privacy.js";
 import type * as prizeRedemptions from "../prizeRedemptions.js";
 import type * as prizes from "../prizes.js";
 import type * as products from "../products.js";
@@ -203,6 +204,7 @@ declare const fullApi: ApiFromModules<{
   paypal: typeof paypal;
   platformStoreStatus: typeof platformStoreStatus;
   platformWebhookFailures: typeof platformWebhookFailures;
+  privacy: typeof privacy;
   prizeRedemptions: typeof prizeRedemptions;
   prizes: typeof prizes;
   products: typeof products;
