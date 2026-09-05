@@ -22,6 +22,7 @@ import { useEffect } from "react"
 import { useQuery } from "convex/react"
 import { useLanguageStore } from "@be-in-digital/restaurant"
 import type { Language } from "@be-in-digital/restaurant"
+import { resolveEstablishmentLanguages } from "@be-in-digital/core"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useStoreId } from "@/lib/hooks/use-store-id"
@@ -74,22 +75,25 @@ export function StorefrontI18nProvider() {
 
     // `api.languages.listActive` is typed `any` — the shared handlers are —
     // so the element shape is named here rather than inferred.
-    const active = languages as Language[]
+    const rows = (languages as Language[]).map((l) => ({
+      code: l.code,
+      name: l.name,
+      nativeName: l.nativeName,
+      ...(l.flagEmoji ? { flagEmoji: l.flagEmoji } : {}),
+      isDefault: l.isDefault,
+      isActive: l.isActive,
+    }))
 
-    const defaultCode =
-      active.find((l) => l.isDefault)?.code ?? active[0]?.code ?? "fr"
-
-    initialize(
-      active.map((l) => ({
-        code: l.code,
-        name: l.name,
-        nativeName: l.nativeName,
-        ...(l.flagEmoji ? { flagEmoji: l.flagEmoji } : {}),
-        isDefault: l.isDefault,
-        isActive: l.isActive,
-      })),
-      defaultCode
+    // Which language the establishment is written in is a policy question, not
+    // an array index — see `resolveEstablishmentLanguages`. This used to read
+    // `?? active[0]?.code`, and the first language an admin added became the
+    // default for every diner (#325, NEW2-JOURNEY-2).
+    const { languages: offered, defaultCode } = resolveEstablishmentLanguages(
+      rows,
+      REFERENCE_LOCALE
     )
+
+    initialize(offered, defaultCode)
   }, [languages, initialize])
 
   // 2. Manual overrides beat the static catalogue: they are the restaurateur
