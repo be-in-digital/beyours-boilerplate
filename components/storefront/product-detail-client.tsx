@@ -36,7 +36,7 @@ export function ProductDetailClient({
   const addItem = useCartStore((s: { addItem: (item: import("@be-in-digital/restaurant").NewCartItem) => void }) => s.addItem)
   const cartStoreId = useCartStore((s: { storeId: string | null }) => s.storeId)
   const { isFavorite, toggleFavorite } = useFavorites()
-  const { isOpen } = useStoreStatus(storeId)
+  const { isOpen, timeZone } = useStoreStatus(storeId)
 
   const [quantity, setQuantity] = useState(1)
   const [selectedOptions, setSelectedOptions] = useState<
@@ -73,7 +73,7 @@ export function ProductDetailClient({
     }
   }, [])
 
-  const available = isProductAvailable(product)
+  const available = isProductAvailable(product, timeZone)
   const canAdd = available && isOpen
 
   // Build cart options from selected state

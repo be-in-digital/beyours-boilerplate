@@ -15,6 +15,8 @@ interface StorefrontProductCardProps {
   product: ProductDoc
   storeId: string
   isStoreOpen: boolean
+  /** `globalSettings.timezone` — the clock a serving window is read on. */
+  timeZone?: string
   isFavorite: boolean
   onToggleFavorite: () => void
   onClick?: () => void
@@ -39,6 +41,7 @@ export function StorefrontProductCard({
   product: sourceProduct,
   storeId,
   isStoreOpen,
+  timeZone,
   isFavorite: favorited,
   onToggleFavorite,
   onClick,
@@ -50,7 +53,7 @@ export function StorefrontProductCard({
   // of a customer everywhere at once.
   const product = useLocalizedDocument(sourceProduct)
   const { t } = useTranslation()
-  const available = isProductAvailable(product)
+  const available = isProductAvailable(product, timeZone)
   const canAdd = available && isStoreOpen && !otherStore
 
   return (

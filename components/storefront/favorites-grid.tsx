@@ -27,7 +27,7 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
   const router = useRouter()
   const { favorites, isFavorite, toggleFavorite } = useFavorites()
   const addItem = useCartStore((s: { addItem: (item: NewCartItem) => void }) => s.addItem)
-  const { isOpen } = useStoreStatus(storeId)
+  const { isOpen, timeZone } = useStoreStatus(storeId)
 
   // All favorite product IDs (all stores)
   const allProductIds = useMemo(
@@ -66,7 +66,7 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
   }, [products, storeId])
 
   const handleAddToCart = (product: ProductDoc) => {
-    if (!isProductAvailable(product) || !isOpen) return
+    if (!isProductAvailable(product, timeZone) || !isOpen) return
 
     addItem({
       productId: product._id,
@@ -134,6 +134,7 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
               product={product}
               storeId={storeId}
               isStoreOpen={isOpen}
+              timeZone={timeZone}
               isFavorite={isFavorite(product._id, storeId)}
               onToggleFavorite={() => toggleFavorite(product._id, storeId)}
               onClick={() => router.push(`/product/${product._id}`)}
@@ -156,6 +157,7 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
                 product={product}
                 storeId={product.storeId}
                 isStoreOpen={false}
+                timeZone={timeZone}
                 isFavorite={isFavorite(product._id, product.storeId)}
                 onToggleFavorite={() => toggleFavorite(product._id, product.storeId)}
                 otherStore

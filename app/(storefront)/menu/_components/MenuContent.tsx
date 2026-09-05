@@ -41,7 +41,7 @@ function MenuContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { storeId } = useStoreId()
-  const { isOpen } = useStoreStatus(storeId)
+  const { isOpen, timeZone } = useStoreStatus(storeId)
 
   const addItem = useCartStore((s) => s.addItem)
   const cartStoreId = useCartStore((s) => s.storeId)
@@ -149,7 +149,7 @@ function MenuContent() {
       toast.error("Vous avez des articles d'un autre restaurant.")
       return
     }
-    if (!isProductAvailable(product)) return
+    if (!isProductAvailable(product, timeZone)) return
 
     if (product.options && product.options.length > 0) {
       setSelectedProduct(product)
@@ -337,6 +337,7 @@ function MenuContent() {
             products={paginatedProducts}
             storeId={storeId}
             isStoreOpen={isOpen}
+            timeZone={timeZone}
             onProductClick={setSelectedProduct}
             onAddToCart={handleQuickAdd}
           />

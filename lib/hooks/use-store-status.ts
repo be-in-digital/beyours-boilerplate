@@ -4,7 +4,10 @@ import { useMemo } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { isStoreOpen, resolveStoreHours } from "@be-in-digital/restaurant"
-import { resolveStoreServices } from "@be-in-digital/convex-schema"
+import {
+  isWithinBusinessHours,
+  resolveStoreServices,
+} from "@be-in-digital/convex-schema"
 import type { Id } from "@/convex/_generated/dataModel"
 import type { StoreHoursStatus } from "@be-in-digital/restaurant"
 
@@ -41,20 +44,47 @@ export function useStoreStatus(storeId: string | null) {
   // Uber Direct credentials stripped. The storefront needs it before sign-in.
   const globalSettings = useQuery(api.globalSettings.get)
 
-  const hoursStatus: StoreHoursStatus | null = useMemo(() => {
-    if (!store) return null
+  // Both answers off one reading of the clock, so they cannot describe two
+  // different moments. `openNow` comes from the same function `orders.create`
+  // asks, so the button this hook disables and the order the mutation refuses
+  // can no longer disagree; `hoursStatus` is everything the storefront shows
+  // *around* that answer — when it next changes, and which service is running.
+  //
+  // `isOpen` used to be `hoursStatus?.isOpen ?? false`, which also read a store
+  // with no declared week as shut. The mutation has never done that, and a
+  // location whose hours row is empty would have been unable to sell anything.
+  const { hoursStatus, openNow } = useMemo((): {
+    hoursStatus: StoreHoursStatus | null
+    openNow: boolean
+  } => {
+    if (!store) return { hoursStatus: null, openNow: false }
     const hours = resolveStoreHours(store, globalSettings)
-    if (hours.length === 0) return null
-    return isStoreOpen(hours, new Date(), globalSettings?.timezone)
+    const now = new Date()
+    return {
+      hoursStatus:
+        hours.length === 0
+          ? null
+          : isStoreOpen(hours, now, globalSettings?.timezone),
+      openNow: isWithinBusinessHours(
+        hours,
+        now.getTime(),
+        globalSettings?.timezone
+      ),
+    }
   }, [store, globalSettings])
 
-  const isOpen = store?.status === "open" && (hoursStatus?.isOpen ?? false)
+  const isOpen = store?.status === "open" && openNow
 
   return {
     store,
     isLoading: store === undefined && storeId !== null,
     isOpen,
     hoursStatus,
+    /**
+     * The establishment's clock. A serving window is the kitchen's, not the
+     * visitor's, so anything asking whether a dish is on right now needs it.
+     */
+    timeZone: globalSettings?.timezone,
     status: store?.status ?? null,
     // `null` while the two queries are in flight — the selector renders
     // nothing rather than guessing, and guessing is what offered a service the

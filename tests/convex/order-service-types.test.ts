@@ -21,6 +21,25 @@ import { afterEach, describe, expect, test } from "vitest"
 import { api } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
+import { convexErrorCode } from "../../lib/convex-error"
+
+/**
+ * The refusal code a call produced, as the browser reads it off `data`.
+ *
+ * These assertions matched the thrown message, and the messages are French
+ * customer copy now — copy gets edited, the `code` is the contract, and only
+ * `ConvexError.data` survives Convex's production redaction. See
+ * `packages/convex-functions/src/refusal.ts`.
+ */
+async function refusalCode(call: Promise<unknown>): Promise<string | null> {
+  try {
+    await call
+    return null
+  } catch (error) {
+    return convexErrorCode(error)
+  }
+}
+
 
 const modules = import.meta.glob("../../convex/**/*.ts")
 
@@ -199,8 +218,10 @@ describe("orders.create — the services in force", () => {
     const productId = await seedProduct(t, storeId)
 
     await expect(
-      t.mutation(api.orders.create, orderArgs(storeId, productId, "delivery"))
-    ).rejects.toThrow(/does not offer delivery/)
+      refusalCode(
+        t.mutation(api.orders.create, orderArgs(storeId, productId, "delivery"))
+      )
+    ).resolves.toBe("service_not_offered")
 
     const written = await t.run((ctx) => ctx.db.query("orders").collect())
     expect(written).toEqual([])
@@ -231,8 +252,10 @@ describe("orders.create — the services in force", () => {
     const productId = await seedProduct(t, storeId)
 
     await expect(
-      t.mutation(api.orders.create, orderArgs(storeId, productId, "delivery"))
-    ).rejects.toThrow(/does not offer delivery/)
+      refusalCode(
+        t.mutation(api.orders.create, orderArgs(storeId, productId, "delivery"))
+      )
+    ).resolves.toBe("service_not_offered")
   })
 
   test("lets an override re-open a service the global switches turned off", async () => {
@@ -271,8 +294,10 @@ describe("orders.create — the services in force", () => {
 
     for (const type of ["delivery", "pickup", "dine_in"] as const) {
       await expect(
-        t.mutation(api.orders.create, orderArgs(storeId, productId, type))
-      ).rejects.toThrow(/does not offer/)
+        refusalCode(
+          t.mutation(api.orders.create, orderArgs(storeId, productId, type))
+        )
+      ).resolves.toBe("service_not_offered")
     }
   })
 })

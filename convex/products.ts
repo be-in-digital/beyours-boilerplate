@@ -7,6 +7,7 @@ import { requireStorePermission } from "@be-in-digital/convex-functions/auth";
 import { claimMenuSyncWindow } from "@be-in-digital/convex-functions/rateLimit";
 import { touchesTranslatableText } from "@be-in-digital/convex-functions/autoTranslate";
 import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
+import { scheduleMenuSync } from "./lib/menuSync";
 import { scheduleTranslation } from "./autoTranslate";
 
 // === Queries (public for storefront) ===
@@ -31,52 +32,6 @@ export const getTrending = query(defs.getTrending);
 export const getManyByIds = query(defs.getManyByIds);
 
 // === Helpers ===
-
-/**
- * Book the platform menu push for the establishments this write touched.
- *
- * Two things were wrong here, and they multiplied. Every mutation queued
- * `syncAllStores` — for both platforms, unconditionally — and Convex does not
- * dedupe scheduled jobs, so a fifty-product import queued a hundred sweeps.
- * Each of those sweeps then pushed the menu of **every** establishment on the
- * deployment, including the ones nobody had touched. Fifty edits in one
- * restaurant meant a hundred full uploads per restaurant on the account, at an
- * endpoint Uber rate-limits to about one call a minute per store.
- *
- * Now: one claim per (platform, establishment) per window, and the push is
- * scoped to the store that actually changed. Everything behind the first edit
- * of a window rides on the upload it already booked — a menu upload is a full
- * overwrite, so the single push at the end of the window carries the burst's
- * final state.
- *
- * Failures stay non-fatal, as before: a catalogue write must not be refused
- * because its platform push could not be booked.
- */
-async function scheduleMenuSync(ctx: MutationCtx, storeIds: Array<Id<"stores">>) {
-  for (const storeId of Array.from(new Set(storeIds))) {
-    try {
-      const uberEats = await claimMenuSyncWindow(ctx, "uberEats", storeId);
-      if (uberEats.claimed) {
-        await ctx.scheduler.runAt(
-          uberEats.runAt,
-          internal.uberEatsMenuSync.internalSyncStore,
-          { storeId }
-        );
-      }
-
-      const deliveroo = await claimMenuSyncWindow(ctx, "deliveroo", storeId);
-      if (deliveroo.claimed) {
-        await ctx.scheduler.runAt(
-          deliveroo.runAt,
-          internal.deliverooMenuSync.internalSyncStore,
-          { storeId }
-        );
-      }
-    } catch (error) {
-      console.error("Failed to schedule menu sync:", error);
-    }
-  }
-}
 
 /**
  * The establishment a product belongs to.

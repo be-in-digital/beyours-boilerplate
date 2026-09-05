@@ -20,6 +20,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { CheckCircle2, Loader2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore, clearCheckoutAttempt } from "@be-in-digital/restaurant"
+import { convexErrorMessage } from "@/lib/convex-error"
 
 type Outcome =
   | { state: "verifying" }
@@ -139,12 +140,21 @@ function CheckoutSuccessContent() {
           })
         }
       } catch (error) {
+        // `error.message` was read here, and this screen renders it to a diner
+        // who has already been charged. Convex redacts a thrown `Error` in
+        // production, so what they read was "[CONVEX A(stripe:verify…)] Server
+        // Error". `SettlementRejectedError` — the refusal that says the payment
+        // does not settle this order — now travels as a `ConvexError`, so its
+        // sentence survives; a provider fault still falls back, because there
+        // is genuinely nothing to tell the customer about one.
+        console.error("Payment confirmation failed", error)
         setOutcome({
           state: "failed",
-          message:
-            error instanceof Error
-              ? error.message
-              : "La confirmation du paiement a échoué.",
+          message: convexErrorMessage(
+            error,
+            {},
+            "La confirmation du paiement a échoué. Contactez le restaurant avec votre numéro de commande."
+          ),
         })
       }
     }

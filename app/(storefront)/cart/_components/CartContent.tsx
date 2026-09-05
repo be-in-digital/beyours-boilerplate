@@ -30,7 +30,11 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@be-in-digital/ui/components"
-import { useCartStore, formatPrice } from "@be-in-digital/restaurant"
+import {
+  formatPrice,
+  useCartHydrated,
+  useCartStore,
+} from "@be-in-digital/restaurant"
 import type { OrderType } from "@be-in-digital/restaurant"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 import { useStoreStatus } from "@/lib/hooks/use-store-status"
@@ -42,6 +46,7 @@ export default function CartContent() {
   const { storeId } = useStoreId()
   const { isOpen, services } = useStoreStatus(storeId)
 
+  const cartHydrated = useCartHydrated()
   const items = useCartStore((s) => s.items)
   const orderType = useCartStore((s) => s.orderType)
   const updateQuantity = useCartStore((s) => s.updateQuantity)
@@ -64,6 +69,14 @@ export default function CartContent() {
     const fallback = ORDER_TYPES.find((type) => isOrderTypeOffered(type, services))
     if (fallback) setOrderType(fallback)
   }, [services, orderType, setOrderType])
+
+  // The persisted basket is not there on the first paint — zustand reads
+  // localStorage after mount, and React serves the server snapshot (an empty
+  // cart) for the whole hydration render. Without this, a customer who reloads
+  // this page or arrives from a bookmark is shown a full-screen "Votre Box est
+  // vide" over a basket that is about to appear. It self-corrects, but it is
+  // the dead-end screen, and `/checkout` has read the same flag since #169.
+  if (!cartHydrated) return null
 
   if (items.length === 0) {
     return (

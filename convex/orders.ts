@@ -1,5 +1,6 @@
 import { query, internalMutation, internalQuery, mutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/orders";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
@@ -132,12 +133,29 @@ export const getMyOrders = query({
 /**
  * Storefront checkout: the order + kitchen-ticket invariant lives in the
  * defs layer (defs.createWithTicket) — this wrapper is transport only.
+ *
+ * The one thing it adds is the platform push, because booking one needs
+ * `internal.*` and the defs layer cannot reach it. A sale moves
+ * `stock.quantity`, and that number is what Uber Eats and Deliveroo read as
+ * availability: without this a dish sold out on the restaurant's own site went
+ * on being ordered through the platforms until some unrelated catalogue write
+ * happened to book a sync — and nothing sweeps for it, so that window has no
+ * end. The Inventaire screen has booked the same push on every manual stock
+ * edit since the beginning.
  */
 // @public-by-design: guest order access is guarded by the view token issued at checkout
 export const create = mutation({
   args: defs.createWithTicket.args,
-  handler: (ctx, args) => defs.createWithTicket.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const orderId = await defs.createWithTicket.handler(ctx, args);
+    if (await defs.orderMovedTrackedStock(ctx, orderId)) {
+      await scheduleMenuSync(ctx, [args.storeId]);
+    }
+    return orderId;
+  },
 });
+
+import { scheduleMenuSync } from "./lib/menuSync";
 
 const orderStoreId = storeIdFromDocument("Order not found");
 
@@ -176,7 +194,24 @@ async function advanceOrder(
   ctx: MutationCtx,
   args: Parameters<typeof defs.updateStatus.handler>[1]
 ) {
+  // A cancellation gives the order's tracked stock back, and a dish that is
+  // available again has to reach the platforms for the same reason a sold-out
+  // one does. Resolved before the handler runs, while the order still says what
+  // it took and has not yet been marked cancelled — a replayed cancellation
+  // restocks nothing, so it must not book a push either.
+  const order =
+    args.status === "cancelled"
+      ? await ctx.db.get(args.id as Id<"orders">)
+      : null;
+  const restocks =
+    order !== null &&
+    order.status !== "cancelled" &&
+    (await defs.orderMovedTrackedStock(ctx, args.id));
+
   const dispatch = await defs.updateStatus.handler(ctx, args);
+
+  if (restocks && order) await scheduleMenuSync(ctx, [order.storeId]);
+
   if (dispatch) {
     await ctx.scheduler.runAfter(
       0,

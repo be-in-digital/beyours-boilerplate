@@ -31,6 +31,7 @@ import {
   decideOrderQuote,
   type OrderQuote,
 } from "@/lib/checkout/order-quote"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 import { useStoreStatus } from "@/lib/hooks/use-store-status"
 import { useAddresses } from "@/lib/hooks/use-addresses"
@@ -542,11 +543,14 @@ export default function CheckoutPage() {
             successUrl: `${origin}/checkout/success?orderId=${orderId}`,
             cancelUrl: `${origin}/checkout/cancel?orderId=${orderId}`,
           })
-          if (result.sessionUrl) {
-            window.location.href = result.sessionUrl
-          } else {
-            throw new Error("Impossible de créer la session de paiement.")
+          if (!result.sessionUrl) {
+            // The order exists and is `pending`; the customer can pay it from
+            // the tracking link. Said here rather than thrown, so the sentence
+            // survives — the catch below can only trust a ConvexError.
+            toast.error("Impossible de créer la session de paiement.")
+            return
           }
+          window.location.href = result.sessionUrl
         }
 
       } else if (data.paymentMethod === "paypal") {
@@ -556,18 +560,35 @@ export default function CheckoutPage() {
           returnUrl: `${origin}/checkout/success?orderId=${orderId}`,
           cancelUrl: `${origin}/checkout/cancel?orderId=${orderId}`,
         })
-        if (result.approvalUrl) {
-          window.location.href = result.approvalUrl
-        } else {
-          throw new Error("Impossible de créer la commande PayPal.")
+        if (!result.approvalUrl) {
+          toast.error("Impossible de créer la commande PayPal.")
+          return
         }
+        window.location.href = result.approvalUrl
       }
 
     } catch (error) {
+      // `error.message` was read here, and in production it always said "Server
+      // Error": Convex redacts a thrown `Error` and only a `ConvexError` keeps
+      // its payload. Every refusal `orders.create` can give — sold out, a
+      // required option missing, below the minimum, outside the delivery zone,
+      // a service the restaurant does not offer — arrived at the moment of
+      // payment as those two words, and the diner had nothing to act on.
+      //
+      // No code map: the server's own French sentence is the copy, and this
+      // screen has nothing better to say than the one that names the dish.
+      //
+      // Logged as well as shown: a client-side fault inside this handler — a
+      // stale cart id failing argument validation, a provider action throwing —
+      // reaches the same generic toast, and without this there is nothing left
+      // of it to diagnose from.
+      console.error("Checkout failed", error)
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "Erreur lors de la commande. Veuillez réessayer."
+        convexErrorMessage(
+          error,
+          {},
+          "Erreur lors de la commande. Veuillez réessayer."
+        )
       )
     } finally {
       setIsSubmitting(false)
