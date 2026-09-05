@@ -113,7 +113,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-600"
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 transition-colors hover:text-zinc-600"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { DEFAULT_NOTIFICATION_PREFERENCES } from "@be-in-digital/convex-functions/userProfiles"
 import {
   Package,
   MapPin,
@@ -192,8 +193,9 @@ export default function AccountPage() {
   const [profileLanguage, setProfileLanguage] = useState("fr")
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
-  const [emailNotifs, setEmailNotifs] = useState(true)
-  const [smsNotifs, setSmsNotifs] = useState(false)
+  const [emailNotifs, setEmailNotifs] = useState(DEFAULT_NOTIFICATION_PREFERENCES.email)
+  const [smsNotifs, setSmsNotifs] = useState(DEFAULT_NOTIFICATION_PREFERENCES.sms)
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const savedPhonesRef = useRef<PhoneEntry[]>([])
@@ -218,6 +220,11 @@ export default function AccountPage() {
       setPhones(profilePhones)
       savedPhonesRef.current = profilePhones
       setProfileLanguage(profile.language ?? "fr")
+      // Absent is not a refusal: a profile written before this field existed
+      // has made no choice, and the defaults are what it has been getting.
+      const prefs = profile.notificationPreferences ?? DEFAULT_NOTIFICATION_PREFERENCES
+      setEmailNotifs(prefs.email)
+      setSmsNotifs(prefs.sms)
     }
   }, [profile])
 
@@ -321,6 +328,33 @@ export default function AccountPage() {
     }
   }
 
+  /**
+   * The apply button had no `onClick` at all.
+   *
+   * The switches moved, the customer pressed "Appliquer", and nothing was sent
+   * anywhere — no request, no error, no feedback. On the next visit the
+   * switches read back whatever the defaults were, so the choice had never
+   * existed. Both channels are submitted together, because the pair shown is
+   * the pair the customer just read.
+   */
+  const handleUpdateNotificationPreferences = async () => {
+    if (isSavingPrefs) return
+
+    setIsSavingPrefs(true)
+    try {
+      await updateMyProfile({
+        notificationPreferences: { email: emailNotifs, sms: smsNotifs },
+      })
+      toast.success("Préférences enregistrées")
+    } catch {
+      toast.error("Vos préférences n'ont pas pu être enregistrées.", {
+        description: "Réessayez dans un instant.",
+      })
+    } finally {
+      setIsSavingPrefs(false)
+    }
+  }
+
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     const form = e.target as HTMLFormElement
@@ -394,7 +428,7 @@ export default function AccountPage() {
           </Avatar>
 
           <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-8 italic">
-            Mon <span className="text-orange-500 not-italic">Compte</span>
+            Mon <span className="text-orange-600 dark:text-orange-400 not-italic">Compte</span>
           </h1>
           <p className="text-xl text-white/80 max-w-2xl mx-auto font-medium">
             Bonjour, {user.name ?? user.email}
@@ -491,7 +525,7 @@ export default function AccountPage() {
                       <p className="text-sm text-zinc-500 truncate mb-1">
                         {user.email}
                       </p>
-                      <p className="text-xs text-zinc-400 font-medium">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                         Cliquez sur l&apos;icône pour changer votre photo
                       </p>
                     </div>
@@ -548,7 +582,7 @@ export default function AccountPage() {
                         <button
                           type="button"
                           onClick={addPhone}
-                          className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-dashed border-zinc-200 text-zinc-400 hover:border-[#0D5C3F] hover:text-[#0D5C3F] transition-colors text-sm font-medium"
+                          className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-dashed border-zinc-200 text-zinc-500 dark:text-zinc-400 hover:border-[#0D5C3F] hover:text-[#0D5C3F] transition-colors text-sm font-medium"
                         >
                           <Plus className="h-4 w-4" />
                           Ajouter un numéro de téléphone
@@ -576,7 +610,7 @@ export default function AccountPage() {
                             <button
                               type="button"
                               onClick={() => removePhone(index)}
-                              className="shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              className="shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -595,7 +629,7 @@ export default function AccountPage() {
                               ))}
                             </select>
                             <div className="flex-1 relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400 font-medium pointer-events-none">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500 dark:text-zinc-400 font-medium pointer-events-none">
                                 {getFlagForCode(phone.countryCode)} {phone.countryCode}
                               </span>
                               <Input
@@ -750,9 +784,12 @@ export default function AccountPage() {
                   <div className="pt-6 border-t border-zinc-100">
                     <Button
                       variant="outline"
-                      className="w-full h-12 rounded-xl border-zinc-200 text-zinc-600 font-black uppercase tracking-widest hover:bg-zinc-50"
+                      onClick={handleUpdateNotificationPreferences}
+                      disabled={isSavingPrefs}
+                      aria-busy={isSavingPrefs}
+                      className="w-full h-12 rounded-xl border-zinc-200 text-zinc-700 font-black uppercase tracking-widest hover:bg-zinc-50 disabled:opacity-60"
                     >
-                      Appliquer les préférences
+                      {isSavingPrefs ? "Enregistrement…" : "Appliquer les préférences"}
                     </Button>
                   </div>
                 </div>

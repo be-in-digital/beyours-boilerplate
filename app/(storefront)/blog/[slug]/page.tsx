@@ -19,6 +19,10 @@ import { fetchQuery } from "convex/nextjs"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { resolveStorefrontStore } from "@/lib/convex-server"
+import { absoluteUrl, buildSeoMetadata } from "@/lib/seo"
+import { PRIVATE_PAGE } from "@/lib/crawler-policy"
+import { getStorefrontSeoContext } from "@/lib/structured-data"
+import { JsonLd, buildBreadcrumbSchema } from "@/lib/json-ld"
 import { formatArticleDate } from "@/lib/blog/presentation"
 import { ARTICLE_SANITIZE_PROFILE } from "@/lib/blog/sanitize-profile"
 import { Badge } from "@/components/ui/badge"
@@ -73,25 +77,49 @@ const getPublishedArticle = cache(async (slug: string) => {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const article = await getPublishedArticle(slug)
+  const [article, { brandName, baseUrl }] = await Promise.all([
+    getPublishedArticle(slug),
+    getStorefrontSeoContext(),
+  ])
+  const pathname = `/blog/${slug}`
 
-  if (!article) return { title: "Article introuvable" }
+  if (!article) {
+    // Nothing at this URL: say so to a crawler rather than let it keep the page.
+    return buildSeoMetadata({
+      fallbackTitle: "Article introuvable",
+      pathname,
+      robots: PRIVATE_PAGE,
+    })
+  }
 
   const title = article.content.metaTitle || article.content.title
   const description = article.content.metaDescription || article.content.excerpt
   const image = article.ogImage?.url ?? article.coverImage?.url
+  const canonical = absoluteUrl(pathname, baseUrl)
+  const resolvedImage = image ? absoluteUrl(image, baseUrl) : undefined
 
+  const metadata = await buildSeoMetadata({
+    fallbackTitle: title,
+    fallbackDescription: description,
+    ...(image ? { fallbackOgImage: image } : {}),
+    pathname,
+    ...(brandName ? { siteName: brandName } : {}),
+  })
+
+  // An article is `og:article`, not `og:website`, and the publication date is
+  // the field a feed reader and an answer engine both look for.
   return {
-    title,
-    description,
+    ...metadata,
     openGraph: {
       type: "article",
       title,
       description,
-      publishedTime: article.publishedAt
-        ? new Date(article.publishedAt).toISOString()
-        : undefined,
-      ...(image ? { images: [image] } : {}),
+      url: canonical,
+      ...(brandName ? { siteName: brandName } : {}),
+      ...(article.publishedAt
+        ? { publishedTime: new Date(article.publishedAt).toISOString() }
+        : {}),
+      ...(resolvedImage ? { images: [{ url: resolvedImage }] } : {}),
     },
   }
 }
@@ -110,12 +138,23 @@ export default async function BlogArticlePage({ params }: Props) {
     ARTICLE_SANITIZE_PROFILE,
   )
 
+  const { baseUrl } = await getStorefrontSeoContext()
+  const breadcrumbs = buildBreadcrumbSchema(
+    [
+      { name: "Accueil", path: "/" },
+      { name: "Blog", path: "/blog" },
+      { name: article.content.title, path: `/blog/${slug}` },
+    ],
+    baseUrl,
+  )
+
   return (
     <div className="min-h-screen bg-[#FDFCF6] dark:bg-zinc-950 text-[#1A1A1A] dark:text-zinc-100 font-sans">
+      <JsonLd data={breadcrumbs} />
       <article className="mx-auto max-w-3xl px-6 md:px-12 py-16 md:py-24">
         <Link
           href="/blog"
-          className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-[#0D5C3F] dark:hover:text-emerald-400 transition-colors mb-10"
+          className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-[#0D5C3F] dark:hover:text-emerald-400 transition-colors mb-10"
         >
           <ArrowLeft className="h-3 w-3" /> Tous les articles
         </Link>
@@ -130,7 +169,7 @@ export default async function BlogArticlePage({ params }: Props) {
           {article.content.title}
         </h1>
 
-        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-8">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-8">
           {[formatArticleDate(article.publishedAt), `${article.readingMinutes} min de lecture`]
             .filter(Boolean)
             .join(" · ")}

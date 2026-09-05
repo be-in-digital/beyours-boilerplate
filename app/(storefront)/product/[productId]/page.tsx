@@ -8,6 +8,10 @@ import {
 } from "@be-in-digital/core"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { buildSeoMetadata } from "@/lib/seo"
+import { PRIVATE_PAGE } from "@/lib/crawler-policy"
+import { JsonLd, buildBreadcrumbSchema, buildProductSchema } from "@/lib/json-ld"
+import { getStorefrontSeoContext } from "@/lib/structured-data"
 import { ProductDetailClientPage } from "./client"
 
 interface Props {
@@ -29,30 +33,37 @@ async function requestLocale(): Promise<string | null> {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { productId } = await params
+  const pathname = `/product/${productId}`
 
   try {
-    const [product, locale] = await Promise.all([
+    const [product, locale, { brandName }] = await Promise.all([
       fetchQuery(api.products.getById, { id: productId as Id<"products"> }),
       requestLocale(),
+      getStorefrontSeoContext(),
     ])
 
     if (!product) {
-      return { title: "Produit introuvable" }
+      // A page that does not exist must not invite a crawler to keep it.
+      return buildSeoMetadata({
+        fallbackTitle: "Produit introuvable",
+        pathname,
+        robots: PRIVATE_PAGE,
+      })
     }
 
     const { name, description } = localizeDocument(product, locale)
+    const image = Array.isArray(product.images) ? product.images[0] : undefined
 
-    return {
-      title: name,
-      description: description ?? `Commandez ${name} en ligne`,
-      openGraph: {
-        title: name,
-        description: description ?? undefined,
-        images: product.images?.[0] ? [product.images[0]] : undefined,
-      },
-    }
+    return buildSeoMetadata({
+      fallbackTitle: name,
+      fallbackDescription: description ?? `Commandez ${name} en ligne`,
+      ...(typeof image === "string" ? { fallbackOgImage: image } : {}),
+      pathname,
+      ...(brandName ? { siteName: brandName } : {}),
+      ...(locale ? { ogLocale: locale } : {}),
+    })
   } catch {
-    return { title: "Produit" }
+    return buildSeoMetadata({ fallbackTitle: "Produit", pathname })
   }
 }
 
@@ -89,13 +100,44 @@ export default async function ProductDetailPage({ params }: Props) {
   const locale = await requestLocale()
   const { name, description } = localizeDocument(product, locale)
 
+  // A priced dish, attached to the establishment that sells it. This is what
+  // puts the price and the availability under the result rather than a bare
+  // blue link.
+  const { store, baseUrl } = await getStorefrontSeoContext()
+  const image = Array.isArray(product.images) ? product.images[0] : undefined
+
+  const dish = buildProductSchema(
+    {
+      id: productId,
+      name,
+      description: description ?? null,
+      price: typeof product.price === "number" ? product.price : 0,
+      imageUrl: typeof image === "string" ? image : null,
+      available: product.isActive !== false,
+    },
+    { baseUrl, ...(store ? { store } : {}) },
+  )
+
+  const breadcrumbs = buildBreadcrumbSchema(
+    [
+      { name: "Accueil", path: "/" },
+      { name: "Menu", path: "/menu" },
+      { name, path: `/product/${productId}` },
+    ],
+    baseUrl,
+  )
+
   return (
-    <ProductDetailClientPage
-      product={{
-        ...product,
-        name,
-        ...(description === undefined ? {} : { description }),
-      }}
-    />
+    <>
+      <JsonLd data={dish} />
+      <JsonLd data={breadcrumbs} />
+      <ProductDetailClientPage
+        product={{
+          ...product,
+          name,
+          ...(description === undefined ? {} : { description }),
+        }}
+      />
+    </>
   )
 }

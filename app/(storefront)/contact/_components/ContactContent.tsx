@@ -18,6 +18,11 @@ import { Badge } from "@/components/ui/badge"
 import { useCmsPage } from "@/lib/cms/useCmsPage"
 import { parseColoredText } from "@/lib/parse-colored-text"
 import { useStoreId } from "@/lib/hooks/use-store-id"
+import {
+    formatStoreAddressLines,
+    formatWeeklyHours,
+    resolveStoreHours,
+} from "@be-in-digital/restaurant"
 import type { Id } from "@/convex/_generated/dataModel"
 import { toast } from "sonner"
 
@@ -48,6 +53,15 @@ export default function ContactPage() {
     const infoAddress = info.field("addressTitle").text ?? "Adresse"
     const infoHours = info.field("hoursTitle").text ?? "Horaires"
     const infoContact = info.field("contactTitle").text ?? "Contact"
+
+    // `store` is `undefined` while the query is in flight and `null` when the
+    // visitor has no store selected. Both mean "nothing to show yet", and the
+    // card renders a skeleton rather than the invented address it used to:
+    // a placeholder street on a real restaurant's contact page is a visitor
+    // sent to the wrong door.
+    const isLoadingStore = store === undefined
+    const addressLines = store ? formatStoreAddressLines(store.address) : []
+    const hoursRows = store ? formatWeeklyHours(resolveStoreHours(store)) : []
 
     const [submitted, setSubmitted] = useState(false)
     const [sending, setSending] = useState(false)
@@ -96,7 +110,7 @@ export default function ContactPage() {
                         {heroBadge}
                     </Badge>
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
-                        {parseColoredText(heroTitle, "text-orange-500 italic")}
+                        {parseColoredText(heroTitle, "text-orange-600 dark:text-orange-400 italic")}
                     </h1>
                     <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">
                         {heroSubtitle}
@@ -154,7 +168,7 @@ export default function ContactPage() {
                                 <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-name">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2 block" htmlFor="contact-name">
                                                 Nom complet
                                             </label>
                                             <input
@@ -163,11 +177,11 @@ export default function ContactPage() {
                                                 type="text"
                                                 required
                                                 placeholder="Votre nom"
-                                                className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-300 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
+                                                className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-email">
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2 block" htmlFor="contact-email">
                                                 Email
                                             </label>
                                             <input
@@ -176,12 +190,12 @@ export default function ContactPage() {
                                                 type="email"
                                                 required
                                                 placeholder="votre@email.com"
-                                                className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-300 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
+                                                className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-phone">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2 block" htmlFor="contact-phone">
                                             Téléphone (optionnel)
                                         </label>
                                         <input
@@ -189,11 +203,11 @@ export default function ContactPage() {
                                             id="contact-phone"
                                             type="tel"
                                             placeholder="+33 6 00 00 00 00"
-                                            className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-300 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
+                                            className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-subject">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2 block" htmlFor="contact-subject">
                                             Sujet
                                         </label>
                                         <select
@@ -211,7 +225,7 @@ export default function ContactPage() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 block" htmlFor="contact-message">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2 block" htmlFor="contact-message">
                                             Message
                                         </label>
                                         <textarea
@@ -220,7 +234,7 @@ export default function ContactPage() {
                                             required
                                             rows={5}
                                             placeholder="Comment pouvons-nous vous aider ?"
-                                            className="w-full px-5 py-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-300 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors resize-none"
+                                            className="w-full px-5 py-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors resize-none"
                                         />
                                     </div>
                                     <Button
@@ -262,11 +276,25 @@ export default function ContactPage() {
                                     {infoAddress}
                                 </h3>
                             </div>
-                            <p className="text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
-                                {store?.address ?? "123 Rue de la Gastronomie"}
-                                <br />
-                                {store?.city ?? "75001 Paris, France"}
-                            </p>
+                            {isLoadingStore ? (
+                                <div className="space-y-2" aria-hidden="true">
+                                    <div className="h-4 w-3/4 rounded-full bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+                                    <div className="h-4 w-1/2 rounded-full bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+                                </div>
+                            ) : addressLines.length > 0 ? (
+                                <address className="not-italic text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
+                                    {addressLines.map((line, i) => (
+                                        <React.Fragment key={line}>
+                                            {i > 0 && <br />}
+                                            {line}
+                                        </React.Fragment>
+                                    ))}
+                                </address>
+                            ) : (
+                                <p className="text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+                                    Adresse bientôt disponible.
+                                </p>
+                            )}
                         </div>
 
                         {/* Hours */}
@@ -279,17 +307,25 @@ export default function ContactPage() {
                                     {infoHours}
                                 </h3>
                             </div>
-                            <div className="space-y-2">
-                                {(store?.openingHours ?? [
-                                    { day: "Lun - Ven", hours: "11h00 - 22h00" },
-                                    { day: "Sam - Dim", hours: "10h00 - 23h00" },
-                                ]).map((slot: { day: string; hours: string }, i: number) => (
-                                    <div key={i} className="flex items-center justify-between">
-                                        <span className="text-sm font-bold text-zinc-600 dark:text-zinc-400">{slot.day}</span>
-                                        <span className="text-sm font-black text-zinc-800 dark:text-zinc-200">{slot.hours}</span>
-                                    </div>
-                                ))}
-                            </div>
+                            {isLoadingStore ? (
+                                <div className="space-y-2" aria-hidden="true">
+                                    <div className="h-4 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+                                    <div className="h-4 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+                                </div>
+                            ) : hoursRows.length > 0 ? (
+                                <dl className="space-y-2">
+                                    {hoursRows.map((row) => (
+                                        <div key={row.days} className="flex items-center justify-between gap-4">
+                                            <dt className="text-sm font-bold text-zinc-600 dark:text-zinc-300">{row.days}</dt>
+                                            <dd className="text-sm font-black text-zinc-800 dark:text-zinc-200">{row.hours}</dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            ) : (
+                                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                                    Horaires bientôt disponibles.
+                                </p>
+                            )}
                         </div>
 
                         {/* Contact */}
@@ -303,24 +339,42 @@ export default function ContactPage() {
                                 </h3>
                             </div>
                             <div className="space-y-3">
-                                <a
-                                    href={`tel:${store?.phone ?? "+33123456789"}`}
-                                    className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400 hover:text-[#0D5C3F] dark:hover:text-emerald-400 transition-colors group"
-                                >
-                                    <Phone className="h-4 w-4" />
-                                    <span className="font-bold text-sm group-hover:underline">
-                                        {store?.phone ?? "+33 1 23 45 67 89"}
-                                    </span>
-                                </a>
-                                <a
-                                    href={`mailto:${store?.email ?? "contact@restaurant.com"}`}
-                                    className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400 hover:text-[#0D5C3F] dark:hover:text-emerald-400 transition-colors group"
-                                >
-                                    <Mail className="h-4 w-4" />
-                                    <span className="font-bold text-sm group-hover:underline">
-                                        {store?.email ?? "contact@restaurant.com"}
-                                    </span>
-                                </a>
+                                {isLoadingStore ? (
+                                    <div className="space-y-3" aria-hidden="true">
+                                        <div className="h-4 w-2/3 rounded-full bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+                                        <div className="h-4 w-3/4 rounded-full bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        {store?.phone && (
+                                            <a
+                                                href={`tel:${store.phone.replace(/\s+/g, "")}`}
+                                                className="flex items-center gap-3 text-zinc-600 dark:text-zinc-300 hover:text-[#0D5C3F] dark:hover:text-emerald-400 transition-colors group"
+                                            >
+                                                <Phone className="h-4 w-4" />
+                                                <span className="font-bold text-sm group-hover:underline">
+                                                    {store.phone}
+                                                </span>
+                                            </a>
+                                        )}
+                                        {store?.email && (
+                                            <a
+                                                href={`mailto:${store.email}`}
+                                                className="flex items-center gap-3 text-zinc-600 dark:text-zinc-300 hover:text-[#0D5C3F] dark:hover:text-emerald-400 transition-colors group"
+                                            >
+                                                <Mail className="h-4 w-4" />
+                                                <span className="font-bold text-sm group-hover:underline">
+                                                    {store.email}
+                                                </span>
+                                            </a>
+                                        )}
+                                        {!store?.phone && !store?.email && (
+                                            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                                                Écrivez-nous avec le formulaire, on vous répond vite.
+                                            </p>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </div>
 

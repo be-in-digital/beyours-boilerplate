@@ -350,7 +350,7 @@ export default function CheckoutPage() {
           </div>
           <h1 className="mb-4 text-4xl font-black uppercase italic tracking-tighter text-zinc-800">
             Commande {" "}
-            <span className="not-italic text-orange-500">Confirmée</span>
+            <span className="not-italic text-orange-600 dark:text-orange-400">Confirmée</span>
           </h1>
 
           <div className="mb-6">
@@ -581,7 +581,7 @@ export default function CheckoutPage() {
         <header className="mb-12">
           <Link
             href="/cart"
-            className="group mb-4 inline-flex items-center text-sm font-bold uppercase tracking-widest text-zinc-400 transition-colors hover:text-[#0D5C3F]"
+            className="group mb-4 inline-flex items-center text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-[#0D5C3F]"
           >
             <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Retour à la Box
@@ -590,7 +590,7 @@ export default function CheckoutPage() {
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <h1 className="text-5xl font-black uppercase italic tracking-tighter text-zinc-800">
               Finaliser{" "}
-              <span className="not-italic text-orange-500">Commande</span>
+              <span className="not-italic text-orange-600 dark:text-orange-400">Commande</span>
             </h1>
 
             {!session && (

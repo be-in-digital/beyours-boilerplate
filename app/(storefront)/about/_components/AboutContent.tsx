@@ -115,7 +115,7 @@ export default function AboutPage() {
                         {heroBadge}
                     </Badge>
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
-                        {parseColoredText(heroTitle, "text-orange-500 italic")}
+                        {parseColoredText(heroTitle, "text-orange-600 dark:text-orange-400 italic")}
                     </h1>
                     <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">
                         {heroSubtitle}
@@ -156,7 +156,7 @@ export default function AboutPage() {
                             {storyBadge}
                         </Badge>
                         <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.9] mb-8 text-zinc-800 dark:text-zinc-100">
-                            {parseColoredText(storyTitle, "text-orange-500 italic")}
+                            {parseColoredText(storyTitle, "text-orange-600 dark:text-orange-400 italic")}
                         </h2>
                         {/*
                           `story.description` is a CMS `richtext` field: the
@@ -182,7 +182,7 @@ export default function AboutPage() {
                             {valuesBadge}
                         </Badge>
                         <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.9] text-zinc-800 dark:text-zinc-100">
-                            {parseColoredText(valuesTitle, "text-orange-500 italic")}
+                            {parseColoredText(valuesTitle, "text-orange-600 dark:text-orange-400 italic")}
                         </h2>
                     </div>
 

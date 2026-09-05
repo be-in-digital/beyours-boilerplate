@@ -192,7 +192,7 @@ function CheckoutSuccessContent() {
   if (outcome.state === "verifying") {
     return (
       <Shell>
-        <Loader2 className="mx-auto mb-8 h-12 w-12 animate-spin text-zinc-400" />
+        <Loader2 className="mx-auto mb-8 h-12 w-12 animate-spin text-zinc-500 dark:text-zinc-400" />
         <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
           Confirmation en cours
         </h1>
@@ -269,7 +269,7 @@ function CheckoutSuccessContent() {
         <CheckCircle2 className="h-12 w-12" />
       </div>
       <h1 className="mb-4 text-4xl font-black uppercase italic tracking-tighter text-zinc-800">
-        Commande <span className="not-italic text-orange-500">Confirmée</span>
+        Commande <span className="not-italic text-orange-600 dark:text-orange-400">Confirmée</span>
       </h1>
 
       {(outcome.orderNumber ?? outcome.orderId) && (
@@ -315,7 +315,7 @@ function CheckoutSuccessContent() {
       </div>
 
       {trackHref && (
-        <p className="mt-6 text-xs text-zinc-400">
+        <p className="mt-6 text-xs text-zinc-500 dark:text-zinc-400">
           Gardez ce lien : c&apos;est le seul moyen de retrouver cette commande
           sans compte.
         </p>
@@ -381,7 +381,7 @@ export default function CheckoutSuccessPage() {
     <Suspense
       fallback={
         <Shell>
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-zinc-400" />
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-zinc-500 dark:text-zinc-400" />
         </Shell>
       }
     >

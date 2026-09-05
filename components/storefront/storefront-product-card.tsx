@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { Heart, Plus, ShoppingBag } from "lucide-react"
 import {
   formatPrice,
@@ -21,6 +22,19 @@ interface StorefrontProductCardProps {
   otherStore?: boolean
 }
 
+/**
+ * Product images go through `next/image`, not a raw `<img>`.
+ *
+ * A menu page renders twelve of these, and each one used to fetch the
+ * full-size original an owner uploaded — a 3 MB photograph from a phone,
+ * scaled down by the browser, on every card, with no lazy loading and no
+ * modern format. `next/image` resizes to the slot, serves AVIF or WebP where
+ * the browser accepts it, and defers everything below the fold.
+ *
+ * Deliberately no `priority`: every grid this card appears in sits under a
+ * full-height hero, so no card is above the fold and marking one would only
+ * delay the hero that is.
+ */
 export function StorefrontProductCard({
   product: sourceProduct,
   storeId,
@@ -49,10 +63,16 @@ export function StorefrontProductCard({
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
         {product.images?.[0] ? (
-          <img
+          <Image
             src={product.images[0]}
             alt={product.name}
-            className="h-full w-full object-cover group-hover:scale-110 transition-all duration-700"
+            fill
+            // The card sits in a four-column grid at desktop, two at tablet,
+            // one on a phone. Without this the optimiser is asked for a
+            // full-viewport image for a quarter-viewport slot, twelve times a
+            // menu page.
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover group-hover:scale-110 transition-all duration-700"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-zinc-300">
@@ -89,7 +109,7 @@ export function StorefrontProductCard({
             className={`h-4 w-4 transition-colors ${
               favorited
                 ? "fill-red-500 text-red-500"
-                : "text-zinc-400"
+                : "text-zinc-500 dark:text-zinc-400"
             }`}
           />
         </button>
@@ -107,14 +127,14 @@ export function StorefrontProductCard({
         </h3>
 
         {product.description && (
-          <p className="text-xs text-zinc-400 line-clamp-2 mb-4 leading-relaxed">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-4 leading-relaxed">
             {product.description}
           </p>
         )}
 
         <div className="mt-auto flex items-center justify-between gap-4">
           <div className="flex flex-col">
-            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none mb-1">
+            <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none mb-1">
               {t("product.price")}
             </span>
             <span className="text-xl font-black text-[#0D5C3F] leading-none">

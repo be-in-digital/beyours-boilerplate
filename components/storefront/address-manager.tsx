@@ -88,9 +88,33 @@ export function AddressManager() {
       city: addr.city,
       postalCode: addr.postalCode,
       country: addr.country,
+      // Carried through the edit, not dropped. `editLocationField` below
+      // discards them again the moment one of the three fields they describe
+      // is retyped, so an address only keeps coordinates that still match it.
+      latitude: addr.latitude,
+      longitude: addr.longitude,
     })
     setAddressMode("manual")
     setShowForm(true)
+  }
+
+  /**
+   * Edit one of the fields the coordinates describe.
+   *
+   * Street, city and postcode are what the autocomplete geocoded. Retyping any
+   * of them makes the stored point describe somewhere else, and a stale point
+   * is worse than none: the checkout would quote a courier to the old address
+   * without ever showing that it had. Dropping them puts the address back in
+   * the state the schema documents — no coordinates, so re-entered at checkout
+   * rather than geocoded blind.
+   */
+  const editLocationField = (field: "street" | "city" | "postalCode", value: string) => {
+    setManualAddress((p) => ({
+      ...p,
+      [field]: value,
+      latitude: undefined,
+      longitude: undefined,
+    }))
   }
 
   const handleSubmit = () => {
@@ -104,6 +128,12 @@ export function AddressManager() {
       city: manualAddress.city,
       postalCode: manualAddress.postalCode,
       country: manualAddress.country || "France",
+      // The reason this address book exists is to spare the customer retyping
+      // an address at checkout — and the checkout quotes Uber Direct from these
+      // two numbers alone. Dropping them here meant the same address produced a
+      // different delivery fee depending on where it had been entered.
+      latitude: manualAddress.latitude,
+      longitude: manualAddress.longitude,
     }
     if (editingId) {
       updateAddress(editingId, data)
@@ -223,7 +253,7 @@ export function AddressManager() {
                 {editingId ? "Modifier l\u2019adresse" : "Nouvelle adresse"}
               </h2>
             </div>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Recherchez votre adresse ou saisissez-la manuellement.
             </p>
           </div>
@@ -263,7 +293,7 @@ export function AddressManager() {
               <button
                 type="button"
                 onClick={() => setAddressMode("manual")}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-200 px-4 py-3 text-xs font-bold uppercase tracking-widest text-zinc-400 transition-all hover:border-zinc-300 hover:text-zinc-500"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-200 px-4 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-all hover:border-zinc-300 hover:text-zinc-500"
               >
                 <MapPinOff className="h-3.5 w-3.5" />
                 Je ne trouve pas mon adresse
@@ -287,7 +317,7 @@ export function AddressManager() {
                         setAddressMode("search")
                         setManualAddress(emptyAddress)
                       }}
-                      className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 transition-colors hover:text-zinc-600"
+                      className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-zinc-600"
                     >
                       Modifier
                     </button>
@@ -317,7 +347,7 @@ export function AddressManager() {
                   </Label>
                   <Input
                     value={manualAddress.street}
-                    onChange={(e) => setManualAddress((p) => ({ ...p, street: e.target.value }))}
+                    onChange={(e) => editLocationField("street", e.target.value)}
                     placeholder="123 rue de la Paix"
                     readOnly={addressMode === "selected"}
                     className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
@@ -330,7 +360,7 @@ export function AddressManager() {
                     </Label>
                     <Input
                       value={manualAddress.city}
-                      onChange={(e) => setManualAddress((p) => ({ ...p, city: e.target.value }))}
+                      onChange={(e) => editLocationField("city", e.target.value)}
                       placeholder="Paris"
                       readOnly={addressMode === "selected"}
                       className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
@@ -342,7 +372,7 @@ export function AddressManager() {
                     </Label>
                     <Input
                       value={manualAddress.postalCode}
-                      onChange={(e) => setManualAddress((p) => ({ ...p, postalCode: e.target.value }))}
+                      onChange={(e) => editLocationField("postalCode", e.target.value)}
                       placeholder="75001"
                       readOnly={addressMode === "selected"}
                       className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useSyncExternalStore } from "react"
+import React, { useRef, useSyncExternalStore } from "react"
 import Link from "next/link"
 import { ShoppingBag, X, Plus, Minus, Trash2, ArrowRight } from "lucide-react"
 import {
@@ -24,6 +24,12 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from "@be-in-digital/ui/components"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { useCartStore, formatPrice, useTranslation } from "@be-in-digital/restaurant"
 
 interface CartSheetProps {
@@ -51,21 +57,43 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
   const displayCount = hasMounted ? itemCount : 0
 
-  return (
-    <>
-      {/* Overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 transition-opacity"
-          onClick={() => onOpenChange(false)}
-        />
-      )}
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
 
-      {/* Sheet panel */}
-      <div
-        className={`fixed inset-y-0 right-0 z-50 flex w-full flex-col overflow-hidden rounded-l-[3rem] border-none sm:max-w-md shadow-xl transition-transform duration-300 ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
+  return (
+    /*
+      A drawer that is actually a dialog.
+
+      This was a bare `<div>`, permanently rendered and merely pushed off-screen
+      with `translate-x-full`. It carried no `role`, no `aria-modal`, no focus
+      trap and no Escape handler — and because it was never unmounted, its seven
+      buttons sat in the tab order of EVERY page: a keyboard user tabbing
+      through the homepage walked into an invisible cart.
+
+      `Sheet` is the repository's own Radix wrapper (`components/ui/sheet.tsx`),
+      unused here until now. It brings the dialog role, `aria-modal`, the focus
+      trap, focus restored to the trigger on close, Escape, and — through Radix
+      Presence — unmounting that still plays the slide-out animation, so nothing
+      is left behind in the accessibility tree or the tab order.
+    */
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        // Radix marks the rest of the document `aria-hidden` and leaves
+        // `aria-modal` off. Both are valid; stating it as well costs nothing
+        // and is what a screen reader older than that convention looks for.
+        aria-modal="true"
+        // Left to itself, Radix focuses the first tabbable element — which here
+        // is "Tout vider", a tooltip trigger. Focusing it opens the tooltip,
+        // the tooltip becomes the topmost dismissable layer, and the first
+        // Escape closes the TOOLTIP instead of the cart: the customer has to
+        // press it twice, and the first press looks like nothing happened.
+        // The close button is both the safe landing and the obvious one.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          closeButtonRef.current?.focus()
+        }}
+        className="flex w-full flex-col gap-0 overflow-hidden rounded-l-[3rem] border-none bg-white p-0 shadow-xl sm:max-w-md"
       >
         {/* Header — green */}
         <div className="bg-[#0D5C3F] p-8 text-white">
@@ -75,15 +103,15 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 <ShoppingBag className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+                <SheetTitle className="text-2xl font-black uppercase italic tracking-tighter text-white">
                   {t("cart.boxTitleFull")}
-                </h2>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+                </SheetTitle>
+                <SheetDescription className="text-[10px] font-bold uppercase tracking-widest text-white/60">
                   {displayCount}{" "}
                   {displayCount > 1
                     ? t("cart.itemsSelected")
                     : t("cart.itemSelected")}
-                </p>
+                </SheetDescription>
               </div>
             </div>
 
@@ -135,8 +163,10 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
               <button
                 type="button"
+                ref={closeButtonRef}
                 onClick={() => onOpenChange(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                aria-label="Fermer la Box"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D5C3F]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -281,7 +311,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                     <AlertDialogTrigger asChild>
                                       <button
                                         aria-label={`Retirer ${lineLabel}`}
-                                        className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition-all hover:bg-white hover:text-rose-500 hover:shadow-sm"
+                                        className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-400 transition-all hover:bg-white hover:text-rose-500 hover:shadow-sm"
                                       >
                                         <Minus className="h-3 w-3" />
                                       </button>
@@ -330,7 +360,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                       )
                                     }
                                     aria-label={`Diminuer la quantité de ${lineLabel}`}
-                                    className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition-all hover:bg-white hover:text-zinc-600 hover:shadow-sm"
+                                    className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-400 transition-all hover:bg-white hover:text-zinc-600 hover:shadow-sm"
                                   >
                                     <Minus className="h-3 w-3" />
                                   </button>
@@ -355,7 +385,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                     )
                                   }
                                   aria-label={`Augmenter la quantité de ${lineLabel}`}
-                                  className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition-all hover:bg-white hover:text-zinc-600 hover:shadow-sm"
+                                  className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-400 transition-all hover:bg-white hover:text-zinc-600 hover:shadow-sm"
                                 >
                                   <Plus className="h-3 w-3" />
                                 </button>
@@ -367,7 +397,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           </div>
 
                           {/* Line total */}
-                          <span className="text-xs font-black uppercase tracking-widest text-zinc-400">
+                          <span className="text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                             {formatPrice(lineTotal)}
                           </span>
                         </div>
@@ -384,7 +414,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
         {items.length > 0 && (
           <div className="flex flex-col gap-4 border-t border-zinc-100 bg-zinc-50 p-8">
             <div className="w-full space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-400">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                 <span>{t("common.subtotal")}</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
@@ -409,7 +439,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
             </Link>
           </div>
         )}
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   )
 }

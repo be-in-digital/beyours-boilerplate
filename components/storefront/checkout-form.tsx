@@ -247,14 +247,14 @@ export function CheckoutForm({
               className={`group flex h-24 flex-col items-center justify-center gap-2 rounded-[2rem] border-2 transition-all ${
                 isSelected
                   ? "border-[#0D5C3F] bg-[#0D5C3F] text-white shadow-xl shadow-emerald-900/10"
-                  : "border-zinc-100 bg-white text-zinc-400 hover:border-zinc-200"
+                  : "border-zinc-100 bg-white text-zinc-500 dark:text-zinc-400 hover:border-zinc-200"
               }`}
             >
               <Icon
                 className={`h-6 w-6 transition-colors ${
                   isSelected
                     ? "text-orange-400"
-                    : "text-zinc-300 group-hover:text-zinc-400"
+                    : "text-zinc-500 group-hover:text-zinc-700"
                 }`}
               />
               <span className="text-[10px] font-black uppercase tracking-widest">
@@ -276,7 +276,7 @@ export function CheckoutForm({
               Contact
             </h2>
           </div>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Renseignez vos coordonnées pour la confirmation de commande.
           </p>
         </div>
@@ -354,7 +354,7 @@ export function CheckoutForm({
                 Livraison
               </h2>
             </div>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Où souhaitez-vous recevoir votre commande ?
             </p>
           </div>
@@ -452,7 +452,7 @@ export function CheckoutForm({
                   <button
                     type="button"
                     onClick={() => setAddressMode("manual")}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-200 px-4 py-3 text-xs font-bold uppercase tracking-widest text-zinc-400 transition-all hover:border-zinc-300 hover:text-zinc-500"
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-200 px-4 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-all hover:border-zinc-300 hover:text-zinc-500"
                   >
                     <MapPinOff className="h-3.5 w-3.5" />
                     Je ne trouve pas mon adresse
@@ -476,7 +476,7 @@ export function CheckoutForm({
                             setAddressMode("search")
                             setManualAddress({ street: "", city: "", postalCode: "", country: "France" })
                           }}
-                          className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 transition-colors hover:text-zinc-600"
+                          className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-zinc-600"
                         >
                           Modifier
                         </button>
@@ -568,7 +568,7 @@ export function CheckoutForm({
               Paiement
             </h2>
           </div>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Choisissez votre moyen de paiement préféré.
           </p>
         </div>
@@ -640,10 +640,10 @@ export function CheckoutForm({
                 }`}
               >
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${isAuthenticated ? "bg-emerald-50" : "bg-zinc-100"}`}>
-                  <Banknote className={`h-6 w-6 ${isAuthenticated ? "text-emerald-600" : "text-zinc-400"}`} />
+                  <Banknote className={`h-6 w-6 ${isAuthenticated ? "text-emerald-600" : "text-zinc-500 dark:text-zinc-400"}`} />
                 </div>
                 <div>
-                  <p className={`font-bold ${isAuthenticated ? "text-zinc-800" : "text-zinc-400"}`}>Espèces</p>
+                  <p className={`font-bold ${isAuthenticated ? "text-zinc-800" : "text-zinc-500 dark:text-zinc-400"}`}>Espèces</p>
                   <p className="text-[10px] uppercase tracking-widest text-zinc-500">
                     {isAuthenticated ? "Paiement au retrait" : "Connectez-vous pour payer en espèces"}
                   </p>
@@ -654,7 +654,7 @@ export function CheckoutForm({
               </button>
             )}
           </div>
-          <p className="mt-3 text-[10px] font-medium italic text-zinc-400">
+          <p className="mt-3 text-[10px] font-medium italic text-zinc-500 dark:text-zinc-400">
             Le paiement sera traité de manière sécurisée au moment de la validation.
           </p>
         </div>

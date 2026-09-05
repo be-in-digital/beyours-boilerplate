@@ -157,7 +157,7 @@ export default function LandingPage() {
                             {heroBadge}
                         </Badge>
                         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 drop-shadow-2xl whitespace-pre-line">
-                            {parseColoredText(heroTitle, "text-orange-500 italic")}
+                            {parseColoredText(heroTitle, "text-orange-600 dark:text-orange-400 italic")}
                         </h1>
                         <p className="text-lg md:text-xl text-white/90 mb-10 max-w-lg leading-relaxed font-black drop-shadow-md">
                             {heroSubtitle}
@@ -308,7 +308,7 @@ export default function LandingPage() {
                                 {ctaBadge}
                             </Badge>
                             <h2 className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white leading-[0.9] tracking-tighter italic whitespace-pre-line">
-                                {parseColoredText(ctaTitle, "text-orange-500 not-italic")}
+                                {parseColoredText(ctaTitle, "text-orange-600 dark:text-orange-400 not-italic")}
                             </h2>
                         </div>
 
@@ -416,7 +416,7 @@ export default function LandingPage() {
                                         </div>
                                         <div>
                                             <p className="font-black text-xl leading-none">4.9/5</p>
-                                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1 text-nowrap">Average Rating</p>
+                                            <p className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mt-1 text-nowrap">Average Rating</p>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -483,7 +483,7 @@ export default function LandingPage() {
                                     ))}
                                 </CarouselContent>
                                 <div className="flex items-center gap-4 mt-16 lg:mt-24">
-                                    <CarouselPrevious className="static translate-y-0 h-14 w-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-[#0D5C3F] hover:border-[#0D5C3F] hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all bg-white dark:bg-zinc-900 shadow-sm" />
+                                    <CarouselPrevious className="static translate-y-0 h-14 w-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-[#0D5C3F] hover:border-[#0D5C3F] hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all bg-white dark:bg-zinc-900 shadow-sm" />
                                     <CarouselNext className="static translate-y-0 h-14 w-14 rounded-2xl bg-[#0D5C3F] flex items-center justify-center text-white hover:bg-emerald-900 transition-all border-none shadow-xl shadow-emerald-950/20" />
                                 </div>
                             </Carousel>
@@ -498,7 +498,7 @@ export default function LandingPage() {
                     <div className="flex items-end justify-between mb-16 px-8">
                         <div>
                             <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-[0.9] mb-6 whitespace-pre-line">
-                                {parseColoredText(blogTitle, "text-orange-500 italic")}
+                                {parseColoredText(blogTitle, "text-orange-600 dark:text-orange-400 italic")}
                             </h2>
                             <div className="h-2 w-24 bg-emerald-800 rounded-full" />
                         </div>

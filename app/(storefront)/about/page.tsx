@@ -6,6 +6,7 @@ import AboutPage from "./_components/AboutContent"
 export async function generateMetadata(): Promise<Metadata> {
   return generateCmsMetadata({
     pageSlug: "about",
+    pathname: "/about",
     fallbackTitle: "À propos — Notre histoire",
     fallbackDescription: "Découvrez notre histoire, nos valeurs et notre passion pour la cuisine.",
   })

@@ -124,6 +124,7 @@
     "convex-test": "^0.0.44",
     "eslint": "^9.39.4",
     "eslint-config-next": "16.2.12",
+    "jsdom": "28.1.0",
     "tailwindcss": "^4.2.2",
     "tsx": "^4.20.0",
     "typescript": "^5.9.3",

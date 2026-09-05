@@ -1,13 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { Heart, Minus, Plus, ShoppingBag, Clock } from "lucide-react"
+import { useCallback, useId, useRef, useState } from "react"
+import { Check, Heart, Minus, Plus, ShoppingBag, Clock } from "lucide-react"
 import Link from "next/link"
 import {
   Badge,
   Separator,
   Label,
-  Checkbox,
 } from "@be-in-digital/ui/components"
 import { AllergenBadge, SpiceLevelIndicator } from "@be-in-digital/ui/restaurant"
 import type { Allergen } from "@be-in-digital/ui/restaurant"
@@ -44,6 +43,36 @@ export function ProductDetailClient({
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string[]>
   >({})
+
+  const optionsId = useId()
+
+  /**
+   * The first control of each option group, so a refused add-to-cart can send
+   * the customer to the choice it is waiting for.
+   *
+   * A toast naming the missing option is fine for a mouse; a keyboard user is
+   * left at the bottom of the page with no idea where "Taille" is.
+   */
+  const firstChoiceInput = useRef<Map<string, HTMLInputElement>>(new Map())
+
+  const registerChoiceInput = useCallback(
+    (optionId: string, choiceId: string, el: HTMLInputElement | null) => {
+      const key = `${optionId}:${choiceId}`
+      const map = firstChoiceInput.current
+      if (el) map.set(key, el)
+      else map.delete(key)
+    },
+    []
+  )
+
+  const focusFirstChoice = useCallback((optionId: string) => {
+    for (const [key, el] of firstChoiceInput.current) {
+      if (key.startsWith(`${optionId}:`)) {
+        el.focus()
+        return
+      }
+    }
+  }, [])
 
   const available = isProductAvailable(product)
   const canAdd = available && isOpen
@@ -100,6 +129,7 @@ export function ProductDetailClient({
     for (const option of product.options ?? []) {
       if (option.required && !(selectedOptions[option.id]?.length)) {
         toast.error(`Veuillez sélectionner : ${option.name}`)
+        focusFirstChoice(option.id)
         return
       }
     }
@@ -158,7 +188,7 @@ export function ProductDetailClient({
               className={`h-5 w-5 ${
                 isFavorite(product._id, storeId)
                   ? "fill-red-500 text-red-500"
-                  : "text-zinc-400"
+                  : "text-zinc-500 dark:text-zinc-400"
               }`}
             />
           </button>
@@ -198,7 +228,7 @@ export function ProductDetailClient({
             {product.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-zinc-50 border border-zinc-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-400"
+                className="rounded-full bg-zinc-50 border border-zinc-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
               >
                 {tag}
               </span>
@@ -211,12 +241,19 @@ export function ProductDetailClient({
           <div className="space-y-10">
             {product.options?.map((option) => {
               const isRadio = option.maxSelections === 1
+              const labelId = `${optionsId}-${option.id}-label`
+              const hintId = `${optionsId}-${option.id}-hint`
 
               return (
                 <div key={option.id} className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                      <Label className="text-sm font-black uppercase tracking-tighter text-zinc-800 flex items-center gap-2">
+                      {/* `id`, not `htmlFor`: this names the group below, and a
+                          group of controls has no single control to point at. */}
+                      <Label
+                        id={labelId}
+                        className="text-sm font-black uppercase tracking-tighter text-zinc-800 flex items-center gap-2"
+                      >
                         {option.name}
                         {option.required && (
                           <span className="bg-orange-500/10 text-orange-600 border-none py-0.5 px-2 rounded-md text-[8px] font-black uppercase">
@@ -224,7 +261,10 @@ export function ProductDetailClient({
                           </span>
                         )}
                       </Label>
-                      <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
+                      <p
+                        id={hintId}
+                        className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest"
+                      >
                         {isRadio
                           ? "Choisir 1"
                           : option.maxSelections
@@ -234,37 +274,84 @@ export function ProductDetailClient({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/*
+                    A real group, holding real controls.
+
+                    This was a `<div onClick>` containing a `<div>` drawn to look
+                    like a radio: nothing focusable, no role, no key handler. A
+                    keyboard or screen-reader user could not select a REQUIRED
+                    option, so `handleAddToCart` refused them and the dish could
+                    not be bought at all. The native inputs below bring arrow-key
+                    navigation, roving focus, Space/Enter and the checked state
+                    with them, and the `<label>` wrapper is what makes the whole
+                    row clickable — one toggle path instead of two.
+                  */}
+                  <div
+                    role={isRadio ? "radiogroup" : "group"}
+                    aria-labelledby={labelId}
+                    aria-describedby={hintId}
+                    aria-required={isRadio && option.required ? true : undefined}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
                     {option.choices.map((choice) => {
                       const isSelected = (selectedOptions[option.id] ?? []).includes(choice.id)
+                      const atLimit =
+                        !isRadio &&
+                        !isSelected &&
+                        option.maxSelections !== undefined &&
+                        (selectedOptions[option.id] ?? []).length >= option.maxSelections
 
                       return (
-                        <div
+                        <label
                           key={choice.id}
-                          onClick={() => handleOptionToggle(option.id, choice.id, option.maxSelections)}
-                          className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group ${
+                          className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#0D5C3F] has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:border-[#0D5C3F] ${
                             isSelected
                               ? "bg-emerald-50 border-emerald-200"
                               : "bg-zinc-50 border-zinc-100 hover:border-emerald-100"
-                          }`}
+                          } ${atLimit ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                           <div className="flex items-center gap-4">
+                            {/* Visually replaced by the marker beside it, never
+                                visually hidden from focus: `sr-only` keeps it
+                                in the tab order and in the accessibility tree,
+                                and the ring above is drawn on the row. */}
+                            <input
+                              type={isRadio ? "radio" : "checkbox"}
+                              className="sr-only"
+                              name={isRadio ? `${optionsId}-${option.id}` : undefined}
+                              value={choice.id}
+                              checked={isSelected}
+                              disabled={atLimit}
+                              required={isRadio && option.required}
+                              ref={(el) => {
+                                registerChoiceInput(option.id, choice.id, el)
+                              }}
+                              onChange={() =>
+                                handleOptionToggle(option.id, choice.id, option.maxSelections)
+                              }
+                            />
                             {isRadio ? (
-                              <div
+                              <span
+                                aria-hidden="true"
                                 className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
                                   isSelected
                                     ? "border-[#0D5C3F] bg-[#0D5C3F]"
                                     : "border-zinc-300"
                                 }`}
                               >
-                                {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
-                              </div>
+                                {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
+                              </span>
                             ) : (
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() => handleOptionToggle(option.id, choice.id, option.maxSelections)}
-                                className="data-[state=checked]:bg-[#0D5C3F] data-[state=checked]:border-[#0D5C3F]"
-                              />
+                              <span
+                                aria-hidden="true"
+                                className={`h-5 w-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                                  isSelected
+                                    ? "border-[#0D5C3F] bg-[#0D5C3F]"
+                                    : "border-zinc-300"
+                                }`}
+                              >
+                                {isSelected && <Check className="h-3 w-3 text-white" />}
+                              </span>
                             )}
                             <span className="font-bold text-sm text-zinc-700">
                               {choice.name}
@@ -275,7 +362,7 @@ export function ProductDetailClient({
                               ? `+ ${formatPrice(choice.priceModifier)}`
                               : "Inclus"}
                           </span>
-                        </div>
+                        </label>
                       )
                     })}
                   </div>
@@ -290,7 +377,7 @@ export function ProductDetailClient({
         {/* Footer: Price + Quantity + Add */}
         <div className="flex items-center justify-between pt-6">
           <div className="flex flex-col">
-            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none mb-1">
+            <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none mb-1">
               Prix total
             </span>
             <span className="text-4xl font-black text-[#0D5C3F] tracking-tighter leading-none">
@@ -304,7 +391,7 @@ export function ProductDetailClient({
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
-                className="h-12 w-12 rounded-xl text-zinc-400 hover:text-[#0D5C3F] hover:bg-white transition-all flex items-center justify-center disabled:opacity-30"
+                className="h-12 w-12 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-[#0D5C3F] hover:bg-white transition-all flex items-center justify-center disabled:opacity-30"
               >
                 <Minus className="h-5 w-5" />
               </button>
@@ -313,7 +400,7 @@ export function ProductDetailClient({
               </div>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="h-12 w-12 rounded-xl text-zinc-400 hover:text-[#0D5C3F] hover:bg-white transition-all flex items-center justify-center"
+                className="h-12 w-12 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-[#0D5C3F] hover:bg-white transition-all flex items-center justify-center"
               >
                 <Plus className="h-5 w-5" />
               </button>

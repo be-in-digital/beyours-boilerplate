@@ -90,7 +90,7 @@ export function LanguageSelectorDropdown({
         sideOffset={8}
         className="w-56 p-2 rounded-2xl border border-zinc-100 bg-white shadow-xl"
       >
-        <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 px-3 pt-2 pb-3">
+        <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 px-3 pt-2 pb-3">
           {label}
         </h3>
 

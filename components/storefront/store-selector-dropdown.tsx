@@ -65,7 +65,7 @@ function StoreOption({
           </p>
         </div>
         {store.distance != null && (
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex-shrink-0 mt-0.5">
+          <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider flex-shrink-0 mt-0.5">
             {formatDistance(store.distance)}
           </span>
         )}
@@ -137,11 +137,11 @@ export function StoreSelectorDropdown({
         className="w-80 p-2 rounded-2xl border border-zinc-100 bg-white shadow-xl"
       >
         <div className="flex items-center justify-between px-3 pt-2 pb-3">
-          <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">
+          <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
             Nos restaurants
           </h3>
           {isLocating ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-500 dark:text-zinc-400" />
           ) : (
             <button
               type="button"

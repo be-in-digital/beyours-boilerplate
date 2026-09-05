@@ -146,7 +146,7 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
       {/* Other store favorites */}
       {otherStoreFavorites.length > 0 && (
         <div>
-          <h3 className="mb-8 font-black text-xs uppercase tracking-widest text-zinc-400">
+          <h3 className="mb-8 font-black text-xs uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
             Autres restaurants
           </h3>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">

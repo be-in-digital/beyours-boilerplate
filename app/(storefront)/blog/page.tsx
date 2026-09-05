@@ -6,6 +6,7 @@ import BlogPage from "./_components/BlogContent"
 export async function generateMetadata(): Promise<Metadata> {
   return generateCmsMetadata({
     pageSlug: "blog",
+    pathname: "/blog",
     fallbackTitle: "Blog — Actualités et recettes",
     fallbackDescription: "Nos dernières actualités, recettes et conseils culinaires.",
   })

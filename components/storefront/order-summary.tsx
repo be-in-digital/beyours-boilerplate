@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import {
   ShoppingBag,
@@ -95,7 +96,7 @@ export function OrderSummary({
         <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-800">
           Votre Box
         </h2>
-        <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+        <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
           <span>Articles ({itemCount})</span>
           <Link href="/cart" className="text-emerald-600 hover:underline">
             Modifier
@@ -121,10 +122,12 @@ export function OrderSummary({
                 {/* Image */}
                 <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-100 bg-zinc-50">
                   {item.imageUrl ? (
-                    <img
+                    <Image
                       src={item.imageUrl}
                       alt={item.name}
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="64px"
+                      className="object-cover"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center">
@@ -148,7 +151,7 @@ export function OrderSummary({
                       {item.options.map((o) => o.choice).join(", ")}
                     </p>
                   )}
-                  <p className="mt-1 text-xs font-bold text-zinc-400">
+                  <p className="mt-1 text-xs font-bold text-zinc-500 dark:text-zinc-400">
                     {formatPrice(lineTotal)}
                   </p>
                 </div>
@@ -197,7 +200,7 @@ export function OrderSummary({
               <button
                 type="button"
                 onClick={onRemovePromo}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 dark:text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -205,7 +208,7 @@ export function OrderSummary({
           ) : (
             <div>
               <label
-                className="mb-2 block text-[10px] font-black uppercase tracking-widest text-zinc-400"
+                className="mb-2 block text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
                 htmlFor="promo-code"
               >
                 Code promo
@@ -247,7 +250,7 @@ export function OrderSummary({
         <Separator className="my-8 bg-zinc-100" />
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-400">
+          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
             <span>Sous-total</span>
             <span className="text-zinc-800">{formatPrice(subtotal)}</span>
           </div>
@@ -262,7 +265,7 @@ export function OrderSummary({
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-400">
+          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
             <span>Livraison</span>
             {orderType !== "delivery" ? (
               <span className="font-black text-emerald-700">
@@ -281,7 +284,7 @@ export function OrderSummary({
 
           {totals.taxAmount > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="font-bold uppercase tracking-widest text-zinc-400">
+              <span className="font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                 {/* "dont" — the tax is inside the prices above, not added to
                     them. One rate is named; a basket mixing rates is not. */}
                 dont TVA
@@ -305,7 +308,7 @@ export function OrderSummary({
               <p className="text-3xl font-black leading-none tracking-tighter text-[#0D5C3F]">
                 {formatPrice(displayTotal)}
               </p>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                 {totals.taxAmount > 0 ? "TVA incluse" : "Non soumis à la TVA"}
               </p>
             </div>

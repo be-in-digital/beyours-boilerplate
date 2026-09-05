@@ -107,7 +107,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
             <p className="text-sm font-black truncate text-zinc-900 leading-none">
               {user.name}
             </p>
-            <p className="text-xs font-bold text-zinc-400 truncate tracking-tight">
+            <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 truncate tracking-tight">
               {user.email}
             </p>
           </div>
@@ -116,7 +116,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
         <DropdownMenuGroup className="px-1">
           <Link href="/account" className="block w-full">
             <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-[#0D5C3F] group transition-colors">
-              <User className="mr-3 h-5 w-5 text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
+              <User className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mon profil
               </span>
@@ -125,7 +125,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
 
           <Link href="/account/orders" className="block w-full">
             <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-[#0D5C3F] group transition-colors">
-              <ShoppingBag className="mr-3 h-5 w-5 text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
+              <ShoppingBag className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mes commandes
               </span>
@@ -134,7 +134,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
 
           <Link href="/account/addresses" className="block w-full">
             <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-[#0D5C3F] group transition-colors">
-              <MapPin className="mr-3 h-5 w-5 text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
+              <MapPin className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mes adresses
               </span>
@@ -143,7 +143,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
 
           <Link href="/account/favorites" className="block w-full">
             <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-[#0D5C3F] group transition-colors">
-              <Heart className="mr-3 h-5 w-5 text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
+              <Heart className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mes favoris
               </span>

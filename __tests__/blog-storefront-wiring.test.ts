@@ -18,9 +18,12 @@ import path from "node:path"
 
 const APP_ROOT = path.join(__dirname, "..")
 
+// The menu's interactive half moved to `_components/MenuContent.tsx` when the
+// route grew a server shell for its metadata (#168): the blog teaser moved with
+// it, and this is where it lives now.
 const STOREFRONT_BLOG_SURFACES = [
   "app/(storefront)/blog/_components/BlogContent.tsx",
-  "app/(storefront)/menu/page.tsx",
+  "app/(storefront)/menu/_components/MenuContent.tsx",
   "app/(storefront)/_components/HomepageContent.tsx",
 ]
 

@@ -59,7 +59,7 @@ export default function BlogPage() {
                         {heroBadge}
                     </Badge>
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
-                        {parseColoredText(heroTitle, "text-orange-500 italic")}
+                        {parseColoredText(heroTitle, "text-orange-600 dark:text-orange-400 italic")}
                     </h1>
                     <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">
                         {heroSubtitle}
@@ -107,10 +107,10 @@ export default function BlogPage() {
                                             {featured.excerpt}
                                         </p>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                                                 {formatArticleDate(featured.publishedAt)} · {featured.readingMinutes} min de lecture
                                             </span>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-orange-500 flex items-center gap-2 group-hover:gap-3 transition-all">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-400 flex items-center gap-2 group-hover:gap-3 transition-all">
                                                 Lire <ArrowRight className="h-3 w-3" />
                                             </span>
                                         </div>
@@ -137,7 +137,7 @@ export default function BlogPage() {
                         Tous les articles
                     </h2>
                     {posts.length > 0 && (
-                        <span className="text-sm font-bold text-zinc-400">({posts.length})</span>
+                        <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400">({posts.length})</span>
                     )}
                 </div>
 
@@ -194,7 +194,7 @@ export default function BlogPage() {
                                             </div>
                                         </div>
                                         <div className="p-6 md:p-8 flex-1 flex flex-col">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-3">
                                                 {formatArticleDate(post.publishedAt)}
                                             </p>
                                             <h3 className="text-xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-tight mb-3 group-hover:text-[#0D5C3F] dark:group-hover:text-emerald-400 transition-colors">
@@ -203,7 +203,7 @@ export default function BlogPage() {
                                             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed flex-1">
                                                 {post.excerpt}
                                             </p>
-                                            <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center text-[10px] font-black uppercase tracking-widest text-orange-500 group-hover:gap-3 gap-2 transition-all">
+                                            <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-400 group-hover:gap-3 gap-2 transition-all">
                                                 Lire la suite <ArrowRight className="h-3 w-3" />
                                             </div>
                                         </div>

@@ -139,7 +139,7 @@ function CheckoutPayContent() {
     <div className="min-h-screen bg-zinc-50 px-4 pb-20 pt-32">
       <div className="mx-auto max-w-xl">
         <h1 className="mb-2 text-center text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
-          Paiement <span className="not-italic text-orange-500">sécurisé</span>
+          Paiement <span className="not-italic text-orange-600 dark:text-orange-400">sécurisé</span>
         </h1>
         <p className="mb-8 text-center text-sm text-zinc-500">
           Réglez par carte pour finaliser votre commande.
@@ -147,7 +147,7 @@ function CheckoutPayContent() {
 
         {!ready && (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-zinc-500 dark:text-zinc-400" />
           </div>
         )}
 
@@ -157,7 +157,7 @@ function CheckoutPayContent() {
           aria-live="polite"
         />
 
-        <p className="mt-6 text-center text-xs text-zinc-400">
+        <p className="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
           Ne fermez pas cette page pendant le traitement.
         </p>
       </div>

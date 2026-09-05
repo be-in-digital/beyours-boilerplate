@@ -27,14 +27,14 @@ function CheckoutCancelContent() {
         </div>
 
         <h1 className="mb-4 text-4xl font-black uppercase italic tracking-tighter text-zinc-800">
-          Paiement <span className="not-italic text-orange-500">annulé</span>
+          Paiement <span className="not-italic text-orange-600 dark:text-orange-400">annulé</span>
         </h1>
 
         <p className="mb-2 text-lg leading-relaxed text-zinc-500">
           Vous n&apos;avez pas été débité. Votre panier est intact.
         </p>
         {orderId && (
-          <p className="mb-8 text-sm text-zinc-400">
+          <p className="mb-8 text-sm text-zinc-500 dark:text-zinc-400">
             La commande #{orderId.slice(-6).toUpperCase()} reste en attente de
             paiement.
           </p>

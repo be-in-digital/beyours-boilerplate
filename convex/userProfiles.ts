@@ -248,6 +248,7 @@ export const updateMyProfile = mutation({
     phones: defs.updateProfile.args.phones,
     language: defs.updateProfile.args.language,
     avatarUrl: defs.updateProfile.args.avatarUrl,
+    notificationPreferences: defs.updateProfile.args.notificationPreferences,
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
