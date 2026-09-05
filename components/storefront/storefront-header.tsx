@@ -11,10 +11,17 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@be-in-digital/ui/components"
-import { useCartStore, useTranslation } from "@be-in-digital/restaurant"
+import {
+  useCartStore,
+  useStorefrontStoreSelection,
+  useTranslation,
+} from "@be-in-digital/restaurant"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { useCmsPage } from "@/lib/cms/useCmsPage"
 import { CartSheet } from "./cart-sheet"
 import { StoreSelectorDropdown } from "./store-selector-dropdown"
+import { isSafeReservationUrl } from "@be-in-digital/convex-schema"
 import { LanguageSelectorDropdown } from "./language-selector-dropdown"
 import { UserMenu } from "./user-menu"
 
@@ -34,6 +41,28 @@ const NAV_LINKS = [
   { href: "/contact", labelKey: "nav.contact" },
 ]
 
+/**
+ * The establishment's booking link, when it has set one.
+ *
+ * There is no reservation feature to route to: an establishment that takes
+ * bookings runs TheFork or Zenchef, and `stores.reservationUrl` points at it.
+ * Null when unset, which is most of them — a « Réserver » button that opens
+ * nothing is worse than no button, and that is exactly what the sales demos
+ * used to show.
+ *
+ * The scheme is re-checked here rather than trusted: `assertReservationUrl`
+ * guards the write, but a row older than that guard, or restored from a
+ * backup, still reaches this href.
+ */
+function useReservationUrl(): string | null {
+  const stores = useQuery(api.stores.list)
+  const storeId = useStorefrontStoreSelection((s) => s.storeId)
+  if (!stores || stores.length === 0) return null
+  const store = stores.find((s: { _id: string }) => s._id === storeId) ?? stores[0]
+  const url = (store as { reservationUrl?: string } | undefined)?.reservationUrl
+  return isSafeReservationUrl(url) ? url : null
+}
+
 export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean }) {
   const pathname = usePathname()
   const { t } = useTranslation()
@@ -42,6 +71,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
     label: t(link.labelKey),
   }))
   const itemCount = useCartStore((s) => s.getItemCount())
+  const reservationUrl = useReservationUrl()
   const cms = useCmsPage("storefront-layout")
   const logoMedia = cms.block("branding").field("logo")
   const brandName = cms.block("branding").field("brandName").text ?? "BeYours"
@@ -134,6 +164,23 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                 </Link>
               )
             })}
+
+            {/* External on purpose: this leaves for the establishment's own
+                booking tool. Rendered only when one is configured. */}
+            {reservationUrl && (
+              <a
+                href={reservationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`font-black text-sm uppercase tracking-widest transition-colors duration-300 ${
+                  showTransparent
+                    ? "text-white hover:text-white/80"
+                    : "text-zinc-500 hover:text-[#0D5C3F]"
+                }`}
+              >
+                {t("nav.reserve")}
+              </a>
+            )}
           </nav>
 
           {/* Desktop right actions: Lang → Store → Cart */}
@@ -271,6 +318,23 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                   </motion.div>
                 )
               })}
+
+              {reservationUrl && (
+                <motion.div
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 + navLinks.length * 0.06, duration: 0.3 }}
+                >
+                  <a
+                    href={reservationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-4xl font-black uppercase tracking-tight text-white transition-colors hover:text-white/70"
+                  >
+                    {t("nav.reserve")}
+                  </a>
+                </motion.div>
+              )}
             </nav>
 
             {/* User menu at bottom */}

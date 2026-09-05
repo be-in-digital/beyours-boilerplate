@@ -145,12 +145,6 @@
   function setLoc(id) { sessionStorage.setItem(LOC_KEY, id); }
   const mapsUrl = (l) => "https://maps.google.com/?q=" + encodeURIComponent(brandTxt() + " " + l.addr);
 
-  /* ── Réservations (annulables) ── */
-  const RESA_KEY = "bidx-resa-" + tid;
-  const getResa = () => { try { return JSON.parse(localStorage.getItem(RESA_KEY)); } catch (e) { return null; } };
-  const setResa = (r) => localStorage.setItem(RESA_KEY, JSON.stringify(r));
-  const delResa = () => localStorage.removeItem(RESA_KEY);
-
   /* ── Toast ── */
   let toastEl, toastT;
   function toast(msg) {
@@ -369,7 +363,7 @@
     const featured = PACK.dishes.slice(0, 3);
     const locsTeaser = T.hero === "board" ? "" : `
       <section class="sec"><div class="wrap"><div class="sec-h"><h2>${LOCS.length > 1 ? "Nos adresses" : "Où nous trouver"}</h2>
-      <p>${LOCS.length > 1 ? "Commandez ou réservez dans le lieu qui vous arrange." : "Commande en ligne, réservation et retrait sur place."}</p></div>
+      <p>${LOCS.length > 1 ? "Commandez dans le lieu qui vous arrange." : "Commande en ligne et retrait sur place."}</p></div>
       <div class="locgrid">${LOCS.map((l) => locCard(l, false)).join("")}</div>
       ${LOCS.length > 1 ? `<div class="sec-more"><a class="btn btn-g" href="${href("locations")}">Toutes les adresses ${svg("arrow")}</a></div>` : ""}</div></section>`;
     chrome("home", `
@@ -428,7 +422,7 @@
     document.title = `${LOCS.length > 1 ? "Nos adresses" : "Nous trouver"} · ${brandTxt()} (démo)`;
     chrome("locations", `
       <div class="wrap page-head"><h1>${LOCS.length > 1 ? "Nos adresses" : "Nous trouver"}</h1>
-      <p>${LOCS.length > 1 ? "Choisissez votre lieu : la commande et la réservation s'y rattachent." : "Une seule adresse, tout le reste en ligne."}</p></div>
+      <p>${LOCS.length > 1 ? "Choisissez votre lieu : c'est là que votre commande sera préparée." : "Une seule adresse, tout le reste en ligne."}</p></div>
       <section class="sec" style="padding-top:24px"><div class="wrap"><div class="locgrid" id="locgrid">${LOCS.map((l) => locCard(l, true)).join("")}</div></div></section>`);
     document.getElementById("locgrid").addEventListener("click", (e) => {
       const b = e.target.closest("[data-choose]"); if (!b) return;
@@ -442,94 +436,39 @@
     });
   }
 
-  const SLOTS = ["12:00", "12:30", "13:00", "13:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30"];
+  /* ── Réservation ──
+     Le produit ne gère pas les réservations : il renvoie vers l'outil de
+     l'établissement (TheFork, Zenchef, Guestonline), configuré dans le
+     back-office (`stores.reservationUrl`), et le bouton n'apparaît que si un
+     lien est renseigné.
+
+     Cette page montrait autre chose : un formulaire complet, des créneaux
+     toujours libres, une confirmation avec numéro de référence — le tout écrit
+     dans le localStorage du visiteur. Elle démontrait une fonctionnalité que
+     l'acheteur n'aurait jamais eue. */
   function pageReserve() {
     document.title = `Réserver · ${brandTxt()} (démo)`;
     const locParam = qs("loc");
     if (locParam && LOCS.some((l) => l.id === locParam)) setLoc(locParam);
-    const existing = getResa();
+    const l = activeLoc();
     chrome("reserve", `
-      <div class="wrap page-head"><h1>Réserver une table</h1><p>Réservation de démonstration : elle est confirmée immédiatement et reste annulable ici même. Aucune vraie table n'est bloquée.</p></div>
-      <section class="sec" style="padding-top:24px"><div class="wrap" id="resa-zone"></div></section>`);
-    const zone = document.getElementById("resa-zone");
-    if (existing && existing.status === "confirmed") renderResaCard(zone, existing);
-    else renderResaForm(zone);
-  }
-
-  function renderResaForm(zone) {
-    const today = new Date(); today.setDate(today.getDate() + 1);
-    const minDate = today.toISOString().slice(0, 10);
-    zone.innerHTML = `
-      <form class="form" id="resa-form" novalidate>
-        ${LOCS.length > 1 ? `<div class="f-row"><label for="r-loc">Lieu</label><select class="inp" id="r-loc">${LOCS.map((l) => `<option value="${l.id}"${activeLoc().id === l.id ? " selected" : ""}>${esc(l.name)} · ${esc(l.addr.split(",")[0])}</option>`).join("")}</select></div>` : ""}
-        <div class="f-2">
-          <div class="f-row"><label for="r-date">Date</label><input class="inp" type="date" id="r-date" min="${minDate}" value="${minDate}"><span class="f-err" id="e-date">Choisissez une date à venir.</span></div>
-          <div class="f-row"><label for="r-time">Heure</label><select class="inp" id="r-time">${SLOTS.map((s) => `<option${s === "20:00" ? " selected" : ""}>${s}</option>`).join("")}</select></div>
+      <div class="wrap page-head">
+        <h1>Réserver une table</h1>
+        <p>Sur votre site, ce bouton ouvre votre outil de réservation — TheFork, Zenchef, Guestonline, celui que vous utilisez déjà. Vous collez son lien une fois dans le back-office, et il apparaît ici. Si vous prenez les réservations au téléphone, laissez le champ vide : aucun bouton ne s'affiche.</p>
+      </div>
+      <section class="sec" style="padding-top:24px"><div class="wrap">
+        <div class="resa-card">
+          <h2>${esc(l.name)}</h2>
+          <p class="muted" style="font-size:14px;margin-bottom:14px">${esc(l.addr)}</p>
+          <div class="resa-line"><span>Horaires</span><b>${esc(l.hours)}</b></div>
+          <div class="resa-line"><span>Téléphone</span><b><a href="tel:${l.phone.replace(/\s/g, "")}">${esc(l.phone)}</a></b></div>
+          <div class="resa-acts">
+            <a class="btn btn-p" href="tel:${l.phone.replace(/\s/g, "")}">Appeler pour réserver</a>
+            <a class="btn btn-g" href="${href("menu")}">Voir la carte</a>
+          </div>
         </div>
-        <div class="f-2">
-          <div class="f-row"><label for="r-guests">Couverts</label><select class="inp" id="r-guests">${[1,2,3,4,5,6,7,8].map((n) => `<option${n === 2 ? " selected" : ""}>${n}</option>`).join("")}</select></div>
-          <div class="f-row"><label for="r-phone">Téléphone</label><input class="inp" type="tel" id="r-phone" placeholder="06 12 34 56 78" autocomplete="tel"><span class="f-err" id="e-phone">Un numéro pour confirmer, au moins 10 chiffres.</span></div>
-        </div>
-        <div class="f-row"><label for="r-name">Nom de la réservation</label><input class="inp" type="text" id="r-name" placeholder="Nom et prénom" autocomplete="name"><span class="f-err" id="e-name">Indiquez un nom.</span></div>
-        <button class="btn btn-p" type="submit">Confirmer la réservation ${svg("check")}</button>
-        <p class="helper">Démo : la confirmation est instantanée et locale à ce navigateur.</p>
-      </form>`;
-    document.getElementById("resa-form").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const name = document.getElementById("r-name").value.trim();
-      const phone = document.getElementById("r-phone").value.replace(/\D/g, "");
-      const date = document.getElementById("r-date").value;
-      let ok = true;
-      const err = (id, bad) => { document.getElementById(id).classList.toggle("show", bad); if (bad) ok = false; };
-      err("e-name", name.length < 2);
-      err("e-phone", phone.length < 10);
-      err("e-date", !date || date < new Date().toISOString().slice(0, 10));
-      if (!ok) return;
-      const locSel = document.getElementById("r-loc");
-      const locId = locSel ? locSel.value : LOCS[0].id;
-      setLoc(locId);
-      const resa = {
-        ref: "R-" + Date.now().toString(36).toUpperCase().slice(-6),
-        name, phone: document.getElementById("r-phone").value.trim(), date,
-        time: document.getElementById("r-time").value,
-        guests: document.getElementById("r-guests").value,
-        locId, status: "confirmed",
-      };
-      setResa(resa);
-      track("reservation_made", { couverts: resa.guests, lieu: (LOCS.find((l) => l.id === locId) || LOCS[0]).name });
-      toast("Réservation confirmée");
-      renderResaCard(document.getElementById("resa-zone"), resa);
-      window.scrollTo({ top: 0 });
-    });
-  }
-
-  function renderResaCard(zone, r) {
-    const loc = LOCS.find((l) => l.id === r.locId) || LOCS[0];
-    const dateFr = new Date(r.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-    zone.innerHTML = `
-      <div class="resa-card">
-        <div class="okmark">${svg("check")}</div>
-        <h2>Réservation confirmée</h2>
-        <p class="muted" style="font-size:14px;margin-bottom:10px">Au nom de <b>${esc(r.name)}</b></p>
-        <span class="resa-ref">Réf. ${r.ref}</span>
-        <div class="resa-line"><span>Lieu</span><b>${esc(loc.name)} · ${esc(loc.addr.split(",")[0])}</b></div>
-        <div class="resa-line"><span>Date</span><b>${esc(dateFr)}</b></div>
-        <div class="resa-line"><span>Heure</span><b>${r.time}</b></div>
-        <div class="resa-line"><span>Couverts</span><b>${r.guests}</b></div>
-        <div class="resa-line"><span>Téléphone</span><b>${esc(r.phone)}</b></div>
-        <div class="resa-acts">
-          <button class="btn btn-danger" id="resa-cancel">Annuler la réservation</button>
-          <a class="btn btn-g" href="${href("menu")}">Voir la carte</a>
-        </div>
-      </div>`;
-    document.getElementById("resa-cancel").addEventListener("click", () => {
-      delResa();
-      toast("Réservation annulée");
-      zone.innerHTML = `
-        <div class="cancelled"><b>Réservation ${r.ref} annulée.</b><br>La table est libérée (démo). Vous pouvez en refaire une autre tout de suite.</div>
-        <div style="margin-top:18px"><button class="btn btn-p" id="resa-again">Nouvelle réservation</button></div>`;
-      document.getElementById("resa-again").addEventListener("click", () => renderResaForm(zone));
-    });
+        <p class="helper" style="margin-top:14px">Démo : aucun outil de réservation n'est connecté ici.</p>
+      </div></section>`);
   }
 
   function pageContact() {
@@ -699,7 +638,7 @@
         <h3 style="margin:18px 0 8px">Hébergement</h3>
         <p>Site hébergé par Vercel Inc. Les paiements sont traités par Stripe. En démonstration, Stripe fonctionne en mode test : aucune transaction réelle.</p>
         <h3 style="margin:18px 0 8px">Données personnelles</h3>
-        <p>Cette démonstration ne collecte ni ne transmet aucune donnée : réservations, panier et commandes restent dans votre navigateur (stockage local) et disparaissent à volonté.</p>
+        <p>Cette démonstration ne collecte ni ne transmet aucune donnée : panier et commandes restent dans votre navigateur (stockage local) et disparaissent à volonté.</p>
         <h3 style="margin:18px 0 8px">Propriété</h3>
         <p>Maquette réalisée par BeYours. Marques, plats, prix et photographies sont des exemples destinés à présenter le design du site.</p>
         <div class="hero-actions" style="margin-top:24px"><a class="btn btn-p" href="${href("home")}">Retour à l'accueil</a></div>

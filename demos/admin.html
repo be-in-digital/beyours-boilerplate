@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400..700&family=Figtree:wght@400..700&display=swap">
 <!--
   MAQUETTE BACK-OFFICE — montre l'autre moitié du produit (côté restaurateur) :
-  commandes qui tombent en direct, écran cuisine (KDS), réservations, chiffres.
+  commandes qui tombent en direct, écran cuisine (KDS), chiffres.
   Autonome (n'utilise pas site.js) ; reprend les tokens du thème choisi (?t=)
   pour être « aux couleurs » du site vitrine correspondant.
 -->
@@ -75,15 +75,6 @@
   .adv:hover { background: var(--p); color: var(--pf); }
   .adv.ghost { color: var(--mut); border-color: var(--bd); }
 
-  .resa { padding: 8px 4px; }
-  .resa-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--bd); }
-  .resa-row:last-child { border-bottom: none; }
-  .resa-row .h { font-family: 'Inter Tight'; font-weight: 700; font-size: 16px; width: 52px; }
-  .resa-row .who2 { flex: 1; }
-  .resa-row .who2 .nm { font-weight: 600; font-size: 14.5px; }
-  .resa-row .who2 .dt { font-size: 12.5px; color: var(--mut); }
-  .resa-row .g { font-size: 13px; color: var(--mut); }
-  .resa-row .cov { background: var(--acc); color: var(--accf); font-weight: 700; font-size: 12.5px; padding: 5px 10px; border-radius: 999px; }
 
   .note { margin-top: 22px; font-size: 12.5px; color: var(--mut); }
   @media (max-width: 960px) { .shell { grid-template-columns: 1fr; } aside { flex-direction: row; overflow: auto; align-items: center; } aside .spacer, aside .who { display: none; } .kpis { grid-template-columns: repeat(2, 1fr); } .cols { grid-template-columns: 1fr; } }
@@ -97,7 +88,6 @@
     <div class="navitem on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> <b>Vue d'ensemble</b></div>
     <div class="navitem"><svg viewBox="0 0 24 24"><path d="M3 3h18v4H3zM6 7v14M18 7v14M3 12h18"/></svg> Commandes</div>
     <div class="navitem"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg> Cuisine (KDS)</div>
-    <div class="navitem"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Réservations</div>
     <div class="navitem"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg> Statistiques</div>
     <div class="navitem"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg> Menu &amp; CMS</div>
     <div class="spacer"></div>
@@ -116,10 +106,6 @@
       <div class="panel">
         <div class="panel-h"><h2>Commandes en cours</h2><span class="cnt" id="ordc">0 en attente</span></div>
         <div class="kds" id="kds"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-h"><h2>Réservations du jour</h2><span class="cnt" id="resc"></span></div>
-        <div class="resa" id="resa"></div>
       </div>
     </div>
     <p class="note">Maquette de démonstration : données simulées côté navigateur pour montrer l'expérience restaurateur. Dans le produit réel, les commandes du site vitrine arrivent ici en direct (Convex), l'écran cuisine tourne sur tablette, et les statistiques sont réelles.</p>
@@ -194,22 +180,10 @@
       ["Commandes du jour", served + orders.filter((o) => o.status < 3).length, "+12 % vs hier"],
       ["Chiffre d'affaires", eur(ca), "+8 % vs hier"],
       ["Panier moyen", eur(ca / (served + 4)), "stable"],
-      ["Réservations", "9 couverts ce soir", "3 tables"],
+      ["Commandes en cours", orders.filter((o) => o.status < 3).length, "en cuisine"],
     ].map(([l, v, t]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="t">${t}</div></div>`).join("");
   }
   function flash() { const k = document.getElementById("kds").firstElementChild; if (k) { k.animate([{ background: "hsl(" + T.L.a + ")" }, { background: "var(--card)" }], { duration: 900 }); } }
-
-  const RES = [
-    { h: "12:30", nm: rnd(NAMES), g: 2, note: "Près de la fenêtre" },
-    { h: "13:00", nm: rnd(NAMES), g: 4, note: "Anniversaire" },
-    { h: "19:30", nm: rnd(NAMES), g: 2, note: "" },
-    { h: "20:00", nm: rnd(NAMES), g: 6, note: "Allergie fruits à coque" },
-    { h: "21:00", nm: rnd(NAMES), g: 3, note: "" },
-  ];
-  document.getElementById("resc").textContent = RES.reduce((s, r) => s + r.g, 0) + " couverts";
-  document.getElementById("resa").innerHTML = RES.map((r) => `<div class="resa-row">
-    <span class="h">${r.h}</span><div class="who2"><div class="nm">${r.nm}</div><div class="dt">${r.note || "Réservation en ligne"}</div></div>
-    <span class="cov">${r.g} couv.</span></div>`).join("");
 
   renderKds(); renderKpis();
   setInterval(renderKds, 1500);

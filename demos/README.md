@@ -4,17 +4,22 @@
 theme with its **own identity** (brand, light/dark palette, typefaces, shapes,
 texture) and its **own layout** (hero type, menu presentation, navigation,
 footer). A prospect opens the link, browses a **multipage site** (home, menu,
-about, locations, reservation, contact), orders, books, cancels, and goes all
-the way to **payment in Stripe test mode**.
+about, locations, reservation, contact), orders, and goes all the way to
+**payment in Stripe test mode**.
 
 Guarantees:
 
 - **Every link works**: navigation, footer, phone (`tel:`), email (`mailto:`),
-  Google Maps directions, reservation (bookable **and cancellable**), validated
-  forms. Zero `href="#"` (swept in a browser).
+  Google Maps directions, validated forms. Zero `href="#"` (swept in a browser).
+- **The reservation page links out, it does not book.** The product has no
+  reservation feature: `stores.reservationUrl` points at the establishment's own
+  tool (TheFork, Zenchef, Guestonline) and the button renders only when one is
+  set. `reserve.html` says exactly that and offers the phone. It used to render
+  a full booking form with always-free slots and a reference number, written to
+  the visitor's `localStorage` — a feature the buyer would never have received.
 - **Multi-location**: each theme has 1 to 3 places; the customer picks theirs
-  (Locations page) and it follows the order through to checkout and the
-  reservation. Single-location themes show that case too.
+  (Locations page) and it follows the order through to checkout. Single-location
+  themes show that case too.
 - **10 genuinely different designs per category**: every theme in a category has
   a unique hero × menu combination (10 hero families, 8 menu families,
   4 navigations, 5 button languages, textures), verified by script. Contrast:
@@ -27,7 +32,7 @@ demos/
   menu.html             the menu           |
   about.html            about              |  site pages, rendered by the
   locations.html        addresses / places |  engine for the chosen theme
-  reserve.html          reservation        |
+  reserve.html          reservation (link-out) |
   contact.html          contact            |
   checkout.html         payment (Stripe test card)
   success.html          confirmation      /
@@ -35,7 +40,7 @@ demos/
   assets/
     themes.js           50 identities + category packs (dishes, places, story)
     site.css            layout families (driven by data attributes)
-    site.js             multipage engine: theme, cart, locations, reservation
+    site.js             multipage engine: theme, cart, locations
     shots/              real screenshots of the 50 home pages (showroom gallery)
   api/checkout.js       serverless function: Stripe Checkout session (TEST)
   package.json          stripe dependency (installed by Vercel)
@@ -50,7 +55,7 @@ category.
 
 **Adding an 11th theme**: one entry in `assets/themes.js` (light/dark palette,
 font pair, hero/menu/nav/footer combination, copy) and it is live: the pages,
-the cart, the locations and the reservation all come from the engine. Dishes and
+the cart and the locations all come from the engine. Dishes and
 prices stay those of the category pack (aligned with `api/checkout.js`, the
 authority on prices).
 
@@ -119,7 +124,7 @@ aligned with `api/checkout.js` (the authority on prices at payment time).
 ## Analytics (opt-in, off by default)
 
 The engine emits sales events (`demo_theme_viewed`, `add_to_cart`,
-`begin_checkout`, `order_paid`, `reservation_made`) and page views, **if and
+`begin_checkout`, `order_paid`) and page views, **if and
 only if** a public PostHog key is supplied. No key is committed, and no network
 call happens while it is absent. To enable, inject before `site.js`:
 

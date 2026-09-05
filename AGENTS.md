@@ -36,7 +36,7 @@ clone of this repo. The shipped code comes from two sources:
   alone, the engine variable contract): `templates/README.md`.
   `demos/` (sales tool): 50 full multipage site demos
   (5 categories × 10 themes, `assets/site.js` engine + `assets/themes.js`
-  identities), multi-location, cancellable booking, **test-only** Stripe
+  identities), multi-location, link-out reservation, **test-only** Stripe
   payments (an `sk_test_…` key in the Vercel env, never committed). AA
   contrast and layout uniqueness are verified by script.
   See `demos/README.md`.
