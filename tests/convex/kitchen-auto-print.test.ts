@@ -23,6 +23,7 @@ import { convexTest } from "convex-test"
 import { afterEach, describe, expect, test } from "vitest"
 import { uberEats } from "@be-in-digital/integrations"
 import { toKitchenTicketItemsFromPlatform } from "@be-in-digital/convex-functions/orders"
+import { ACTIVE_TICKET_LIMIT } from "@be-in-digital/convex-functions/kitchenTickets"
 import { api, internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
@@ -613,5 +614,86 @@ describe("a store with 5,000 tickets", () => {
     )
     expect(result.deleted).toBe(10)
     expect(await t.run((ctx) => ctx.db.query("kitchenTickets").collect())).toHaveLength(0)
+  })
+})
+
+/**
+ * The cap, as opposed to the status filter.
+ *
+ * The 5,000-ticket case above seeds `completed` rows, so `getByStore` answers
+ * with nothing and the assertion passes on the status filter alone — the read
+ * stayed green with `.take(ACTIVE_TICKET_LIMIT)` replaced by `.collect()`.
+ * That leaves the cap itself unheld, and it is not redundant: the retention
+ * sweep deliberately never deletes a ticket still on the pass, so an
+ * establishment that leaves slips open has nothing else bounding the
+ * subscription every tablet re-reads on every write.
+ */
+describe("a pass nobody ever cleared", () => {
+  /** More live slips than the cap, so the cap is what decides the answer. */
+  const OVERFLOW = 50
+
+  async function seedLiveTickets(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    count: number
+  ) {
+    await t.run(async (ctx) => {
+      const orderId = await ctx.db.insert("orders", {
+        storeId,
+        orderNumber: "OPEN",
+        type: "pickup" as const,
+        status: "pending" as const,
+        customerInfo: { name: "Camille" },
+        items: [],
+        subtotal: 0,
+        taxAmount: 0,
+        total: 0,
+        source: "website" as const,
+        paymentStatus: "paid" as const,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+      for (let i = 0; i < count; i++) {
+        await ctx.db.insert("kitchenTickets", {
+          storeId,
+          orderId,
+          orderNumber: `LIVE-${i}`,
+          orderType: "pickup" as const,
+          items: [],
+          priority: "normal" as const,
+          source: "website" as const,
+          status: "pending" as const,
+          trackingToken: `live-${i}`,
+          printStatus: "not_required" as const,
+          printAttempts: 0,
+          createdAt: NOW - i * 60_000,
+          updatedAt: NOW,
+        })
+      }
+    })
+  }
+
+  test("is capped rather than served whole to every open tablet", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const admin = await seedAdmin(t, storeId)
+    await seedLiveTickets(t, storeId, ACTIVE_TICKET_LIMIT + OVERFLOW)
+
+    const live = await admin.query(api.kitchenTickets.getByStore, { storeId })
+    expect(live).toHaveLength(ACTIVE_TICKET_LIMIT)
+  })
+
+  test("keeps the oldest slips, which are the orders people are waiting for", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const admin = await seedAdmin(t, storeId)
+    await seedLiveTickets(t, storeId, ACTIVE_TICKET_LIMIT + OVERFLOW)
+
+    const live = await admin.query(api.kitchenTickets.getByStore, { storeId })
+    // Seeded newest-first, so the highest index is the oldest slip. Keeping the
+    // newest instead would drop the longest-waiting orders off the screen, and
+    // nobody would ever cook them.
+    expect(live[0].orderNumber).toBe(`LIVE-${ACTIVE_TICKET_LIMIT + OVERFLOW - 1}`)
+    expect(live[live.length - 1].orderNumber).toBe(`LIVE-${OVERFLOW}`)
   })
 })
