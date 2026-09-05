@@ -9,8 +9,11 @@ import * as defs from "@be-in-digital/convex-functions/gamePlay";
  */
 
 // @public-by-design: the whole point is an anonymous customer scanning a QR
-// code at a table. The draw itself is server-side and cannot be forged; these
-// still need rate limiting, tracked as S3-7.
+// code at a table. The draw itself is server-side and cannot be forged, and
+// since #323 every one of these is bounded by `consumeRateLimit` inside the
+// shared def — partly on a key the server resolved, so rotating `fingerprint`
+// no longer buys another turn. What that does NOT restore is the cooldown
+// itself: see the note at the top of `packages/convex-functions/src/gamePlay.ts`.
 // @public-by-design: anonymous customer scanning a table QR code; the draw is server-side
 export const getSession = query(defs.getSession);
 
