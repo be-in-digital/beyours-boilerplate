@@ -11,10 +11,10 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  Button,
+  Badge,
+  Separator,
 } from "@be-in-digital/ui"
-import { Button } from "@be-in-digital/ui"
-import { Badge } from "@be-in-digital/ui"
-import { Separator } from "@be-in-digital/ui"
 
 const PLAN_LABELS: Record<string, string> = {
   starter: "Starter",

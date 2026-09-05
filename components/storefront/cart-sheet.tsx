@@ -23,13 +23,11 @@ import {
   EmptyMedia,
   EmptyTitle,
   EmptyDescription,
-} from "@be-in-digital/ui/components"
-import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetTitle,
-} from "@/components/ui/sheet"
+} from "@be-in-digital/ui"
 import { useCartStore, formatPrice, useTranslation } from "@be-in-digital/restaurant"
 
 interface CartSheetProps {
@@ -96,7 +94,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
         className="flex w-full flex-col gap-0 overflow-hidden rounded-l-[3rem] border-none bg-white p-0 shadow-xl sm:max-w-md"
       >
         {/* Header — green */}
-        <div className="bg-[#0D5C3F] p-8 text-white">
+        <div className="bg-primary p-8 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
@@ -131,7 +129,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           </Button>
                         </AlertDialogTrigger>
                       </TooltipTrigger>
-                      <TooltipContent className="rounded-xl border-none bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[#0D5C3F]">
+                      <TooltipContent className="rounded-xl border-none bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-primary">
                         Vider ma Box
                       </TooltipContent>
                     </Tooltip>
@@ -187,7 +185,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               </EmptyHeader>
               <Button
                 onClick={() => onOpenChange(false)}
-                className="h-12 rounded-xl bg-[#0D5C3F] px-8 font-bold text-white hover:bg-[#0A412D]"
+                className="h-12 rounded-xl bg-primary px-8 font-bold text-white hover:bg-primary-hover"
               >
                 {t("cart.browseMenu")}
               </Button>
@@ -422,7 +420,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 <span className="text-xl font-black uppercase tracking-tighter text-zinc-800">
                   {t("cart.totalPrice")}
                 </span>
-                <span className="text-2xl font-black tracking-tighter text-[#0D5C3F]">
+                <span className="text-2xl font-black tracking-tighter text-primary">
                   {formatPrice(subtotal)}
                 </span>
               </div>
@@ -432,7 +430,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               className="mt-4 w-full"
               onClick={() => onOpenChange(false)}
             >
-              <Button className="group h-16 w-full rounded-2xl bg-[#0D5C3F] text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 hover:bg-[#0A412D]">
+              <Button className="group h-16 w-full rounded-2xl bg-primary text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 hover:bg-primary-hover">
                 {t("cart.orderNow")}
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>

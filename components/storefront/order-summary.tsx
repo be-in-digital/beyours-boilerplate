@@ -10,7 +10,7 @@ import {
   X,
   Loader2,
 } from "lucide-react"
-import { Input, Separator } from "@be-in-digital/ui/components"
+import { Input, Separator } from "@be-in-digital/ui"
 import { useCartStore, formatPrice } from "@be-in-digital/restaurant"
 import { computeOrderTotals } from "@be-in-digital/convex-functions/orderTotals"
 
@@ -135,7 +135,7 @@ export function OrderSummary({
                     </div>
                   )}
                   {/* Quantity badge */}
-                  <div className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-lg bg-[#0D5C3F] text-[10px] font-black text-white">
+                  <div className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-lg bg-primary text-[10px] font-black text-white">
                     {item.quantity}
                   </div>
                 </div>
@@ -226,7 +226,7 @@ export function OrderSummary({
                   type="button"
                   onClick={handleApplyPromo}
                   disabled={!promoInput.trim() || promoLoading}
-                  className="flex h-12 items-center justify-center rounded-xl bg-[#0D5C3F] px-5 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-[#0A412D] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-12 items-center justify-center rounded-xl bg-primary px-5 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {promoLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -305,7 +305,7 @@ export function OrderSummary({
               Total
             </span>
             <div className="text-right">
-              <p className="text-3xl font-black leading-none tracking-tighter text-[#0D5C3F]">
+              <p className="text-3xl font-black leading-none tracking-tighter text-primary">
                 {formatPrice(displayTotal)}
               </p>
               <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
@@ -317,7 +317,7 @@ export function OrderSummary({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-zinc-100 bg-[#0D5C3F]/[0.02] p-8">
+      <div className="border-t border-zinc-100 bg-primary/[0.02] p-8">
         <div className="flex items-center gap-3 text-emerald-700">
           <CheckCircle2 className="h-5 w-5" />
           <p className="text-[10px] font-black uppercase tracking-widest">

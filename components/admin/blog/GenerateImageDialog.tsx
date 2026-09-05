@@ -14,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  Textarea,
 } from "@be-in-digital/ui"
-import { Textarea } from "@/components/ui/textarea"
 
 interface GenerateImageDialogProps {
   open: boolean

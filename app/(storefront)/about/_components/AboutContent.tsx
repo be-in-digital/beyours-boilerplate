@@ -14,8 +14,7 @@ import {
     MapPin,
 } from "lucide-react"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button, Badge } from "@be-in-digital/ui"
 import { useCmsPage } from "@/lib/cms/useCmsPage"
 import { parseColoredText } from "@/lib/parse-colored-text"
 import { CmsRichText } from "@/components/storefront"
@@ -93,9 +92,9 @@ export default function AboutPage() {
     const ctaButton = cta.field("buttonText").text ?? "Voir le Menu"
 
     return (
-        <div className="min-h-screen bg-[#FDFCF6] dark:bg-zinc-950 text-[#1A1A1A] dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
+        <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
             {/* ─── HERO ─── */}
-            <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-[#0D5C3F] rounded-b-none md:rounded-b-[6rem]">
+            <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-primary rounded-b-none md:rounded-b-[6rem]">
                 <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
                     <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
                     <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
@@ -218,7 +217,7 @@ export default function AboutPage() {
             {statItems.length > 0 && (
             <section className="py-24 px-6 md:px-12">
                 <div className="max-w-7xl mx-auto">
-                    <div className="bg-[#0D5C3F] rounded-[3rem] md:rounded-[4rem] p-10 md:p-16 relative overflow-hidden">
+                    <div className="bg-primary rounded-[3rem] md:rounded-[4rem] p-10 md:p-16 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-full h-full pointer-events-none">
                             <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] bg-emerald-400/10 rounded-full blur-[120px]" />
                             <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-orange-400/10 rounded-full blur-[100px]" />
@@ -262,13 +261,13 @@ export default function AboutPage() {
 
                     <div className="relative z-10 max-w-3xl mx-auto">
                         <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-[0.9] mb-6 italic whitespace-pre-line">
-                            {parseColoredText(ctaTitle, "text-[#0D5C3F] not-italic")}
+                            {parseColoredText(ctaTitle, "text-primary not-italic")}
                         </h2>
                         <p className="text-lg text-white/90 font-medium mb-10 max-w-xl mx-auto leading-relaxed">
                             {ctaSubtitle}
                         </p>
                         <Link href="/menu">
-                            <Button className="h-16 px-10 rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs shadow-2xl transition-all hover:scale-105 group">
+                            <Button className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary-hover text-white font-black uppercase tracking-widest text-xs shadow-2xl transition-all hover:scale-105 group">
                                 {ctaButton}
                                 <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />
                             </Button>

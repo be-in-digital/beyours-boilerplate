@@ -8,23 +8,23 @@ import { useAdminStoreId } from "@/lib/admin/hooks"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Loader2, Lock, Sparkles, FolderPlus, Plus, Check, Languages } from "lucide-react"
-import { Button, Input, Switch } from "@be-in-digital/ui"
-import { Badge } from "@be-in-digital/ui"
 import {
+  Button,
+  Input,
+  Switch,
+  Badge,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@be-in-digital/ui"
 import Link from "next/link"
 import type { Id } from "@/convex/_generated/dataModel"
 

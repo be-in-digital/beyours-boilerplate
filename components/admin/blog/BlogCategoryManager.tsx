@@ -6,14 +6,15 @@ import { api } from "@/convex/_generated/api"
 import { useAdminStoreId } from "@/lib/admin/hooks"
 import { toast } from "sonner"
 import { Loader2, Plus, Pencil, Trash2, Check, X } from "lucide-react"
-import { Button, Input } from "@be-in-digital/ui"
 import {
+  Button,
+  Input,
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet"
+} from "@be-in-digital/ui"
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog"
 import type { Id } from "@/convex/_generated/dataModel"
 

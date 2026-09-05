@@ -5,7 +5,12 @@ import { useCmsPage } from "@/lib/cms/useCmsPage"
 
 /**
  * Injects a dynamic favicon <link> tag from CMS branding data.
- * Falls back to the default /favicon.ico if no CMS favicon is set.
+ *
+ * The CMS `branding` block is the only source: `store.branding.faviconUrl` is
+ * written by nothing since the Design screen sent the logo settings to the CMS,
+ * and reading it here would contradict what that screen tells the owner.
+ *
+ * Falls back to the static /favicon.ico when the block carries none.
  */
 export function DynamicFavicon() {
   const cms = useCmsPage("storefront-layout")

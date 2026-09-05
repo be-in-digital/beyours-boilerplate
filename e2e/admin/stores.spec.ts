@@ -188,7 +188,10 @@ test.describe("Stores Page", () => {
         dialog.getByText("Slug (généré automatiquement)")
       ).toBeVisible()
       await expect(dialog.getByLabel("Description")).toBeVisible()
-      await expect(dialog.getByLabel(/Adresse/)).toBeVisible()
+      // The address block is a named group of four fields — see
+      // `store-detail.spec.ts` for why it stopped being one labelled input.
+      await expect(dialog.getByRole("group", { name: /Adresse/ })).toBeVisible()
+      await expect(dialog.getByLabel("Rue")).toBeVisible()
       await expect(dialog.getByLabel("Téléphone")).toBeVisible()
       await expect(dialog.getByLabel("E-mail")).toBeVisible()
     })

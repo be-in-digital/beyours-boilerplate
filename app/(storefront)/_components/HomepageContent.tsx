@@ -15,8 +15,7 @@ import {
     Play,
 } from "lucide-react"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Badge, Button } from "@be-in-digital/ui"
 import {
     Heading,
     FeatureItem,
@@ -102,9 +101,9 @@ export default function LandingPage() {
     const blogViewAll = blog.field("viewAllLabel").text ?? "Tout voir"
 
     return (
-        <div className="min-h-screen bg-[#FDFCF6] dark:bg-zinc-950 text-[#1A1A1A] dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
+        <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
             {/* ─── HERO ─── */}
-            <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-[#0D5C3F] rounded-b-none md:rounded-b-[6rem]">
+            <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-primary rounded-b-none md:rounded-b-[6rem]">
                 <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
                     <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
                     <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
@@ -228,7 +227,7 @@ export default function LandingPage() {
 
             {/* ─── CTA / PROMO BANNER ─── */}
             <section className="py-12 md:py-32 px-0 md:px-6 relative overflow-hidden">
-                <div className="max-w-7xl mx-auto bg-[#0A3D2E] rounded-none md:rounded-[6rem] overflow-hidden relative p-12 md:p-16 lg:p-24 shadow-3xl shadow-emerald-950/40">
+                <div className="max-w-7xl mx-auto bg-primary-hover rounded-none md:rounded-[6rem] overflow-hidden relative p-12 md:p-16 lg:p-24 shadow-3xl shadow-emerald-950/40">
                     <div className="absolute top-0 right-0 w-full h-full pointer-events-none">
                         <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-400/10 rounded-full blur-[120px]" />
                         <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-orange-400/10 rounded-full blur-[100px]" />
@@ -260,7 +259,7 @@ export default function LandingPage() {
                                 </div>
 
                                 <Link href="/menu">
-                                    <Button className="h-18 w-full md:w-auto px-12 rounded-2xl bg-white text-[#0D5C3F] hover:bg-zinc-100 font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
+                                    <Button className="h-18 w-full md:w-auto px-12 rounded-2xl bg-white text-primary hover:bg-zinc-100 font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
                                         {ctaButtonText}
                                         <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />
                                     </Button>
@@ -280,9 +279,9 @@ export default function LandingPage() {
                                         fill
                                         className="object-cover group-hover:scale-110 transition-all duration-1000"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A3D2E]/80 via-transparent to-transparent" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-primary-hover/80 via-transparent to-transparent" />
 
-                                    <button className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-white border border-white/30 hover:bg-white hover:text-[#0D5C3F] transition-all shadow-2xl group/play">
+                                    <button className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-white border border-white/30 hover:bg-white hover:text-primary transition-all shadow-2xl group/play">
                                         <Play className="h-10 w-10 fill-current translate-x-1 group-hover/play:scale-110 transition-transform" />
                                         <div className="absolute inset-0 rounded-full bg-white animate-ping opacity-20 group-hover:opacity-0" />
                                     </button>

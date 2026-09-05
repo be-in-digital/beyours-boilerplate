@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Heart } from "lucide-react"
-import { Badge, Skeleton } from "@be-in-digital/ui/components"
+import { Badge, Skeleton } from "@be-in-digital/ui"
 import { authClient } from "@/lib/auth-client"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 import { FavoritesGrid } from "@/components/storefront/favorites-grid"
@@ -22,8 +22,8 @@ export default function FavoritesContent() {
 
   if (isPending || !session?.user) {
     return (
-      <div className="min-h-screen bg-[#FDFCF6]">
-        <div className="pt-24 pb-20 px-6 bg-[#0D5C3F] rounded-b-[4rem] md:rounded-b-[8rem] flex flex-col items-center">
+      <div className="min-h-screen bg-background">
+        <div className="pt-24 pb-20 px-6 bg-primary rounded-b-[4rem] md:rounded-b-[8rem] flex flex-col items-center">
           <Skeleton className="mb-4 h-10 w-48 rounded-xl" />
           <Skeleton className="h-6 w-64 rounded-lg" />
         </div>
@@ -37,9 +37,9 @@ export default function FavoritesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
+    <div className="min-h-screen bg-background text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
       {/* Hero header */}
-      <section className="pt-24 pb-20 px-6 md:px-12 bg-[#0D5C3F] relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
+      <section className="pt-24 pb-20 px-6 md:px-12 bg-primary relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
           <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
@@ -78,7 +78,7 @@ export default function FavoritesContent() {
             </p>
             <Link
               href="/store-selector"
-              className="mt-4 inline-block rounded-xl bg-[#0D5C3F] px-8 py-3 font-black uppercase tracking-widest text-white text-xs hover:bg-[#0a4d35] transition-colors"
+              className="mt-4 inline-block rounded-xl bg-primary px-8 py-3 font-black uppercase tracking-widest text-white text-xs hover:bg-primary-hover transition-colors"
             >
               Choisir un restaurant
             </Link>

@@ -114,10 +114,17 @@ test.describe("Store Detail Page", () => {
       const hasStore = await navigateToFirstStore(page)
 
       if (hasStore) {
-        // Address-related fields should be visible
-        await expect(page.getByLabel(/Adresse/)).toBeVisible({
-          timeout: 15_000,
-        })
+        // The address is one group of four fields, not a single box. It used to
+        // be a search input labelled "Adresse" plus four details; converging the
+        // design system kept the version where the street field IS the
+        // autocomplete, so `getByLabel(/Adresse/)` now names the GROUP and the
+        // street field answers to its own label.
+        await expect(
+          page.getByRole("group", { name: /Adresse/ })
+        ).toBeVisible({ timeout: 15_000 })
+        await expect(page.getByLabel("Rue")).toBeVisible()
+        await expect(page.getByLabel("Ville")).toBeVisible()
+        await expect(page.getByLabel("Code postal")).toBeVisible()
       }
     })
 

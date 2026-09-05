@@ -3,12 +3,7 @@
 import { useCallback, useId, useRef, useState } from "react"
 import { Check, Heart, Minus, Plus, ShoppingBag, Clock } from "lucide-react"
 import Link from "next/link"
-import {
-  Badge,
-  Separator,
-  Label,
-} from "@be-in-digital/ui/components"
-import { AllergenBadge, SpiceLevelIndicator } from "@be-in-digital/ui/restaurant"
+import { Badge, Separator, Label, AllergenBadge, SpiceLevelIndicator } from "@be-in-digital/ui"
 import { resolveAllergens } from "@be-in-digital/core/allergens"
 import {
   useCartStore,
@@ -309,7 +304,7 @@ export function ProductDetailClient({
                       return (
                         <label
                           key={choice.id}
-                          className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#0D5C3F] has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:border-[#0D5C3F] ${
+                          className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:border-primary ${
                             isSelected
                               ? "bg-emerald-50 border-emerald-200"
                               : "bg-zinc-50 border-zinc-100 hover:border-emerald-100"
@@ -340,7 +335,7 @@ export function ProductDetailClient({
                                 aria-hidden="true"
                                 className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
                                   isSelected
-                                    ? "border-[#0D5C3F] bg-[#0D5C3F]"
+                                    ? "border-primary bg-primary"
                                     : "border-zinc-300"
                                 }`}
                               >
@@ -351,7 +346,7 @@ export function ProductDetailClient({
                                 aria-hidden="true"
                                 className={`h-5 w-5 rounded-md border-2 flex items-center justify-center transition-colors ${
                                   isSelected
-                                    ? "border-[#0D5C3F] bg-[#0D5C3F]"
+                                    ? "border-primary bg-primary"
                                     : "border-zinc-300"
                                 }`}
                               >
@@ -385,7 +380,7 @@ export function ProductDetailClient({
             <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none mb-1">
               Prix total
             </span>
-            <span className="text-4xl font-black text-[#0D5C3F] tracking-tighter leading-none">
+            <span className="text-4xl font-black text-primary tracking-tighter leading-none">
               {formatPrice(totalPrice * quantity)}
             </span>
           </div>
@@ -396,7 +391,7 @@ export function ProductDetailClient({
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
-                className="h-12 w-12 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-[#0D5C3F] hover:bg-white transition-all flex items-center justify-center disabled:opacity-30"
+                className="h-12 w-12 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-primary hover:bg-white transition-all flex items-center justify-center disabled:opacity-30"
               >
                 <Minus className="h-5 w-5" />
               </button>
@@ -405,7 +400,7 @@ export function ProductDetailClient({
               </div>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="h-12 w-12 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-[#0D5C3F] hover:bg-white transition-all flex items-center justify-center"
+                className="h-12 w-12 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-primary hover:bg-white transition-all flex items-center justify-center"
               >
                 <Plus className="h-5 w-5" />
               </button>
@@ -417,7 +412,7 @@ export function ProductDetailClient({
               disabled={!canAdd}
               className={`h-16 px-10 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl transition-all flex items-center gap-3 ${
                 canAdd
-                  ? "bg-[#0D5C3F] hover:bg-[#0A412D] text-white shadow-emerald-900/20"
+                  ? "bg-primary hover:bg-primary-hover text-white shadow-emerald-900/20"
                   : "bg-zinc-300 text-white cursor-not-allowed shadow-none"
               }`}
             >

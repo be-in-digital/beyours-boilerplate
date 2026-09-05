@@ -3,7 +3,7 @@
 import type { ProductDoc } from "@be-in-digital/restaurant"
 import { ProductDetailClient } from "@/components/storefront/product-detail-client"
 import { useStoreId } from "@/lib/hooks/use-store-id"
-import { Skeleton } from "@be-in-digital/ui/components"
+import { Skeleton } from "@be-in-digital/ui"
 
 interface Props {
   product: ProductDoc

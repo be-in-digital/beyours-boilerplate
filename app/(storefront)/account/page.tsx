@@ -34,7 +34,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import { authClient } from "@/lib/auth-client"
 
 // === Types ===
@@ -228,8 +228,8 @@ export default function AccountPage() {
 
   if (isPending) {
     return (
-      <div className="min-h-screen bg-[#FDFCF6]">
-        <div className="pt-24 pb-20 px-6 bg-[#0D5C3F] rounded-b-[4rem] md:rounded-b-[8rem] flex flex-col items-center">
+      <div className="min-h-screen bg-background">
+        <div className="pt-24 pb-20 px-6 bg-primary rounded-b-[4rem] md:rounded-b-[8rem] flex flex-col items-center">
           <Skeleton className="mb-6 h-24 w-24 rounded-full" />
           <Skeleton className="mb-2 h-12 w-64 rounded-xl" />
           <Skeleton className="h-6 w-48 rounded-lg" />
@@ -415,9 +415,9 @@ export default function AccountPage() {
     profileLanguage !== (profile?.language ?? "fr")
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
+    <div className="min-h-screen bg-background text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
       {/* Hero header */}
-      <section className="pt-24 pb-20 px-6 md:px-12 bg-[#0D5C3F] relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
+      <section className="pt-24 pb-20 px-6 md:px-12 bg-primary relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
           <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
@@ -461,7 +461,7 @@ export default function AccountPage() {
                     {link.description}
                   </p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-[#0D5C3F] transition-colors" />
+                <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-primary transition-colors" />
               </div>
             </Link>
           ))}
@@ -474,19 +474,19 @@ export default function AccountPage() {
               <TabsList className="grid w-full grid-cols-3 bg-zinc-100/80 p-1 rounded-2xl">
                 <TabsTrigger
                   value="general"
-                  className="rounded-xl data-[state=active]:bg-[#0D5C3F] data-[state=active]:text-white transition-all font-bold text-xs uppercase"
+                  className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all font-bold text-xs uppercase"
                 >
                   Profil
                 </TabsTrigger>
                 <TabsTrigger
                   value="security"
-                  className="rounded-xl data-[state=active]:bg-[#0D5C3F] data-[state=active]:text-white transition-all font-bold text-xs uppercase"
+                  className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all font-bold text-xs uppercase"
                 >
                   Sécurité
                 </TabsTrigger>
                 <TabsTrigger
                   value="prefs"
-                  className="rounded-xl data-[state=active]:bg-[#0D5C3F] data-[state=active]:text-white transition-all font-bold text-xs uppercase"
+                  className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all font-bold text-xs uppercase"
                 >
                   Préférences
                 </TabsTrigger>
@@ -510,7 +510,7 @@ export default function AccountPage() {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploadingAvatar}
-                        className="absolute -bottom-1 -right-1 bg-[#0D5C3F] text-white rounded-full p-1.5 shadow-lg hover:bg-[#0a4d35] transition-colors disabled:opacity-50"
+                        className="absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-1.5 shadow-lg hover:bg-primary-hover transition-colors disabled:opacity-50"
                       >
                         {isUploadingAvatar ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -551,7 +551,7 @@ export default function AccountPage() {
                         id="name"
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        className="rounded-xl h-12 bg-white border-zinc-200 focus:border-[#0D5C3F] focus:ring-[#0D5C3F]/20 font-medium"
+                        className="rounded-xl h-12 bg-white border-zinc-200 focus:border-primary focus:ring-primary/20 font-medium"
                       />
                     </div>
                     <div className="space-y-1.5 px-1">
@@ -579,7 +579,7 @@ export default function AccountPage() {
                         <button
                           type="button"
                           onClick={addPhone}
-                          className="flex items-center gap-1 text-xs font-bold text-[#0D5C3F] hover:text-[#0a4d35] transition-colors"
+                          className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-hover transition-colors"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           Ajouter
@@ -590,7 +590,7 @@ export default function AccountPage() {
                         <button
                           type="button"
                           onClick={addPhone}
-                          className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-dashed border-zinc-200 text-zinc-500 dark:text-zinc-400 hover:border-[#0D5C3F] hover:text-[#0D5C3F] transition-colors text-sm font-medium"
+                          className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-dashed border-zinc-200 text-zinc-500 dark:text-zinc-400 hover:border-primary hover:text-primary transition-colors text-sm font-medium"
                         >
                           <Plus className="h-4 w-4" />
                           Ajouter un numéro de téléphone
@@ -607,7 +607,7 @@ export default function AccountPage() {
                             <select
                               value={phone.label}
                               onChange={(e) => updatePhone(index, "label", e.target.value)}
-                              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D5C3F]/20 focus-visible:border-[#0D5C3F]"
+                              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                             >
                               {PHONE_LABELS.map((l) => (
                                 <option key={l} value={l}>
@@ -628,7 +628,7 @@ export default function AccountPage() {
                             <select
                               value={phone.countryCode}
                               onChange={(e) => updatePhone(index, "countryCode", e.target.value)}
-                              className="h-12 rounded-xl border border-zinc-200 bg-white pl-3 pr-2 text-sm font-medium shrink-0 w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D5C3F]/20 focus-visible:border-[#0D5C3F]"
+                              className="h-12 rounded-xl border border-zinc-200 bg-white pl-3 pr-2 text-sm font-medium shrink-0 w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                             >
                               {COUNTRY_CODES.map((c, ci) => (
                                 <option key={`${c.code}-${ci}`} value={c.code}>
@@ -645,7 +645,7 @@ export default function AccountPage() {
                                 value={phone.number}
                                 onChange={(e) => updatePhone(index, "number", e.target.value)}
                                 placeholder="6 12 34 56 78"
-                                className="rounded-xl h-12 bg-white border-zinc-200 focus:border-[#0D5C3F] focus:ring-[#0D5C3F]/20 font-medium pl-[4.5rem]"
+                                className="rounded-xl h-12 bg-white border-zinc-200 focus:border-primary focus:ring-primary/20 font-medium pl-[4.5rem]"
                               />
                             </div>
                           </div>
@@ -665,7 +665,7 @@ export default function AccountPage() {
                         id="language"
                         value={profileLanguage}
                         onChange={(e) => setProfileLanguage(e.target.value)}
-                        className="flex h-12 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D5C3F]/20 focus-visible:border-[#0D5C3F]"
+                        className="flex h-12 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                       >
                         {LANGUAGES.map((lang) => (
                           <option key={lang.code} value={lang.code}>
@@ -680,7 +680,7 @@ export default function AccountPage() {
                     <Button
                       onClick={handleUpdateProfile}
                       disabled={isUpdatingProfile || !hasProfileChanges}
-                      className="w-full h-12 rounded-xl bg-[#0D5C3F] hover:bg-[#0a4d35] text-white font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="w-full h-12 rounded-xl bg-primary hover:bg-primary-hover text-white font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                       {isUpdatingProfile ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -709,7 +709,7 @@ export default function AccountPage() {
                         type="password"
                         placeholder="••••••••"
                         required
-                        className="rounded-xl h-12 border-zinc-200 focus:border-[#0D5C3F]"
+                        className="rounded-xl h-12 border-zinc-200 focus:border-primary"
                       />
                     </div>
                     <div className="space-y-1.5 px-1">
@@ -725,7 +725,7 @@ export default function AccountPage() {
                         type="password"
                         placeholder="••••••••"
                         required
-                        className="rounded-xl h-12 border-zinc-200 focus:border-[#0D5C3F]"
+                        className="rounded-xl h-12 border-zinc-200 focus:border-primary"
                       />
                     </div>
                     <div className="space-y-1.5 px-1">
@@ -741,14 +741,14 @@ export default function AccountPage() {
                         type="password"
                         placeholder="••••••••"
                         required
-                        className="rounded-xl h-12 border-zinc-200 focus:border-[#0D5C3F]"
+                        className="rounded-xl h-12 border-zinc-200 focus:border-primary"
                       />
                     </div>
                   </div>
                   <div className="pt-4">
                     <Button
                       type="submit"
-                      className="w-full h-12 rounded-xl bg-[#0D5C3F] hover:bg-[#0a4d35] font-black uppercase tracking-widest"
+                      className="w-full h-12 rounded-xl bg-primary hover:bg-primary-hover font-black uppercase tracking-widest"
                     >
                       Changer le mot de passe
                     </Button>
@@ -771,7 +771,7 @@ export default function AccountPage() {
                     <Switch
                       checked={emailNotifs}
                       onCheckedChange={setEmailNotifs}
-                      className="data-[state=checked]:bg-[#0D5C3F]"
+                      className="data-[state=checked]:bg-primary"
                     />
                   </div>
                   <div className="pt-6 border-t border-zinc-100">

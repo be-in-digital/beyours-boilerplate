@@ -6,7 +6,15 @@ import Link from "next/link"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { ArrowLeft, Package, ShoppingBag, Loader2 } from "lucide-react"
-import { Badge, Skeleton, Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@be-in-digital/ui/components"
+import {
+  Badge,
+  Skeleton,
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@be-in-digital/ui"
 import { formatPrice } from "@be-in-digital/restaurant"
 import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
@@ -54,8 +62,8 @@ export default function AccountOrdersContent() {
 
   if (isPending || !session?.user) {
     return (
-      <div className="min-h-screen bg-[#FDFCF6]">
-        <div className="pt-24 pb-20 px-6 bg-[#0D5C3F] rounded-b-[4rem] md:rounded-b-[8rem] flex flex-col items-center">
+      <div className="min-h-screen bg-background">
+        <div className="pt-24 pb-20 px-6 bg-primary rounded-b-[4rem] md:rounded-b-[8rem] flex flex-col items-center">
           <Skeleton className="mb-4 h-10 w-48 rounded-xl" />
           <Skeleton className="h-6 w-64 rounded-lg" />
         </div>
@@ -69,9 +77,9 @@ export default function AccountOrdersContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
+    <div className="min-h-screen bg-background text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
       {/* Hero header */}
-      <section className="pt-24 pb-20 px-6 md:px-12 bg-[#0D5C3F] relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
+      <section className="pt-24 pb-20 px-6 md:px-12 bg-primary relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
           <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
@@ -101,7 +109,7 @@ export default function AccountOrdersContent() {
         {/* Loading */}
         {orders === undefined && (
           <div className="py-20 flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#0D5C3F]" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         )}
 
@@ -118,7 +126,7 @@ export default function AccountOrdersContent() {
               </EmptyDescription>
             </EmptyHeader>
             <Link href="/menu">
-              <button className="rounded-xl bg-[#0D5C3F] px-8 py-3 font-black uppercase tracking-widest text-white text-xs hover:bg-[#0a4d35] transition-colors">
+              <button className="rounded-xl bg-primary px-8 py-3 font-black uppercase tracking-widest text-white text-xs hover:bg-primary-hover transition-colors">
                 Voir le menu
               </button>
             </Link>
@@ -143,7 +151,7 @@ export default function AccountOrdersContent() {
                 >
                   <div className="group rounded-2xl bg-white border border-zinc-100 p-4 hover:border-emerald-100 hover:bg-emerald-50/30 transition-all flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-500 dark:text-zinc-400 group-hover:bg-white group-hover:text-[#0D5C3F] transition-colors">
+                      <div className="h-12 w-12 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-500 dark:text-zinc-400 group-hover:bg-white group-hover:text-primary transition-colors">
                         <ShoppingBag className="h-6 w-6" />
                       </div>
                       <div>
@@ -156,7 +164,7 @@ export default function AccountOrdersContent() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-[#0D5C3F]">
+                      <p className="font-black text-primary">
                         {formatPrice(order.total)}
                       </p>
                       <Badge

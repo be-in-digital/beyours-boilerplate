@@ -3,6 +3,7 @@
  */
 
 export { StorefrontShell } from "./storefront-shell"
+export { StoreTheme } from "./store-theme"
 export { StorefrontI18nProvider } from "./storefront-i18n-provider"
 export { StorefrontHeader } from "./storefront-header"
 export { StorefrontFooter } from "./storefront-footer"

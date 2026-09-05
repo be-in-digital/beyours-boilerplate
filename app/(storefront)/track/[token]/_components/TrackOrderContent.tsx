@@ -16,9 +16,8 @@ import Link from "next/link"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { CheckCircle2, ChefHat, Clock, PackageCheck, XCircle } from "lucide-react"
-import { Skeleton } from "@be-in-digital/ui/components"
+import { Skeleton, Button } from "@be-in-digital/ui"
 import { formatStoreAddress } from "@be-in-digital/restaurant"
-import { Button } from "@/components/ui/button"
 
 const STEPS = [
   { key: "pending", label: "Reçue", icon: Clock },
@@ -75,7 +74,7 @@ export default function TrackOrderContent() {
           Ce lien de suivi n&apos;est plus valide.
         </p>
         <Link href="/menu">
-          <Button className="h-14 rounded-2xl bg-[#0D5C3F] px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-[#0A412D]">
+          <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
             Retour au menu
           </Button>
         </Link>

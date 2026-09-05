@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   ShieldCheck,
 } from "lucide-react"
-import { Button } from "@be-in-digital/ui/components"
+import { Button } from "@be-in-digital/ui"
 import { useCartStore, formatPrice,
   cartSignature,
   resolveCheckoutAttempt,
@@ -375,7 +375,7 @@ export default function CheckoutPage() {
 
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Link href="/menu">
-              <Button className="h-14 rounded-2xl bg-[#0D5C3F] px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-[#0A412D]">
+              <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
                 Retour au menu
               </Button>
             </Link>
@@ -607,7 +607,7 @@ export default function CheckoutPage() {
         <header className="mb-12">
           <Link
             href="/cart"
-            className="group mb-4 inline-flex items-center text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-[#0D5C3F]"
+            className="group mb-4 inline-flex items-center text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-primary"
           >
             <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Retour à la Box

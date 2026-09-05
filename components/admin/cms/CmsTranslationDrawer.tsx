@@ -8,8 +8,11 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
-import { Input, Label, Badge, Textarea } from "@be-in-digital/ui"
+  Input,
+  Label,
+  Badge,
+  Textarea,
+} from "@be-in-digital/ui"
 import type { FieldDefinition } from "@be-in-digital/cms"
 
 interface TranslationEntry {

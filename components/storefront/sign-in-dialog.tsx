@@ -12,7 +12,7 @@ import {
   Button,
   Input,
   Label,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import { authClient } from "@/lib/auth-client"
 import { toast } from "sonner"
 
@@ -65,7 +65,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
         )}
       </DialogTrigger>
       <DialogContent className="rounded-[2rem] border-none bg-white p-0 shadow-2xl sm:max-w-md">
-        <div className="rounded-t-[2rem] bg-[#0D5C3F] px-8 pb-6 pt-8">
+        <div className="rounded-t-[2rem] bg-primary px-8 pb-6 pt-8">
           <DialogHeader>
             <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-white">
               Connexion
@@ -123,7 +123,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
           <Button
             type="submit"
             disabled={loading}
-            className="h-14 w-full rounded-2xl bg-[#0D5C3F] font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-[#0A412D]"
+            className="h-14 w-full rounded-2xl bg-primary font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-primary-hover"
           >
             {loading ? (
               <span className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
             Pas encore de compte ?{" "}
             <Link
               href="/sign-up"
-              className="font-bold text-[#0D5C3F] hover:underline"
+              className="font-bold text-primary hover:underline"
             >
               Créer un compte
             </Link>

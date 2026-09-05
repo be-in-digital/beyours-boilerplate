@@ -4,7 +4,7 @@ import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useStoreId } from "@/lib/hooks/use-store-id"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from "@be-in-digital/ui"
 import { Heading, CategoryCard } from "@/components/website"
 
 const CATEGORY_COLORS = [

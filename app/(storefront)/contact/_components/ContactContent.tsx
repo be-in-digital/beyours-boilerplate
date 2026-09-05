@@ -13,8 +13,7 @@ import {
 import { motion } from "framer-motion"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button, Badge } from "@be-in-digital/ui"
 import { useCmsPage } from "@/lib/cms/useCmsPage"
 import { parseColoredText } from "@/lib/parse-colored-text"
 import { useStoreId } from "@/lib/hooks/use-store-id"
@@ -92,9 +91,9 @@ export default function ContactPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FDFCF6] dark:bg-zinc-950 text-[#1A1A1A] dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
+        <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
             {/* ─── HERO ─── */}
-            <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-[#0D5C3F] rounded-b-none md:rounded-b-[6rem]">
+            <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-primary rounded-b-none md:rounded-b-[6rem]">
                 <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
                     <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
                     <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
@@ -130,8 +129,8 @@ export default function ContactPage() {
                     >
                         <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-black/[0.04] border border-zinc-100 dark:border-zinc-800">
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="h-10 w-10 rounded-xl bg-[#0D5C3F]/10 dark:bg-emerald-950/30 flex items-center justify-center">
-                                    <MessageSquare className="h-5 w-5 text-[#0D5C3F] dark:text-emerald-400" />
+                                <div className="h-10 w-10 rounded-xl bg-primary/10 dark:bg-emerald-950/30 flex items-center justify-center">
+                                    <MessageSquare className="h-5 w-5 text-primary dark:text-emerald-400" />
                                 </div>
                                 <h2 className="text-2xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100">
                                     {formHeading}
@@ -177,7 +176,7 @@ export default function ContactPage() {
                                                 type="text"
                                                 required
                                                 placeholder="Votre nom"
-                                                className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
+                                                className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-primary dark:focus:border-emerald-500 transition-colors"
                                             />
                                         </div>
                                         <div>
@@ -190,7 +189,7 @@ export default function ContactPage() {
                                                 type="email"
                                                 required
                                                 placeholder="votre@email.com"
-                                                className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
+                                                className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-primary dark:focus:border-emerald-500 transition-colors"
                                             />
                                         </div>
                                     </div>
@@ -203,7 +202,7 @@ export default function ContactPage() {
                                             id="contact-phone"
                                             type="tel"
                                             placeholder="+33 6 00 00 00 00"
-                                            className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors"
+                                            className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-primary dark:focus:border-emerald-500 transition-colors"
                                         />
                                     </div>
                                     <div>
@@ -214,7 +213,7 @@ export default function ContactPage() {
                                             name="subject"
                                             id="contact-subject"
                                             required
-                                            className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors appearance-none"
+                                            className="w-full h-14 px-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm text-zinc-800 dark:text-zinc-100 outline-none focus:border-primary dark:focus:border-emerald-500 transition-colors appearance-none"
                                         >
                                             <option value="">Choisir un sujet...</option>
                                             <option value="order">Ma commande</option>
@@ -234,13 +233,13 @@ export default function ContactPage() {
                                             required
                                             rows={5}
                                             placeholder="Comment pouvons-nous vous aider ?"
-                                            className="w-full px-5 py-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-[#0D5C3F] dark:focus:border-emerald-500 transition-colors resize-none"
+                                            className="w-full px-5 py-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 font-bold text-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-600 outline-none focus:border-primary dark:focus:border-emerald-500 transition-colors resize-none"
                                         />
                                     </div>
                                     <Button
                                         type="submit"
                                         disabled={sending}
-                                        className="h-16 w-full rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-900/10 transition-all group"
+                                        className="h-16 w-full rounded-2xl bg-primary hover:bg-primary-hover text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-900/10 transition-all group"
                                     >
                                         {sending ? (
                                             <span className="flex items-center gap-2">
@@ -349,7 +348,7 @@ export default function ContactPage() {
                                         {store?.phone && (
                                             <a
                                                 href={`tel:${store.phone.replace(/\s+/g, "")}`}
-                                                className="flex items-center gap-3 text-zinc-600 dark:text-zinc-300 hover:text-[#0D5C3F] dark:hover:text-emerald-400 transition-colors group"
+                                                className="flex items-center gap-3 text-zinc-600 dark:text-zinc-300 hover:text-primary dark:hover:text-emerald-400 transition-colors group"
                                             >
                                                 <Phone className="h-4 w-4" />
                                                 <span className="font-bold text-sm group-hover:underline">
@@ -360,7 +359,7 @@ export default function ContactPage() {
                                         {store?.email && (
                                             <a
                                                 href={`mailto:${store.email}`}
-                                                className="flex items-center gap-3 text-zinc-600 dark:text-zinc-300 hover:text-[#0D5C3F] dark:hover:text-emerald-400 transition-colors group"
+                                                className="flex items-center gap-3 text-zinc-600 dark:text-zinc-300 hover:text-primary dark:hover:text-emerald-400 transition-colors group"
                                             >
                                                 <Mail className="h-4 w-4" />
                                                 <span className="font-bold text-sm group-hover:underline">
@@ -379,7 +378,7 @@ export default function ContactPage() {
                         </div>
 
                         {/* Quick response badge */}
-                        <div className="bg-[#0D5C3F] rounded-[2rem] p-8 text-center relative overflow-hidden">
+                        <div className="bg-primary rounded-[2rem] p-8 text-center relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/10 rounded-full blur-3xl -mr-16 -mt-16" />
                             <div className="relative z-10">
                                 <div className="h-14 w-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center mx-auto mb-4">

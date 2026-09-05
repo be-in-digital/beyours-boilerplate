@@ -29,7 +29,7 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import {
   formatPrice,
   useCartHydrated,
@@ -80,9 +80,9 @@ export default function CartContent() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-[#FDFCF6]">
+      <div className="min-h-screen bg-background">
         {/* Empty hero */}
-        <div className="bg-[#0D5C3F] pb-24 pt-32 text-center md:rounded-b-[6rem] md:pb-32">
+        <div className="bg-primary pb-24 pt-32 text-center md:rounded-b-[6rem] md:pb-32">
           <div className="flex justify-center">
             <div className="flex h-20 w-20 items-center justify-center rounded-[1.5rem] bg-white/20 backdrop-blur-md">
               <ShoppingBag className="h-10 w-10 text-white" />
@@ -98,7 +98,7 @@ export default function CartContent() {
           <Link href="/menu" className="mt-8 inline-block">
             <Button
               size="lg"
-              className="h-14 rounded-2xl bg-white px-8 text-xs font-black uppercase tracking-widest text-[#0D5C3F] shadow-xl shadow-black/10 hover:bg-zinc-100"
+              className="h-14 rounded-2xl bg-white px-8 text-xs font-black uppercase tracking-widest text-primary shadow-xl shadow-black/10 hover:bg-zinc-100"
             >
               Parcourir le menu
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -110,9 +110,9 @@ export default function CartContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6]">
+    <div className="min-h-screen bg-background">
       {/* Hero header */}
-      <div className="bg-[#0D5C3F] pb-20 pt-28 md:rounded-b-[6rem] md:pb-28">
+      <div className="bg-primary pb-20 pt-28 md:rounded-b-[6rem] md:pb-28">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
@@ -410,8 +410,8 @@ export default function CartContent() {
             <div className="rounded-[2rem] border border-zinc-100 bg-white p-8 shadow-sm">
               {/* Header */}
               <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0D5C3F]/10">
-                  <ShoppingBag className="h-6 w-6 text-[#0D5C3F]" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+                  <ShoppingBag className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-xl font-black uppercase italic tracking-tighter text-zinc-800">
@@ -464,14 +464,14 @@ export default function CartContent() {
                 <span className="text-xl font-black uppercase tracking-tighter text-zinc-800">
                   Total estimé
                 </span>
-                <span className="text-2xl font-black tracking-tighter text-[#0D5C3F]">
+                <span className="text-2xl font-black tracking-tighter text-primary">
                   {formatPrice(subtotal)}
                 </span>
               </div>
 
               {/* Checkout button */}
               <Button
-                className="group mt-6 h-16 w-full rounded-2xl bg-[#0D5C3F] text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 hover:bg-[#0A412D]"
+                className="group mt-6 h-16 w-full rounded-2xl bg-primary text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 hover:bg-primary-hover"
                 size="lg"
                 onClick={() => router.push("/checkout")}
                 disabled={!isOpen}
@@ -489,7 +489,7 @@ export default function CartContent() {
               {/* Continue shopping link */}
               <Link
                 href="/menu"
-                className="mt-5 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-[#0D5C3F]"
+                className="mt-5 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-primary"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Continuer mes achats

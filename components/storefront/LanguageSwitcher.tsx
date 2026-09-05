@@ -7,8 +7,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
+  Button,
+} from "@be-in-digital/ui"
 
 /**
  * Language Switcher — globe icon + dropdown with available languages.

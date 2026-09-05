@@ -17,7 +17,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import {
   filterProducts,
   sortProducts,
@@ -181,9 +181,9 @@ function MenuContent() {
   }[sortBy]
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
+    <div className="min-h-screen bg-background text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
       {/* ─── HERO ─── */}
-      <section className="pt-24 pb-20 px-6 md:px-12 bg-[#0D5C3F] relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
+      <section className="pt-24 pb-20 px-6 md:px-12 bg-primary relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
         {/* Decorative blurs */}
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
@@ -204,7 +204,7 @@ function MenuContent() {
 
           {/* Search bar */}
           <div className="max-w-3xl mx-auto relative group">
-            <div className="bg-white rounded-[2rem] p-2 shadow-2xl flex items-center gap-2 border-4 border-white/10 group-focus-within:border-[#0D5C3F]/20 transition-all">
+            <div className="bg-white rounded-[2rem] p-2 shadow-2xl flex items-center gap-2 border-4 border-white/10 group-focus-within:border-primary/20 transition-all">
               <div className="pl-6 flex items-center justify-center">
                 <Search className="h-6 w-6 text-zinc-500 dark:text-zinc-400" />
               </div>
@@ -229,7 +229,7 @@ function MenuContent() {
               )}
               <Button
                 onClick={handleSearchSubmit}
-                className="h-14 px-8 rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs shadow-xl transition-all"
+                className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary-hover text-white font-black uppercase tracking-widest text-xs shadow-xl transition-all"
               >
                 Rechercher
               </Button>
@@ -245,7 +245,7 @@ function MenuContent() {
             onClick={() => handleCategorySelect(null)}
             className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 border-2 shrink-0 h-14 ${
               !categorySlug
-                ? "bg-[#0D5C3F] border-[#0D5C3F] text-white shadow-[0_10px_20px_-5px_rgba(13,92,63,0.25)]"
+                ? "bg-primary border-primary text-white shadow-[0_10px_20px_-5px_rgba(13,92,63,0.25)]"
                 : "bg-white border-zinc-100 text-zinc-500 dark:text-zinc-400 hover:border-zinc-200 hover:bg-zinc-50"
             }`}
           >
@@ -258,7 +258,7 @@ function MenuContent() {
               onClick={() => handleCategorySelect(cat.slug)}
               className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 border-2 shrink-0 h-14 ${
                 categorySlug === cat.slug
-                  ? "bg-[#0D5C3F] border-[#0D5C3F] text-white shadow-[0_10px_20px_-5px_rgba(13,92,63,0.25)]"
+                  ? "bg-primary border-primary text-white shadow-[0_10px_20px_-5px_rgba(13,92,63,0.25)]"
                   : "bg-white border-zinc-100 text-zinc-500 dark:text-zinc-400 hover:border-zinc-200 hover:bg-zinc-50"
               }`}
             >
@@ -284,7 +284,7 @@ function MenuContent() {
               variant="outline"
               onClick={() => setFilters((prev) => ({ availableOnly: !prev.availableOnly }))}
               className={`h-12 rounded-xl border-zinc-100 bg-white font-bold text-zinc-600 gap-2 px-6 hover:bg-zinc-50 transition-all ${
-                filters.availableOnly ? "border-[#0D5C3F] bg-emerald-50 text-[#0D5C3F]" : ""
+                filters.availableOnly ? "border-primary bg-emerald-50 text-primary" : ""
               }`}
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -303,7 +303,7 @@ function MenuContent() {
                   variant="outline"
                   className="h-12 rounded-xl border-zinc-100 bg-white font-bold text-zinc-600 gap-2 px-6 hover:bg-zinc-50 transition-all"
                 >
-                  Trier par : <span className="text-[#0D5C3F] font-black">{sortLabel}</span>
+                  Trier par : <span className="text-primary font-black">{sortLabel}</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -414,14 +414,14 @@ function MenuContent() {
             </Badge>
             <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none mb-6 italic">
               Besoin d&apos;aide pour{" "}
-              <span className="text-[#0D5C3F] not-italic">votre commande ?</span>
+              <span className="text-primary not-italic">votre commande ?</span>
             </h2>
             <p className="text-lg text-white/90 font-medium">
               Notre équipe est disponible pour répondre à toutes vos questions
             </p>
           </div>
           <Link href="/contact">
-            <Button className="relative z-10 h-20 px-12 rounded-[2rem] bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
+            <Button className="relative z-10 h-20 px-12 rounded-[2rem] bg-primary hover:bg-primary-hover text-white font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
               Contactez-nous
               <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />
             </Button>
@@ -461,13 +461,13 @@ function MenuContent() {
                       />
                     )}
                     <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-2xl shadow-lg border border-zinc-100">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#0D5C3F]">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary">
                         {formatArticleDate(post.publishedAt)}
                       </p>
                     </div>
                   </div>
                   <div className="p-8 flex-1 flex flex-col">
-                    <h3 className="text-xl font-black tracking-tighter text-zinc-800 leading-tight group-hover:text-[#0D5C3F] transition-colors">
+                    <h3 className="text-xl font-black tracking-tighter text-zinc-800 leading-tight group-hover:text-primary transition-colors">
                       {post.title}
                     </h3>
                     <div className="mt-auto pt-6 flex items-center text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-400 group-hover:gap-3 gap-2 transition-all">

@@ -18,7 +18,7 @@ import { useAction, useConvex } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { CheckCircle2, Loader2, AlertTriangle } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@be-in-digital/ui"
 import { useCartStore, clearCheckoutAttempt } from "@be-in-digital/restaurant"
 import { convexErrorMessage } from "@/lib/convex-error"
 
@@ -305,7 +305,7 @@ function CheckoutSuccessContent() {
       <div className="flex flex-col justify-center gap-4 sm:flex-row">
         {trackHref && (
           <Link href={trackHref}>
-            <Button className="h-14 rounded-2xl bg-[#0D5C3F] px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-[#0A412D]">
+            <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
               Suivre ma commande
             </Button>
           </Link>
@@ -316,7 +316,7 @@ function CheckoutSuccessContent() {
             className={
               trackHref
                 ? "h-14 rounded-2xl border-zinc-200 px-8 font-black uppercase tracking-widest transition-all"
-                : "h-14 rounded-2xl bg-[#0D5C3F] px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-[#0A412D]"
+                : "h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover"
             }
           >
             Retour au menu
@@ -351,7 +351,7 @@ function Actions({
     <div className="flex flex-col justify-center gap-4 sm:flex-row">
       {href && (
         <Link href={href}>
-          <Button className="h-14 rounded-2xl bg-[#0D5C3F] px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-[#0A412D]">
+          <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
             Voir la commande
           </Button>
         </Link>

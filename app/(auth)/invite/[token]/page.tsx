@@ -15,7 +15,7 @@ import {
   LogIn,
   SearchX,
 } from "lucide-react"
-import { Button } from "@be-in-digital/ui/components"
+import { Button } from "@be-in-digital/ui"
 import { api } from "@/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
 import { convexErrorMessage } from "@/lib/convex-error"

@@ -11,7 +11,7 @@ import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@be-in-digital/ui";
 
 interface FavoriteButtonProps {
     itemId: string | number;
@@ -67,7 +67,7 @@ export function FavoriteButton({ itemId, itemTitle, className }: FavoriteButtonP
                     <Heart className={cn("h-5 w-5", isFav && "fill-current")} />
                 </button>
             </TooltipTrigger>
-            <TooltipContent side="left" className="bg-[#0D5C3F] text-white border-none font-bold uppercase text-[10px] tracking-widest px-4 py-2 rounded-xl shadow-xl">
+            <TooltipContent side="left" className="bg-primary text-white border-none font-bold uppercase text-[10px] tracking-widest px-4 py-2 rounded-xl shadow-xl">
                 {isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
             </TooltipContent>
         </Tooltip>

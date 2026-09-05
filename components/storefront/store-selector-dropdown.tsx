@@ -12,7 +12,7 @@ import {
   Empty,
   EmptyHeader,
   EmptyTitle,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import {
   useStorefrontStoreSelection,
   useCartStore,
@@ -44,7 +44,7 @@ function StoreOption({
       onClick={onSelect}
       className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
         isSelected
-          ? "bg-[#0D5C3F]/10 border border-[#0D5C3F]/20"
+          ? "bg-primary/10 border border-primary/20"
           : "hover:bg-zinc-50 border border-transparent"
       }`}
     >
@@ -119,7 +119,7 @@ export function StoreSelectorDropdown({
                 className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                   isTransparent
                     ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F] hover:bg-zinc-50"
+                    : "bg-white border-zinc-100 shadow-sm text-primary hover:bg-zinc-50"
                 }`}
                 aria-label={tooltipLabel}
               >
@@ -146,7 +146,7 @@ export function StoreSelectorDropdown({
             <button
               type="button"
               onClick={requestLocation}
-              className="flex items-center gap-1 text-[10px] font-bold text-[#0D5C3F] hover:text-[#0D5C3F]/70 uppercase tracking-widest transition-colors"
+              className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/70 uppercase tracking-widest transition-colors"
             >
               <Navigation className="h-3 w-3" />
               Localiser

@@ -300,6 +300,32 @@ describe("stores.updateBranding refuses input the Design screen could not send",
     ).rejects.toThrow(/Unexpected field `primaryColour`/)
   })
 
+  test("a protocol-relative logo URL", async () => {
+    // `//evil.example/x.png` is not a root-relative path: a browser resolves it
+    // against the current scheme and fetches it from that host. The check was
+    // `^/`, which accepted it — a third party's image on every page of the
+    // storefront and in the favicon, chosen by anyone who can write branding.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const asOwner = await seedStaff(t, "client_admin", [storeId])
+
+    for (const logoUrl of ["//evil.example/x.png", "///evil.example/x.png"]) {
+      await expect(
+        asOwner.mutation(api.stores.updateBranding, { id: storeId, branding: { logoUrl } }),
+        logoUrl
+      ).rejects.toThrow(/http\(s\) or root-relative URL/)
+    }
+
+    expect(await brandingOf(t, storeId)).toBeNull()
+
+    // The genuine root-relative path still lands.
+    await asOwner.mutation(api.stores.updateBranding, {
+      id: storeId,
+      branding: { logoUrl: "/logo.png" },
+    })
+    expect(await brandingOf(t, storeId)).toEqual({ logoUrl: "/logo.png" })
+  })
+
   test("a logo URL with a scheme an <img> should not be given", async () => {
     const t = newHarness()
     const storeId = await seedStore(t)

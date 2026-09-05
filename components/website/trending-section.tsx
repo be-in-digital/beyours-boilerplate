@@ -5,13 +5,13 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 import {
-    Carousel,
-    CarouselContent,
-    CarouselItem,
-    CarouselPrevious,
-    CarouselNext,
-} from "@/components/ui/carousel"
-import { Skeleton } from "@/components/ui/skeleton"
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+  Skeleton,
+} from "@be-in-digital/ui"
 import { Heading, MealCard } from "@/components/website"
 
 interface TrendingProduct {
@@ -96,8 +96,8 @@ export function TrendingSection({ sectionTitle, viewAllLabel }: TrendingSectionP
                     ))}
                 </CarouselContent>
                 <div className="flex justify-center md:justify-end gap-4 mt-8">
-                    <CarouselPrevious className="static translate-y-0 h-12 w-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center hover:bg-[#0D5C3F] hover:text-white transition-all bg-white dark:bg-zinc-900 dark:text-zinc-100" />
-                    <CarouselNext className="static translate-y-0 h-12 w-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center bg-[#0D5C3F] text-white hover:scale-105 transition-all" />
+                    <CarouselPrevious className="static translate-y-0 h-12 w-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center hover:bg-primary hover:text-white transition-all bg-white dark:bg-zinc-900 dark:text-zinc-100" />
+                    <CarouselNext className="static translate-y-0 h-12 w-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center bg-primary text-white hover:scale-105 transition-all" />
                 </div>
             </Carousel>
         </section>

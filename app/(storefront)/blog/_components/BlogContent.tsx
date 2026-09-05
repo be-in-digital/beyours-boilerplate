@@ -7,8 +7,7 @@ import { ArrowRight, BookOpen } from "lucide-react"
 import { motion } from "framer-motion"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button, Badge } from "@be-in-digital/ui"
 import { useCmsPage } from "@/lib/cms/useCmsPage"
 import { parseColoredText } from "@/lib/parse-colored-text"
 import { useStoreId } from "@/lib/hooks/use-store-id"
@@ -41,9 +40,9 @@ export default function BlogPage() {
     const posts = articles?.slice(1) ?? []
 
     return (
-        <div className="min-h-screen bg-[#FDFCF6] dark:bg-zinc-950 text-[#1A1A1A] dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
+        <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
             {/* ─── HERO ─── */}
-            <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-[#0D5C3F] rounded-b-none md:rounded-b-[6rem]">
+            <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-primary rounded-b-none md:rounded-b-[6rem]">
                 <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
                     <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
                     <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
@@ -100,7 +99,7 @@ export default function BlogPage() {
                                                 {featured.category.name}
                                             </Badge>
                                         )}
-                                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight mb-4 text-zinc-800 dark:text-zinc-100 group-hover:text-[#0D5C3F] dark:group-hover:text-emerald-400 transition-colors">
+                                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight mb-4 text-zinc-800 dark:text-zinc-100 group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors">
                                             {featured.title}
                                         </h2>
                                         <p className="text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed mb-6">
@@ -130,8 +129,8 @@ export default function BlogPage() {
             {(isLoading || articles?.length === 0 || posts.length > 0) && (
             <section className={`pb-24 px-6 md:px-12 max-w-7xl mx-auto ${featured ? "" : "pt-24"}`}>
                 <div className="flex items-center gap-3 mb-12">
-                    <div className="h-10 w-10 rounded-xl bg-[#0D5C3F]/10 dark:bg-emerald-950/30 flex items-center justify-center">
-                        <BookOpen className="h-5 w-5 text-[#0D5C3F] dark:text-emerald-400" />
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 dark:bg-emerald-950/30 flex items-center justify-center">
+                        <BookOpen className="h-5 w-5 text-primary dark:text-emerald-400" />
                     </div>
                     <h2 className="text-2xl font-black uppercase tracking-tighter text-zinc-800 dark:text-zinc-100">
                         Tous les articles
@@ -190,14 +189,14 @@ export default function BlogPage() {
                                                 </div>
                                             )}
                                             <div className="absolute top-4 right-4 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl shadow-lg border border-zinc-100 dark:border-zinc-800">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-[#0D5C3F] dark:text-emerald-400">{post.readingMinutes} min</p>
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-primary dark:text-emerald-400">{post.readingMinutes} min</p>
                                             </div>
                                         </div>
                                         <div className="p-6 md:p-8 flex-1 flex flex-col">
                                             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-3">
                                                 {formatArticleDate(post.publishedAt)}
                                             </p>
-                                            <h3 className="text-xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-tight mb-3 group-hover:text-[#0D5C3F] dark:group-hover:text-emerald-400 transition-colors">
+                                            <h3 className="text-xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-tight mb-3 group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors">
                                                 {post.title}
                                             </h3>
                                             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed flex-1">
@@ -218,7 +217,7 @@ export default function BlogPage() {
 
             {/* ─── NEWSLETTER CTA ─── */}
             <section className="px-6 md:px-12 max-w-7xl mx-auto mb-24">
-                <div className="bg-[#0D5C3F] rounded-[3rem] md:rounded-[4rem] p-10 md:p-16 text-center relative overflow-hidden">
+                <div className="bg-primary rounded-[3rem] md:rounded-[4rem] p-10 md:p-16 text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-full h-full pointer-events-none">
                         <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] bg-emerald-400/10 rounded-full blur-[120px]" />
                     </div>

@@ -7,22 +7,21 @@ import { useAdminStoreId } from "@/lib/admin/hooks"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Loader2, FolderPlus } from "lucide-react"
-import { Button, Input } from "@be-in-digital/ui"
 import {
+  Button,
+  Input,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@be-in-digital/ui"
 import type { Id } from "@/convex/_generated/dataModel"
 
 interface CreateArticleDialogProps {

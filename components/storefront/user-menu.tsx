@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import { authClient } from "@/lib/auth-client"
 import {
   User,
@@ -36,9 +36,9 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
     () => false,
   )
 
-  // SSR and the first client render: always the same HTML
-  // Uses a <button> (not a Link) to avoid the hydration mismatch
-  // when DropdownMenuTrigger injects a <button> on the client
+  // SSR and the first client render must emit identical HTML.
+  // Use a <button> (not a Link) to avoid the hydration mismatch that occurs
+  // when DropdownMenuTrigger injects a <button> on the client.
   if (!hasMounted || isPending || !session?.user) {
     return (
       <Button
@@ -47,7 +47,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
         className={`h-10 rounded-full border px-4 font-black uppercase tracking-widest text-[10px] transition-all ${
           variant === "transparent"
             ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-            : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F] hover:bg-zinc-50"
+            : "bg-white border-zinc-100 shadow-sm text-primary hover:bg-zinc-50"
         }`}
       >
         <Link href="/sign-in">
@@ -68,7 +68,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
           className={`relative h-10 w-10 rounded-full border-2 p-0 overflow-hidden transition-all ${
             variant === "transparent"
               ? "border-white/20 hover:border-white/40 hover:bg-white/10"
-              : "border-zinc-100 hover:border-[#0D5C3F] hover:bg-emerald-50"
+              : "border-zinc-100 hover:border-primary hover:bg-emerald-50"
           }`}
         >
           <Avatar className="h-full w-full">
@@ -81,7 +81,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
               className={`font-black ${
                 variant === "transparent"
                   ? "bg-white/20 text-white"
-                  : "bg-zinc-100 text-[#0D5C3F]"
+                  : "bg-zinc-100 text-primary"
               }`}
             >
               {user.name?.charAt(0).toUpperCase() ?? "U"}
@@ -115,8 +115,8 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
 
         <DropdownMenuGroup className="px-1">
           <Link href="/account" className="block w-full">
-            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-[#0D5C3F] group transition-colors">
-              <User className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
+            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-primary group transition-colors">
+              <User className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-primary transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mon profil
               </span>
@@ -124,8 +124,8 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
           </Link>
 
           <Link href="/account/orders" className="block w-full">
-            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-[#0D5C3F] group transition-colors">
-              <ShoppingBag className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
+            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-primary group transition-colors">
+              <ShoppingBag className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-primary transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mes commandes
               </span>
@@ -133,8 +133,8 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
           </Link>
 
           <Link href="/account/addresses" className="block w-full">
-            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-[#0D5C3F] group transition-colors">
-              <MapPin className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
+            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-primary group transition-colors">
+              <MapPin className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-primary transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mes adresses
               </span>
@@ -142,8 +142,8 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
           </Link>
 
           <Link href="/account/favorites" className="block w-full">
-            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-[#0D5C3F] group transition-colors">
-              <Heart className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-[#0D5C3F] transition-colors" />
+            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-primary group transition-colors">
+              <Heart className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-primary transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mes favoris
               </span>

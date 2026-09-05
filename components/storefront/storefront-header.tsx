@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import {
   useCartStore,
   useStorefrontStoreSelection,
@@ -73,7 +73,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
   const itemCount = useCartStore((s) => s.getItemCount())
   const reservationUrl = useReservationUrl()
   const cms = useCmsPage("storefront-layout")
-  const logoMedia = cms.block("branding").field("logo")
+  const logoUrl = cms.block("branding").field("logo").mediaUrl
   const brandName = cms.block("branding").field("brandName").text ?? "BeYours"
 
   const [isScrolled, setIsScrolled] = useState(false)
@@ -123,12 +123,12 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
           <Link
             href="/"
             className={`font-black text-xl tracking-tighter transition-colors duration-300 ${
-              showTransparent ? "text-white" : "text-[#0D5C3F]"
+              showTransparent ? "text-white" : "text-primary"
             }`}
           >
-            {logoMedia.mediaUrl ? (
+            {logoUrl ? (
               <img
-                src={logoMedia.mediaUrl}
+                src={logoUrl}
                 alt={brandName}
                 className="h-8 w-auto object-contain"
               />
@@ -149,15 +149,15 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                     showTransparent
                       ? "text-white hover:text-white/80"
                       : isActive
-                        ? "text-[#0D5C3F]"
-                        : "text-zinc-500 hover:text-[#0D5C3F]"
+                        ? "text-primary"
+                        : "text-zinc-500 hover:text-primary"
                   }`}
                 >
                   {link.label}
                   {isActive && (
                     <span
                       className={`absolute -bottom-1 left-0 right-0 h-0.5 rounded-full ${
-                        showTransparent ? "bg-white" : "bg-[#F97316]"
+                        showTransparent ? "bg-white" : "bg-accent-solid"
                       }`}
                     />
                   )}
@@ -175,7 +175,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                 className={`font-black text-sm uppercase tracking-widest transition-colors duration-300 ${
                   showTransparent
                     ? "text-white hover:text-white/80"
-                    : "text-zinc-500 hover:text-[#0D5C3F]"
+                    : "text-zinc-500 hover:text-primary"
                 }`}
               >
                 {t("nav.reserve")}
@@ -197,13 +197,13 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                     className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                       showTransparent
                         ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                        : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F] hover:bg-zinc-50"
+                        : "bg-white border-zinc-100 shadow-sm text-primary hover:bg-zinc-50"
                     }`}
                     aria-label={t("accessibility.openBox")}
                   >
                     <ShoppingBag className="h-4 w-4" />
                     {hasMounted && itemCount > 0 && (
-                      <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#F97316] text-[10px] font-bold text-white">
+                      <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-solid text-[10px] font-bold text-white">
                         {itemCount > 99 ? "99+" : itemCount}
                       </span>
                     )}
@@ -227,13 +227,13 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
               className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                 showTransparent
                   ? "bg-white/10 border-white/20 text-white"
-                  : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F]"
+                  : "bg-white border-zinc-100 shadow-sm text-primary"
               }`}
               aria-label={t("accessibility.openBox")}
             >
               <ShoppingBag className="h-4 w-4" />
               {hasMounted && itemCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#F97316] text-[10px] font-bold text-white">
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-solid text-[10px] font-bold text-white">
                   {itemCount > 99 ? "99+" : itemCount}
                 </span>
               )}
@@ -245,7 +245,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
               className={`flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                 showTransparent
                   ? "bg-white/10 border-white/20 text-white"
-                  : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F]"
+                  : "bg-white border-zinc-100 shadow-sm text-primary"
               }`}
               aria-label={
                 isMobileMenuOpen
@@ -271,14 +271,14 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "tween", duration: 0.3, ease: "easeInOut" }}
-            className="fixed inset-0 z-40 flex flex-col bg-[#0D5C3F] md:hidden"
+            className="fixed inset-0 z-40 flex flex-col bg-primary md:hidden"
           >
             {/* Close button */}
             <div className="flex items-center justify-between px-6 py-4">
               <span className="font-black text-xl tracking-tighter text-white">
-                {logoMedia.mediaUrl ? (
+                {logoUrl ? (
                   <img
-                    src={logoMedia.mediaUrl}
+                    src={logoUrl}
                     alt={brandName}
                     className="h-8 w-auto object-contain brightness-0 invert"
                   />
@@ -310,7 +310,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                     <Link
                       href={link.href}
                       className={`block text-4xl font-black uppercase tracking-tight transition-colors ${
-                        isActive ? "text-[#F97316]" : "text-white hover:text-white/70"
+                        isActive ? "text-accent-solid" : "text-white hover:text-white/70"
                       }`}
                     >
                       {link.label}

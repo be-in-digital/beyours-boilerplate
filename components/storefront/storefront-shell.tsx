@@ -26,7 +26,11 @@ export function StorefrontShell({ children }: StorefrontShellProps) {
   const showBanner = !!storeId && !isLoading && !isOpen
 
   return (
-    <div className="flex min-h-screen flex-col">
+    // `storefront-theme` is what makes the tokens below resolve to this
+    // establishment's colours rather than the administration's. It carries the
+    // storefront's own default palette (`app/globals.css`), which an
+    // establishment's saved branding then overrides from `StoreTheme`.
+    <div className="storefront-theme flex min-h-screen flex-col bg-background text-foreground">
       <StorefrontI18nProvider />
       <DynamicFavicon />
       {showBanner && <StoreClosedBanner nextOpenTime={nextOpenTime} />}

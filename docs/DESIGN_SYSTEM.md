@@ -145,46 +145,67 @@ import { cn } from "@/lib/utils"
 </button>
 ```
 
-## Adding shadcn/ui Components
+## Where the components live
 
-To add new shadcn/ui components:
+Every shared component comes from `@be-in-digital/ui`, and there is exactly one
+implementation of each:
 
-```bash
-cd apps/themes
-npx shadcn@latest add button
-npx shadcn@latest add card
-npx shadcn@latest add input
-# etc...
+```tsx
+import { Button, Card, Input, Badge } from "@be-in-digital/ui"
 ```
 
-Components will be added to `components/ui/` and can be customized as needed.
+This app used to carry its own `components/ui/` as well — 37 files that had
+drifted from the package, so the same site rendered two button heights
+depending on the page. That directory is gone and must not come back.
+`packages/ui/src/__tests__/design-system-singularity.test.ts` fails if it does.
+
+**Adding a component.** Add it to `packages/ui` in the engine repository, not
+here — a component added here is a component the next engine update cannot fix
+and no other site benefits from. A one-off that is genuinely specific to this
+site belongs in `components/` under its own name, composed out of the design
+system rather than reimplementing it.
 
 ## Theme Customization
 
-### Changing Primary Color
+There are three places a colour can come from, and they are not
+interchangeable.
 
-Update the `--primary` variable in `app/globals.css`:
+### 1. The establishment owner, from the admin
+
+`/dashboard/design` → **Couleurs**. Primary, secondary and accent are saved on
+the establishment and painted onto the storefront's custom properties at
+runtime, per store — so a two-location client can give each site its own
+palette. This is the one an owner can use without a developer, and the one to
+reach for first.
+
+The screen derives the rest of the palette from what is picked: the focus ring
+follows the primary, the accent becomes a tint rather than a slab (`bg-accent`
+paints hover states), the text on a coloured button is chosen by contrast ratio,
+and a dark-mode set is emitted alongside. The preview on the screen is rendered
+by the same code as the storefront, so it cannot drift from it.
+
+### 2. This site's own theme — `site/theme.css`
+
+The client zone. Loaded after `app/globals.css`, so anything redefined here
+overrides the engine default for the whole site, and an engine update never
+touches it. Use it for a palette that is part of the build rather than
+something an owner edits.
 
 ```css
 :root {
-  --primary: 22 100% 50%;  /* Orange (default) */
-  /* or */
-  --primary: 142 76% 36%;  /* Green for eco-friendly restaurants */
-  /* or */
-  --primary: 262 83% 58%;  /* Purple for fine dining */
+  --primary: 8 76% 45%;
+  --ring: 8 76% 45%;
 }
 ```
 
-### Restaurant Type Themes
+`pnpm template:apply <slug>` writes this file (and `site/fonts.ts`) from one of
+the ready-made themes under `templates/` — `pnpm template:list` shows them.
 
-The design system supports 6 predefined themes:
+### 3. `app/globals.css` — the engine default
 
-1. **Fast Food**: Orange primary, bold typography
-2. **Pizzeria**: Red primary, Italian-inspired
-3. **Chinese**: Red/gold accents, traditional feel
-4. **Fine Dining**: Dark, elegant, minimal
-5. **Café**: Warm browns, cozy aesthetic
-6. **Sushi**: Clean, modern, Japanese-inspired
+Do not edit it. It is the engine's own file and an update overwrites it; the
+orange it defines is only what a site renders when neither of the two above has
+said otherwise.
 
 ## Best Practices
 
@@ -203,9 +224,12 @@ The design system supports 6 predefined themes:
 
 ### Consistency
 
-- Use design tokens instead of arbitrary values
+- Use design tokens instead of arbitrary values, so an establishment's chosen
+  colours reach what you build. A hard-coded `bg-[#FF6B00]` is a component that
+  ignores the owner's palette.
 - Follow the component composition pattern from shadcn/ui
-- Keep custom components in `components/ui/` directory
+- Take shared components from `@be-in-digital/ui`; keep genuinely site-specific
+  ones in `components/`, composed out of the design system
 - Document new components with JSDoc comments
 
 ## Chart Colors

@@ -68,7 +68,7 @@ export function CategoryCard({
             </div>
 
             <div className="absolute bottom-4 right-4 h-8 w-8 rounded-full bg-white dark:bg-zinc-800 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center shadow-lg translate-y-2 group-hover:translate-y-0">
-                <ChevronRight className="h-4 w-4 text-[#0D5C3F] dark:text-emerald-400" />
+                <ChevronRight className="h-4 w-4 text-primary dark:text-emerald-400" />
             </div>
         </motion.div>
     );

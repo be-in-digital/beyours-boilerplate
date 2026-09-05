@@ -2,15 +2,17 @@
 
 import { useRouter } from "next/navigation"
 import { useAdminAuthStore } from "@be-in-digital/admin"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@be-in-digital/ui"
 import { LogOut, ChevronsUpDown, Settings } from "lucide-react"
 import {
   SidebarMenu,

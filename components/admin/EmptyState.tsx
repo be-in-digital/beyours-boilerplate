@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button"
+import { Button } from "@be-in-digital/ui"
 import { type LucideIcon } from "lucide-react"
 
 interface EmptyStateProps {

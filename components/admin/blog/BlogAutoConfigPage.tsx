@@ -12,9 +12,9 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  Button,
+  Badge,
 } from "@be-in-digital/ui"
-import { Button } from "@be-in-digital/ui"
-import { Badge } from "@be-in-digital/ui"
 import { LoadingState } from "@/components/admin/LoadingState"
 import { BlogAutoConfigForm } from "./BlogAutoConfigForm"
 

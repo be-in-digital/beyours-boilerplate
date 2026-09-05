@@ -23,31 +23,32 @@ import {
   Eye,
   ChevronDown,
 } from "lucide-react"
-import { Button, Badge, Input } from "@be-in-digital/ui"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
 import {
+  Button,
+  Badge,
+  Input,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Textarea,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@be-in-digital/ui"
 import { LoadingState } from "@/components/admin/LoadingState"
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog"
 import { BlogRichTextEditor } from "./BlogRichTextEditor"

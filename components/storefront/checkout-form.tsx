@@ -24,7 +24,7 @@ import {
   Input,
   Label,
   Separator,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import { useCartStore, type OrderType } from "@be-in-digital/restaurant"
 import { isOrderTypeOffered, type StoreServices } from "@be-in-digital/convex-schema"
 import {
@@ -314,7 +314,7 @@ export function CheckoutForm({
               onClick={() => setOrderType(opt.type)}
               className={`group flex h-24 flex-col items-center justify-center gap-2 rounded-[2rem] border-2 transition-all ${
                 isSelected
-                  ? "border-[#0D5C3F] bg-[#0D5C3F] text-white shadow-xl shadow-emerald-900/10"
+                  ? "border-primary bg-primary text-white shadow-xl shadow-emerald-900/10"
                   : "border-zinc-100 bg-white text-zinc-500 dark:text-zinc-400 hover:border-zinc-200"
               }`}
             >
@@ -767,7 +767,7 @@ export function CheckoutForm({
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="group h-16 w-full rounded-2xl bg-[#0D5C3F] text-lg font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-[#0A412D]"
+            className="group h-16 w-full rounded-2xl bg-primary text-lg font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-primary-hover"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">

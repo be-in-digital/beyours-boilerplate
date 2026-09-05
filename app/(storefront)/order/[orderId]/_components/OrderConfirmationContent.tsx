@@ -7,8 +7,7 @@ import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { CheckCircle, Package, ArrowLeft, ExternalLink, Loader2 } from "lucide-react"
-import { Badge, Separator, Skeleton } from "@be-in-digital/ui/components"
-import { OrderStatusBadge } from "@be-in-digital/ui/restaurant"
+import { Badge, Separator, Skeleton, OrderStatusBadge } from "@be-in-digital/ui"
 import { formatPrice } from "@be-in-digital/restaurant"
 
 function getStatusLabel(status: string) {
@@ -48,8 +47,8 @@ function OrderConfirmationContent() {
   // Loading
   if (order === undefined) {
     return (
-      <div className="min-h-screen bg-[#FDFCF6] pt-20">
-        <section className="pt-24 pb-20 px-6 md:px-12 bg-[#0D5C3F] rounded-b-[4rem] md:rounded-b-[8rem]">
+      <div className="min-h-screen bg-background pt-20">
+        <section className="pt-24 pb-20 px-6 md:px-12 bg-primary rounded-b-[4rem] md:rounded-b-[8rem]">
           <div className="max-w-7xl mx-auto text-center">
             <Skeleton className="h-10 w-48 mx-auto mb-4 rounded-xl" />
             <Skeleton className="h-6 w-64 mx-auto rounded-lg" />
@@ -57,7 +56,7 @@ function OrderConfirmationContent() {
         </section>
         <div className="max-w-4xl mx-auto px-6 md:px-12 py-12">
           <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-[#0D5C3F]" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </div>
       </div>
@@ -67,8 +66,8 @@ function OrderConfirmationContent() {
   // Not found
   if (order === null) {
     return (
-      <div className="min-h-screen bg-[#FDFCF6] pt-20">
-        <section className="pt-24 pb-20 px-6 md:px-12 bg-[#0D5C3F] rounded-b-[4rem] md:rounded-b-[8rem]">
+      <div className="min-h-screen bg-background pt-20">
+        <section className="pt-24 pb-20 px-6 md:px-12 bg-primary rounded-b-[4rem] md:rounded-b-[8rem]">
           <div className="max-w-7xl mx-auto text-center">
             <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none italic">
               Commande <span className="text-orange-600 dark:text-orange-400 not-italic">introuvable</span>
@@ -82,7 +81,7 @@ function OrderConfirmationContent() {
           </p>
           <Link
             href="/menu"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#0D5C3F] px-8 py-3 font-black uppercase tracking-widest text-white text-xs hover:bg-[#0a4d35] transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3 font-black uppercase tracking-widest text-white text-xs hover:bg-primary-hover transition-colors"
           >
             Retour au menu
           </Link>
@@ -92,9 +91,9 @@ function OrderConfirmationContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
+    <div className="min-h-screen bg-background text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
       {/* Hero */}
-      <section className="pt-24 pb-20 px-6 md:px-12 bg-[#0D5C3F] relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
+      <section className="pt-24 pb-20 px-6 md:px-12 bg-primary relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
           <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
@@ -129,7 +128,7 @@ function OrderConfirmationContent() {
         {trackingToken && (
           <Link
             href={`/track/${trackingToken}`}
-            className="mb-8 flex items-center justify-between rounded-[2rem] bg-[#0D5C3F] p-6 text-white shadow-xl shadow-emerald-900/10 hover:bg-[#0A412D] transition-all group"
+            className="mb-8 flex items-center justify-between rounded-[2rem] bg-primary p-6 text-white shadow-xl shadow-emerald-900/10 hover:bg-primary-hover transition-all group"
           >
             <div>
               <p className="font-black uppercase tracking-widest text-[10px] text-white/60 mb-1">
@@ -246,7 +245,7 @@ function OrderConfirmationContent() {
 
             <div className="flex justify-between items-center">
               <span className="font-black uppercase tracking-tighter text-lg">Total</span>
-              <span className="text-2xl font-black text-[#0D5C3F]">{formatPrice(order.total)}</span>
+              <span className="text-2xl font-black text-primary">{formatPrice(order.total)}</span>
             </div>
           </div>
         </div>

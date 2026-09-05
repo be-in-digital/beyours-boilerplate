@@ -23,7 +23,7 @@ import {
   EmptyMedia,
   EmptyTitle,
   EmptyDescription,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import { type SavedAddress } from "@/lib/stores/addresses-store"
 import { useAddresses } from "@/lib/hooks/use-addresses"
 import { authClient } from "@/lib/auth-client"
@@ -398,7 +398,7 @@ export function AddressManager() {
               <Button
                 onClick={handleSubmit}
                 disabled={!showAddressFields}
-                className="h-14 flex-1 rounded-2xl bg-[#0D5C3F] font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-[#0A412D]"
+                className="h-14 flex-1 rounded-2xl bg-primary font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-primary-hover"
               >
                 {editingId ? "Enregistrer" : "Ajouter l\u2019adresse"}
               </Button>

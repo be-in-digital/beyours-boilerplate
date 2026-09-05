@@ -6,7 +6,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { Mail, ArrowLeft, ArrowRight, Loader2, CheckCircle2 } from "lucide-react"
-import { Button, Input, Label } from "@be-in-digital/ui/components"
+import { Button, Input, Label } from "@be-in-digital/ui"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")

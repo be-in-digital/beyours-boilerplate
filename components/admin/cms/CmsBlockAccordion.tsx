@@ -1,12 +1,7 @@
 "use client"
 
 import { RotateCcw, ChevronDown } from "lucide-react"
-import { Button } from "@be-in-digital/ui"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@be-in-digital/ui"
 import { CmsFieldRenderer } from "./CmsFieldRenderer"
 import type {
   BlockDefinition,

@@ -4,11 +4,17 @@ import { useRouter } from "next/navigation"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { MapPin, Clock } from "lucide-react"
-import { Card, CardContent } from "@be-in-digital/ui/components"
-import { Button } from "@be-in-digital/ui/components"
-import { Skeleton, Empty, EmptyHeader, EmptyTitle } from "@be-in-digital/ui/components"
-import { StoreStatusBadge } from "@be-in-digital/ui/restaurant"
-import type { StoreStatus } from "@be-in-digital/ui/restaurant"
+import {
+  Card,
+  CardContent,
+  Button,
+  Skeleton,
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  StoreStatusBadge,
+  type StoreStatus,
+} from "@be-in-digital/ui"
 import { useStorefrontStoreSelection, useCartStore } from "@be-in-digital/restaurant"
 import type { StoreDoc } from "@be-in-digital/restaurant"
 

@@ -1,8 +1,10 @@
 import "@/lib/cms/init"
 import type { Metadata } from "next"
-import { StorefrontShell } from "@/components/storefront"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { buildBrandingCss } from "@be-in-digital/ui/branding"
+import { StoreTheme, StorefrontShell } from "@/components/storefront"
+import { TooltipProvider } from "@be-in-digital/ui"
 import { JsonLd } from "@/lib/json-ld"
+import { resolveStorefrontStore } from "@/lib/convex-server"
 import { resolveSiteBaseUrl } from "@/lib/seo"
 import { getRestaurantJsonLd, getStorefrontSeoContext } from "@/lib/structured-data"
 
@@ -44,11 +46,31 @@ export default async function StorefrontLayout({
   // The establishment, once, for every storefront page: its address, opening
   // hours, telephone and price range are the same on all of them, and a search
   // engine that finds any one page should learn the whole entity from it.
-  const restaurant = await getRestaurantJsonLd()
+  //
+  // Its branding rides along: `resolveStorefrontStore` is memoised per render
+  // and `getRestaurantJsonLd` has already called it, so the palette costs this
+  // layout nothing and spares a returning visitor the flash of engine orange
+  // before the client query lands.
+  //
+  // NEITHER MAY THROW. `getStorefrontSeoContext` states the invariant this
+  // layout has to keep — "a storefront whose backend is briefly unreachable
+  // drops its structured data, it does not fail to render" — and it holds only
+  // for the call that swallows. Adding a bare `resolveStorefrontStore()` beside
+  // it broke it: a layout that throws bubbles past `(storefront)/error.tsx` to
+  // `app/error.tsx`, which renders outside every group layout, so a transient
+  // Convex hiccup replaced every storefront page with a bare error screen
+  // instead of costing it one `<style>` element. Losing the server's palette
+  // costs a returning visitor one repaint after hydration; losing the page
+  // costs them the page.
+  const [restaurant, store] = await Promise.all([
+    getRestaurantJsonLd(),
+    resolveStorefrontStore().catch(() => null),
+  ])
 
   return (
     <TooltipProvider>
       <JsonLd data={restaurant} />
+      <StoreTheme initialCss={buildBrandingCss(store?.branding)} />
       <StorefrontShell>{children}</StorefrontShell>
     </TooltipProvider>
   )

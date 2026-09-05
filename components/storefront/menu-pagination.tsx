@@ -8,7 +8,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 
 interface MenuPaginationProps {
   currentPage: number
@@ -81,7 +81,7 @@ export function MenuPagination({
                   isActive={currentPage === page}
                   className={`cursor-pointer font-black h-12 w-12 rounded-xl transition-all ${
                     currentPage === page
-                      ? "bg-[#0D5C3F] text-white border-none shadow-lg hover:bg-[#0D5C3F] hover:text-white"
+                      ? "bg-primary text-white border-none shadow-lg hover:bg-primary hover:text-white"
                       : "text-zinc-500 hover:bg-zinc-100"
                   }`}
                 >

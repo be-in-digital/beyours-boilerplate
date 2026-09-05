@@ -25,7 +25,7 @@ import { getStorefrontSeoContext } from "@/lib/structured-data"
 import { JsonLd, buildBreadcrumbSchema } from "@/lib/json-ld"
 import { formatArticleDate } from "@/lib/blog/presentation"
 import { ARTICLE_SANITIZE_PROFILE } from "@/lib/blog/sanitize-profile"
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@be-in-digital/ui"
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -149,18 +149,18 @@ export default async function BlogArticlePage({ params }: Props) {
   )
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] dark:bg-zinc-950 text-[#1A1A1A] dark:text-zinc-100 font-sans">
+    <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground dark:text-zinc-100 font-sans">
       <JsonLd data={breadcrumbs} />
       <article className="mx-auto max-w-3xl px-6 md:px-12 py-16 md:py-24">
         <Link
           href="/blog"
-          className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-[#0D5C3F] dark:hover:text-emerald-400 transition-colors mb-10"
+          className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-primary dark:hover:text-emerald-400 transition-colors mb-10"
         >
           <ArrowLeft className="h-3 w-3" /> Tous les articles
         </Link>
 
         {article.category && (
-          <Badge className="w-fit mb-4 px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] bg-[#0D5C3F]/10 dark:bg-emerald-950/30 text-[#0D5C3F] dark:text-emerald-400 border-none">
+          <Badge className="w-fit mb-4 px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] bg-primary/10 dark:bg-emerald-950/30 text-primary dark:text-emerald-400 border-none">
             {article.category.name}
           </Badge>
         )}

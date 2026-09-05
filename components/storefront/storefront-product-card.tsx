@@ -9,7 +9,7 @@ import {
   useTranslation,
 } from "@be-in-digital/restaurant"
 import type { ProductDoc } from "@be-in-digital/restaurant"
-import { Badge } from "@be-in-digital/ui/components"
+import { Badge } from "@be-in-digital/ui"
 
 interface StorefrontProductCardProps {
   product: ProductDoc
@@ -140,7 +140,7 @@ export function StorefrontProductCard({
             <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none mb-1">
               {t("product.price")}
             </span>
-            <span className="text-xl font-black text-[#0D5C3F] leading-none">
+            <span className="text-xl font-black text-primary leading-none">
               {formatPrice(product.price)}
             </span>
           </div>
@@ -151,7 +151,7 @@ export function StorefrontProductCard({
                 e.stopPropagation()
                 onAddToCart()
               }}
-              className="h-12 w-12 rounded-2xl bg-[#0D5C3F] text-white hover:bg-orange-500 shadow-lg shadow-emerald-900/10 hover:scale-110 transition-all flex items-center justify-center"
+              className="h-12 w-12 rounded-2xl bg-primary text-white hover:bg-orange-500 shadow-lg shadow-emerald-900/10 hover:scale-110 transition-all flex items-center justify-center"
             >
               <Plus className="h-6 w-6" />
             </button>

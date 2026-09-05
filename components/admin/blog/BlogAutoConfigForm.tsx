@@ -15,20 +15,18 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@be-in-digital/ui"
-import { Button } from "@be-in-digital/ui"
-import { Badge } from "@be-in-digital/ui"
-import { Input } from "@be-in-digital/ui"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@be-in-digital/ui"
-import { Switch } from "@/components/ui/switch"
-import {
+  Button,
+  Badge,
+  Input,
+  Separator,
+  Label,
+  Switch,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@be-in-digital/ui"
 // ─── Types ───────────────────────────────────────────────────────────────────────
 
 interface AutoBlogAccess {

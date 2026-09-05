@@ -4,15 +4,13 @@ import { useState } from "react"
 import {
   AddressAutocomplete,
   type AddressValue,
-} from "@/components/ui/address-autocomplete"
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+  Button,
+} from "@be-in-digital/ui"
 
 /**
  * A fixture page, so it supplies its own key when the environment has none.

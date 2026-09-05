@@ -9,7 +9,7 @@ import {
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
-} from "@be-in-digital/ui/components"
+} from "@be-in-digital/ui"
 import { COMMON_LANGUAGES, type LanguageConfig } from "@be-in-digital/core"
 import { useLanguageStore, useTranslation } from "@be-in-digital/restaurant"
 
@@ -73,7 +73,7 @@ export function LanguageSelectorDropdown({
                 className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                   isTransparent
                     ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    : "bg-white border-zinc-100 shadow-sm text-[#0D5C3F] hover:bg-zinc-50"
+                    : "bg-white border-zinc-100 shadow-sm text-primary hover:bg-zinc-50"
                 }`}
                 aria-label={label}
               >
@@ -108,7 +108,7 @@ export function LanguageSelectorDropdown({
                 aria-current={isSelected ? "true" : undefined}
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors flex items-center gap-3 ${
                   isSelected
-                    ? "bg-[#0D5C3F]/10 border border-[#0D5C3F]/20"
+                    ? "bg-primary/10 border border-primary/20"
                     : "hover:bg-zinc-50 border border-transparent"
                 }`}
               >

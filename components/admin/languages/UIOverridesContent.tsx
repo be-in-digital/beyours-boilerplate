@@ -6,18 +6,18 @@ import { api } from "@/convex/_generated/api"
 import { useAdminStoreId } from "@/lib/admin/hooks"
 import { toast } from "sonner"
 import { SearchIcon, Globe2Icon, SaveIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { LoadingState } from "@/components/admin/LoadingState"
-import { EmptyState } from "@/components/admin/EmptyState"
 import {
+  Button,
+  Input,
+  Label,
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
-import { Badge } from "@/components/ui/badge"
+  Badge,
+} from "@be-in-digital/ui"
+import { LoadingState } from "@/components/admin/LoadingState"
+import { EmptyState } from "@/components/admin/EmptyState"
 import { REFERENCE_KEYS } from "@/lib/i18n/index"
 
 interface LanguageDoc {

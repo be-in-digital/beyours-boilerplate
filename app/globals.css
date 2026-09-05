@@ -60,6 +60,22 @@
     --popover-foreground: 224 71% 4%;
     --primary: 24 95% 53%;
     --primary-foreground: 0 0% 100%;
+    /*
+     * `--primary-hover` and `--accent-solid` exist because the storefront
+     * needed both and had been spelling them as literal hex.
+     *
+     * `hover:bg-primary/90` is the design system's own hover idiom and it only
+     * works for a light-ish primary on a light page: at 90% opacity a DARK
+     * brand blends towards the page and gets lighter on hover, which is
+     * backwards. A pressed state is its own colour.
+     *
+     * `--accent-solid` is the accent as the owner picked it. `--accent` is a
+     * near-white tint of the same hue because `bg-accent` paints hover
+     * surfaces; a cart badge or a "new" pill needs the saturated version, and
+     * without this token the storefront hard-coded one.
+     */
+    --primary-hover: 24 95% 46%;
+    --accent-solid: 24 90% 53%;
     --secondary: 220 14% 96%;
     --secondary-foreground: 224 71% 4%;
     --muted: 220 14% 96%;
@@ -104,6 +120,8 @@
     --popover-foreground: 210 20% 98%;
     --primary: 24 95% 58%;
     --primary-foreground: 224 71% 4%;
+    --primary-hover: 24 95% 65%;
+    --accent-solid: 24 90% 58%;
     --secondary: 215 28% 17%;
     --secondary-foreground: 210 20% 98%;
     --muted: 215 28% 17%;
@@ -149,6 +167,8 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-hover: hsl(var(--primary-hover));
+  --color-accent-solid: hsl(var(--accent-solid));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
@@ -190,8 +210,17 @@
      `.font-heading`. `font-heading` is used by the design-system demo, is
      documented in DESIGN_SYSTEM.md, and now by every gamification screen —
      and until these two lines it silently resolved to the body font. */
-  --font-sans: var(--font-inter);
-  --font-heading: var(--font-poppins);
+  /*
+   * `--brand-font-*` is the runtime hook the Design screen's typography tab
+   * writes through (`StoreTheme` -> `buildBrandingCss`). It has to be spelled
+   * here, inside the utility's own value, because `@theme inline` substitutes
+   * the value into `.font-sans` at build time: overriding `--font-sans` at
+   * `:root` afterwards would change nothing. Overriding the variable NAMED
+   * inside it does, and the fallback keeps the engine's font when no
+   * establishment has chosen one.
+   */
+  --font-sans: var(--brand-font-body, var(--font-inter));
+  --font-heading: var(--brand-font-heading, var(--font-poppins));
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -210,13 +239,49 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+    /* See `--font-sans` above for why the override is named inside the value. */
+    font-family: var(--brand-font-body, var(--font-inter)), system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-poppins), system-ui, -apple-system, sans-serif;
+    font-family: var(--brand-font-heading, var(--font-poppins)), system-ui, -apple-system, sans-serif;
+  }
+
+  /*
+   * The storefront's own palette — the colours a diner has always seen.
+   *
+   * They were 228 literal hex utilities across 34 files: `bg-[#0D5C3F]` 66
+   * times, `text-[#0D5C3F]` 36, `hover:bg-[#0A412D]` 20, and so on. Against
+   * eight uses of `bg/text/border-primary` in the same trees. So an
+   * establishment could pick a colour on the Design screen, the custom property
+   * would change correctly, and the hero, the menu header, the add-to-cart
+   * button and the checkout button would all stay dark green — which is what
+   * "theming does nothing" actually meant, and it was equally true of the 51
+   * templates under `apps/themes/templates/`.
+   *
+   * The values are unchanged: these are the same greens and the same cream,
+   * read out of the markup and written down once. An establishment that has set
+   * no branding renders exactly what it rendered before.
+   *
+   * SCOPED, not global, and inside `@layer base` on purpose. Scoped because the
+   * administration is not this green and should not become it. Layered because
+   * `StoreTheme` emits an establishment's palette UNLAYERED, and an unlayered
+   * declaration beats every layered one whatever its specificity or order — so
+   * a store's own colours win here without depending on which stylesheet
+   * happens to load last.
+   */
+  .storefront-theme {
+    --background: 51 64% 98%;
+    --foreground: 0 0% 10%;
+    --primary: 158 75% 21%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 158 73% 15%;
+    --ring: 158 75% 21%;
+    --accent: 158 45% 96%;
+    --accent-foreground: 158 75% 18%;
+    --accent-solid: 25 95% 53%;
   }
 }
 

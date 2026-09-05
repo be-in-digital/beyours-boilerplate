@@ -5,8 +5,7 @@ import Link from "next/link"
 import { Facebook, Twitter, Instagram, MapPin, Phone, Clock, Mail } from "lucide-react"
 import { useMutation } from "convex/react"
 import { z } from "zod"
-import { Button } from "@be-in-digital/ui/components"
-import { Input } from "@be-in-digital/ui/components"
+import { Button, Input } from "@be-in-digital/ui"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useStoreId } from "@/lib/hooks"
@@ -104,7 +103,7 @@ export function StorefrontFooter() {
   }
 
   return (
-    <footer className="bg-[#0A412D] pt-24 pb-12 px-6 md:px-12">
+    <footer className="bg-primary-hover pt-24 pb-12 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
         {/* 4-column grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16">
