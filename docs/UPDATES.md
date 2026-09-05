@@ -128,16 +128,39 @@ reason and the way to resume. `--check` and `--dry-run` stay open on purpose:
 a lapsed client can still see what they are missing, which is the argument for
 renewing.
 
-Three ways the check stays silent, all deliberate:
+Ways the check stays silent, all deliberate:
 
 | Situation | Behaviour |
 |---|---|
 | No sentinel (this repo, the engine monorepo) | Skipped, no network call |
 | A sentinel with no `licenseKey` (site provisioned before the gate) | Skipped |
-| API unreachable, timeout, or unknown key | Warns, **update proceeds** |
+| API unreachable, timeout, non-2xx | Warns, **update proceeds** |
+| A key no deployment holds | Depends on enforcement, below |
 
-The last one is the important one. An outage on our side must never cost a
-paying client their update.
+The third one is the important one. An outage on our side must never cost a
+paying client their update — which is also why a refusal arrives as an HTTP 200
+carrying `entitled: false`, never as a 4xx: a status code the script reads as
+"unreachable" would let the update through.
+
+### Enforcement — what an unknown key is worth
+
+`BEYOURS_LICENSE_ENFORCEMENT` on the beyours.fr Convex deployment decides, and
+only the exact string `strict` closes the gate:
+
+| Value | A key no deployment holds |
+|---|---|
+| unset, or anything else | `entitled: true`, `reason: "unregistered"` — the update proceeds |
+| `strict` | `entitled: false`, `reason: "unknown_key"` — the update stops |
+
+The default forgives because every site delivered before keys were handed over
+carries none, and refusing theirs would freeze clients who pay. It is also the
+hole: while it forgives, an invented key entitles exactly as well as a real one,
+so a lapsed contract is collectable only by asking. Closing it is a one-line
+console action, and it must not be taken before every delivered site is
+registered — `tasks/license-key-registration-runbook.md` is that sequence.
+
+A near miss (`Strict`, `1`, `true`) leaves the gate open on purpose: a fumbled
+flag must not brick a paying client's updates.
 
 **This gate is a courtesy, not a lock.** Anyone holding the repo can run
 `git merge template/main` by hand or bump a version in `package.json`. What
@@ -153,16 +176,24 @@ so they read a sentence about their contract first.
 
 ### Issuing a key
 
-The key is stamped on the deployment when it is created in the BeYours console
-(`saDeployments.licenseKey`). For a site provisioned before the gate existed,
-run `saFleet.issueLicenseKey` and write the result into the site's
-`.beindigital-site.json`, or pass it at init:
+A key is stamped on the deployment when it is created in the BeYours console
+(`saDeployments.licenseKey`), and again at go-live if the deployment somehow
+reached handover without one — so no site is handed over unkeyed.
+
+Read it on the deployment's page in the console, under **Licence**: it shows the
+key, and the exact line to run in the client repo, with the licence API filled
+in. Sites provisioned before the gate existed have no key; the fleet page lists
+them and the same panel issues one.
 
 ```bash
 pnpm setup -- --license-key bys_… --license-api https://<deployment>.convex.site
 ```
 
-Rotating a key invalidates the one the site holds — it has to be written back.
+Rotating a key invalidates the one the site holds — it has to be written back
+into `.beindigital-site.json`, or the site starts answering as unknown.
+
+**A key in our database checks nothing.** It only starts working when it is in
+the site's sentinel; until then the update scripts make no call at all.
 
 ## Operational reminders
 
