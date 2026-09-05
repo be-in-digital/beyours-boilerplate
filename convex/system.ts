@@ -464,6 +464,10 @@ export const exportBackup = action({
       const settings: any = await ctx.runQuery(internal.systemInternal.getSettingsInternal, {})
 
       // Deterministic table export order (respects dependencies)
+      // Configuration and catalogue only. `orders`, `payments`, `invoices` and
+      // `numberSequences` are deliberately absent and must stay absent: a
+      // restore deletes and re-inserts every table it names, with new `_id`s,
+      // and a fiscal series or a counter that a restore can rewrite is not one.
       const tableNames = [
         "globalSettings",
         "stores",

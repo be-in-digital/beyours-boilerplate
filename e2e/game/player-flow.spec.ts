@@ -38,7 +38,7 @@ test.describe("Game player flow", () => {
   })
 
   test("serves the prize ticket route", async ({ page }) => {
-    // `convex/gameEmail.ts` emails this URL and `RewardTicket` encodes it into
+    // `convex/customerEmail.ts` emails this URL and `RewardTicket` encodes it into
     // the QR the customer keeps. The route did not exist in the template at
     // all, so both already pointed at a 404 on every client site.
     const response = await page.goto("/game/prize/E2ENOSUCHCODE", {

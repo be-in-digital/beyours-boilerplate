@@ -3,6 +3,11 @@ import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/orders";
+import {
+  buildOrderConfirmationPayload,
+  planOrderConfirmation,
+  releaseOrderConfirmationClaim,
+} from "@be-in-digital/convex-functions/orderConfirmation";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 import { v } from "convex/values";
 
@@ -128,6 +133,32 @@ export const getMyOrders = query({
   },
 });
 
+/**
+ * Send the diner their confirmation, once the defs layer has decided to.
+ *
+ * The same split `advanceOrder` below uses, and for the same reason: the rule
+ * about WHO gets an email belongs in the engine, where every payment path goes
+ * through it; scheduling needs `internal.*`, which only an app has.
+ *
+ * `planOrderConfirmation` has already claimed the send inside the mutation's
+ * transaction, so a replayed Stripe webhook hands this a null and the diner
+ * gets one confirmation rather than one per settlement attempt.
+ *
+ * Scheduled rather than awaited: an email is not a reason for a payment that
+ * has already been taken to fail.
+ */
+async function scheduleOrderConfirmation(
+  ctx: MutationCtx,
+  confirmation: { orderId: string } | null
+) {
+  if (!confirmation) return;
+  await ctx.scheduler.runAfter(
+    0,
+    internal.customerEmail.sendOrderConfirmation,
+    { orderId: confirmation.orderId as Id<"orders"> }
+  );
+}
+
 // === Mutations ===
 
 /**
@@ -148,9 +179,25 @@ export const create = mutation({
   args: defs.createWithTicket.args,
   handler: async (ctx, args) => {
     const orderId = await defs.createWithTicket.handler(ctx, args);
+
+    // A CASH order-ahead is confirmed here, at checkout, and nowhere else.
+    //
+    // Cash has no provider and no redirect, so `releaseToKitchen` sends it to
+    // the pass now rather than waiting for a payment — and its own comment
+    // notes that in auto mode "nobody ever" opens the admin to record the
+    // money. `markCashPaid` is the only other seam, so a click-and-collect or
+    // food-truck diner would otherwise see "Commande confirmée !" on screen and
+    // receive nothing, possibly for ever. `planOrderConfirmation` refuses every
+    // other kind of order at this point, and it claims the send, so the later
+    // `markCashPaid` does not produce a second one.
+    await scheduleOrderConfirmation(ctx, await planOrderConfirmation(ctx, orderId));
+
+    // Independent of the above, and both belong here: an order that moved
+    // tracked stock has to push the new availability to the platforms.
     if (await defs.orderMovedTrackedStock(ctx, orderId)) {
       await scheduleMenuSync(ctx, [args.storeId]);
     }
+
     return orderId;
   },
 });
@@ -176,7 +223,13 @@ export const markCashPaid = storeMutation({
     if (!order) throw new Error("Order not found");
     return order.storeId;
   },
-  handler: (ctx, args) => defs.markCashPaid.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const { paymentId, confirmation } = await defs.markCashPaid.handler(ctx, args);
+    await scheduleOrderConfirmation(ctx, confirmation);
+    // The payment id, as before — the admin ignores it, but changing what a
+    // mutation answers is not this fix's to do.
+    return paymentId;
+  },
 });
 
 // Protected: Admin only — verify store access via order's storeId
@@ -273,5 +326,33 @@ export const internalUpdateStatus = internalMutation({
  */
 export const internalUpdatePaymentStatus = internalMutation({
   args: defs.recordPaymentStatus.args,
-  handler: (ctx, args) => defs.recordPaymentStatus.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const confirmation = await defs.recordPaymentStatus.handler(ctx, args);
+    await scheduleOrderConfirmation(ctx, confirmation);
+  },
+});
+
+/**
+ * Everything the confirmation email needs, read as the order was recorded.
+ *
+ * Internal because it answers with the diner's email address and the token that
+ * opens their order page; the only caller is the scheduled action, which has no
+ * identity to scope a public query with.
+ */
+export const confirmationPayload = internalQuery({
+  args: { orderId: v.id("orders") },
+  handler: (ctx, args) => buildOrderConfirmationPayload(ctx, args.orderId),
+});
+
+/**
+ * Give back a confirmation claim the sender could not use.
+ *
+ * Only for the case where nothing was sent because nothing COULD be — no
+ * sender address configured, or the order gone. A send that reached SES and
+ * failed keeps its claim: retrying a provider that already refused is how a
+ * diner ends up with three receipts.
+ */
+export const releaseConfirmationClaim = internalMutation({
+  args: { orderId: v.id("orders") },
+  handler: (ctx, args) => releaseOrderConfirmationClaim(ctx, args.orderId),
 });

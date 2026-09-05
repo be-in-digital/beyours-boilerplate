@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { action, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import * as defs from "@be-in-digital/convex-functions/payments";
 import {
   storeQuery,
@@ -213,7 +214,28 @@ export const internalUpdateStatus = internalMutation(defs.updateStatus);
  * event leaves open, and then runs the same `settlePayment` as every other
  * settlement path — so the redundant confirmation cannot produce a second row.
  */
-export const internalSettleFromCharge = internalMutation(defs.settleFromChargeEvent);
+/**
+ * Settle an order from a `payment_intent.succeeded` event.
+ *
+ * The defs layer now routes this through `recordPaymentStatus`, so the kitchen
+ * release and the diner's confirmation happen here as they do on every other
+ * payment path. Scheduling the send is this wrapper's part, exactly as in
+ * `orders.ts`.
+ */
+export const internalSettleFromCharge = internalMutation({
+  args: defs.settleFromChargeEvent.args,
+  handler: async (ctx, args) => {
+    const result = await defs.settleFromChargeEvent.handler(ctx, args);
+    if (result.confirmation) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.customerEmail.sendOrderConfirmation,
+        { orderId: result.confirmation.orderId as Id<"orders"> }
+      );
+    }
+    return result;
+  },
+});
 
 /**
  * Record a refund or chargeback the provider performed on its own side, so the

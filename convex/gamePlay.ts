@@ -42,7 +42,7 @@ export const claim = mutation({
       const prize = play?.prizeId ? await ctx.db.get(play.prizeId) : null;
       const store = play ? await ctx.db.get(play.storeId) : null;
       if (play && prize && store) {
-        await ctx.scheduler.runAfter(0, internal.gameEmail.sendPrizeEmail, {
+        await ctx.scheduler.runAfter(0, internal.customerEmail.sendPrizeEmail, {
           toEmail: args.email,
           firstName: args.firstName,
           storeName: store.name,
