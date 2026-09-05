@@ -1,519 +1,281 @@
+// @vitest-environment edge-runtime
+
 /**
  * ┌──────────────────────────────────────────────────────────────┐
- * │   Deliveroo Integration - Scenario 11: Missing PLUs         │
+ * │   Deliveroo Integration - Scenario 11: Missing PLUs          │
  * └──────────────────────────────────────────────────────────────┘
  *
  * @description
- * Test suite for Deliveroo Scenario 11: Missing PLUs
+ * Deliveroo's certification scenario 11: an order whose items carry a
+ * `pos_item_id` (PLU) we do not recognise, or none at all. Two things have to
+ * happen and this file drives both through the real Convex route:
  *
- * This scenario validates:
- * 1. Orders with items having unknown pos_item_id (PLU)
- * 2. Fallback to item name when PLU not found
- * 3. Warning logs for missing PLU items
- * 4. Order acceptance despite missing PLUs
- * 5. Sync status sent after acceptance
+ *  - the order is still taken and still reaches the kitchen, identified by
+ *    name, because refusing food a customer has paid for is worse than
+ *    printing a line the POS cannot match;
+ *  - the sync status reported back to Deliveroo says so — `failed` with
+ *    `pos_item_id_not_found` when a line has no identifier, and
+ *    `pos_item_id_mismatched` when it has one that matches no product here.
  *
- * PLU = Price Look-Up code (product identifier in the POS system)
+ * The second half is the point of the scenario and no test had ever run it.
+ * The nine blocks replaced here built a payload with an "UNKNOWN-PLU-123"
+ * item and then asserted `item.pos_item_id === "UNKNOWN-PLU-123"`.
+ *
+ * PLU = Price Look-Up code, the product identifier in the POS.
  *
  * @reference https://api-docs.deliveroo.com/docs/order-integration
  */
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
-  config,
+  apiCallsExcludingAuth,
+  cancelPendingScheduledJobs,
+  configureDeliverooEnv,
+  newHarness,
+  postSigned,
+  readKitchenTickets,
+  readOrders,
+  seedStoreWithDeliveroo,
+  withDeliverooApi,
+  NOW,
+} from "./convex-harness";
+import {
   createNewOrderWebhook,
+  createStatusUpdateWebhook,
   generateOrderId,
-  log,
 } from "./test-config";
 
-// ============================================================================
-// Test Suite
-// ============================================================================
+// The sync status is reported over the API, so this suite needs credentials
+// and records what the product sent instead of letting it reach the sandbox.
+beforeAll(() => configureDeliverooEnv({ withApiCredentials: true }));
+afterEach(cancelPendingScheduledJobs);
 
-describe("Scenario 11: Missing PLUs", () => {
-  let missingPluOrderId: string;
-
-  // ========================================================================
-  // Setup & Teardown
-  // ========================================================================
-
-  beforeAll(() => {
-    log.info("Starting Missing PLUs Test Suite");
-    log.info(`Convex Site URL: ${config.CONVEX_SITE_URL}`);
-    log.info(`Sandbox Mode: ${config.IS_SANDBOX}`);
-  });
-
-  afterAll(() => {
-    log.success("Missing PLUs Test Suite Completed");
-  });
-
-  // ========================================================================
-  // Test 1: Order with Missing PLU
-  // ========================================================================
-
-  it("should handle items with unknown pos_item_id", async () => {
-    log.test("Test 1: Validating missing PLU handling");
-
-    missingPluOrderId = generateOrderId("missing-plu");
-    const webhook = {
-      event: "order.new",
-      body: {
-        order: {
-          id: missingPluOrderId,
-          order_number: "MISS-001",
-          location_id: config.SITE_ID,
-          display_id: "001",
-          status: "placed",
-          fulfillment_type: "deliveroo",
-          asap: true,
-          total_price: { fractional: 2500, currency_code: "EUR" },
-          partner_order_total: { fractional: 2500, currency_code: "EUR" },
-          items: [
-            {
-              pos_item_id: "UNKNOWN-PLU-123", // PLU not in menu
-              quantity: 1,
-              name: "Mystery Burger",
-              unit_price: { fractional: 1500, currency_code: "EUR" },
-              total_price: { fractional: 1500, currency_code: "EUR" },
-            },
-            {
-              pos_item_id: "ITEM-VALID-001", // Known PLU
-              quantity: 1,
-              name: "Regular Fries",
-              unit_price: { fractional: 1000, currency_code: "EUR" },
-              total_price: { fractional: 1000, currency_code: "EUR" },
-            },
-          ],
-          status_log: [{ at: new Date().toISOString(), status: "placed" }],
-          start_preparing_at: new Date(Date.now() + 5 * 60000).toISOString(),
-        },
+/** A line whose PLU is not in our catalogue, plus one that is. */
+const MIXED_ITEMS = [
+  {
+    pos_item_id: "UNKNOWN-PLU-123",
+    quantity: 1,
+    name: "Burger mystère",
+    unit_price: { fractional: 1500, currency_code: "EUR" },
+    total_price: { fractional: 1500, currency_code: "EUR" },
+    modifiers: [
+      {
+        pos_item_id: "UNKNOWN-MODIFIER",
+        quantity: 1,
+        name: "Sauce du chef",
+        unit_price: { fractional: 100, currency_code: "EUR" },
       },
-    };
+    ],
+  },
+  {
+    pos_item_id: "ITEM-VALID-001",
+    quantity: 2,
+    name: "Frites maison",
+    unit_price: { fractional: 500, currency_code: "EUR" },
+    total_price: { fractional: 1000, currency_code: "EUR" },
+  },
+];
 
-    const order = webhook.body.order;
-    const missingPluItem = order.items[0]!;
+function orderWithItems(id: string, items: Array<Record<string, unknown>>) {
+  return JSON.stringify(
+    createNewOrderWebhook({
+      id,
+      total_price: { fractional: 2600, currency_code: "EUR" },
+      partner_order_total: { fractional: 2600, currency_code: "EUR" },
+      items,
+    }),
+  );
+}
 
-    // Item should have all required fields
-    expect(missingPluItem).toHaveProperty("pos_item_id");
-    expect(missingPluItem).toHaveProperty("name");
-    expect(missingPluItem.pos_item_id).toBe("UNKNOWN-PLU-123");
-    expect(missingPluItem.name).toBe("Mystery Burger");
+describe("Scenario 11: an order whose PLUs we do not know", () => {
+  it("is accepted and reaches the kitchen anyway", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
 
-    log.success("Missing PLU item validated");
-    log.info(`  - Unknown PLU: ${missingPluItem.pos_item_id}`);
-    log.info(`  - Fallback to name: "${missingPluItem.name}"`);
+    const response = await postSigned(
+      t,
+      orderWithItems(generateOrderId("missing-plu"), MIXED_ITEMS),
+    );
+    expect(response.status).toBe(200);
+
+    expect(await readOrders(t)).toHaveLength(1);
+    expect(await readKitchenTickets(t)).toHaveLength(1);
   });
 
-  // ========================================================================
-  // Test 2: Fallback to Name
-  // ========================================================================
+  it("falls back to the item name, so the kitchen knows what to make", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
 
-  it("should fallback to item name when PLU unknown", async () => {
-    log.test("Test 2: Validating name fallback");
+    await postSigned(t, orderWithItems(generateOrderId("fallback"), MIXED_ITEMS));
 
-    const webhook = {
-      event: "order.new",
-      body: {
-        order: {
-          id: generateOrderId("name-fallback"),
-          order_number: "FALL-001",
-          location_id: config.SITE_ID,
-          display_id: "001",
-          status: "placed",
-          fulfillment_type: "deliveroo",
-          asap: true,
-          total_price: { fractional: 1200, currency_code: "EUR" },
-          partner_order_total: { fractional: 1200, currency_code: "EUR" },
-          items: [
-            {
-              pos_item_id: "PLU-NOT-FOUND", // Unknown
-              quantity: 2,
-              name: "Special Salad", // Use this to identify the item
-              operational_name: "Special Salad (Lunch Menu)",
-              unit_price: { fractional: 600, currency_code: "EUR" },
-              total_price: { fractional: 1200, currency_code: "EUR" },
-            },
-          ],
-          status_log: [{ at: new Date().toISOString(), status: "placed" }],
-          start_preparing_at: new Date(Date.now() + 5 * 60000).toISOString(),
-        },
-      },
-    };
+    const [ticket] = await readKitchenTickets(t);
+    expect(ticket!.items.map((i) => i.productName)).toEqual([
+      "Burger mystère",
+      "Frites maison",
+    ]);
+    expect(ticket!.items[1]!.quantity).toBe(2);
+    // A modifier we cannot match is still something the cook has to add.
+    expect(ticket!.items[0]!.options).toContain("Sauce du chef");
+  });
 
-    const item = webhook.body.order.items[0]!;
+  it("keeps the unrecognised PLU on the line, so it can be mapped later", async () => {
+    // Thrown away, an unmatched PLU cannot be turned into a product mapping
+    // afterwards — the only record of what Deliveroo called it is gone.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
 
-    // When PLU not found, use name to identify the product
-    expect(item.name).toBeDefined();
-    expect(item.name).toBe("Special Salad");
+    await postSigned(t, orderWithItems(generateOrderId("keep-plu"), MIXED_ITEMS));
 
-    // operational_name can provide additional context
-    if (item.operational_name) {
-      expect(item.operational_name).toBe("Special Salad (Lunch Menu)");
+    const [order] = await readOrders(t);
+    expect(order!.items[0]!.externalId).toBe("UNKNOWN-PLU-123");
+  });
+
+  it("warns, by name, about the PLU it could not match", async () => {
+    // The warning is the only signal a menu sync has drifted. It is asserted
+    // on the real `console.warn` the handler emits, not on a comment claiming
+    // it should log something.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const t = newHarness();
+      await seedStoreWithDeliveroo(t);
+
+      await postSigned(t, orderWithItems(generateOrderId("warn"), MIXED_ITEMS));
+
+      const messages = warn.mock.calls.map((args) => args.join(" "));
+      expect(messages.some((m) => m.includes("UNKNOWN-PLU-123"))).toBe(true);
+      expect(messages.some((m) => m.includes("Burger mystère"))).toBe(true);
+    } finally {
+      warn.mockRestore();
     }
-
-    log.success("Name fallback validated");
-    log.info(`  Using name: "${item.name}"`);
-    log.info(`  Operational name: "${item.operational_name}"`);
   });
 
-  // ========================================================================
-  // Test 3: Multiple Missing PLUs
-  // ========================================================================
-
-  it("should handle multiple items with missing PLUs", async () => {
-    log.test("Test 3: Validating multiple missing PLUs");
-
-    const webhook = {
-      event: "order.new",
-      body: {
-        order: {
-          id: generateOrderId("multi-missing"),
-          order_number: "MULTI-001",
-          location_id: config.SITE_ID,
-          display_id: "001",
-          status: "placed",
-          fulfillment_type: "deliveroo",
-          asap: true,
-          total_price: { fractional: 4000, currency_code: "EUR" },
-          partner_order_total: { fractional: 4000, currency_code: "EUR" },
-          items: [
-            {
-              pos_item_id: "UNKNOWN-1",
-              quantity: 1,
-              name: "New Product A",
-              unit_price: { fractional: 1500, currency_code: "EUR" },
-              total_price: { fractional: 1500, currency_code: "EUR" },
-            },
-            {
-              pos_item_id: "UNKNOWN-2",
-              quantity: 1,
-              name: "New Product B",
-              unit_price: { fractional: 1200, currency_code: "EUR" },
-              total_price: { fractional: 1200, currency_code: "EUR" },
-            },
-            {
-              pos_item_id: "UNKNOWN-3",
-              quantity: 1,
-              name: "New Product C",
-              unit_price: { fractional: 1300, currency_code: "EUR" },
-              total_price: { fractional: 1300, currency_code: "EUR" },
-            },
-          ],
-          status_log: [{ at: new Date().toISOString(), status: "placed" }],
-          start_preparing_at: new Date(Date.now() + 5 * 60000).toISOString(),
-        },
+  it("reports sync failed with pos_item_id_not_found when a line has no PLU", async () => {
+    // Deliveroo's contract for this scenario: acknowledge the order, then say
+    // the POS could not identify it. Sent on acceptance, like every sync
+    // status, and asserted on the request the product made.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("no-plu");
+    const noPluItems = [
+      {
+        quantity: 1,
+        name: "Plat sans référence",
+        unit_price: { fractional: 2500, currency_code: "EUR" },
+        total_price: { fractional: 2500, currency_code: "EUR" },
       },
-    };
+    ];
 
-    const order = webhook.body.order;
-
-    // All items have unknown PLUs
-    expect(order.items).toHaveLength(3);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    order.items.forEach((item: any) => {
-      expect(item.pos_item_id).toMatch(/^UNKNOWN-/);
-      expect(item.name).toBeDefined();
-    });
-
-    log.success("Multiple missing PLUs validated");
-    log.info(`  ${order.items.length} items with unknown PLUs`);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    order.items.forEach((item: any, idx: number) => {
-      log.info(
-        `    - Item ${idx + 1}: "${item.name}" (PLU: ${item.pos_item_id})`,
+    const calls = await withDeliverooApi(async (recorded) => {
+      await postSigned(t, orderWithItems(orderId, noPluItems));
+      // A status update carries the items again; the handler otherwise fetches
+      // them from the API before deciding.
+      await postSigned(
+        t,
+        JSON.stringify(createStatusUpdateWebhook(orderId, "accepted", { items: noPluItems })),
       );
+      return apiCallsExcludingAuth(recorded);
+    });
+
+    const sync = calls.find((c) => c.url.includes("sync_status"));
+    expect(sync, "nothing was reported back to Deliveroo").toBeDefined();
+    expect(JSON.parse(sync!.body ?? "{}")).toMatchObject({
+      status: "failed",
+      reason: "pos_item_id_not_found",
     });
   });
 
-  // ========================================================================
-  // Test 4: Mixed Known and Unknown PLUs
-  // ========================================================================
+  it("reports sync failed with pos_item_id_mismatched for a PLU we cannot resolve", async () => {
+    // A PLU that is present but matches no `externalProductMappings` row is a
+    // different failure from one that is absent, and Deliveroo distinguishes
+    // them: this is the menu having drifted, not the payload being thin.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("mismatch");
 
-  it("should handle mix of known and unknown PLUs", async () => {
-    log.test("Test 4: Validating mixed PLU scenario");
-
-    const webhook = {
-      event: "order.new",
-      body: {
-        order: {
-          id: generateOrderId("mixed-plus"),
-          order_number: "MIX-001",
-          location_id: config.SITE_ID,
-          display_id: "001",
-          status: "placed",
-          fulfillment_type: "deliveroo",
-          asap: true,
-          total_price: { fractional: 3500, currency_code: "EUR" },
-          partner_order_total: { fractional: 3500, currency_code: "EUR" },
-          items: [
-            {
-              pos_item_id: "ITEM-001", // Known
-              quantity: 1,
-              name: "Classic Burger",
-              unit_price: { fractional: 1500, currency_code: "EUR" },
-              total_price: { fractional: 1500, currency_code: "EUR" },
-            },
-            {
-              pos_item_id: "UNKNOWN-NEW", // Unknown
-              quantity: 1,
-              name: "New Special Sauce",
-              unit_price: { fractional: 500, currency_code: "EUR" },
-              total_price: { fractional: 500, currency_code: "EUR" },
-            },
-            {
-              pos_item_id: "ITEM-002", // Known
-              quantity: 1,
-              name: "Regular Drink",
-              unit_price: { fractional: 1500, currency_code: "EUR" },
-              total_price: { fractional: 1500, currency_code: "EUR" },
-            },
-          ],
-          status_log: [{ at: new Date().toISOString(), status: "placed" }],
-          start_preparing_at: new Date(Date.now() + 5 * 60000).toISOString(),
-        },
-      },
-    };
-
-    const order = webhook.body.order;
-
-    // Count known vs unknown PLUs
-    const unknownItems = order.items.filter(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (item: any) => item.pos_item_id === "UNKNOWN-NEW",
-    );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const knownItems = order.items.filter((item: any) =>
-      item.pos_item_id.startsWith("ITEM-"),
-    );
-
-    expect(unknownItems).toHaveLength(1);
-    expect(knownItems).toHaveLength(2);
-
-    log.success("Mixed PLU scenario validated");
-    log.info(`  Known PLUs: ${knownItems.length}`);
-    log.info(`  Unknown PLUs: ${unknownItems.length}`);
-    log.info(`  Total items: ${order.items.length}`);
-  });
-
-  // ========================================================================
-  // Test 5: Order Still Acceptable
-  // ========================================================================
-
-  it("should still accept order despite missing PLUs", async () => {
-    log.test("Test 5: Validating order acceptance");
-
-    // Orders with missing PLUs should still be accepted
-    // The restaurant can manually identify the items
-
-    const webhook = createNewOrderWebhook({
-      items: [
-        {
-          pos_item_id: "MISSING-PLU",
-          quantity: 1,
-          name: "Unknown Item",
-          unit_price: { fractional: 2500, currency_code: "EUR" },
-          total_price: { fractional: 2500, currency_code: "EUR" },
-        },
-      ],
+    const calls = await withDeliverooApi(async (recorded) => {
+      await postSigned(t, orderWithItems(orderId, MIXED_ITEMS));
+      await postSigned(
+        t,
+        JSON.stringify(createStatusUpdateWebhook(orderId, "accepted", { items: MIXED_ITEMS })),
+      );
+      return apiCallsExcludingAuth(recorded);
     });
 
-    const order = webhook.body.order;
-
-    // Order should be in "placed" status
-    expect(order.status).toBe("placed");
-    expect(order.items[0]!.pos_item_id).toBe("MISSING-PLU");
-
-    log.success("Order acceptance validated");
-    log.info("  Order accepted despite missing PLU");
-    log.info("  Restaurant can manually process");
+    const sync = calls.find((c) => c.url.includes("sync_status"));
+    expect(sync).toBeDefined();
+    expect(JSON.parse(sync!.body ?? "{}")).toMatchObject({
+      status: "failed",
+      reason: "pos_item_id_mismatched",
+    });
   });
 
-  // ========================================================================
-  // Test 6: Warning Logging Requirement
-  // ========================================================================
-
-  it("should log warnings for missing PLUs", async () => {
-    log.test("Test 6: Validating warning log requirement");
-
-    // System should log warnings for missing PLUs
-    // This helps with debugging and menu sync issues
-
-    const webhook = {
-      event: "order.new",
-      body: {
-        order: {
-          id: generateOrderId("log-warning"),
-          order_number: "WARN-001",
-          location_id: config.SITE_ID,
-          display_id: "001",
-          status: "placed",
-          fulfillment_type: "deliveroo",
-          asap: true,
-          total_price: { fractional: 1500, currency_code: "EUR" },
-          partner_order_total: { fractional: 1500, currency_code: "EUR" },
-          items: [
-            {
-              pos_item_id: "UNRECOGNIZED-PLU-999",
-              quantity: 1,
-              name: "Unrecognized Product",
-              unit_price: { fractional: 1500, currency_code: "EUR" },
-              total_price: { fractional: 1500, currency_code: "EUR" },
-            },
-          ],
-          status_log: [{ at: new Date().toISOString(), status: "placed" }],
-          start_preparing_at: new Date(Date.now() + 5 * 60000).toISOString(),
-        },
+  it("reports sync succeeded once every PLU maps to a product", async () => {
+    // The other side of the same check, so the two failures above cannot be
+    // the only answer the code is capable of giving.
+    const t = newHarness();
+    const storeId = await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("known-plu");
+    const knownItems = [
+      {
+        pos_item_id: "ITEM-VALID-001",
+        quantity: 1,
+        name: "Frites maison",
+        unit_price: { fractional: 500, currency_code: "EUR" },
+        total_price: { fractional: 500, currency_code: "EUR" },
       },
-    };
+    ];
 
-    const item = webhook.body.order.items[0]!;
-
-    expect(item.pos_item_id).toBe("UNRECOGNIZED-PLU-999");
-
-    log.success("Warning log requirement validated");
-    log.info("  Should log: 'PLU UNRECOGNIZED-PLU-999 not found in menu'");
-    log.info(
-      "  Should log: 'Falling back to item name: Unrecognized Product'",
-    );
-  });
-
-  // ========================================================================
-  // Test 7: Price Information Still Available
-  // ========================================================================
-
-  it("should maintain price information", async () => {
-    log.test("Test 7: Validating price preservation");
-
-    // Even with missing PLU, price information is provided by Deliveroo
-
-    const webhook = {
-      event: "order.new",
-      body: {
-        order: {
-          id: generateOrderId("price-info"),
-          order_number: "PRICE-001",
-          location_id: config.SITE_ID,
-          display_id: "001",
-          status: "placed",
-          fulfillment_type: "deliveroo",
-          asap: true,
-          total_price: { fractional: 1800, currency_code: "EUR" },
-          partner_order_total: { fractional: 1800, currency_code: "EUR" },
-          items: [
-            {
-              pos_item_id: "UNKNOWN-PRICE-TEST",
-              quantity: 1,
-              name: "Premium Item",
-              unit_price: { fractional: 1800, currency_code: "EUR" },
-              menu_unit_price: { fractional: 1800, currency_code: "EUR" },
-              total_price: { fractional: 1800, currency_code: "EUR" },
-              discount_amount: { fractional: 0, currency_code: "EUR" },
-            },
-          ],
-          status_log: [{ at: new Date().toISOString(), status: "placed" }],
-          start_preparing_at: new Date(Date.now() + 5 * 60000).toISOString(),
-        },
-      },
-    };
-
-    const item = webhook.body.order.items[0]!;
-
-    // Price information is complete
-    expect(item.unit_price.fractional).toBe(1800);
-    expect(item.total_price.fractional).toBe(1800);
-
-    log.success("Price information validated");
-    log.info(`  Unit price: EUR ${item.unit_price.fractional / 100}`);
-    log.info(`  Total price: EUR ${item.total_price.fractional / 100}`);
-  });
-
-  // ========================================================================
-  // Test 8: Sync Status Requirement
-  // ========================================================================
-
-  it("should require sync_status after acceptance", async () => {
-    log.test("Test 8: Validating sync_status requirement");
-
-    // Orders with missing PLUs must still send sync_status after acceptance
-
-    const webhook = createNewOrderWebhook({
-      items: [
-        {
-          pos_item_id: "UNKNOWN-SYNC-TEST",
-          quantity: 1,
-          name: "Test Item",
-          unit_price: { fractional: 2500, currency_code: "EUR" },
-          total_price: { fractional: 2500, currency_code: "EUR" },
-        },
-      ],
+    await t.run(async (ctx) => {
+      const categoryId = await ctx.db.insert("categories", {
+        storeId,
+        name: "Accompagnements",
+        slug: "accompagnements",
+        sortOrder: 1,
+        isActive: true,
+        createdAt: NOW,
+        updatedAt: NOW,
+      });
+      const productId = await ctx.db.insert("products", {
+        storeId,
+        categoryId,
+        name: "Frites maison",
+        slug: "frites-maison",
+        price: 500,
+        taxRate: 10,
+        images: [],
+        options: [],
+        allergens: [],
+        tags: [],
+        isActive: true,
+        isFeatured: false,
+        sortOrder: 1,
+        source: "manual",
+        externalIds: { deliverooId: "ITEM-VALID-001" },
+        createdAt: NOW,
+        updatedAt: NOW,
+      });
+      await ctx.db.insert("externalProductMappings", {
+        storeId,
+        platform: "deliveroo" as const,
+        internalProductId: productId,
+        externalId: "ITEM-VALID-001",
+        lastSyncAt: NOW,
+        createdAt: NOW,
+        updatedAt: NOW,
+      });
     });
 
-    const order = webhook.body.order;
+    const calls = await withDeliverooApi(async (recorded) => {
+      await postSigned(t, orderWithItems(orderId, knownItems));
+      await postSigned(
+        t,
+        JSON.stringify(createStatusUpdateWebhook(orderId, "accepted", { items: knownItems })),
+      );
+      return apiCallsExcludingAuth(recorded);
+    });
 
-    expect(order).toHaveProperty("id");
-    expect(order.items[0]!.pos_item_id).toBe("UNKNOWN-SYNC-TEST");
-
-    log.success("Sync status requirement validated");
-    log.info(
-      "  sync_status must be sent after order.status_update with status='accepted'",
-    );
-    log.info("  Missing PLUs don't prevent sync_status");
-  });
-
-  // ========================================================================
-  // Test 9: Item Modifiers with Missing PLUs
-  // ========================================================================
-
-  it("should handle modifiers with missing PLUs", async () => {
-    log.test("Test 9: Validating modifiers with missing PLUs");
-
-    const webhook = {
-      event: "order.new",
-      body: {
-        order: {
-          id: generateOrderId("modifier-missing"),
-          order_number: "MOD-001",
-          location_id: config.SITE_ID,
-          display_id: "001",
-          status: "placed",
-          fulfillment_type: "deliveroo",
-          asap: true,
-          total_price: { fractional: 2200, currency_code: "EUR" },
-          partner_order_total: { fractional: 2200, currency_code: "EUR" },
-          items: [
-            {
-              pos_item_id: "ITEM-BASE-001", // Base item known
-              quantity: 1,
-              name: "Burger",
-              unit_price: { fractional: 1500, currency_code: "EUR" },
-              total_price: { fractional: 2200, currency_code: "EUR" },
-              modifiers: [
-                {
-                  pos_item_id: "UNKNOWN-MODIFIER", // Modifier unknown
-                  quantity: 1,
-                  name: "New Sauce",
-                  unit_price: { fractional: 700, currency_code: "EUR" },
-                  total_price: { fractional: 700, currency_code: "EUR" },
-                },
-              ],
-            },
-          ],
-          status_log: [{ at: new Date().toISOString(), status: "placed" }],
-          start_preparing_at: new Date(Date.now() + 5 * 60000).toISOString(),
-        },
-      },
-    };
-
-    const item = webhook.body.order.items[0]!;
-    const modifier = item.modifiers![0]!;
-
-    expect(modifier.pos_item_id).toBe("UNKNOWN-MODIFIER");
-    expect(modifier.name).toBe("New Sauce");
-
-    log.success("Modifier with missing PLU validated");
-    log.info(`  Base item: "${item.name}" (PLU: ${item.pos_item_id})`);
-    log.info(
-      `  Modifier: "${modifier.name}" (PLU: ${modifier.pos_item_id} - UNKNOWN)`,
-    );
+    const sync = calls.find((c) => c.url.includes("sync_status"));
+    expect(sync).toBeDefined();
+    expect(JSON.parse(sync!.body ?? "{}")).toMatchObject({ status: "succeeded" });
   });
 });

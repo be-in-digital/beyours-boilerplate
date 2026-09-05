@@ -1,29 +1,41 @@
+// @vitest-environment edge-runtime
+
 /**
  * ┌─────────────────────────────────────────────────────────────┐
- * │   Deliveroo Integration - Scenario 8: Discounted Order     │
+ * │   Deliveroo Integration - Scenario 8: Discounted Order      │
  * └─────────────────────────────────────────────────────────────┘
  *
  * @description
- * Test suite for Deliveroo Scenario 8: Discounted Order
+ * Deliveroo's certification scenario 8: an order carrying a promotion —
+ * `offer_discount` at basket level, `discount_amount` on a line, or both. What
+ * the restaurant needs from us is a receipt that adds up: the total it will be
+ * paid, and lines that do not contradict it.
  *
- * This scenario validates:
- * 1. Orders with discounts/promotions
- * 2. Item-specific discounts
- * 3. Total basket promotions
- * 4. Price calculations (total_price vs partner_order_total)
- * 5. offer_discount field presence and calculation
- * 6. Sync status sent after acceptance
+ * The blocks below post signed payloads at the real Convex route and read back
+ * the `orders` row. Two of them are `it.todo`, because pointing a truthful
+ * assertion at the handler showed the discount is not carried at all — see the
+ * text of each for what it does instead.
  *
- * Scenarios 2 and 8 send actual webhooks to the Convex HTTP endpoint.
+ * The two `it.runIf(hasWebhookTarget)` blocks are untouched: they POST at a
+ * deployed backend, they announce themselves loudly when one is not
+ * configured, and they were never part of the problem here.
  *
  * @reference https://api-docs.deliveroo.com/docs/order-integration
  */
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  cancelPendingScheduledJobs,
+  configureDeliverooEnv,
+  newHarness,
+  postSigned,
+  readKitchenTickets,
+  readOrders,
+  seedStoreWithDeliveroo,
+} from "./convex-harness";
 import {
   announceSkippedLiveRun,
   assertWebhookSuccess,
-  config,
   createNewOrderWebhook,
   generateOrderId,
   hasWebhookTarget,
@@ -33,61 +45,111 @@ import {
 
 const itWithWebhookTarget = it.runIf(hasWebhookTarget);
 
-// ============================================================================
-// Test Suite
-// ============================================================================
+beforeAll(() => {
+  configureDeliverooEnv();
+  announceSkippedLiveRun(
+    "Scenario 8: Discounted Order",
+    "2 tests that POST signed webhooks at a deployed Convex endpoint — the " +
+      "round trip a live deployment makes with a discounted order",
+    "webhook",
+  );
+});
+afterEach(cancelPendingScheduledJobs);
 
-describe("Scenario 8: Discounted Order", () => {
-  let discountedOrderId: string;
-
-  // ========================================================================
-  // Setup & Teardown
-  // ========================================================================
-
-  beforeAll(() => {
-    log.info("Starting Discounted Order Test Suite");
-    log.info(`Convex Site URL: ${config.CONVEX_SITE_URL}`);
-    log.info(`Sandbox Mode: ${config.IS_SANDBOX}`);
-    announceSkippedLiveRun(
-      "Scenario 8: Discounted Order",
-      "2 tests that POST signed webhooks at the Convex endpoint — every " +
-        "assertion about how the backend handles offer_discount",
-      "webhook",
-    );
-  });
-
-  afterAll(() => {
-    log.success("Discounted Order Test Suite Completed");
-  });
-
-  // ========================================================================
-  // Test 1: Offer Discount Field Validation
-  // ========================================================================
-
-  it("should validate offer_discount field presence", async () => {
-    log.test("Test 1: Validating offer_discount field");
-
-    discountedOrderId = generateOrderId("discounted");
-    const webhook = createNewOrderWebhook({
-      id: discountedOrderId,
+/** 25,00 € of food sold for 20,00 € — a five-euro basket promotion. */
+function discountedOrder(id: string) {
+  return JSON.stringify(
+    createNewOrderWebhook({
+      id,
       total_price: { fractional: 2000, currency_code: "EUR" },
       partner_order_total: { fractional: 2000, currency_code: "EUR" },
-      offer_discount: { fractional: 500, currency_code: "EUR" }, // -5 EUR
-    });
+      offer_discount: { fractional: 500, currency_code: "EUR" },
+    }),
+  );
+}
 
-    const order = webhook.body.order;
+describe("Scenario 8: a discounted order arrives", () => {
+  it("stores the total the partner is actually owed", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
 
-    // Validate offer_discount is present
-    expect(order).toHaveProperty("offer_discount");
-    expect(order.offer_discount!.fractional).toBe(500);
-    expect(order.offer_discount!.currency_code).toBe("EUR");
+    const response = await postSigned(t, discountedOrder(generateOrderId("discounted")));
+    expect(response.status).toBe(200);
 
-    log.success("offer_discount field validated");
-    log.info(`  - Discount amount: EUR ${order.offer_discount!.fractional / 100}`);
+    const [order] = await readOrders(t);
+    // `total_price` is the post-discount figure. Storing the pre-discount one
+    // would overstate every promoted order in the takings.
+    expect(order!.total).toBe(2000);
   });
 
+  it("still sends a promoted order to the kitchen", async () => {
+    // Including the extreme: a fully discounted basket is worth 0 € and is
+    // still food somebody has to cook.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+
+    await postSigned(
+      t,
+      JSON.stringify(
+        createNewOrderWebhook({
+          id: generateOrderId("free"),
+          total_price: { fractional: 0, currency_code: "EUR" },
+          partner_order_total: { fractional: 0, currency_code: "EUR" },
+          offer_discount: { fractional: 2500, currency_code: "EUR" },
+        }),
+      ),
+    );
+
+    const [order] = await readOrders(t);
+    expect(order!.total).toBe(0);
+    expect(await readKitchenTickets(t)).toHaveLength(1);
+  });
+
+  it("leaves an undiscounted order at its full price", async () => {
+    // The baseline the two above are read against: with no promotion the
+    // stored total is the basket, and nothing has quietly subtracted anything.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+
+    await postSigned(
+      t,
+      JSON.stringify(
+        createNewOrderWebhook({
+          id: generateOrderId("undiscounted"),
+          total_price: { fractional: 2500, currency_code: "EUR" },
+          partner_order_total: { fractional: 2500, currency_code: "EUR" },
+          offer_discount: { fractional: 0, currency_code: "EUR" },
+        }),
+      ),
+    );
+
+    const [order] = await readOrders(t);
+    expect(order!.total).toBe(2500);
+    expect(order!.subtotal).toBe(2500);
+  });
+
+  it.todo(
+    "records the discount, so the receipt explains itself — handleNewOrder " +
+      "(convex/deliverooWebhook.ts:383-386) reads `total_price` and " +
+      "`payment.subtotal` and never looks at `offer_discount`, so a 25,00 EUR " +
+      "basket sold for 20,00 EUR is stored with subtotal 2000, total 2000 and " +
+      "lines summing to 2500, with nothing anywhere naming the 5,00 EUR; " +
+      "`discountAmount` exists on the orders table " +
+      "(convex-schema/src/tables/orders.ts:72) and createFromWebhook leaves it " +
+      "undefined",
+  );
+
+  it.todo(
+    "prices a discounted LINE at what the customer paid for it — a line sent " +
+      "as unit_price 800, discount_amount 200, total_price 600 is mapped in " +
+      "handleNewOrder (convex/deliverooWebhook.ts:340-346) from `unit_price` " +
+      "alone, so createFromWebhook stores unitPrice 800 and subtotal 800: the " +
+      "line overstates by the discount, and an order carrying per-item " +
+      "promotions has lines summing to more than its own total",
+  );
+
   // ========================================================================
-  // Test 2: Price Calculation with Discount (sends actual webhook)
+  // Live round trip — unchanged, and skipped unless a deployment is configured
   // ========================================================================
 
   itWithWebhookTarget("should calculate prices correctly with discount", async () => {
@@ -124,243 +186,6 @@ describe("Scenario 8: Discounted Order", () => {
     log.info(`  - Final price: EUR ${finalPrice / 100}`);
   }, 10000);
 
-  // ========================================================================
-  // Test 3: Item-Specific Discount
-  // ========================================================================
-
-  it("should support item-specific discounts", async () => {
-    log.test("Test 3: Validating item-specific discounts");
-
-    const webhook = {
-      event: "order.new",
-      body: {
-        order: {
-          id: generateOrderId("item-discount"),
-          order_number: "DISC-001",
-          location_id: config.SITE_ID,
-          display_id: "001",
-          status: "placed",
-          fulfillment_type: "deliveroo",
-          asap: true,
-          total_price: { fractional: 2300, currency_code: "EUR" },
-          partner_order_total: { fractional: 2300, currency_code: "EUR" },
-          offer_discount: { fractional: 200, currency_code: "EUR" },
-          items: [
-            {
-              pos_item_id: "ITEM-001",
-              quantity: 1,
-              name: "Burger",
-              unit_price: { fractional: 1500, currency_code: "EUR" },
-              total_price: { fractional: 1500, currency_code: "EUR" },
-              discount_amount: { fractional: 0, currency_code: "EUR" },
-            },
-            {
-              pos_item_id: "ITEM-002",
-              quantity: 1,
-              name: "Fries (Promo)",
-              unit_price: { fractional: 800, currency_code: "EUR" },
-              total_price: { fractional: 600, currency_code: "EUR" },
-              discount_amount: { fractional: 200, currency_code: "EUR" }, // -2 EUR
-            },
-          ],
-          status_log: [{ at: new Date().toISOString(), status: "placed" }],
-          start_preparing_at: new Date(Date.now() + 5 * 60000).toISOString(),
-        },
-      },
-    };
-
-    const order = webhook.body.order;
-
-    // Verify item-specific discount
-    const discountedItem = order.items[1]!;
-    expect(discountedItem.discount_amount.fractional).toBe(200);
-    expect(discountedItem.total_price.fractional).toBe(600); // 800 - 200
-
-    log.success("Item-specific discount validated");
-    log.info(`  - Item: ${discountedItem.name}`);
-    log.info(`  - Unit price: EUR ${discountedItem.unit_price.fractional / 100}`);
-    log.info(
-      `  - Discount: -EUR ${discountedItem.discount_amount.fractional / 100}`,
-    );
-    log.info(
-      `  - Final price: EUR ${discountedItem.total_price.fractional / 100}`,
-    );
-  });
-
-  // ========================================================================
-  // Test 4: Total Basket Promotion
-  // ========================================================================
-
-  it("should support total basket promotions", async () => {
-    log.test("Test 4: Validating total basket promotions");
-
-    const webhook = createNewOrderWebhook({
-      total_price: { fractional: 2250, currency_code: "EUR" },
-      partner_order_total: { fractional: 2250, currency_code: "EUR" },
-      offer_discount: { fractional: 250, currency_code: "EUR" }, // -10% basket
-      items: [
-        {
-          pos_item_id: "ITEM-001",
-          quantity: 1,
-          name: "Burger",
-          unit_price: { fractional: 1500, currency_code: "EUR" },
-          total_price: { fractional: 1500, currency_code: "EUR" },
-          discount_amount: { fractional: 0, currency_code: "EUR" },
-        },
-        {
-          pos_item_id: "ITEM-002",
-          quantity: 1,
-          name: "Drink",
-          unit_price: { fractional: 1000, currency_code: "EUR" },
-          total_price: { fractional: 1000, currency_code: "EUR" },
-          discount_amount: { fractional: 0, currency_code: "EUR" },
-        },
-      ],
-    });
-
-    const order = webhook.body.order;
-
-    // Total basket promotion applies to the whole order
-    // Individual items don't have discount, but offer_discount is at order level
-    expect(order.offer_discount!.fractional).toBe(250);
-
-    // Sum of item prices
-    const itemsTotal = order.items.reduce(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (sum: number, item: any) => sum + item.total_price.fractional,
-      0,
-    );
-
-    // Total price should be items total minus order discount
-    const _expectedTotal = itemsTotal - order.offer_discount!.fractional;
-
-    log.success("Total basket promotion validated");
-    log.info(`  - Items subtotal: EUR ${itemsTotal / 100}`);
-    log.info(`  - Basket discount: -EUR ${order.offer_discount!.fractional / 100}`);
-    log.info(`  - Final total: EUR ${order.total_price.fractional / 100}`);
-  });
-
-  // ========================================================================
-  // Test 5: No Discount (Baseline)
-  // ========================================================================
-
-  it("should handle orders without discounts", async () => {
-    log.test("Test 5: Validating orders without discounts");
-
-    const webhook = createNewOrderWebhook({
-      total_price: { fractional: 2500, currency_code: "EUR" },
-      partner_order_total: { fractional: 2500, currency_code: "EUR" },
-      offer_discount: { fractional: 0, currency_code: "EUR" }, // No discount
-    });
-
-    const order = webhook.body.order;
-
-    // When no discount, offer_discount should be 0
-    expect(order.offer_discount!.fractional).toBe(0);
-
-    // total_price and partner_order_total should be equal
-    expect(order.total_price.fractional).toBe(
-      order.partner_order_total.fractional,
-    );
-
-    log.success("No discount baseline validated");
-    log.info("  offer_discount = 0");
-    log.info("  total_price = partner_order_total");
-  });
-
-  // ========================================================================
-  // Test 6: Discount Types Differentiation
-  // ========================================================================
-
-  it("should differentiate discount types", async () => {
-    log.test("Test 6: Differentiating discount types");
-
-    // Item discount: Applied to specific items
-    // Basket discount: Applied to total order
-    // Both can exist simultaneously
-
-    const webhook = {
-      event: "order.new",
-      body: {
-        order: {
-          id: generateOrderId("mixed-discount"),
-          order_number: "MIX-001",
-          location_id: config.SITE_ID,
-          display_id: "001",
-          status: "placed",
-          fulfillment_type: "deliveroo",
-          asap: true,
-          total_price: { fractional: 1950, currency_code: "EUR" },
-          partner_order_total: { fractional: 1950, currency_code: "EUR" },
-          offer_discount: { fractional: 550, currency_code: "EUR" }, // Total discount
-          items: [
-            {
-              pos_item_id: "ITEM-001",
-              quantity: 1,
-              name: "Pizza",
-              unit_price: { fractional: 2000, currency_code: "EUR" },
-              total_price: { fractional: 1700, currency_code: "EUR" }, // -3 EUR item discount
-              discount_amount: { fractional: 300, currency_code: "EUR" },
-            },
-            {
-              pos_item_id: "ITEM-002",
-              quantity: 1,
-              name: "Salad",
-              unit_price: { fractional: 800, currency_code: "EUR" },
-              total_price: { fractional: 800, currency_code: "EUR" },
-              discount_amount: { fractional: 0, currency_code: "EUR" },
-            },
-          ],
-          status_log: [{ at: new Date().toISOString(), status: "placed" }],
-          start_preparing_at: new Date(Date.now() + 5 * 60000).toISOString(),
-        },
-      },
-    };
-
-    const order = webhook.body.order;
-
-    // Item discount
-    const itemDiscount = order.items[0]!.discount_amount.fractional;
-    expect(itemDiscount).toBe(300);
-
-    // Total offer discount includes item discount + any basket promo
-    const totalDiscount = order.offer_discount!.fractional;
-    expect(totalDiscount).toBeGreaterThanOrEqual(itemDiscount);
-
-    log.success("Discount types differentiated");
-    log.info(`  - Item discount: EUR ${itemDiscount / 100}`);
-    log.info(`  - Total discount: EUR ${totalDiscount / 100}`);
-    log.info(`  - Basket promo: EUR ${(totalDiscount - itemDiscount) / 100}`);
-  });
-
-  // ========================================================================
-  // Test 7: Currency Consistency
-  // ========================================================================
-
-  it("should maintain currency consistency", async () => {
-    log.test("Test 7: Validating currency consistency");
-
-    const webhook = createNewOrderWebhook({
-      total_price: { fractional: 2000, currency_code: "EUR" },
-      partner_order_total: { fractional: 2000, currency_code: "EUR" },
-      offer_discount: { fractional: 500, currency_code: "EUR" },
-    });
-
-    const order = webhook.body.order;
-
-    // All monetary values should have the same currency
-    expect(order.total_price.currency_code).toBe("EUR");
-    expect(order.partner_order_total.currency_code).toBe("EUR");
-    expect(order.offer_discount!.currency_code).toBe("EUR");
-
-    log.success("Currency consistency validated");
-    log.info("  All prices in same currency (EUR)");
-  });
-
-  // ========================================================================
-  // Test 8: Sync Status Requirement (sends actual webhook)
-  // ========================================================================
-
   itWithWebhookTarget("should require sync_status after acceptance", async () => {
     log.test("Test 8: Validating sync_status requirement");
 
@@ -387,35 +212,4 @@ describe("Scenario 8: Discounted Order", () => {
     );
     log.info("  Discounts don't affect sync_status requirement");
   }, 10000);
-
-  // ========================================================================
-  // Test 9: Discount Edge Cases
-  // ========================================================================
-
-  it("should handle discount edge cases", async () => {
-    log.test("Test 9: Validating discount edge cases");
-
-    // Edge case 1: 100% discount (free order)
-    const freeOrder = createNewOrderWebhook({
-      total_price: { fractional: 0, currency_code: "EUR" },
-      partner_order_total: { fractional: 0, currency_code: "EUR" },
-      offer_discount: { fractional: 2500, currency_code: "EUR" }, // Everything discounted
-    });
-
-    expect(freeOrder.body.order.total_price.fractional).toBe(0);
-    expect(freeOrder.body.order.offer_discount!.fractional).toBe(2500);
-
-    // Edge case 2: Very small discount (EUR 0.01)
-    const tinyDiscount = createNewOrderWebhook({
-      total_price: { fractional: 2499, currency_code: "EUR" },
-      partner_order_total: { fractional: 2499, currency_code: "EUR" },
-      offer_discount: { fractional: 1, currency_code: "EUR" },
-    });
-
-    expect(tinyDiscount.body.order.offer_discount!.fractional).toBe(1);
-
-    log.success("Discount edge cases validated");
-    log.info("  100% discount (free order)");
-    log.info("  Minimal discount (EUR 0.01)");
-  });
 });

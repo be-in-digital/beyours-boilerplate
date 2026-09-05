@@ -1,29 +1,64 @@
+// @vitest-environment edge-runtime
+
 /**
- * The Deliveroo webhook signature these suites produce — pinned.
+ * The Deliveroo webhook signature these suites produce — pinned, and proved
+ * against the code that actually verifies it.
  *
  * WHY THIS FILE EXISTS
  *
- * `createSignature()` used to sign the request body alone. The verifier in
- * `convex/deliverooWebhookHandler.ts` signs `sequence_guid + " " + raw body`,
- * so every webhook these suites ever sent would have come back 401. Nobody
- * found out, because the suites that send webhooks skip whenever
- * `CONVEX_SITE_URL` and a Deliveroo secret are unset — so a signature that
- * could never be accepted looked exactly like a green run, for eleven suites,
- * indefinitely.
+ * `createSignature()` used to sign the request body alone. The verifier signs
+ * `sequence_guid + " " + raw body`, so every webhook these suites ever sent
+ * would have come back 401. Nobody found out, because the suites that send
+ * webhooks skip whenever `CONVEX_SITE_URL` and a Deliveroo secret are unset —
+ * so a signature that could never be accepted looked exactly like a green run,
+ * for eleven suites, indefinitely.
  *
- * So this file asserts the signature itself, against expected values computed
- * outside this codebase with `openssl dgst -sha256 -hmac`:
+ * Two independent anchors, because one of them alone can be wrong quietly:
  *
- *     printf '%s %s' "$GUID" "$BODY" | openssl dgst -sha256 -hmac "$SECRET"
+ *  1. Expected digests computed OUTSIDE this codebase with LibreSSL, so a
+ *     mistake in `createSignature()` cannot also produce its own expectation:
  *
- * It needs no network, no deployment, no secrets and no Convex backend, so it
- * runs in ordinary CI on every push. That is the point: the live suites cannot
- * be relied on to notice, so something that always runs has to.
+ *         printf '%s %s' "$GUID" "$BODY" | openssl dgst -sha256 -hmac "$SECRET"
+ *
+ *  2. The real verifier and the real route. `verifyWebhookSignature` is
+ *     exported from `@be-in-digital/integrations` and the Convex HTTP action
+ *     is mounted here with `convex-test`, so a signature this directory
+ *     produces is put in front of the code that will judge it in production.
+ *
+ * That second anchor is new. This file used to say the verifier "is
+ * module-private and cannot be imported" and restate the algorithm by hand —
+ * then assert that restatement against `createSignature`. Two copies of the
+ * same idea agreeing with each other proves nothing about the third copy that
+ * runs in production; the claim was also simply false, and the restatement is
+ * gone.
+ *
+ * It still needs no network, no deployment, no secrets and no Convex
+ * credentials, so it runs in ordinary CI on every push. That is the point: the
+ * live suites cannot be relied on to notice.
  */
 
 import crypto from "node:crypto";
-import { describe, expect, it } from "vitest";
-import { SIGNATURE_SEPARATOR, createSignature } from "./test-config";
+import { beforeAll, describe, expect, it } from "vitest";
+import { deliveroo } from "@be-in-digital/integrations";
+import {
+  configureDeliverooEnv,
+  newHarness,
+  postRaw,
+  readOrders,
+  seedStoreWithDeliveroo,
+  SEQUENCE_GUID as ROUTE_GUID,
+  WEBHOOK_SECRET as ROUTE_SECRET,
+} from "./convex-harness";
+import {
+  SIGNATURE_SEPARATOR,
+  createNewOrderWebhook,
+  createSignature,
+  generateOrderId,
+} from "./test-config";
+
+const { verifyWebhookSignature } = deliveroo;
+
+beforeAll(() => configureDeliverooEnv());
 
 // ============================================================================
 // Fixture
@@ -55,53 +90,10 @@ const LEGACY_POS_SIGNATURE =
   "bb8dd054d28399596e1f37695f2ddd89813379085c424f12fcccb2bfe488248b";
 
 // ============================================================================
-// An independent verifier
-//
-// Mirrors `verifySignature()` in convex/deliverooWebhookHandler.ts: Web Crypto,
-// raw bytes, message = guid bytes + space byte + body bytes. That function is
-// module-private and cannot be imported, so the algorithm is restated here.
-// Its job is to prove the two sides agree; it must never be relaxed to make a
-// test pass.
+// The digest itself
 // ============================================================================
 
-async function verifyAsHandlerDoes(
-  bodyBytes: Uint8Array,
-  signature: string,
-  sequenceGuid: string,
-  secret: string,
-): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const sequenceBytes = encoder.encode(sequenceGuid);
-  const spaceBytes = encoder.encode(" ");
-
-  const message = new Uint8Array(
-    sequenceBytes.length + spaceBytes.length + bodyBytes.byteLength,
-  );
-  message.set(sequenceBytes, 0);
-  message.set(spaceBytes, sequenceBytes.length);
-  message.set(bodyBytes, sequenceBytes.length + spaceBytes.length);
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-
-  const sigBytes = new Uint8Array(signature.length / 2);
-  for (let i = 0; i < signature.length; i += 2) {
-    sigBytes[i / 2] = parseInt(signature.substring(i, i + 2), 16);
-  }
-
-  return crypto.subtle.verify("HMAC", key, sigBytes, message);
-}
-
-// ============================================================================
-// Tests
-// ============================================================================
-
-describe("Deliveroo webhook signing", () => {
+describe("the signature these suites produce", () => {
   it("matches the digest computed independently with openssl", () => {
     expect(createSignature(SEQUENCE_GUID, BODY_BYTES, SECRET)).toBe(
       EXPECTED_SIGNATURE,
@@ -119,72 +111,6 @@ describe("Deliveroo webhook signing", () => {
     );
   });
 
-  it("uses the modern single-space separator, not the legacy POS ' \\n '", () => {
-    expect(SIGNATURE_SEPARATOR).toBe(" ");
-    expect(createSignature(SEQUENCE_GUID, BODY_BYTES, SECRET)).not.toBe(
-      LEGACY_POS_SIGNATURE,
-    );
-  });
-
-  it("signs exactly guid + 0x20 + body, byte for byte", () => {
-    const expectedMessage = Buffer.concat([
-      Buffer.from(SEQUENCE_GUID, "utf8"),
-      Buffer.from([0x20]),
-      BODY_BYTES,
-    ]);
-
-    // Assemble the message by hand, digest it, and require the production
-    // helper to land on the same hex. Any extra byte, missing byte, reordered
-    // segment or different separator moves the digest.
-    expect(createSignature(SEQUENCE_GUID, BODY_BYTES, SECRET)).toBe(
-      crypto.createHmac("sha256", SECRET).update(expectedMessage).digest("hex"),
-    );
-
-    expect(expectedMessage.subarray(0, SEQUENCE_GUID.length).toString("utf8")).toBe(
-      SEQUENCE_GUID,
-    );
-    expect(expectedMessage[SEQUENCE_GUID.length]).toBe(0x20);
-    expect(expectedMessage.subarray(SEQUENCE_GUID.length + 1)).toEqual(BODY_BYTES);
-  });
-
-  it("is accepted by the verifier the live handler runs", async () => {
-    const signature = createSignature(SEQUENCE_GUID, BODY_BYTES, SECRET);
-
-    await expect(
-      verifyAsHandlerDoes(BODY_BYTES, signature, SEQUENCE_GUID, SECRET),
-    ).resolves.toBe(true);
-  });
-
-  it("is rejected by that verifier when signed the old, body-only way", async () => {
-    // The failing case, kept explicit: this is what the suites sent before the
-    // fix, and it must stay a 401.
-    await expect(
-      verifyAsHandlerDoes(BODY_BYTES, BODY_ONLY_SIGNATURE, SEQUENCE_GUID, SECRET),
-    ).resolves.toBe(false);
-  });
-
-  it("binds the signature to the GUID, so a replay under another GUID fails", async () => {
-    const signature = createSignature(SEQUENCE_GUID, BODY_BYTES, SECRET);
-
-    await expect(
-      verifyAsHandlerDoes(
-        BODY_BYTES,
-        signature,
-        "00000000-0000-4000-8000-000000000000",
-        SECRET,
-      ),
-    ).resolves.toBe(false);
-  });
-
-  it("binds the signature to the body, so a tampered body fails", async () => {
-    const signature = createSignature(SEQUENCE_GUID, BODY_BYTES, SECRET);
-    const tampered = Buffer.from(BODY.replace("fr:1234", "fr:9999"), "utf8");
-
-    await expect(
-      verifyAsHandlerDoes(tampered, signature, SEQUENCE_GUID, SECRET),
-    ).resolves.toBe(false);
-  });
-
   it("signs bytes, so a re-serialized body does not silently change the digest", () => {
     // `sendWebhook()` serializes once and sends the same bytes it signed. If it
     // ever went back to signing a string and sending a fresh JSON.stringify,
@@ -198,11 +124,131 @@ describe("Deliveroo webhook signing", () => {
       EXPECTED_SIGNATURE,
     );
   });
+});
 
-  it("runs without any Deliveroo or Convex environment", () => {
-    // Guards the property that makes this file worth having: it must never
-    // become another suite that skips itself into a false green.
-    expect(SECRET).not.toBe(process.env.DELIVEROO_WEBHOOK_SECRET);
-    expect(EXPECTED_SIGNATURE).toHaveLength(64);
+// ============================================================================
+// The real verifier — packages/integrations/src/deliveroo/security.ts
+// ============================================================================
+
+describe("verifyWebhookSignature, the function the platform verifies with", () => {
+  it("accepts what createSignature produced", async () => {
+    await expect(
+      verifyWebhookSignature(
+        BODY_BYTES,
+        createSignature(SEQUENCE_GUID, BODY_BYTES, SECRET),
+        SEQUENCE_GUID,
+        SECRET,
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it("refuses the old, body-only signature", async () => {
+    // The failing case, kept explicit: this is what the suites sent before the
+    // fix, and it must stay a rejection.
+    await expect(
+      verifyWebhookSignature(BODY_BYTES, BODY_ONLY_SIGNATURE, SEQUENCE_GUID, SECRET),
+    ).resolves.toBe(false);
+  });
+
+  it("refuses the legacy POS separator", async () => {
+    // `" \n "` is what the old `new_order` / `cancel_order` POS webhook signs
+    // with. Nothing here subscribes to it, and a verifier that accepted both
+    // separators would accept a message it should have refused.
+    expect(SIGNATURE_SEPARATOR).toBe(" ");
+    await expect(
+      verifyWebhookSignature(BODY_BYTES, LEGACY_POS_SIGNATURE, SEQUENCE_GUID, SECRET),
+    ).resolves.toBe(false);
+  });
+
+  it("binds the signature to the GUID, so a replay under another GUID fails", async () => {
+    await expect(
+      verifyWebhookSignature(
+        BODY_BYTES,
+        createSignature(SEQUENCE_GUID, BODY_BYTES, SECRET),
+        "00000000-0000-4000-8000-000000000000",
+        SECRET,
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it("binds the signature to the body, so a tampered body fails", async () => {
+    const tampered = Buffer.from(BODY.replace("fr:1234", "fr:9999"), "utf8");
+
+    await expect(
+      verifyWebhookSignature(
+        tampered,
+        createSignature(SEQUENCE_GUID, BODY_BYTES, SECRET),
+        SEQUENCE_GUID,
+        SECRET,
+      ),
+    ).resolves.toBe(false);
+  });
+});
+
+// ============================================================================
+// The real route — convex/deliverooWebhookHandler.ts, through convex/http.ts
+// ============================================================================
+
+describe("the signed request at the Convex endpoint", () => {
+  /** A real order payload, so a 200 means it was accepted AND processed. */
+  function payload(): { body: string; orderId: string } {
+    const orderId = generateOrderId("signed");
+    return { body: JSON.stringify(createNewOrderWebhook({ id: orderId })), orderId };
+  }
+
+  it("is accepted when signed the way these suites sign", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const { body } = payload();
+
+    const response = await postRaw(t, body, {
+      "x-deliveroo-hmac-sha256": createSignature(
+        ROUTE_GUID,
+        Buffer.from(body, "utf8"),
+        ROUTE_SECRET,
+      ),
+      "x-deliveroo-sequence-guid": ROUTE_GUID,
+    });
+
+    expect(response.status).toBe(200);
+    expect(await readOrders(t)).toHaveLength(1);
+  });
+
+  it("is refused, and writes nothing, when signed over the body alone", async () => {
+    // End to end, this is the bug: a well-formed request the verifier cannot
+    // accept. It has to be a 401 and it has to happen before any processing.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const { body } = payload();
+
+    const response = await postRaw(t, body, {
+      "x-deliveroo-hmac-sha256": crypto
+        .createHmac("sha256", ROUTE_SECRET)
+        .update(Buffer.from(body, "utf8"))
+        .digest("hex"),
+      "x-deliveroo-sequence-guid": ROUTE_GUID,
+    });
+
+    expect(response.status).toBe(401);
+    expect(await readOrders(t)).toHaveLength(0);
+  });
+
+  it("is refused when the sequence GUID header is missing", async () => {
+    // The GUID is half the signed message. Without the header there is nothing
+    // to verify against, and the handler must not fall back to the body alone.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const { body } = payload();
+
+    const response = await postRaw(t, body, {
+      "x-deliveroo-hmac-sha256": createSignature(
+        ROUTE_GUID,
+        Buffer.from(body, "utf8"),
+        ROUTE_SECRET,
+      ),
+    });
+
+    expect(response.status).toBe(401);
+    expect(await readOrders(t)).toHaveLength(0);
   });
 });

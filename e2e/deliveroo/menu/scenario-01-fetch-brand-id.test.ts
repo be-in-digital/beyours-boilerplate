@@ -1,16 +1,37 @@
+// @vitest-environment edge-runtime
+
 /**
  * Deliveroo Menu API - Scenario 1: Fetch Brand ID
  *
- * Tests the ability to retrieve brand_id using site_location_id
- * Uses the Deliveroo client from @be-in-digital/integrations
+ * The brand and site identifiers, and what the platform does with them: mint a
+ * token, address a path, route a menu webhook to the right établissement.
+ *
+ * Five blocks call the Deliveroo sandbox for real and are gated on credentials
+ * (`it.runIf(hasDeliverooSandbox)`), announcing themselves loudly when those
+ * are absent. Everything else runs everywhere, against either the real client
+ * with fetch replaced, or the real Convex route with `convex-test`.
+ *
+ * Two blocks used to assert on nothing at all: one checked that
+ * `config.SITE_ID` was a non-empty string, the other declared an inline
+ * `if (!id) throw` and then asserted that it threw. Both are replaced below by
+ * the product code they were named after — `validatePathParam` from the
+ * Deliveroo client, and the menu webhook route itself.
  */
 
 import { describe, it, expect, beforeAll, vi } from "vitest";
 import { deliveroo } from "@be-in-digital/integrations";
 
-const { fetchDeliveroo, getAccessToken, clearTokenCache } = deliveroo;
+const { fetchDeliveroo, getAccessToken, clearTokenCache, validatePathParam } = deliveroo;
 type DeliverooCredentials = Parameters<typeof getAccessToken>[0];
 import { announceSkippedLiveRun, config, hasDeliverooSandbox, log } from "../test-config";
+import {
+  configureDeliverooEnv,
+  newHarness,
+  postSigned,
+  readIntegrations,
+  seedStore,
+  seedDeliverooIntegration,
+} from "../convex-harness";
 
 // ============================================================================
 // Credentials for sandbox
@@ -65,6 +86,7 @@ async function withMockedFetch(
 
 describe("Deliveroo Menu - Scenario 1: Fetch Brand ID", () => {
   beforeAll(() => {
+    configureDeliverooEnv();
     log.info("Starting Fetch Brand ID Test Suite");
     log.info(`Sandbox Mode: ${config.IS_SANDBOX}`);
     log.info(`Site ID: ${config.SITE_ID}`);
@@ -170,21 +192,67 @@ describe("Deliveroo Menu - Scenario 1: Fetch Brand ID", () => {
   }, 15000);
 
   // ========================================================================
-  // Test 5: Site ID Format Validation
+  // Test 5: The site location id is what routes a menu webhook
   // ========================================================================
 
-  it("should validate site location ID format", async () => {
-    log.test("Test 5: Validating site location ID");
+  it("routes a menu webhook to the établissement holding that site id", async () => {
+    log.test("Test 5: Routing a menu webhook by site location id");
 
-    const siteId = config.SITE_ID;
+    // What the site id is FOR. `menu.upload_completed` carries it, the handler
+    // matches it against `storeIntegrations.platformStoreId`, and the result
+    // is the sync status the admin screen reads. The block this replaces
+    // asserted that `config.SITE_ID` was a non-empty string.
+    const t = newHarness();
+    const ours = await seedStore(t, "Chez Luigi");
+    const theirs = await seedStore(t, "Chez Amina");
+    await seedDeliverooIntegration(t, ours, { platformStoreId: config.SITE_ID });
+    await seedDeliverooIntegration(t, theirs, { platformStoreId: "another-site" });
 
-    // Site ID should be a non-empty string
-    expect(siteId).toBeTruthy();
-    expect(typeof siteId).toBe("string");
-    expect(siteId.length).toBeGreaterThan(0);
+    const response = await postSigned(
+      t,
+      JSON.stringify({
+        event: "menu.upload_completed",
+        site_id: config.SITE_ID,
+        brand_id: "brand-under-test",
+      }),
+      config.MENU_WEBHOOK_PATH,
+    );
+    expect(response.status).toBe(200);
 
-    log.success("Site location ID validated");
-    log.info(`  - Site ID: ${siteId}`);
+    const integrations = await readIntegrations(t);
+    const mine = integrations.find((i) => i.storeId === ours);
+    const other = integrations.find((i) => i.storeId === theirs);
+    expect(mine!.menuSyncStatus).toBe("success");
+    // The neighbour's menu status is not ours to touch.
+    expect(other!.menuSyncStatus).toBeUndefined();
+
+    log.success("Menu webhook routed by site location id");
+  });
+
+  it("reports a failed menu upload against the same site", async () => {
+    log.test("Test 5b: Recording a failed menu upload");
+
+    const t = newHarness();
+    const storeId = await seedStore(t);
+    await seedDeliverooIntegration(t, storeId, { platformStoreId: config.SITE_ID });
+
+    const response = await postSigned(
+      t,
+      JSON.stringify({
+        event: "menu.upload_failed",
+        site_id: config.SITE_ID,
+        error: "item 12 has no price",
+      }),
+      config.MENU_WEBHOOK_PATH,
+    );
+    expect(response.status).toBe(200);
+
+    const [integration] = await readIntegrations(t);
+    expect(integration!.menuSyncStatus).toBe("error");
+    // The reason has to survive: "sync failed" with no cause is unactionable.
+    expect(integration!.menuSyncError).toBe("item 12 has no price");
+
+    log.success("Menu upload failure recorded with its reason");
   });
 
   // ========================================================================
@@ -194,13 +262,32 @@ describe("Deliveroo Menu - Scenario 1: Fetch Brand ID", () => {
   it("should fail gracefully for invalid credentials", async () => {
     log.test("Test 6: Testing error handling for invalid credentials");
 
+    // Deliveroo answers 401 to a bad client id or secret. Asserted against a
+    // 401 we serve, not against the real endpoint: unconfigured, this block
+    // used to pass because the request failed to leave the machine, which is
+    // the same green whether the client handles a rejection or not.
     const invalidCredentials: DeliverooCredentials = {
       clientId: "invalid-client-id",
       clientSecret: "invalid-client-secret",
       sandboxMode: config.IS_SANDBOX,
     };
 
-    await expect(getAccessToken(invalidCredentials)).rejects.toThrow();
+    await withMockedFetch(
+      () => new Response("invalid_client", { status: 401 }),
+      async () => {
+        const error = await getAccessToken(invalidCredentials).then(
+          () => null,
+          (e: unknown) => e,
+        );
+
+        expect(error).toBeInstanceOf(Error);
+        const integrationError = error as Error & { statusCode?: number };
+        expect(integrationError.name).toBe("IntegrationError");
+        expect(integrationError.statusCode).toBe(401);
+        // The secret must not travel in the message: this is logged.
+        expect(integrationError.message).not.toContain("invalid-client-secret");
+      },
+    );
 
     log.success("Invalid credentials error handling validated");
     log.info("  OAuth token request correctly rejected");
@@ -247,26 +334,26 @@ describe("Deliveroo Menu - Brand ID Error Handling", () => {
   it("should reject invalid brand ID format", async () => {
     log.test("Error Test 1: Invalid brand ID format");
 
-    // Path traversal should be rejected
-    const invalidBrandIds = [
-      "../etc/passwd",
-      "brand/../../../secret",
-      "",
-    ];
-
-    for (const invalidId of invalidBrandIds) {
-      if (!invalidId) {
-        // Empty string should throw
-        expect(() => {
-          // Importing validatePathParam to test directly
-          if (!invalidId || typeof invalidId !== "string") {
-            throw new Error("brandId must be a non-empty string");
-          }
-        }).toThrow();
-      }
+    // `validatePathParam` is the guard the client puts every id through before
+    // it reaches a URL — path traversal and SSRF, in one place. This block
+    // used to declare its own `if (!id) throw` inline and then assert that its
+    // own throw had thrown, which said nothing about the guard.
+    for (const invalidId of ["../etc/passwd", "brand/../../../secret", "brand id", "b%2f"]) {
+      expect(
+        () => validatePathParam(invalidId, "brandId"),
+        `"${invalidId}" must not reach a URL`,
+      ).toThrow(/invalid characters/);
     }
 
-    log.success("Invalid brand ID formats rejected");
+    expect(() => validatePathParam("", "brandId")).toThrow(/non-empty string/);
+
+    // And a real brand id still passes, so the guard is not simply refusing
+    // everything.
+    expect(validatePathParam("4c2b1a3e-1111-2222-3333-444455556666", "brandId")).toBe(
+      "4c2b1a3e-1111-2222-3333-444455556666",
+    );
+
+    log.success("Invalid brand ID formats rejected by the client guard");
   });
 
   // ========================================================================
@@ -327,35 +414,43 @@ describe("Deliveroo Menu - Brand ID Error Handling", () => {
   // Test 3: Handle 404 Not Found
   // ========================================================================
 
-  it("should handle 404 Not Found (site not found)", async () => {
+  it("should hand a 404 back to the caller without retrying it", async () => {
     log.test("Error Test 3: Handling 404 Not Found");
 
-    const testCredentials: DeliverooCredentials = {
-      clientId: config.CLIENT_ID,
-      clientSecret: config.CLIENT_SECRET,
-      sandboxMode: config.IS_SANDBOX,
-    };
+    // REWRITTEN. The previous version called the real sandbox inside a
+    // try/catch whose catch asserted `expect(error).toBeDefined()` — so it
+    // passed when the site existed, when it did not, and when the request
+    // never left the machine. It could not fail.
+    //
+    // What actually matters about a 404: the site is not there, no number of
+    // retries will conjure it, and a fresh token would not help either. So it
+    // is one attempt, one token, and the response handed straight back.
+    const calls: string[] = [];
 
-    try {
-      const response = await fetchDeliveroo(
-        testCredentials,
-        `/v1/brands/${config.BRAND_ID}/sites/nonexistent-site-404/status`,
-        { method: "GET" },
-        "site",
-      );
+    await withMockedFetch(
+      (url) => {
+        calls.push(url);
+        return url.endsWith("/oauth2/token")
+          ? jsonResponse({ access_token: "token-1", token_type: "Bearer", expires_in: 3600 }, 200)
+          : new Response("site not found", { status: 404 });
+      },
+      async () => {
+        const response = await fetchDeliveroo(
+          credentials,
+          "/v1/brands/brand-1/sites/nonexistent-site-404/status",
+          { method: "GET" },
+          "site",
+        );
 
-      // 404 is expected for non-existent sites
-      if (!response.ok) {
-        expect([404, 400, 403]).toContain(response.status);
-        log.info(`  - Got expected error status: ${response.status}`);
-      }
-    } catch (error) {
-      // OAuth may fail in sandbox, which is also valid error handling
-      expect(error).toBeDefined();
-      log.info("  - Request failed as expected");
-    }
+        expect(response.status).toBe(404);
+        expect(await response.text()).toBe("site not found");
+      },
+    );
 
-    log.success("404 error handling validated");
+    expect(calls.filter((u) => !u.endsWith("/oauth2/token"))).toHaveLength(1);
+    expect(calls.filter((u) => u.endsWith("/oauth2/token"))).toHaveLength(1);
+
+    log.success("404 handed back on one attempt, with one token");
   }, 15000);
 
   // ========================================================================

@@ -1,323 +1,222 @@
+// @vitest-environment edge-runtime
+
 /**
  * ┌─────────────────────────────────────────────────────────────────┐
  * │   Deliveroo Integration - Scenario 4: Fulfilled ASAP Order     │
  * └─────────────────────────────────────────────────────────────────┘
  *
  * @description
- * Test suite for Deliveroo Scenario 4: Fulfilled ASAP Order
+ * Deliveroo's certification scenario 4: an ASAP order the RESTAURANT delivers
+ * with its own riders (`fulfillment_type: "restaurant"`), which is the only
+ * case where the customer's name, phone and address reach us at all.
  *
- * This scenario validates:
- * 1. Restaurant-fulfilled orders (fulfillment_type: "restaurant")
- * 2. Complete customer information (name, address, phone)
- * 3. Full order lifecycle: placed -> accepted -> preparing -> ready -> delivered
- * 4. Sync status sent after acceptance
- * 5. Delivery handled by restaurant's own riders
+ * Every block below posts a signed `order.new` or `order.status_update` at the
+ * real Convex route and asserts on what the handler wrote — the `orders` row,
+ * the `kitchenTickets` row, and the requests the product made back to
+ * Deliveroo. It asserts nothing about the fixture it sent.
+ *
+ * It used to do the opposite. `createNewOrderWebhook({ fulfillment_type:
+ * "restaurant" })` was followed by `expect(order.fulfillment_type).toBe(
+ * "restaurant")` — the builder read back to itself — under a docblock claiming
+ * the file validated the full order lifecycle and the sync status sent after
+ * acceptance. It validated neither, and eight of its eight blocks were shaped
+ * that way.
  *
  * @reference https://api-docs.deliveroo.com/docs/order-integration
  */
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
-  config,
+  apiCallsExcludingAuth,
+  cancelPendingScheduledJobs,
+  configureDeliverooEnv,
+  newHarness,
+  postSigned,
+  readKitchenTickets,
+  readOrders,
+  seedStoreWithDeliveroo,
+  withDeliverooApi,
+} from "./convex-harness";
+import {
   createNewOrderWebhook,
   createStatusUpdateWebhook,
   generateOrderId,
-  log,
 } from "./test-config";
 
-// ============================================================================
-// Test Suite
-// ============================================================================
+// The Deliveroo dialogue is half of this scenario — acceptance is what the
+// sync status is reported against — so the suite runs with client credentials
+// and every request that can reach the API is wrapped in `withDeliverooApi`.
+beforeAll(() => configureDeliverooEnv({ withApiCredentials: true }));
+afterEach(cancelPendingScheduledJobs);
 
-describe("Scenario 4: Fulfilled ASAP Order", () => {
-  let fulfilledOrderId: string;
+/** The customer a restaurant-fulfilled order carries, as Deliveroo sends one. */
+const CUSTOMER = {
+  name: "Camille Roy",
+  phone_number: "+33612345678",
+};
 
-  // ========================================================================
-  // Setup & Teardown
-  // ========================================================================
+const DELIVERY_ADDRESS = {
+  street1: "123 rue de la Paix",
+  street2: "Appartement 4B",
+  city: "Paris",
+  postcode: "75001",
+  country: "FR",
+  latitude: 48.8566,
+  longitude: 2.3522,
+};
 
-  beforeAll(() => {
-    log.info("Starting Fulfilled ASAP Order Test Suite");
-    log.info(`Convex Site URL: ${config.CONVEX_SITE_URL}`);
-    log.info(`Sandbox Mode: ${config.IS_SANDBOX}`);
-  });
-
-  afterAll(() => {
-    log.success("Fulfilled ASAP Order Test Suite Completed");
-  });
-
-  // ========================================================================
-  // Test 1: Fulfillment Type Validation
-  // ========================================================================
-
-  it("should validate restaurant fulfillment type", async () => {
-    log.test("Test 1: Validating fulfillment_type = 'restaurant'");
-
-    fulfilledOrderId = generateOrderId("fulfilled");
-    const webhook = createNewOrderWebhook({
-      id: fulfilledOrderId,
-      fulfillment_type: "restaurant",
-    });
-
-    const order = webhook.body.order;
-
-    // Validate fulfillment type
-    expect(order.fulfillment_type).toBe("restaurant");
-
-    log.success("Fulfillment type validated: restaurant");
-    log.info("  This order will be delivered by restaurant's own riders");
-  });
-
-  // ========================================================================
-  // Test 2: Customer Information Presence
-  // ========================================================================
-
-  it("should include complete customer information", async () => {
-    log.test("Test 2: Validating customer information fields");
-
-    const webhook = createNewOrderWebhook({
-      fulfillment_type: "restaurant",
-      customer: {
-        name: "John Doe",
-        phone_number: "+33612345678",
-      },
-      delivery_address: {
-        street1: "123 Rue de la Paix",
-        street2: "Appartement 4B",
-        city: "Paris",
-        postcode: "75001",
-        country: "FR",
-        latitude: 48.8566,
-        longitude: 2.3522,
-      },
-    });
-
-    const order = webhook.body.order;
-
-    // Validate customer information
-    expect(order).toHaveProperty("customer");
-    expect(order.customer).toHaveProperty("name");
-    expect(order.customer).toHaveProperty("phone_number");
-
-    // Validate delivery address
-    expect(order).toHaveProperty("delivery_address");
-    expect(order.delivery_address).toHaveProperty("street1");
-    expect(order.delivery_address).toHaveProperty("city");
-    expect(order.delivery_address).toHaveProperty("postcode");
-
-    log.success("Customer information validated");
-    log.info(`  - Customer: ${order.customer?.name}`);
-    log.info(`  - Phone: ${order.customer?.phone_number}`);
-    log.info(
-      `  - Address: ${order.delivery_address?.street1}, ${order.delivery_address?.city}`,
-    );
-  });
-
-  // ========================================================================
-  // Test 3: Deliveroo vs Restaurant Fulfillment Differentiation
-  // ========================================================================
-
-  it("should differentiate restaurant from deliveroo fulfillment", async () => {
-    log.test("Test 3: Differentiating fulfillment types");
-
-    // Deliveroo fulfilled
-    const deliverooFulfilled = createNewOrderWebhook({
-      fulfillment_type: "deliveroo",
-    });
-
-    // Restaurant fulfilled
-    const restaurantFulfilled = createNewOrderWebhook({
-      fulfillment_type: "restaurant",
-      customer: {
-        name: "Jane Doe",
-        phone_number: "+33687654321",
-      },
-      delivery_address: {
-        street1: "456 Avenue des Champs",
-        city: "Paris",
-        postcode: "75008",
-        country: "FR",
-      },
-    });
-
-    expect(deliverooFulfilled.body.order.fulfillment_type).toBe("deliveroo");
-    expect(restaurantFulfilled.body.order.fulfillment_type).toBe("restaurant");
-
-    // Restaurant fulfilled should have customer info
-    expect(restaurantFulfilled.body.order).toHaveProperty("customer");
-    expect(restaurantFulfilled.body.order).toHaveProperty("delivery_address");
-
-    log.success("Fulfillment types differentiated");
-    log.info("  Deliveroo fulfilled: No customer info needed");
-    log.info("  Restaurant fulfilled: Customer info required");
-  });
-
-  // ========================================================================
-  // Test 4: ASAP Order Characteristics
-  // ========================================================================
-
-  it("should be an ASAP order", async () => {
-    log.test("Test 4: Validating ASAP characteristics");
-
-    const webhook = createNewOrderWebhook({
+function restaurantFulfilledOrder(id: string) {
+  return JSON.stringify(
+    createNewOrderWebhook({
+      id,
       fulfillment_type: "restaurant",
       asap: true,
-    });
+      customer: CUSTOMER,
+      delivery_address: DELIVERY_ADDRESS,
+    }),
+  );
+}
 
-    const order = webhook.body.order;
+describe("Scenario 4: a restaurant-fulfilled ASAP order arrives", () => {
+  it("creates the order and puts a ticket on the pass", async () => {
+    const t = newHarness();
+    const storeId = await seedStoreWithDeliveroo(t);
 
-    // Should be ASAP
-    expect(order.asap).toBe(true);
+    const response = await postSigned(t, restaurantFulfilledOrder(generateOrderId("fulfilled")));
+    expect(response.status).toBe(200);
 
-    // Should NOT have confirm_at (only scheduled orders have this)
-    expect(order.confirm_at).toBeUndefined();
+    const orders = await readOrders(t);
+    expect(orders).toHaveLength(1);
+    expect(orders[0]!.storeId).toEqual(storeId);
+    expect(orders[0]!.source).toBe("deliveroo");
+    // Manual mode: the staff accepts on the KDS, so the order waits.
+    expect(orders[0]!.status).toBe("pending");
 
-    log.success("ASAP order validated");
-    log.info("  - asap: true");
-    log.info("  - No confirmation delay");
+    const tickets = await readKitchenTickets(t);
+    expect(tickets, "a Deliveroo order that never reaches the kitchen is lost").toHaveLength(1);
+    expect(tickets[0]!.orderId).toEqual(orders[0]!._id);
+    expect(tickets[0]!.source).toBe("deliveroo");
   });
 
-  // ========================================================================
-  // Test 5: Complete Order Lifecycle States
-  // ========================================================================
+  it("carries the customer's name and phone to the order and the ticket", async () => {
+    // The restaurant's own rider has to be able to call this person. On a
+    // Deliveroo-fulfilled order neither field is sent; here they are, and they
+    // have to survive the mapping, the order validator and the ticket insert.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
 
-  it("should support full order lifecycle", async () => {
-    log.test("Test 5: Validating order lifecycle states");
+    await postSigned(t, restaurantFulfilledOrder(generateOrderId("customer")));
 
+    const [order] = await readOrders(t);
+    expect(order!.customerInfo.name).toBe("Camille Roy");
+    expect(order!.customerInfo.phone).toBe("+33612345678");
+
+    const [ticket] = await readKitchenTickets(t);
+    expect(ticket!.customerName).toBe("Camille Roy");
+    expect(ticket!.customerPhone).toBe("+33612345678");
+  });
+
+  it("stores the delivery address the rider is sent to", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+
+    await postSigned(t, restaurantFulfilledOrder(generateOrderId("address")));
+
+    const [order] = await readOrders(t);
+    expect(order!.deliveryAddress).toBeDefined();
+    expect(order!.deliveryAddress!.street).toContain("123 rue de la Paix");
+    expect(order!.deliveryAddress!.city).toBe("Paris");
+    expect(order!.deliveryAddress!.postalCode).toBe("75001");
+    expect(order!.deliveryAddress!.country).toBe("FR");
+  });
+
+  it.todo(
+    "keeps the second address line, so the rider has the apartment number — " +
+      "handleNewOrder (convex/deliverooWebhook.ts:376) builds the street from " +
+      "`street1 ?? address_line_1` followed by `address_line_2`, so the " +
+      "`street2` Deliveroo pairs with `street1` is dropped: the stored address " +
+      'reads "123 rue de la Paix" and "Appartement 4B" is nowhere',
+  );
+
+  it("records a restaurant-fulfilled order as a delivery, not a collection", async () => {
+    // Somebody is taking this to a door, so `pickup` would be wrong on the
+    // ticket, on the KDS and in every report that groups by order type.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+
+    await postSigned(t, restaurantFulfilledOrder(generateOrderId("type")));
+
+    const [order] = await readOrders(t);
+    expect(order!.type).toBe("delivery");
+    const [ticket] = await readKitchenTickets(t);
+    expect(ticket!.orderType).toBe("delivery");
+  });
+
+  it.todo(
+    "records WHO delivers, so the kitchen can tell its own rider from " +
+      "Deliveroo's — `fulfillment_type` is read once in handleNewOrder " +
+      "(convex/deliverooWebhook.ts:336) to choose delivery vs pickup and is " +
+      "then discarded; `deliveryType` (convex-schema/src/tables/orders.ts:107) " +
+      "is never written by createFromWebhook, so the stored order is " +
+      "indistinguishable from a Deliveroo-fulfilled one",
+  );
+
+  it("moves the order to confirmed when Deliveroo reports the acceptance", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
     const orderId = generateOrderId("lifecycle");
 
-    // Valid status transitions for restaurant-fulfilled orders
-    const validStatuses = [
-      "placed",
-      "accepted",
-      "started_preparing",
-      "ready_for_collection", // Kitchen ready
-      "out_for_delivery", // Rider picked up
-      "delivered", // Completed
-    ];
-
-    for (const status of validStatuses) {
-      const statusWebhook = createStatusUpdateWebhook(orderId, status);
-      expect(statusWebhook.body.order.status).toBe(status);
-    }
-
-    log.success("Order lifecycle validated");
-    log.info(
-      "  Valid statuses: placed -> accepted -> preparing -> ready -> out_for_delivery -> delivered",
-    );
-  });
-
-  // ========================================================================
-  // Test 6: Required Fields for Restaurant Fulfillment
-  // ========================================================================
-
-  it("should have all required fields for restaurant fulfillment", async () => {
-    log.test("Test 6: Checking required fields");
-
-    const webhook = createNewOrderWebhook({
-      fulfillment_type: "restaurant",
-      customer: {
-        name: "Test Customer",
-        phone_number: "+33600000000",
-      },
-      delivery_address: {
-        street1: "123 Test Street",
-        city: "Paris",
-        postcode: "75000",
-        country: "FR",
-        latitude: 48.8566,
-        longitude: 2.3522,
-      },
-    });
-
-    const order = webhook.body.order;
-
-    // Core order fields
-    expect(order).toHaveProperty("id");
-    expect(order).toHaveProperty("order_number");
-    expect(order).toHaveProperty("status");
-    expect(order).toHaveProperty("fulfillment_type");
-    expect(order).toHaveProperty("total_price");
-    expect(order).toHaveProperty("items");
-
-    // Restaurant fulfillment specific fields
-    expect(order).toHaveProperty("customer");
-    expect(order.customer).toHaveProperty("name");
-    expect(order.customer).toHaveProperty("phone_number");
-    expect(order).toHaveProperty("delivery_address");
-    expect(order.delivery_address).toHaveProperty("street1");
-    expect(order.delivery_address).toHaveProperty("city");
-    expect(order.delivery_address).toHaveProperty("postcode");
-
-    log.success("All required fields validated");
-  });
-
-  // ========================================================================
-  // Test 7: Delivery Address Structure
-  // ========================================================================
-
-  it("should have valid delivery address structure", async () => {
-    log.test("Test 7: Validating delivery address structure");
-
-    const webhook = createNewOrderWebhook({
-      fulfillment_type: "restaurant",
-      delivery_address: {
-        street1: "123 Main Street",
-        street2: "Apt 4B",
-        city: "Paris",
-        postcode: "75001",
-        country: "FR",
-        latitude: 48.8566,
-        longitude: 2.3522,
-        delivery_notes: "Ring doorbell twice",
-      },
-    });
-
-    const address = webhook.body.order.delivery_address;
-
-    expect(address).toBeDefined();
-    expect(address).toHaveProperty("street1");
-    expect(address).toHaveProperty("city");
-    expect(address).toHaveProperty("postcode");
-    expect(address).toHaveProperty("country");
-
-    // Optional but useful fields
-    if (address?.latitude && address?.longitude) {
-      expect(typeof address.latitude).toBe("number");
-      expect(typeof address.longitude).toBe("number");
-      log.info(
-        `  - GPS Coordinates: ${address.latitude}, ${address.longitude}`,
+    await withDeliverooApi(async () => {
+      await postSigned(t, restaurantFulfilledOrder(orderId));
+      const accepted = await postSigned(
+        t,
+        JSON.stringify(createStatusUpdateWebhook(orderId, "accepted")),
       );
-    }
-
-    log.success("Delivery address structure validated");
-  });
-
-  // ========================================================================
-  // Test 8: Sync Status Requirement
-  // ========================================================================
-
-  it("should require sync_status after acceptance", async () => {
-    log.test("Test 8: Validating sync_status requirement");
-
-    // Restaurant fulfilled orders MUST send sync_status after acceptance
-    // This is the same requirement as standard Deliveroo orders
-
-    const webhook = createNewOrderWebhook({
-      fulfillment_type: "restaurant",
-      asap: true,
+      expect(accepted.status).toBe(200);
     });
 
-    const order = webhook.body.order;
+    const [order] = await readOrders(t);
+    expect(order!.status).toBe("confirmed");
+  });
 
-    // Verify it's a valid order that will trigger sync_status
-    expect(order.fulfillment_type).toBe("restaurant");
-    expect(order.asap).toBe(true);
-    expect(order).toHaveProperty("id");
+  it("reports the sync status to Deliveroo once the order is accepted", async () => {
+    // The contract this scenario is certified on: "send sync status only after
+    // you receive a webhook call with the accepted status present in the
+    // status log". Asserted on the request the product actually made — the
+    // URL it went to and the body it sent — not on a comment saying it should.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("sync");
 
-    log.success("Sync status requirement validated");
-    log.info(
-      "  sync_status must be sent after order.status_update with status='accepted'",
-    );
+    const calls = await withDeliverooApi(async (recorded) => {
+      await postSigned(t, restaurantFulfilledOrder(orderId));
+      const beforeAcceptance = apiCallsExcludingAuth(recorded).length;
+      // Nothing may be reported while the order is merely placed.
+      expect(beforeAcceptance).toBe(0);
+
+      await postSigned(t, JSON.stringify(createStatusUpdateWebhook(orderId, "accepted")));
+      return apiCallsExcludingAuth(recorded);
+    });
+
+    const sync = calls.find((c) => c.url.includes("sync_status"));
+    expect(sync, "no sync status was reported for an accepted order").toBeDefined();
+    expect(sync!.method).toBe("POST");
+    expect(sync!.url).toContain(encodeURIComponent(orderId));
+    expect(JSON.parse(sync!.body ?? "{}")).toMatchObject({ status: "succeeded" });
+  });
+
+  it("does not report a sync status for an order nobody has accepted", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("unaccepted");
+
+    const calls = await withDeliverooApi(async (recorded) => {
+      await postSigned(t, restaurantFulfilledOrder(orderId));
+      // A status update that is not an acceptance, and carries none in its log.
+      await postSigned(t, JSON.stringify(createStatusUpdateWebhook(orderId, "pending")));
+      return apiCallsExcludingAuth(recorded);
+    });
+
+    expect(calls.filter((c) => c.url.includes("sync_status"))).toHaveLength(0);
   });
 });

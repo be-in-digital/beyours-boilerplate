@@ -305,15 +305,31 @@ export function createNewOrderWebhook(overrides: Partial<Record<string, unknown>
 
 /**
  * Create order.status_update webhook
+ *
+ * `location_id` is part of the payload, as it is in Deliveroo's: the order
+ * object an `order.status_update` carries is the same object `order.new`
+ * carries, and the handler routes EVERY order event by that field before it
+ * looks at anything else (`processOrderWebhook`, `resolveStoreIntegration`).
+ * Without it the request is refused with 500 as an order for a site we cannot
+ * place, so a fixture that omitted it could never have driven a status update
+ * through the handler at all.
+ *
+ * @param overrides extra order fields — a cancellation reason, a status log
  */
-export function createStatusUpdateWebhook(orderId: string, status: string) {
+export function createStatusUpdateWebhook(
+  orderId: string,
+  status: string,
+  overrides: Record<string, unknown> = {},
+) {
   return {
     event: "order.status_update",
     body: {
       order: {
         id: orderId,
+        location_id: config.SITE_ID,
         status: status,
         status_log: [{ at: new Date().toISOString(), status: status }],
+        ...overrides,
       },
     },
   };

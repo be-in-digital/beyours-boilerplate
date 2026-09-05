@@ -1,24 +1,42 @@
+// @vitest-environment edge-runtime
+
 /**
  * ┌─────────────────────────────────────────────────────────────┐
- * │   Deliveroo Integration - Scenario 2: Remake Orders Tests  │
+ * │   Deliveroo Integration - Scenario 2: Remake Orders Tests   │
  * └─────────────────────────────────────────────────────────────┘
  *
  * @description
- * Test suite for Deliveroo Scenario 2: Remake Orders
+ * Deliveroo's certification scenario 2: a remake — a replacement order for one
+ * that went wrong, carrying `remake_details` with the parent order and whose
+ * fault it was. Fault decides the money: Deliveroo's fault and the restaurant
+ * is paid again, the restaurant's fault and the remake is free.
  *
- * This scenario validates:
- * 1. Remake order creation with remake_details object
- * 2. Parent-child order relationship
- * 3. Fault attribution (deliveroo vs restaurant)
- * 4. Price calculation based on fault
- * 5. Sync status timing (wait for "accepted" webhook before sending)
+ * Two blocks below post remakes at the real Convex route and read the stored
+ * order back. The six `it.runIf(hasWebhookTarget)` blocks are untouched — they
+ * POST at a deployed backend, announce themselves when one is not configured,
+ * and were never the problem here.
  *
- * Scenarios 2 and 8 send actual webhooks to the Convex HTTP endpoint.
+ * What the two rewritten blocks used to be: `createRemakeOrderWebhook(...)`
+ * followed by `expect(remakeDetails.fault).toBe("deliveroo")` and
+ * `expect(order.total_price.fractional).toBe(2500)` — the builder answering
+ * for itself. Worse, both read `originalOrderId`, a module-level variable that
+ * is only ever assigned inside the FIRST live block: in CI, where the live
+ * blocks skip, the parent-order assertion compared `undefined` to `undefined`
+ * and passed.
  *
  * @reference https://api-docs.deliveroo.com/docs/remake-orders
  */
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  cancelPendingScheduledJobs,
+  configureDeliverooEnv,
+  newHarness,
+  postSigned,
+  readKitchenTickets,
+  readOrders,
+  seedStoreWithDeliveroo,
+} from "./convex-harness";
 import {
   announceSkippedLiveRun,
   assertRemakeDetails,
@@ -48,6 +66,7 @@ describe("Scenario 2: Remake Orders", () => {
   // ========================================================================
 
   beforeAll(() => {
+    configureDeliverooEnv();
     log.info("Starting Remake Orders Test Suite");
     log.info(`Convex Site URL: ${config.CONVEX_SITE_URL}`);
     log.info(`Sandbox Mode: ${config.IS_SANDBOX}`);
@@ -59,9 +78,7 @@ describe("Scenario 2: Remake Orders", () => {
     );
   });
 
-  afterAll(() => {
-    log.success("Remake Orders Test Suite Completed");
-  });
+  afterEach(cancelPendingScheduledJobs);
 
   // ========================================================================
   // Test 1: Original Order Creation
@@ -188,58 +205,49 @@ describe("Scenario 2: Remake Orders", () => {
   }, 15000);
 
   // ========================================================================
-  // Test 6: Remake Details Validation
+  // Test 6: A remake is charged, or not, according to fault
   // ========================================================================
 
-  it("should validate remake_details object structure", async () => {
-    log.test("Test 6: Validating remake_details structure");
+  it("charges a Deliveroo-fault remake and gives a restaurant-fault one away", async () => {
+    // `order_cost` and `total_price` are what the restaurant is paid for
+    // making the food a second time. Both remakes are posted at the real
+    // route, and what is asserted is the total that ended up in the database.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const parentId = generateOrderId("parent");
 
-    const webhook = createRemakeOrderWebhook(originalOrderId, "deliveroo");
-    const remakeDetails = webhook.body.order.remake_details;
+    const deliverooFault = createRemakeOrderWebhook(parentId, "deliveroo");
+    const restaurantFault = createRemakeOrderWebhook(parentId, "restaurant");
 
-    // Required fields
-    expect(remakeDetails).toHaveProperty("parent_order_id");
-    expect(remakeDetails).toHaveProperty("fault");
-    expect(remakeDetails).toHaveProperty("order_cost");
+    expect((await postSigned(t, JSON.stringify(deliverooFault))).status).toBe(200);
+    expect((await postSigned(t, JSON.stringify(restaurantFault))).status).toBe(200);
 
-    // Fault must be either "deliveroo" or "restaurant"
-    expect(["deliveroo", "restaurant"]).toContain(remakeDetails.fault);
+    const orders = await readOrders(t);
+    expect(orders).toHaveLength(2);
 
-    // parent_order_id must match original order
-    expect(remakeDetails.parent_order_id).toBe(originalOrderId);
+    const paid = orders.find((o) => o.externalOrderId === deliverooFault.body.order.id);
+    const free = orders.find((o) => o.externalOrderId === restaurantFault.body.order.id);
+    expect(paid!.total).toBe(2500);
+    expect(free!.total).toBe(0);
 
-    log.success("Remake details validation passed");
+    // Both are food somebody has to cook again, whoever pays for it.
+    expect(await readKitchenTickets(t)).toHaveLength(2);
   });
 
   // ========================================================================
-  // Test 7: Price Calculation Based on Fault
+  // Test 7: The link back to the order being remade
   // ========================================================================
 
-  it("should calculate prices correctly based on fault", async () => {
-    log.test("Test 7: Validating price calculation");
-
-    // Deliveroo fault = 100% price
-    const deliverooFault = createRemakeOrderWebhook(
-      originalOrderId,
-      "deliveroo",
-    );
-    const deliverooOrder = deliverooFault.body.order;
-    expect(deliverooOrder.total_price.fractional).toBe(2500);
-    expect(deliverooOrder.remake_details.order_cost).toBe(2500);
-    log.info("Deliveroo fault: 100% price");
-
-    // Restaurant fault = 0% price
-    const restaurantFault = createRemakeOrderWebhook(
-      originalOrderId,
-      "restaurant",
-    );
-    const restaurantOrder = restaurantFault.body.order;
-    expect(restaurantOrder.total_price.fractional).toBe(0);
-    expect(restaurantOrder.remake_details.order_cost).toBe(0);
-    log.info("Restaurant fault: 0% price");
-
-    log.success("Price calculation validation passed");
-  });
+  it.todo(
+    "links a remake to the order it replaces — `remake_details` is declared " +
+      "on the payload type (convex/deliverooWebhook.ts:86) and read nowhere: " +
+      "handleNewOrder never touches it, `isRemake` on the orders table " +
+      "(convex-schema/src/tables/orders.ts:112, commented \"Flag for remake " +
+      "orders from delivery platforms\") has no writer anywhere in the " +
+      "repository, and nothing records `parent_order_id`, so a free remake is " +
+      "indistinguishable in the takings from an order that was simply never " +
+      "paid for",
+  );
 
   // ========================================================================
   // Test 8: Order Flow Validation

@@ -1,254 +1,175 @@
+// @vitest-environment edge-runtime
+
 /**
  * ┌─────────────────────────────────────────────────────────────┐
- * │   Deliveroo Integration - Scenario 3: Scheduled Orders     │
+ * │   Deliveroo Integration - Scenario 3: Scheduled Orders      │
  * └─────────────────────────────────────────────────────────────┘
  *
  * @description
- * Test suite for Deliveroo Scenario 3: Scheduled Orders
+ * Deliveroo's certification scenario 3: an order placed now for later
+ * (`asap: false` with a `confirm_at`). The contract has two halves and this
+ * file drives both through the real Convex route:
  *
- * This scenario validates:
- * 1. Scheduled orders with `asap: false`
- * 2. `confirm_at` field presence
- * 3. `start_preparing_at` in the future
- * 4. Manual confirmation required before preparation
- * 5. Sync status after confirmation/acceptance
+ *  - the order is ACCEPTED straight away, so Deliveroo stops waiting on us,
+ *    and its CONFIRMATION is parked on the scheduler until `confirm_at`;
+ *  - the kitchen gets the ticket immediately, because a scheduled order still
+ *    has to be planned for.
+ *
+ * The Deliveroo API is recorded rather than called (`withDeliverooApi`), so
+ * what the product actually sent — the URL, the method, the body — is what
+ * gets asserted.
+ *
+ * Before this rewrite the file had six blocks and none of them ran any of the
+ * above: each built a payload with `createNewOrderWebhook({ asap: false, … })`
+ * and then checked that `asap` was false and that `confirm_at` parsed to a
+ * date after now. It was testing `Date`.
  *
  * @reference https://api-docs.deliveroo.com/docs/scheduled-orders-1
  */
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { internal } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import {
-  config,
-  createNewOrderWebhook,
-  generateOrderId,
-  log,
-} from "./test-config";
+  apiCallsExcludingAuth,
+  cancelPendingScheduledJobs,
+  configureDeliverooEnv,
+  newHarness,
+  postSigned,
+  readKitchenTickets,
+  readOrders,
+  readScheduledJobs,
+  seedStoreWithDeliveroo,
+  withDeliverooApi,
+} from "./convex-harness";
+import { createNewOrderWebhook, generateOrderId } from "./test-config";
 
-// ============================================================================
-// Test Suite
-// ============================================================================
+// Scheduled orders are a dialogue with Deliveroo — accept now, confirm later —
+// so this suite runs with credentials and records every outbound call.
+beforeAll(() => configureDeliverooEnv({ withApiCredentials: true }));
+afterEach(cancelPendingScheduledJobs);
 
-describe("Scenario 3: Scheduled Orders", () => {
-  let scheduledOrderId: string;
+const HALF_AN_HOUR = 30 * 60 * 1000;
+const AN_HOUR = 60 * 60 * 1000;
 
-  // ========================================================================
-  // Setup & Teardown
-  // ========================================================================
-
-  beforeAll(() => {
-    log.info("Starting Scheduled Orders Test Suite");
-    log.info(`Convex Site URL: ${config.CONVEX_SITE_URL}`);
-    log.info(`Sandbox Mode: ${config.IS_SANDBOX}`);
-  });
-
-  afterAll(() => {
-    log.success("Scheduled Orders Test Suite Completed");
-  });
-
-  // ========================================================================
-  // Test 1: Scheduled Order Structure Validation
-  // ========================================================================
-
-  it("should validate scheduled order structure", async () => {
-    log.test("Test 1: Validating scheduled order payload structure");
-
-    const futureTime = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // +1 hour
-    const confirmTime = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // +30 min
-
-    scheduledOrderId = generateOrderId("scheduled");
-    const webhook = createNewOrderWebhook({
-      id: scheduledOrderId,
+function scheduledOrder(id: string, confirmAt: number) {
+  return JSON.stringify(
+    createNewOrderWebhook({
+      id,
       asap: false,
-      start_preparing_at: futureTime,
-      confirm_at: confirmTime,
+      confirm_at: new Date(confirmAt).toISOString(),
+      start_preparing_at: new Date(confirmAt + HALF_AN_HOUR).toISOString(),
+      prepare_for: new Date(confirmAt + AN_HOUR).toISOString(),
+    }),
+  );
+}
+
+describe("Scenario 3: a scheduled order arrives", () => {
+  it("accepts it with Deliveroo straight away", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("scheduled");
+
+    const calls = await withDeliverooApi(async (recorded) => {
+      const response = await postSigned(t, scheduledOrder(orderId, Date.now() + HALF_AN_HOUR));
+      expect(response.status).toBe(200);
+      return apiCallsExcludingAuth(recorded);
     });
 
-    const order = webhook.body.order;
-
-    // Validate scheduled order fields
-    expect(order.asap).toBe(false);
-    expect(order.start_preparing_at).toBeDefined();
-    expect(order.confirm_at).toBeDefined();
-
-    // Validate timestamps are in the future
-    const startPreparingTime = new Date(order.start_preparing_at).getTime();
-    const confirmAtTime = new Date(order.confirm_at!).getTime();
-    const now = Date.now();
-
-    expect(startPreparingTime).toBeGreaterThan(now);
-    expect(confirmAtTime).toBeGreaterThan(now);
-    expect(confirmAtTime).toBeLessThan(startPreparingTime);
-
-    log.success("Scheduled order structure validated");
-    log.info(`  - asap: ${order.asap}`);
-    log.info(`  - confirm_at: ${order.confirm_at}`);
-    log.info(`  - start_preparing_at: ${order.start_preparing_at}`);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.method).toBe("PATCH");
+    expect(calls[0]!.url).toContain(encodeURIComponent(orderId));
+    expect(JSON.parse(calls[0]!.body ?? "{}")).toEqual({ status: "accepted" });
   });
 
-  // ========================================================================
-  // Test 2: Scheduled Order Fields
-  // ========================================================================
+  it("parks the confirmation on the scheduler for confirm_at", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("scheduled");
+    const confirmAt = Date.now() + HALF_AN_HOUR;
 
-  it("should have required scheduled order fields", async () => {
-    log.test("Test 2: Checking required fields for scheduled orders");
-
-    const futureTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-    const confirmTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-
-    const webhook = createNewOrderWebhook({
-      asap: false,
-      start_preparing_at: futureTime,
-      confirm_at: confirmTime,
-      prepare_for: new Date(Date.now() + 75 * 60 * 1000).toISOString(), // +1h15m
+    await withDeliverooApi(async () => {
+      await postSigned(t, scheduledOrder(orderId, confirmAt));
     });
 
-    const order = webhook.body.order;
-
-    // Required fields for scheduled orders
-    expect(order).toHaveProperty("asap");
-    expect(order).toHaveProperty("start_preparing_at");
-    expect(order).toHaveProperty("confirm_at");
-    // prepare_for is optional but recommended
-
-    // asap must be false
-    expect(order.asap).toBe(false);
-
-    log.success("All required fields present");
+    const jobs = await readScheduledJobs(t);
+    expect(jobs, "nothing was scheduled, so the order would never be confirmed").toHaveLength(1);
+    expect(jobs[0]!.name).toBe("deliverooWebhook:confirmScheduledOrder");
+    // Deliveroo's own time, not a delay we invented: a confirmation sent early
+    // is as wrong as one that never comes.
+    expect(Math.abs(jobs[0]!.scheduledTime - confirmAt)).toBeLessThan(5_000);
   });
 
-  // ========================================================================
-  // Test 3: Time Ordering Validation
-  // ========================================================================
+  it("leaves the order pending until that confirmation runs", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("scheduled");
 
-  it("should have correct time ordering", async () => {
-    log.test(
-      "Test 3: Validating time ordering (now < confirm_at < start_preparing_at)",
-    );
-
-    const now = Date.now();
-    const confirmTime = new Date(now + 30 * 60 * 1000); // +30 min
-    const startPreparingTime = new Date(now + 60 * 60 * 1000); // +1 hour
-
-    const webhook = createNewOrderWebhook({
-      asap: false,
-      start_preparing_at: startPreparingTime.toISOString(),
-      confirm_at: confirmTime.toISOString(),
+    await withDeliverooApi(async () => {
+      await postSigned(t, scheduledOrder(orderId, Date.now() + HALF_AN_HOUR));
     });
 
-    const order = webhook.body.order;
-
-    const confirmAt = new Date(order.confirm_at!).getTime();
-    const startPreparingAt = new Date(order.start_preparing_at).getTime();
-
-    // Validate time ordering
-    expect(now).toBeLessThan(confirmAt);
-    expect(confirmAt).toBeLessThan(startPreparingAt);
-
-    log.success("Time ordering validated:");
-    log.info(`  - Now: ${new Date(now).toISOString()}`);
-    log.info(`  - Confirm at: ${order.confirm_at}`);
-    log.info(`  - Start preparing at: ${order.start_preparing_at}`);
+    const [order] = await readOrders(t);
+    expect(order!.status).toBe("pending");
   });
 
-  // ========================================================================
-  // Test 4: ASAP vs Scheduled Differentiation
-  // ========================================================================
+  it("sends the ticket to the kitchen now, not at confirm_at", async () => {
+    // The food is not made yet, but the pass has to know it is coming — and
+    // the ticket is created before the credentials check on purpose, so a
+    // scheduled order reaches the kitchen even when Deliveroo is unreachable.
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("scheduled");
 
-  it("should differentiate ASAP from scheduled orders", async () => {
-    log.test("Test 4: Differentiating ASAP from scheduled orders");
-
-    // ASAP order
-    const asapWebhook = createNewOrderWebhook({
-      asap: true,
+    await withDeliverooApi(async () => {
+      await postSigned(t, scheduledOrder(orderId, Date.now() + HALF_AN_HOUR));
     });
 
-    // Scheduled order
-    const scheduledWebhook = createNewOrderWebhook({
-      asap: false,
-      start_preparing_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      confirm_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-    });
-
-    const asapOrder = asapWebhook.body.order;
-    const scheduledOrder = scheduledWebhook.body.order;
-
-    // ASAP order checks
-    expect(asapOrder.asap).toBe(true);
-    expect(asapOrder.confirm_at).toBeUndefined();
-
-    // Scheduled order checks
-    expect(scheduledOrder.asap).toBe(false);
-    expect(scheduledOrder.confirm_at).toBeDefined();
-    expect(scheduledOrder.start_preparing_at).toBeDefined();
-
-    log.success("ASAP and Scheduled orders differentiated correctly");
+    const tickets = await readKitchenTickets(t);
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0]!.source).toBe("deliveroo");
   });
 
-  // ========================================================================
-  // Test 5: Confirmation Logic
-  // ========================================================================
+  it("confirms the order with Deliveroo when the scheduled job runs", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    const orderId = generateOrderId("scheduled");
 
-  it("should require manual confirmation for scheduled orders", async () => {
-    log.test("Test 5: Testing manual confirmation requirement");
+    const calls = await withDeliverooApi(async (recorded) => {
+      await postSigned(t, scheduledOrder(orderId, Date.now() + HALF_AN_HOUR));
+      const [order] = await readOrders(t);
 
-    const webhook = createNewOrderWebhook({
-      asap: false,
-      start_preparing_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      confirm_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      // Run the parked job itself rather than waiting half an hour for the
+      // scheduler. It is the same action, with the arguments the handler gave
+      // it — the scheduling of it is asserted separately above.
+      await t.action(internal.deliverooWebhook.confirmScheduledOrder, {
+        orderId,
+        internalOrderId: order!._id as Id<"orders">,
+      });
+      return apiCallsExcludingAuth(recorded);
     });
 
-    const order = webhook.body.order;
+    const confirm = calls.find((c) => JSON.parse(c.body ?? "{}").status === "confirmed");
+    expect(confirm, "the scheduled order was never confirmed with Deliveroo").toBeDefined();
+    expect(confirm!.method).toBe("PATCH");
 
-    // For scheduled orders, the system should:
-    // 1. Receive the order
-    // 2. Hold it back from preparation
-    // 3. Wait for manual confirmation at confirm_at time
-    // 4. Only then send it to the kitchen
-
-    // The confirm_at field indicates when confirmation should happen
-    expect(order.confirm_at).toBeDefined();
-
-    const confirmAtTime = new Date(order.confirm_at!).getTime();
-    const startPreparingTime = new Date(order.start_preparing_at).getTime();
-
-    // Confirmation should happen before preparation
-    expect(confirmAtTime).toBeLessThan(startPreparingTime);
-
-    log.success("Manual confirmation logic validated");
-    log.info(
-      `  - Confirmation window: ${Math.round((startPreparingTime - confirmAtTime) / 1000 / 60)} minutes`,
-    );
+    const [order] = await readOrders(t);
+    expect(order!.status).toBe("confirmed");
   });
 
-  // ========================================================================
-  // Test 6: Webhook Payload Example
-  // ========================================================================
+  it("rejects the order instead of accepting it when the store is on auto_reject", async () => {
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t, { orderMode: "auto_reject" });
+    const orderId = generateOrderId("scheduled");
 
-  it("should match Deliveroo documented payload structure", async () => {
-    log.test("Test 6: Validating against documented payload structure");
-
-    const webhook = createNewOrderWebhook({
-      asap: false,
-      start_preparing_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      confirm_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-      prepare_for: new Date(Date.now() + 75 * 60 * 1000).toISOString(), // +1h15m
+    const calls = await withDeliverooApi(async (recorded) => {
+      await postSigned(t, scheduledOrder(orderId, Date.now() + HALF_AN_HOUR));
+      return apiCallsExcludingAuth(recorded);
     });
 
-    const order = webhook.body.order;
-
-    // Match documented structure from https://api-docs.deliveroo.com/docs/scheduled-orders-1
-    expect(order).toHaveProperty("id");
-    expect(order).toHaveProperty("order_number");
-    expect(order).toHaveProperty("status");
-    expect(order).toHaveProperty("asap");
-    expect(order).toHaveProperty("start_preparing_at");
-    expect(order).toHaveProperty("confirm_at");
-    expect(order).toHaveProperty("prepare_for");
-    expect(order).toHaveProperty("items");
-    expect(order).toHaveProperty("total_price");
-
-    expect(order.asap).toBe(false);
-
-    log.success("Payload matches documented structure");
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0]!.body ?? "{}")).toMatchObject({ status: "rejected" });
+    // Nothing to confirm later: the order was refused.
+    expect(await readScheduledJobs(t)).toHaveLength(0);
   });
 });
