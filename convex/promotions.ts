@@ -1,4 +1,5 @@
 import { query, internalMutation, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/promotions";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 
@@ -60,7 +61,34 @@ export const remove = storeMutation({
   permission: "marketing:write",
   args: defs.remove.args,
   storeIdFrom: promotionStoreId,
-  handler: (ctx, args) => defs.remove.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const result = await defs.remove.handler(ctx, args);
+    // A coupon that worked has a usage row per redemption, which is more than
+    // one transaction may delete. The offer is already gone; the record of its
+    // use is cleared by the passes below.
+    if (result.hasMore) {
+      await ctx.scheduler.runAfter(0, internal.promotions.purgeUsages, {
+        promotionId: args.id,
+      });
+    }
+    return result;
+  },
+});
+
+/**
+ * The rest of the usage sweep, one batch per run.
+ *
+ * Internal only: the promotion id it takes no longer resolves, and it is
+ * nobody's to call but the scheduler's.
+ */
+export const purgeUsages = internalMutation({
+  args: defs.purgeUsages.args,
+  handler: async (ctx, args) => {
+    const { hasMore } = await defs.purgeUsages.handler(ctx, args);
+    if (hasMore) {
+      await ctx.scheduler.runAfter(0, internal.promotions.purgeUsages, args);
+    }
+  },
 });
 
 // === Internal Mutations (for checkout flow) ===

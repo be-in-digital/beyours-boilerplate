@@ -3,8 +3,10 @@ import { collectConsoleErrors } from "../helpers/console.helpers"
 import { countAfterLoad } from "../helpers/list.helpers"
 
 const ORDERS_URL = "/dashboard/orders"
+// The list is paginated, and the placeholder says which orders the box
+// actually searches — see `orders-page.tsx`.
 const SEARCH_PLACEHOLDER =
-  "Rechercher par n° de commande ou nom du client..."
+  "Rechercher parmi les commandes chargées (n° ou nom du client)..."
 
 const STATUS_TABS = [
   "Toutes",

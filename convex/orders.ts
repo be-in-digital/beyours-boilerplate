@@ -13,6 +13,20 @@ export const list = storeQuery({
   handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
+/** The dashboard's aggregates, computed on the server over a window. */
+export const dashboardStats = storeQuery({
+  permission: "orders:read",
+  args: defs.dashboardStats.args,
+  handler: (ctx, args) => defs.dashboardStats.handler(ctx, args),
+});
+
+/** The dashboard's "Dernières commandes" table — ten rows, ten reads. */
+export const recent = storeQuery({
+  permission: "orders:read",
+  args: defs.recent.args,
+  handler: (ctx, args) => defs.recent.handler(ctx, args),
+});
+
 /** Get order by ID with access control (view token, the customer, or the store's staff) */
 // @guarded-inline: the view token issued at checkout, the customer who placed
 // the order, or someone who works at that order's restaurant and holds
@@ -71,11 +85,9 @@ export const getById = query({
 // It had no caller. `getMyOrders` below is what the account page uses, and it
 // derives the customer from the session instead of taking it as an argument.
 
-export const getByStatus = storeQuery({
-  permission: "orders:read",
-  args: defs.getByStatus.args,
-  handler: (ctx, args) => defs.getByStatus.handler(ctx, args),
-});
+// REMOVED: `getByStatus` was `list` with the status filter made mandatory,
+// collected whole, and it had no caller. `list` takes an optional `status` and
+// pages; a second unbounded doorway onto the same table is not worth keeping.
 // @public-by-design: same rule as `getById` — the view token issued at checkout,
 // or the customer who placed the order. Returns one opaque token, nothing else.
 export const getTrackingToken = query(defs.getTrackingToken);
@@ -89,7 +101,17 @@ export const getPaymentState = query(defs.getPaymentState);
 // at checkout. The token is the authorisation.
 export const getByViewToken = query(defs.getByViewToken);
 
-/** Get orders for the currently authenticated user (backend deduces user from auth) */
+export const MY_ORDERS_LIMIT = 50;
+
+/**
+ * The signed-in customer's most recent orders.
+ *
+ * Bounded rather than collected: this read that customer's entire history with
+ * no window and no limit, on a live subscription, and a regular's history has
+ * no ceiling of its own. Newest first, because the account page is read from
+ * now backwards — an order from two years ago is not what someone opens this
+ * screen for.
+ */
 // @guarded-inline: derives the customer from the session; never takes an id
 export const getMyOrders = query({
   args: {},
@@ -101,7 +123,7 @@ export const getMyOrders = query({
       .query("orders")
       .withIndex("by_customerId", (q) => q.eq("customerId", identity.subject))
       .order("desc")
-      .collect();
+      .take(MY_ORDERS_LIMIT);
   },
 });
 

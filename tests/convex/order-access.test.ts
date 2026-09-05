@@ -165,7 +165,11 @@ describe("the staff of a restaurant can read its orders", () => {
     const asOwner = await seedUser(t, "user:owner", "client_admin", [storeId])
     const orderId = await seedOrder(t, storeId, { viewToken: "vt-secret" })
 
-    const [listed] = await asOwner.query(api.orders.list, { storeId })
+    const listing = await asOwner.query(api.orders.list, {
+      storeId,
+      paginationOpts: { numItems: 10, cursor: null },
+    })
+    const [listed] = listing.page
     const opened = await asOwner.query(api.orders.getById, { id: orderId })
     expect(opened).toEqual(listed)
   })

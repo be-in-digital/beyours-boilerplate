@@ -213,6 +213,9 @@ export const sendBatch = internalAction({
         await ctx.runQuery(internal.emailEvents.sentCountsSince, {
           subscriberIds: recipients.map((s: any) => s._id),
           since: Date.now() - ONE_WEEK_MS,
+          // Counting past the cap changes no decision below, and each row past
+          // it is a document read on the send path.
+          countLimit: cap,
         });
       const sentThisWeek = new Map(
         counts.map((c) => [c.subscriberId, c.count])
