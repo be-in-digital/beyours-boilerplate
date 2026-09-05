@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/kitchenTickets";
 import { storeQuery, storeMutation, storeIdFromDocument, storeIdFromField } from "./lib/storeFunctions";
+import { captureBackendError } from "./errorReporting";
 
 const kitchenTicketsStoreId = storeIdFromDocument("Ticket not found");
 const kitchenTickets_getByOrderStoreId = storeIdFromField("orderId", "Order not found");
@@ -243,6 +244,12 @@ export const acceptTicket = action({
       });
     } catch (error) {
       console.error("Failed to confirm order:", error);
+      await captureBackendError(ctx, {
+        error,
+        source: "kitchenTickets.acceptTicket",
+        tags: { step: "confirm-order" },
+        extra: { ticketId: args.id },
+      });
     }
 
     // 3. Notify platform
@@ -260,6 +267,12 @@ export const acceptTicket = action({
         }
       } catch (error) {
         console.error("Failed to accept order on Uber Eats:", error);
+        await captureBackendError(ctx, {
+          error,
+          source: "kitchenTickets.acceptTicket",
+          tags: { step: "accept-uber-eats" },
+          extra: { ticketId: args.id },
+        });
       }
     }
 
@@ -273,6 +286,12 @@ export const acceptTicket = action({
         }
       } catch (error) {
         console.error("Failed to accept order on Deliveroo:", error);
+        await captureBackendError(ctx, {
+          error,
+          source: "kitchenTickets.acceptTicket",
+          tags: { step: "accept-deliveroo" },
+          extra: { ticketId: args.id },
+        });
       }
     }
   },
@@ -315,6 +334,12 @@ export const readyTicket = action({
       });
     } catch (error) {
       console.error("Failed to update order to ready:", error);
+      await captureBackendError(ctx, {
+        error,
+        source: "kitchenTickets.readyTicket",
+        tags: { step: "order-ready" },
+        extra: { ticketId: args.id },
+      });
     }
 
     // 3. Notify platform
@@ -331,6 +356,12 @@ export const readyTicket = action({
         }
       } catch (error) {
         console.error("Failed to update Deliveroo prep stage:", error);
+        await captureBackendError(ctx, {
+          error,
+          source: "kitchenTickets.readyTicket",
+          tags: { step: "deliveroo-prep-stage" },
+          extra: { ticketId: args.id },
+        });
       }
     } else if (ticket.source === "uber_eats" && externalId) {
       try {
@@ -350,6 +381,12 @@ export const readyTicket = action({
         }
       } catch (error) {
         console.error("Failed to mark Uber Eats order as ready:", error);
+        await captureBackendError(ctx, {
+          error,
+          source: "kitchenTickets.readyTicket",
+          tags: { step: "uber-eats-ready" },
+          extra: { ticketId: args.id },
+        });
       }
     }
 
@@ -384,6 +421,12 @@ export const completeTicket = action({
       await ctx.runMutation(internal.kitchenTickets.internalMarkPickedUp, { id: args.id });
     } catch (error) {
       console.error("Failed to mark picked up:", error);
+      await captureBackendError(ctx, {
+        error,
+        source: "kitchenTickets.completeTicket",
+        tags: { step: "mark-picked-up" },
+        extra: { ticketId: args.id },
+      });
     }
 
     // 2. Update ticket status to completed
@@ -400,6 +443,12 @@ export const completeTicket = action({
       });
     } catch (error) {
       console.error("Failed to update order status:", error);
+      await captureBackendError(ctx, {
+        error,
+        source: "kitchenTickets.completeTicket",
+        tags: { step: "order-status" },
+        extra: { ticketId: args.id },
+      });
     }
 
     console.log(`Ticket ${ticket.orderNumber} completed (source: ${ticket.source})`);
@@ -459,6 +508,12 @@ export const cancelTicket = action({
       });
     } catch (error) {
       console.error("Failed to cancel order:", error);
+      await captureBackendError(ctx, {
+        error,
+        source: "kitchenTickets.cancelTicket",
+        tags: { step: "cancel-order" },
+        extra: { ticketId: args.id },
+      });
     }
 
     // 3. Notify platform
@@ -489,6 +544,12 @@ export const cancelTicket = action({
         }
       } catch (error) {
         console.error("Failed to cancel/deny order on Uber Eats:", error);
+        await captureBackendError(ctx, {
+          error,
+          source: "kitchenTickets.cancelTicket",
+          tags: { step: "cancel-uber-eats" },
+          extra: { ticketId: args.id },
+        });
       }
     }
 
@@ -509,6 +570,12 @@ export const cancelTicket = action({
         }
       } catch (error) {
         console.error("Failed to reject order on Deliveroo:", error);
+        await captureBackendError(ctx, {
+          error,
+          source: "kitchenTickets.cancelTicket",
+          tags: { step: "reject-deliveroo" },
+          extra: { ticketId: args.id },
+        });
       }
     }
   },

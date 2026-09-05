@@ -1,4 +1,5 @@
-import { httpAction, internalAction } from "./_generated/server";
+import { httpAction, internalAction } from "./_generated/server"
+import { captureBackendError } from "./errorReporting";
 import type { ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
@@ -253,6 +254,12 @@ export const handleWebhook = httpAction(async (ctx, request) => {
         console.log(`Created kitchen ticket for Uber Eats order ${orderNumber}`)
       } catch (error) {
         console.error(`Failed to create kitchen ticket:`, error)
+        await captureBackendError(ctx, {
+          error,
+          source: "uberEatsWebhook",
+          tags: { step: "kitchen-ticket" },
+          extra: { externalOrderId },
+        })
       }
 
       // A scheduled order is persisted so staff can see it, but deliberately
@@ -371,6 +378,11 @@ export const handleWebhook = httpAction(async (ctx, request) => {
     return new Response("OK", { status: 200 })
   } catch (error) {
     console.error("Uber Eats webhook error:", error)
+    await captureBackendError(ctx, {
+      error,
+      source: "uberEatsWebhook",
+      tags: { step: "unhandled" },
+    })
     return new Response("Internal error", { status: 500 })
   }
 })

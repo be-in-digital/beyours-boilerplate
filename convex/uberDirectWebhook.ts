@@ -14,6 +14,7 @@
  */
 
 import { httpAction } from "./_generated/server";
+import { captureBackendError } from "./errorReporting";
 import { internal } from "./_generated/api";
 
 // @guarded-inline: the HMAC is checked before the body is parsed — see the
@@ -34,6 +35,14 @@ export const handleWebhook = httpAction(async (ctx, request) => {
 
     if (!signingSecret) {
       console.error("[Uber Direct Webhook] No signing secret configured");
+      await captureBackendError(ctx, {
+        error: new Error(
+          "UBER_DIRECT_WEBHOOK_SECRET, UBER_EATS_WEBHOOK_SECRET and UBER_EATS_CLIENT_SECRET are all unset — every courier status update is refused with 503",
+        ),
+        source: "uberDirectWebhook",
+        level: "fatal",
+        tags: { step: "no-signing-secret" },
+      });
       return new Response("Uber Direct credentials not configured", {
         status: 503,
       });
@@ -91,6 +100,11 @@ export const handleWebhook = httpAction(async (ctx, request) => {
   } catch (error) {
     // A genuine fault on our side: let Uber retry.
     console.error("[Uber Direct Webhook] Unhandled error", error);
+    await captureBackendError(ctx, {
+      error,
+      source: "uberDirectWebhook",
+      tags: { step: "unhandled" },
+    });
     return new Response("Internal error", { status: 500 });
   }
 });

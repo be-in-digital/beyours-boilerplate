@@ -20,8 +20,18 @@ import {
   handleSesWebhook,
 } from "./emailHttpHandlers";
 import { handleWebhook as bidStripeWebhook } from "./bidStripeWebhook";
+import { healthCheck } from "./health";
 
 const http = httpRouter();
+
+// Liveness. Unauthenticated on purpose — a monitor cannot hold a credential —
+// and it answers 503 rather than 200-with-a-sad-body when the deployment's own
+// database does not respond. See health.ts.
+http.route({
+  path: "/health",
+  method: "GET",
+  handler: healthCheck,
+});
 
 // Uber Eats webhooks
 http.route({

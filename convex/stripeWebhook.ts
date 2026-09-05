@@ -1,4 +1,5 @@
 import { httpAction } from "./_generated/server";
+import { captureBackendError } from "./errorReporting";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
@@ -240,6 +241,11 @@ export const handleWebhook = httpAction(async (ctx, request) => {
     // here — which is what this route did unconditionally — turns a transient
     // failure into a permanently lost event.
     console.error(`[Stripe Webhook] Error processing ${eventType}:`, err);
+    await captureBackendError(ctx, {
+      error: err,
+      source: "stripeWebhook",
+      tags: { eventType },
+    });
     return new Response("Processing error", { status: 500 });
   }
 

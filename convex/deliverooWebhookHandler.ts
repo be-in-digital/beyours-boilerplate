@@ -1,4 +1,5 @@
 import { httpAction } from "./_generated/server";
+import { captureBackendError } from "./errorReporting";
 import { internal } from "./_generated/api";
 
 /**
@@ -32,6 +33,14 @@ export const handleWebhook = httpAction(async (ctx, request) => {
 
     if (!signingSecret) {
       console.error("[Deliveroo Webhook] No signing secret configured");
+      await captureBackendError(ctx, {
+        error: new Error(
+          "DELIVEROO_WEBHOOK_SECRET and DELIVEROO_CLIENT_SECRET are both unset — every Deliveroo delivery is refused with 503",
+        ),
+        source: "deliverooWebhook",
+        level: "fatal",
+        tags: { step: "no-signing-secret" },
+      });
       return new Response("Deliveroo credentials not configured in environment", { status: 503 });
     }
 
@@ -122,6 +131,11 @@ export const handleWebhook = httpAction(async (ctx, request) => {
     return new Response("OK", { status: 200 });
   } catch (error) {
     console.error("Deliveroo webhook error:", error);
+    await captureBackendError(ctx, {
+      error,
+      source: "deliverooWebhook",
+      tags: { step: "unhandled" },
+    });
     return new Response("Internal error", { status: 500 });
   }
 });

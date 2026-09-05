@@ -1,4 +1,5 @@
 import { httpAction } from "./_generated/server";
+import { captureBackendError } from "./errorReporting";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { normalizeBounceType } from "@be-in-digital/convex-functions/emailSubscribers";
@@ -138,6 +139,10 @@ export const handleUnsubscribePost = httpAction(async (ctx, request) => {
     // It is logged, because the previous version swallowed a genuine failure
     // and told the customer they had been unsubscribed when they had not.
     console.error("Unsubscribe failed:", error);
+    await captureBackendError(ctx, {
+      error,
+      source: "emailHttpHandlers.handleUnsubscribePost",
+    });
   }
 
   return new Response(UNSUBSCRIBED, { status: 200, headers: HTML });
@@ -437,6 +442,10 @@ export const handleSesWebhook = httpAction(async (ctx, request) => {
     }
   } catch (error) {
     console.error("SES webhook processing error:", error);
+    await captureBackendError(ctx, {
+      error,
+      source: "emailHttpHandlers.handleSesWebhook",
+    });
   }
 
   return new Response("OK", { status: 200 });
