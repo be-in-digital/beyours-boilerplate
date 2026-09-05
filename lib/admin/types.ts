@@ -7,67 +7,11 @@ import type { Id } from "@/convex/_generated/dataModel"
  */
 
 // ─── Kitchen Tickets ────────────────────────────────────────────
-
-export type TicketItem = {
-  productName: string
-  quantity: number
-  options: string[]
-  notes?: string
-}
-
-export type TicketStatus = "pending" | "in_progress" | "ready" | "completed" | "cancelled"
-export type TicketSource = "website" | "uber_eats" | "deliveroo" | "pos"
-export type TicketOrderType = "delivery" | "pickup" | "dine_in"
-export type TicketPriority = "normal" | "urgent" | "vip"
-/**
- * `printing` is a claim held by one tablet, not a state the kitchen cares
- * about: two screens on the same pass both read `pending` and both printed
- * the slip, so a ticket is now taken before it is rendered (#164).
- */
-export type TicketPrintStatus =
-  | "pending"
-  | "printing"
-  | "printed"
-  | "failed"
-  | "not_required"
-
-export type KitchenTicket = {
-  _id: Id<"kitchenTickets">
-  _creationTime: number
-  storeId: Id<"stores">
-  orderId: Id<"orders">
-  station?: string
-  status: TicketStatus
-  priority: TicketPriority
-  items: TicketItem[]
-  assignedTo?: string
-  estimatedPrepTime?: number
-  source: TicketSource
-  orderNumber: string
-  orderType: TicketOrderType
-  startedAt?: number
-  readyAt?: number
-  completedAt?: number
-  pickedUpAt?: number
-  cancelledAt?: number
-  trackingToken: string
-  estimatedReadyAt?: number
-  customerName?: string
-  customerPhone?: string
-  deliveryNotes?: string
-  allergens?: string[]
-  printStatus: TicketPrintStatus
-  printAttempts: number
-  printRequestedAt?: number
-  printClaimedAt?: number
-  printTrigger?: "confirmed" | "ready" | "reprint"
-  lastPrintAt?: number
-  printFailedAt?: number
-  lastPrintError?: string
-  printCount?: number
-  createdAt: number
-  updatedAt: number
-}
+//
+// Moved to `@be-in-digital/admin` (`src/lib/types.ts`) with the KDS itself.
+// The screen used to live in this app and, byte for byte, in its twin, so a
+// schema change had to be made in three places. It is made in one now, and
+// nothing in this app reads these types any more.
 
 // ─── Orders ─────────────────────────────────────────────────────
 

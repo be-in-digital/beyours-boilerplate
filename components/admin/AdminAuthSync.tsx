@@ -56,12 +56,18 @@ export function AdminAuthSync() {
 
     const role = (profile?.role ?? "customer") as Role
 
+    // The module checkboxes the owner ticked. The sidebar runs the server's
+    // own `profileAllowsPermission` against them, so an entry is drawn only
+    // when the server would serve the screen behind it. An absent list means
+    // unrestricted, exactly as the server reads it.
+    const permissions = profile?.permissions ?? []
+
     const signOut = async () => {
       await authClient.signOut()
       clearAuth()
     }
 
-    setAuth(user, role, signOut)
+    setAuth(user, role, signOut, permissions)
   }, [session, sessionLoading, profile, setAuth, setLoading, clearAuth])
 
   return null

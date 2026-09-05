@@ -32,9 +32,12 @@ test.describe("Kitchen Page", () => {
     })
 
     test("should display 4 kanban columns", async ({ page }) => {
-      const noStore = page.getByText(
-        "Veuillez sélectionner un établissement"
-      )
+      // `StoreGuard` is what answers "no establishment" now — the KDS itself
+      // renders a spinner while the selection is read back, and spinners carry
+      // no text. This locator used to target a message the screen stopped
+      // showing, so the guard below never fired and a no-store run failed on
+      // the 15 s timeout instead of skipping.
+      const noStore = page.getByRole("heading", { name: "Aucun établissement" })
 
       // Wait for either kanban columns or no-store message
       const enAttente = page.getByText("En attente")
@@ -52,9 +55,7 @@ test.describe("Kitchen Page", () => {
     test("should display column headers: En attente, En cours, Prêt, Terminé", async ({
       page,
     }) => {
-      const noStore = page.getByText(
-        "Veuillez sélectionner un établissement"
-      )
+      const noStore = page.getByRole("heading", { name: "Aucun établissement" })
       const enAttente = page.getByText("En attente")
 
       await expect(enAttente.or(noStore)).toBeVisible({ timeout: 15_000 })
@@ -69,9 +70,7 @@ test.describe("Kitchen Page", () => {
     })
 
     test("should display ticket count in column headers", async ({ page }) => {
-      const noStore = page.getByText(
-        "Veuillez sélectionner un établissement"
-      )
+      const noStore = page.getByRole("heading", { name: "Aucun établissement" })
       const enAttente = page.getByText("En attente")
 
       await expect(enAttente.or(noStore)).toBeVisible({ timeout: 15_000 })
@@ -89,9 +88,7 @@ test.describe("Kitchen Page", () => {
     test('should display "Aucun ticket" in empty columns', async ({
       page,
     }) => {
-      const noStore = page.getByText(
-        "Veuillez sélectionner un établissement"
-      )
+      const noStore = page.getByRole("heading", { name: "Aucun établissement" })
       const enAttente = page.getByText("En attente")
 
       await expect(enAttente.or(noStore)).toBeVisible({ timeout: 15_000 })
@@ -119,9 +116,7 @@ test.describe("Kitchen Page", () => {
     })
 
     test("should display station filter", async ({ page }) => {
-      const noStore = page.getByText(
-        "Veuillez sélectionner un établissement"
-      )
+      const noStore = page.getByRole("heading", { name: "Aucun établissement" })
       const mainContent = page.locator("main")
 
       await expect(mainContent).toBeVisible({ timeout: 15_000 })
@@ -137,9 +132,7 @@ test.describe("Kitchen Page", () => {
     })
 
     test("should filter tickets by station", async ({ page }) => {
-      const noStore = page.getByText(
-        "Veuillez sélectionner un établissement"
-      )
+      const noStore = page.getByRole("heading", { name: "Aucun établissement" })
       const mainContent = page.locator("main")
 
       await expect(mainContent).toBeVisible({ timeout: 15_000 })
@@ -186,9 +179,7 @@ test.describe("Kitchen Page", () => {
       })
       await waitForAdminPage(page)
 
-      const noStore = page.getByText(
-        "Veuillez sélectionner un établissement"
-      )
+      const noStore = page.getByRole("heading", { name: "Aucun établissement" })
       const enAttente = page.getByText("En attente")
 
       await expect(enAttente.or(noStore)).toBeVisible({ timeout: 15_000 })
