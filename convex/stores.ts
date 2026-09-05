@@ -222,6 +222,13 @@ export const updateSoundConfig = storeMutation({
   handler: (ctx, args) => defs.updateSoundConfig.handler(ctx, args),
 });
 
+export const updateDisplayConfig = storeMutation({
+  permission: "stores:write",
+  args: defs.updateDisplayConfig.args,
+  storeIdFrom: storeIdFromIdArg,
+  handler: (ctx, args) => defs.updateDisplayConfig.handler(ctx, args),
+});
+
 /**
  * The Design screen's three save buttons — couleurs, typographie, logo — all
  * come through here, each sending only its own fields. `defs.updateBranding`

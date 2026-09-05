@@ -2,16 +2,22 @@
 /// <reference types="vite/client" />
 
 /**
- * `soundConfig` is the kitchen setting that is actually read (#224).
+ * `soundConfig` reaches the kitchen display through the real mutation (#224).
  *
  * The audit listed it beside `orderConfirmation` and `displayConfig` as a dead
- * setting — "mutations and audit entries wired, with no reader or writer".
- * That is true of the other two, and it was removed for them. It is not true
- * here: `KitchenContent` hands `soundConfig` to `KitchenSoundManager`, in both
- * apps, on the routed `/dashboard/orders/kitchen` screen, and it decides which
- * alerts sound and how loudly.
+ * setting — "mutations and audit entries wired, with no reader or writer" — and
+ * 74de4e9 deleted the mutations for the other two on the strength of that.
  *
- * This test exists so that claim is checked rather than remembered. It writes
+ * The claim was wrong about all three, and the note this file used to carry
+ * repeated it. `soundConfig` is read by `KitchenContent`, which hands it to
+ * `KitchenSoundManager` in both apps on the routed `/dashboard/orders/kitchen`
+ * screen. `orderConfirmation` is read by `releaseToKitchen`. `displayConfig` is
+ * read by `kitchenTickets.getForDisplay`, and always was — the dining-room
+ * screen has been applying it since it shipped. Both mutations are back;
+ * `kitchen-display-config.test.ts` holds the second one to the same standard as
+ * this file holds this one.
+ *
+ * This test exists so the claim is checked rather than remembered. It writes
  * through the real mutation and reads back through `stores.getById` — the query
  * the KDS uses — so the write and the read are the same seam the kitchen runs
  * on.

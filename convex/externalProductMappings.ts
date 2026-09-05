@@ -29,9 +29,12 @@ export const removeAllByStorePlatform = storeMutation({
   handler: (ctx, args) => defs.removeAllByStorePlatform.handler(ctx, args),
 });
 
-// `getByInternal` / `getByExternal` / `remove` resolve a mapping by product or
-// external id and carry no storeId, so they cannot be store-scoped. They have
-// no UI caller — internal is the whole surface they need.
+// `getByInternal` and `remove` resolve a mapping by product or mapping id and
+// carry no storeId, so they cannot be store-scoped. `getByExternal` now takes
+// one — not as a permission guard, since it runs from an `internalAction` with
+// no identity, but because a PLU is only unique inside one establishment and
+// resolving it across the deployment matched another restaurant's dish. All
+// three have no UI caller — internal is the whole surface they need.
 export const internalGetByInternal = internalQuery(defs.getByInternal);
 export const internalGetByExternal = internalQuery(defs.getByExternal);
 export const internalListByStorePlatform = internalQuery(defs.listByStorePlatform);

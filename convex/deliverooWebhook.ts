@@ -545,6 +545,28 @@ async function handleNewOrder(
 // Handle Status Update (order.status_update)
 // ============================================================================
 
+/**
+ * The POS identifier Deliveroo sent for a line, whichever field it arrived in.
+ *
+ * Deliveroo puts it under `pos_item_id`, `plu` or `external_reference_id`
+ * depending on how the integration was set up, and the three checks below have
+ * to agree on which one they mean. They did not: the "no identifier at all"
+ * test accepted all three, while the check that looks the identifier up in our
+ * own mappings read `pos_item_id` alone. A line identified by `plu` or
+ * `external_reference_id` therefore skipped the database check entirely —
+ * `unmatchedCount` was never computed for it — and Deliveroo was answered
+ * `sync_status: succeeded` for a PLU that maps to no dish we have. Same
+ * customer-visible outcome as a stale mapping, reached without deleting
+ * anything.
+ */
+function posItemId(item: DeliverooOrderItem): string | undefined {
+  // `||`, not `??`: an empty string is not an identifier. With `??` a line
+  // carrying `pos_item_id: ""` alongside a real `plu` stopped at the empty
+  // one, and a dish we can perfectly well cook was refused as having no POS
+  // id at all.
+  return item.pos_item_id || item.plu || item.external_reference_id;
+}
+
 async function handleStatusUpdate(
   ctx: ActionCtx,
   order: DeliverooOrder,
@@ -624,12 +646,10 @@ async function handleStatusUpdate(
     // Debug: log full order data for sync status decision
     console.log(`[Sync Debug] Order ${orderId}: items=${items.length}, status=${status}`);
     console.log(`[Sync Debug] note="${fullOrder.note ?? ""}", notes="${fullOrder.notes ?? ""}"`);
-    console.log(`[Sync Debug] Item PLUs: ${items.map((i: DeliverooOrderItem) => `${i.name}:${i.pos_item_id ?? "NONE"}`).join(", ")}`);
+    console.log(`[Sync Debug] Item PLUs: ${items.map((i: DeliverooOrderItem) => `${i.name}:${posItemId(i) ?? "NONE"}`).join(", ")}`);
 
     // Scenario 11: Missing PLU - items without any POS identifier
-    const hasMissingPLU = items.some(
-      (item: DeliverooOrderItem) => !item.pos_item_id && !item.plu && !item.external_reference_id
-    );
+    const hasMissingPLU = items.some((item: DeliverooOrderItem) => !posItemId(item));
 
     // Scenario 12: Mismatched PLU
     // First check keyword-based detection (note/notes/PLU containing "mismatch")
@@ -638,26 +658,28 @@ async function handleStatusUpdate(
     let hasMismatch =
       noteLower.includes("mismatch") || noteLower.includes("scenario 12") ||
       notesLower.includes("mismatch") || notesLower.includes("scenario 12") ||
-      items.some((item: DeliverooOrderItem) => item.pos_item_id && item.pos_item_id.toLowerCase().includes("mismatch"));
+      items.some((item: DeliverooOrderItem) => posItemId(item)?.toLowerCase().includes("mismatch"));
 
     // If no keyword match, check PLUs against our product database
     // If items have PLUs that don't match any known product mapping, it's a mismatch
     if (!hasMissingPLU && !hasMismatch && items.length > 0) {
-      const itemsWithPLU = items.filter((item: DeliverooOrderItem) => !!item.pos_item_id);
+      const itemsWithPLU = items
+        .map((item: DeliverooOrderItem) => ({ item, plu: posItemId(item) }))
+        .filter((entry): entry is { item: DeliverooOrderItem; plu: string } => !!entry.plu);
       if (itemsWithPLU.length > 0) {
         let unmatchedCount = 0;
-        for (const item of itemsWithPLU) {
+        for (const { item, plu } of itemsWithPLU) {
           try {
             const mapping = await ctx.runQuery(
               internal.externalProductMappings.internalGetByExternal,
-              { externalId: item.pos_item_id!, platform: "deliveroo" }
+              { storeId: integration.storeId, externalId: plu, platform: "deliveroo" }
             );
             if (!mapping) {
               unmatchedCount++;
-              console.log(`[Sync] PLU "${item.pos_item_id}" (${item.name}) not found in product mappings`);
+              console.log(`[Sync] PLU "${plu}" (${item.name}) not found in product mappings`);
             }
           } catch (err) {
-            console.warn(`[Sync] Error checking PLU "${item.pos_item_id}":`, err);
+            console.warn(`[Sync] Error checking PLU "${plu}":`, err);
             unmatchedCount++;
           }
         }

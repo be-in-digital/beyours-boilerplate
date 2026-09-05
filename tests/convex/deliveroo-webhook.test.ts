@@ -26,7 +26,9 @@
  */
 
 import { convexTest } from "convex-test"
-import { afterEach, beforeAll, describe, expect, test } from "vitest"
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest"
+import { _resetEnvCache } from "@be-in-digital/core/env"
+import { api } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import { mapDeliverooStatus } from "../../convex/deliverooWebhook"
 import schema from "../../convex/schema"
@@ -563,5 +565,354 @@ describe("the HTTP response the webhook returns", () => {
     })
     expect(response.status).toBe(401)
     expect(await t.run((ctx) => ctx.db.query("orders").collect())).toHaveLength(0)
+  })
+})
+
+// ===========================================================================
+// The PLU check — what Deliveroo is told about a dish we cannot cook
+// ===========================================================================
+
+/**
+ * `sync_status` is the answer to "did your POS take this order?", and Deliveroo
+ * acts on it: `succeeded` means the food is being made and the rider is coming.
+ * Two ways the handler used to answer `succeeded` for a line no kitchen can
+ * produce.
+ *
+ * A DELETED DISH. `products.remove` was a bare `ctx.db.delete`, so the
+ * `externalProductMappings` row survived holding a REQUIRED product id that
+ * resolved to nothing, and `getByExternal` returned that row without ever
+ * dereferencing it. The PLU therefore still "matched", `unmatchedCount` stayed
+ * at zero, and Deliveroo was told the order was accepted — for a dish the owner
+ * had deleted from the menu. Both halves are fixed, and both are pinned below:
+ * the delete cascades the mapping away, and the lookup dereferences. The second
+ * test is not redundant, because a mapping can outlive its dish by a path that
+ * never runs `products.remove` — a store cascade, a restore, a hand-run
+ * mutation — and the lookup is the only guard those paths meet.
+ *
+ * AN IDENTIFIER IN THE OTHER FIELD. Deliveroo sends the POS identifier as
+ * `pos_item_id`, `plu` or `external_reference_id` depending on how the
+ * integration was set up. The "no identifier at all" test accepted all three,
+ * while the lookup that follows read `pos_item_id` alone — so a line
+ * identified by either of the other two skipped the database check entirely
+ * (`unmatchedCount` was never computed for it) and was answered `succeeded`
+ * against no mapping at all. Same customer-visible outcome as a stale mapping,
+ * reached without deleting anything. `posItemId()` is now the single resolver
+ * every one of those sites uses, and the happy path is pinned alongside the
+ * refusal so the check cannot be "fixed" by refusing everything.
+ *
+ * These four need what the rest of this file deliberately does without: client
+ * credentials, because `if (credentials && isAccepted)` gates the whole
+ * sync-status block. They are set for this block alone and removed afterwards,
+ * with the env cache reset on both edges since `getPackageEnv()` parses once
+ * and memoises. `globalThis.fetch` is stubbed over the same span, so this still
+ * depends on no network: it stands in for Deliveroo's OAuth and sync-status
+ * endpoints and records what we sent them.
+ */
+describe("the sync status a Deliveroo order is answered with", () => {
+  interface RecordedCall {
+    url: string
+    body: string | null
+  }
+
+  const httpCalls: RecordedCall[] = []
+  const realFetch = globalThis.fetch
+
+  beforeAll(() => {
+    process.env.DELIVEROO_CLIENT_ID = "test-deliveroo-client-id"
+    process.env.DELIVEROO_CLIENT_SECRET = "test-deliveroo-client-secret"
+    process.env.DELIVEROO_IS_SANDBOX = "true"
+    _resetEnvCache()
+
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url =
+        typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+      httpCalls.push({ url, body: typeof init?.body === "string" ? init.body : null })
+      const json = (payload: unknown) =>
+        new Response(JSON.stringify(payload), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      if (url.includes("/oauth2/token")) {
+        return json({ access_token: "test-token", token_type: "bearer", expires_in: 300 })
+      }
+      // The order fetch the handler falls back to when a status update carries
+      // no items. Ours always do, so this is only a safety net.
+      if (/\/v1\/orders\/[^/]+$/.test(url)) return json({ order: { items: [] } })
+      return json({ ok: true })
+    }) as typeof fetch
+  })
+
+  afterAll(() => {
+    globalThis.fetch = realFetch
+    delete process.env.DELIVEROO_CLIENT_ID
+    delete process.env.DELIVEROO_CLIENT_SECRET
+    delete process.env.DELIVEROO_IS_SANDBOX
+    _resetEnvCache()
+  })
+
+  /** What we last told Deliveroo about this order, as it went over the wire. */
+  function syncStatusSent(): { status?: string; reason?: string } {
+    const calls = httpCalls.filter((call) => call.url.includes("/sync_status"))
+    expect(calls, "no sync status was sent at all").not.toHaveLength(0)
+    return JSON.parse(calls[calls.length - 1]!.body ?? "{}")
+  }
+
+  async function seedProductWithPLU(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    plu: string
+  ) {
+    const categoryId = await t.run((ctx) =>
+      ctx.db.insert("categories", {
+        storeId,
+        name: "Desserts",
+        slug: "desserts",
+        sortOrder: 0,
+        isActive: true,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+    const productId = await t.run((ctx) =>
+      ctx.db.insert("products", {
+        storeId,
+        categoryId,
+        name: "Tiramisu",
+        slug: "tiramisu",
+        price: 600,
+        taxRate: 10,
+        images: [],
+        options: [],
+        allergens: [],
+        tags: [],
+        isActive: true,
+        isFeatured: false,
+        sortOrder: 0,
+        source: "manual" as const,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+    await t.run((ctx) =>
+      ctx.db.insert("externalProductMappings", {
+        storeId,
+        platform: "deliveroo" as const,
+        internalProductId: productId,
+        externalId: plu,
+        lastSyncAt: NOW,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+    return productId
+  }
+
+  async function seedOwner(
+    t: ReturnType<typeof convexTest>,
+    subject: string,
+    storeId: Id<"stores">
+  ) {
+    await t.run((ctx) =>
+      ctx.db.insert("userProfiles", {
+        userId: subject,
+        role: "client_admin" as const,
+        storeIds: [storeId],
+        permissions: [],
+        language: "fr",
+        twoFactorEnabled: false,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+    return t.withIdentity({ subject })
+  }
+
+  /**
+   * The order, then the acceptance carrying the line under test.
+   *
+   * Deliveroo re-sends the order on the status update, and that is the copy the
+   * sync decision reads — so the line being probed goes here, not in
+   * `order.new`, and order creation stays out of the way.
+   */
+  async function acceptWithLine(
+    t: ReturnType<typeof convexTest>,
+    id: string,
+    item: Record<string, unknown>
+  ) {
+    expect((await postSigned(t, newOrderPayload({ id }))).status).toBe(200)
+    httpCalls.length = 0
+    const accepted = JSON.stringify({
+      event: "order.status_update",
+      body: {
+        order: {
+          id,
+          location_id: SITE_ID,
+          status: "accepted",
+          items: [item],
+        },
+      },
+    })
+    expect((await postSigned(t, accepted)).status).toBe(200)
+  }
+
+  test("is failed once the ordered dish has been deleted from the menu", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+    const productId = await seedProductWithPLU(t, storeId, "PLU-TIRAMISU")
+    const asOwner = await seedOwner(t, "user:deliveroo-owner", storeId)
+
+    await asOwner.mutation(api.products.remove, { id: productId })
+
+    await acceptWithLine(t, "gb:deliveroo:order:DELETED", {
+      pos_item_id: "PLU-TIRAMISU",
+      name: "Tiramisu",
+      quantity: 1,
+      unit_price: { fractional: 600, currency_code: "EUR" },
+    })
+
+    // `succeeded` here is Deliveroo being told the kitchen is making a dish
+    // that no longer exists.
+    expect(syncStatusSent()).toEqual(
+      expect.objectContaining({ status: "failed", reason: "pos_item_id_mismatched" })
+    )
+  })
+
+  test("is failed when the PLU is only mapped in another establishment", async () => {
+    // A PLU is unique inside one restaurant, not across a deployment. The
+    // lookup used to span every establishment on it, so an order this kitchen
+    // cannot cook was answered as producible because a DIFFERENT restaurant had
+    // that PLU on its menu.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    const neighbour = await t.run((ctx) =>
+      ctx.db.insert("stores", {
+        name: "Chez Marco",
+        slug: "chez-marco",
+        address: {
+          street: "2 rue de la Paix",
+          city: "Paris",
+          postalCode: "75002",
+          country: "France",
+        },
+        hours: [],
+        status: "open" as const,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+    await seedProductWithPLU(t, neighbour, "PLU-NEIGHBOUR")
+
+    await acceptWithLine(t, "gb:deliveroo:order:CROSSTENANT", {
+      pos_item_id: "PLU-NEIGHBOUR",
+      name: "Tiramisu",
+      quantity: 1,
+      unit_price: { fractional: 600, currency_code: "EUR" },
+    })
+
+    expect(syncStatusSent()).toEqual(
+      expect.objectContaining({ status: "failed", reason: "pos_item_id_mismatched" })
+    )
+  })
+
+  test("is succeeded when two establishments share a PLU string and ours has it", async () => {
+    // The mirror of the case above, and the one a chain actually runs into: one
+    // menu across several locations means the same PLU in several rows. The
+    // deployment-wide lookup used `.unique()`, which threw on the second row —
+    // and the caller counts a throw as an unmatched item, so a correct
+    // multi-store deployment refused its own orders.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+    await seedProductWithPLU(t, storeId, "PLU-SHARED")
+
+    const neighbour = await t.run((ctx) =>
+      ctx.db.insert("stores", {
+        name: "Chez Luigi Bis",
+        slug: "chez-luigi-bis",
+        address: {
+          street: "3 rue de la Paix",
+          city: "Paris",
+          postalCode: "75002",
+          country: "France",
+        },
+        hours: [],
+        status: "open" as const,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+    await seedProductWithPLU(t, neighbour, "PLU-SHARED")
+
+    await acceptWithLine(t, "gb:deliveroo:order:SHAREDPLU", {
+      pos_item_id: "PLU-SHARED",
+      name: "Tiramisu",
+      quantity: 1,
+      unit_price: { fractional: 600, currency_code: "EUR" },
+    })
+
+    expect(syncStatusSent()).toEqual(expect.objectContaining({ status: "succeeded" }))
+  })
+
+  test("is failed when a mapping outlives its dish by some other path", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+    const productId = await seedProductWithPLU(t, storeId, "PLU-ORPHANED")
+    // Straight out of the table, the way a cascade or a restore removes one —
+    // the mapping row is left behind holding an id that resolves to nothing.
+    await t.run((ctx) => ctx.db.delete(productId))
+    expect(await t.run((ctx) => ctx.db.query("externalProductMappings").collect())).toHaveLength(1)
+
+    await acceptWithLine(t, "gb:deliveroo:order:ORPHANED", {
+      pos_item_id: "PLU-ORPHANED",
+      name: "Tiramisu",
+      quantity: 1,
+      unit_price: { fractional: 600, currency_code: "EUR" },
+    })
+
+    expect(syncStatusSent()).toEqual(
+      expect.objectContaining({ status: "failed", reason: "pos_item_id_mismatched" })
+    )
+  })
+
+  test("is failed for a line identified by `plu` that maps to nothing", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    // No `pos_item_id`. This line used to skip the database check entirely and
+    // be answered `succeeded` against a mapping table that has never heard of
+    // it.
+    await acceptWithLine(t, "gb:deliveroo:order:PLUFIELD", {
+      plu: "PLU-UNKNOWN",
+      name: "Tiramisu",
+      quantity: 1,
+      unit_price: { fractional: 600, currency_code: "EUR" },
+    })
+
+    expect(syncStatusSent()).toEqual(
+      expect.objectContaining({ status: "failed", reason: "pos_item_id_mismatched" })
+    )
+  })
+
+  test("is still succeeded for a line identified by `plu` that maps to a live dish", async () => {
+    // The other half of the same change: reading the alternative fields must
+    // resolve them, not merely refuse everything that arrives in one.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+    await seedProductWithPLU(t, storeId, "PLU-LIVE")
+
+    await acceptWithLine(t, "gb:deliveroo:order:PLULIVE", {
+      plu: "PLU-LIVE",
+      name: "Tiramisu",
+      quantity: 1,
+      unit_price: { fractional: 600, currency_code: "EUR" },
+    })
+
+    expect(syncStatusSent().status).toBe("succeeded")
   })
 })
