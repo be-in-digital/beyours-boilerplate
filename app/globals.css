@@ -10,9 +10,30 @@
  * the store guard. That dialog rendered 1549px tall in a 720px window with its
  * actions off screen, which is not a styling nicety: the form could not be
  * submitted.
+ *
+ * WHY `node_modules` AND NOT `../../../packages`, which is what these two lines
+ * said until the same bug came back: this file ships verbatim to
+ * `beyours-boilerplate`, the repository a client site is cloned from, where
+ * this app IS the repository root. `../../../packages` then resolves ABOVE that
+ * root and matches nothing, and Tailwind reports no error for a source glob
+ * that hits no files — so the monorepo built 3102 rules and every client built
+ * 2526 of them, with `max-h-[60vh]` and `min-h-[50vh]` among the 576 missing.
+ * The bug was invisible here and live on every site we had sold.
+ *
+ * `node_modules/@be-in-digital/*` is the one spelling that resolves in both
+ * layouts: pnpm links it to `packages/*` inside this workspace, and it is the
+ * installed package on a client site — where both packages ship `src` in their
+ * `files`. `scripts/check-mirror-css.mjs` builds the stylesheet in both layouts
+ * on every pull request and fails if they ever stop matching.
+ *
+ * The globs end in `**\/*` rather than `**\/*.{ts,tsx}` so that they cover a
+ * package's source the way Tailwind's own detection covers this app's: with no
+ * opinion about the extension. A `.jsx` under `packages/ui/src` used to produce
+ * no CSS while the identical file under `app/` produced it fine, and the two
+ * builds agreed on the wrong answer.
  */
-@source "../../../packages/ui/src/**/*.{ts,tsx}";
-@source "../../../packages/admin/src/**/*.{ts,tsx}";
+@source "../node_modules/@be-in-digital/ui/src/**/*";
+@source "../node_modules/@be-in-digital/admin/src/**/*";
 @import "../node_modules/tw-animate-css/dist/tw-animate.css";
 
 /*
