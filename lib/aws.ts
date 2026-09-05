@@ -10,7 +10,7 @@
  * import { createS3Service } from '@/lib/aws'
  *
  * const s3 = createS3Service(config, s3Client)
- * const url = await s3.uploadFile(file, 'products')
+ * const { url } = await s3.upload(file, { folder: 'products', contentType: file.type })
  *
  * // SES Usage
  * import { createSESService } from '@/lib/aws'
