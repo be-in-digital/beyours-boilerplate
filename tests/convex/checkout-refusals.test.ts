@@ -362,6 +362,37 @@ describe("a refusal reaches the browser", () => {
 
     expect(shown).not.toBe("GENERIC FALLBACK")
   })
+
+  test("a card attempt on a deployment with no card provider says why", async () => {
+    // The #374 opening move: card was the pre-selected tile on a fresh
+    // deployment, the provider action threw a plain `Error`, and production
+    // redacted it to "Server Error" behind the checkout's generic retry
+    // toast — so the diner retried a payment that could never work. The
+    // refusal must cross the wire like every other one in this file.
+    const t = newHarness()
+    await seedGlobalSettings(t, {
+      payments: { cardProvider: "sumup" as const, paypal: false, cash: true },
+    })
+    const storeId = await seedStore(t)
+    const productId = await seedProduct(t, storeId)
+
+    const orderId = await t.mutation(
+      api.orders.create,
+      orderArgs(storeId, productId)
+    )
+
+    const { payload, shown } = await refusal(
+      t.action(api.sumup.createCheckout, {
+        orderId: orderId as Id<"orders">,
+        redirectUrl: "https://exemple.test/retour",
+      })
+    )
+
+    expect(payload?.code).toBe("card_payment_unavailable")
+    expect(shown).toBe(
+      "Le paiement par carte est indisponible pour le moment. Choisissez un autre moyen de paiement."
+    )
+  })
 })
 
 describe("tracked stock falls when a dish sells", () => {

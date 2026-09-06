@@ -8,6 +8,7 @@ import {
   assertSettlesOrder,
   paymentStatusAfterSettlement,
 } from "@be-in-digital/convex-functions/paymentSettlement";
+import { CardPaymentUnavailableError } from "@be-in-digital/convex-functions/refusal";
 
 // ---------------------------------------------------------------------------
 // Inline AES-256-GCM decryption (same pattern as oauthConnect.ts)
@@ -73,6 +74,22 @@ export const createCheckout = action({
       id: args.orderId,
     });
     if (!order) throw new Error("Order not found");
+
+    // The diner-facing path says WHY a card cannot be taken instead of letting
+    // `getSumUpAccessToken`'s plain `Error` reach the browser as a redacted
+    // "Server Error" behind the generic retry toast (#374). The helper keeps
+    // its own throws: verify and refund read them from a log, not a table.
+    const connection = await ctx.runQuery(
+      internal.paymentConnections.internalGetByProvider,
+      { provider: "sumup" as const }
+    );
+    if (
+      !connection ||
+      connection.status !== "connected" ||
+      !connection.encryptedAccessToken
+    ) {
+      throw new CardPaymentUnavailableError();
+    }
 
     const { accessToken, merchantCode } = await getSumUpAccessToken(ctx);
 

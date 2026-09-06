@@ -302,18 +302,22 @@ function refund(t: ReturnType<typeof convexTest>) {
 const REFUSAL = /StripeChargeRouteError/
 
 describe("a stripe connection claiming the charge is routed", () => {
-  test("createCheckoutSession refuses, and says where the money actually goes", async () => {
+  test("createCheckoutSession refuses, in the diner's own words", async () => {
+    // This used to surface `StripeChargeRouteError` itself — an operator
+    // sentence pointing at a runbook, thrown on the DINER's action, which
+    // production redacted to "Server Error" behind the checkout's generic
+    // retry toast (#374). The gate still stops the charge; the diner-facing
+    // action now translates it to the readable card-unavailable refusal.
+    // The routing detail keeps its full voice on the staff path below.
     const t = newHarness()
     await seedStripeConnection(t, "connected")
     const orderId = await seedOrder(t)
 
     const message = await thrownBy(checkout(t, orderId))
 
-    expect(message).toMatch(REFUSAL)
-    // Addressed to an operator, in the language of the admin, and pointing at
-    // the work rather than at a stack trace.
-    expect(message).toContain("tasks/stripe-connect-runbook.md")
-    expect(message).toContain("acct_test")
+    expect(message).toContain("CardPaymentUnavailableError")
+    expect(message).toContain("indisponible pour le moment")
+    expect(message).not.toMatch(REFUSAL)
   })
 
   test("internalRefund refuses too", async () => {

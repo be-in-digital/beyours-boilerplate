@@ -67,9 +67,17 @@ const CASH_ORDER_KEY = "e2e-payments-refund-cash"
 // depends on — when one drifts, the seed throws with the server's own message
 // instead of passing quietly.
 
+interface StoreHour {
+  day: number
+  open: string
+  close: string
+  isClosed: boolean
+}
+
 interface StoreRow {
   _id: string
   name: string
+  hours?: StoreHour[]
 }
 
 interface ProductRow {
@@ -117,6 +125,12 @@ const ordersCreate = makeFunctionReference<
   },
   string
 >("orders:create")
+
+const storesUpdateHours = makeFunctionReference<
+  "mutation",
+  { id: string; hours: StoreHour[] },
+  null
+>("stores:updateHours")
 
 const paymentsGetByOrder = makeFunctionReference<
   "query",
@@ -201,6 +215,36 @@ async function createFixture(page: Page): Promise<Fixture> {
   ).toBeTruthy()
   const storeId = (store as StoreRow)._id
 
+  /**
+   * Open the restaurant for as long as this fixture needs it.
+   *
+   * `orders.create` refuses outside the seeded week since #361, and the
+   * fixture below places real orders through it. The seed opens 09:00–22:00,
+   * so every run between 22:00 and 09:00 Paris failed all seven tests on a
+   * fixture error — a suite that was green only because CI had never run at
+   * night. The hours are restored in `afterAll`: three other specs assert the
+   * seeded week, and one of them may share this shard.
+   *
+   * A full open week rather than an empty one: `stores.updateHours` takes the
+   * array as given, and "always open" is the precondition this file wants
+   * stated, not inferred from an absence.
+   */
+  seededHours = (store as StoreRow).hours ?? null
+  openedStoreId = storeId
+  await client.mutation(storesUpdateHours, {
+    id: storeId,
+    hours: [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+      day,
+      open: "00:00",
+      close: "23:59",
+      isClosed: false,
+    })),
+  })
+  restoreHours = async () => {
+    if (!seededHours) return
+    await client.mutation(storesUpdateHours, { id: storeId, hours: seededHours })
+  }
+
   const products = await client.query(productsList, { storeId })
   expect(
     products.length,
@@ -268,6 +312,19 @@ async function createFixture(page: Page): Promise<Fixture> {
 
 /** Built once per worker; CI runs one worker, and retries reuse it. */
 let pending: Promise<Fixture> | null = null
+
+/** The seeded week, put back after this file's last test. See `createFixture`. */
+let seededHours: StoreHour[] | null = null
+let openedStoreId: string | null = null
+let restoreHours: (() => Promise<void>) | null = null
+
+test.afterAll(async () => {
+  if (!restoreHours || !openedStoreId) return
+  await restoreHours()
+  restoreHours = null
+  openedStoreId = null
+  seededHours = null
+})
 
 function fixture(page: Page): Promise<Fixture> {
   // A rejected promise is NOT memoised. Caching one would turn a single

@@ -3,6 +3,7 @@ import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/orders";
+import { orderInvoiceSurface } from "@be-in-digital/convex-functions/invoices";
 import {
   buildOrderConfirmationPayload,
   planOrderConfirmation,
@@ -46,15 +47,24 @@ export const getById = query({
     const order = await ctx.db.get(args.id);
     if (!order) return null;
 
+    // The invoice's number, or the reason none exists — computed on every
+    // read, never persisted, so completing the seller identity is enough to
+    // change the answer (#375). Everyone allowed to read the order gets it:
+    // the reason a paid order carries no invoice is part of the order.
+    const enriched = async () => ({
+      ...order,
+      ...(await orderInvoiceSurface(ctx, order)),
+    });
+
     // Access via view token
     if (args.viewToken && order.viewToken === args.viewToken) {
-      return order;
+      return enriched();
     }
 
     // Access via authenticated owner
     const identity = await ctx.auth.getUserIdentity();
     if (identity && order.customerId === identity.subject) {
-      return order;
+      return enriched();
     }
 
     /**
@@ -75,7 +85,7 @@ export const getById = query({
      * open one of the orders they can already enumerate.
      */
     if (identity && (await defs.mayReadStoreOrders(ctx, order.storeId))) {
-      return order;
+      return enriched();
     }
 
     // No access

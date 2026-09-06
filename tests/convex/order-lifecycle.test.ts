@@ -256,6 +256,120 @@ describe("a second click on Payer", () => {
     expect(orders).toHaveLength(1)
   })
 
+  /**
+   * #374 — the retry that changes its mind. On a store with cash enabled and
+   * no card provider configured, card was the pre-selected tile, so the
+   * natural first journey was a failed card submit followed by a cash
+   * confirmation on the SAME attempt. The reuse kept "card": release refused
+   * an unpaid card order, « Encaisser en espèces » only shows for cash, and
+   * the confirmed order could never be settled or cooked.
+   */
+  test("a retry that switches card to cash re-methods the reused order and settles", async () => {
+    const t = newHarness()
+    await seedGlobalSettings(t)
+    const storeId = await seedStore(t)
+    const productId = await seedProduct(t, storeId)
+
+    const first = await t.mutation(
+      api.orders.create,
+      orderArgs(storeId, productId, {
+        paymentMethod: "card",
+        idempotencyKey: "attempt-1",
+      })
+    )
+    const second = await t.mutation(
+      api.orders.create,
+      orderArgs(storeId, productId, {
+        paymentMethod: "cash",
+        idempotencyKey: "attempt-1",
+      })
+    )
+
+    // Idempotence holds: one order, no duplicate.
+    expect(second).toBe(first)
+    const orders = await t.run((ctx) => ctx.db.query("orders").collect())
+    expect(orders).toHaveLength(1)
+
+    // The diner's last confirmed choice is the truth, and the reused order is
+    // in the exact state the admin's cash button requires.
+    expect(orders[0]?.paymentMethod).toBe("cash")
+    expect(orders[0]?.paymentStatus).toBe("pending")
+
+    const asManager = await seedUser(t, "user:switch", "manager", [storeId])
+    await asManager.mutation(api.orders.markCashPaid, {
+      orderId: second as Id<"orders">,
+    })
+
+    const tickets = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(tickets).toHaveLength(1)
+    const settled = await t.run((ctx) => ctx.db.get(second as Id<"orders">))
+    expect(settled?.paymentStatus).toBe("paid")
+  })
+
+  test("a retry never re-methods an order the kitchen has already been fed", async () => {
+    // The reverse direction: a cash order's ticket is on the pass from
+    // creation, and a stale duplicated tab retrying the same attempt as card
+    // would strand a cooking, unpaid order — method card, release refused,
+    // cash button gone. The method the kitchen was fed under stands.
+    const t = newHarness()
+    await seedGlobalSettings(t)
+    const storeId = await seedStore(t)
+    const productId = await seedProduct(t, storeId)
+
+    const first = await t.mutation(
+      api.orders.create,
+      orderArgs(storeId, productId, {
+        paymentMethod: "cash",
+        idempotencyKey: "attempt-1",
+      })
+    )
+    const ticketsBefore = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(ticketsBefore).toHaveLength(1)
+
+    const second = await t.mutation(
+      api.orders.create,
+      orderArgs(storeId, productId, {
+        paymentMethod: "card",
+        idempotencyKey: "attempt-1",
+      })
+    )
+
+    expect(second).toBe(first)
+    const order = await t.run((ctx) => ctx.db.get(first as Id<"orders">))
+    expect(order?.paymentMethod).toBe("cash")
+    const tickets = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(tickets).toHaveLength(1)
+  })
+
+  test("a retry never re-methods an order whose payment has progressed", async () => {
+    const t = newHarness()
+    await seedGlobalSettings(t)
+    const storeId = await seedStore(t)
+    const productId = await seedProduct(t, storeId)
+
+    const first = await t.mutation(
+      api.orders.create,
+      orderArgs(storeId, productId, {
+        paymentMethod: "card",
+        idempotencyKey: "attempt-1",
+      })
+    )
+    await payOrder(t, first as Id<"orders">)
+
+    const second = await t.mutation(
+      api.orders.create,
+      orderArgs(storeId, productId, {
+        paymentMethod: "cash",
+        idempotencyKey: "attempt-1",
+      })
+    )
+
+    expect(second).toBe(first)
+    const order = await t.run((ctx) => ctx.db.get(first as Id<"orders">))
+    // Paid as a card order: the stored method is what actually happened.
+    expect(order?.paymentMethod).toBe("card")
+  })
+
   test("does not send a second ticket to the kitchen", async () => {
     const t = newHarness()
     await seedGlobalSettings(t)

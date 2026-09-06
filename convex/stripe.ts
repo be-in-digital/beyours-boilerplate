@@ -10,7 +10,11 @@ import {
   paymentStatusAfterSettlement,
   readStripeCheckoutSession,
 } from "@be-in-digital/convex-functions/paymentSettlement";
-import { resolveStripeCharge } from "@be-in-digital/convex-functions/stripeChargeRouting";
+import {
+  resolveStripeCharge,
+  StripeChargeRouteError,
+} from "@be-in-digital/convex-functions/stripeChargeRouting";
+import { CardPaymentUnavailableError } from "@be-in-digital/convex-functions/refusal";
 
 interface OrderData {
   total: number;
@@ -72,15 +76,28 @@ export const createCheckoutSession = action({
   },
   handler: async (ctx, args): Promise<{ sessionUrl: string; sessionId: string }> => {
     // First, before the SDK is even loaded: a connection state this file cannot
-    // honour must stop the charge, not shape it.
-    await assertChargeableOnPlatform(ctx);
+    // honour must stop the charge, not shape it. To the diner both refusals
+    // below are one fact — this deployment cannot take a card — and a plain
+    // `Error` here reached them as a redacted "Server Error" behind the
+    // checkout's generic retry toast, on the very path a fresh deployment
+    // pre-selected (#374). `CardPaymentUnavailableError` is a `ConvexError`,
+    // so the French sentence survives the wire; the routing detail stays in
+    // the log via the admin surfaces that read the connection row.
+    try {
+      await assertChargeableOnPlatform(ctx);
+    } catch (error) {
+      if (error instanceof StripeChargeRouteError) {
+        throw new CardPaymentUnavailableError();
+      }
+      throw error;
+    }
 
     const Stripe = (await import("stripe")).default;
     const { getSiteEnv } = await import("@be-in-digital/core/env");
     const site = getSiteEnv();
 
     const secretKey = site.STRIPE_SECRET_KEY;
-    if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured");
+    if (!secretKey) throw new CardPaymentUnavailableError();
 
     const order: OrderData | null = await ctx.runQuery(internal.orders.internalGetById, {
       id: args.orderId,

@@ -80,6 +80,7 @@ import type * as oauthState from "../oauthState.js";
 import type * as orders from "../orders.js";
 import type * as orphanProducts from "../orphanProducts.js";
 import type * as ownerEntitlements from "../ownerEntitlements.js";
+import type * as paymentAvailability from "../paymentAvailability.js";
 import type * as paymentConnections from "../paymentConnections.js";
 import type * as paymentEvents from "../paymentEvents.js";
 import type * as payments from "../payments.js";
@@ -202,6 +203,7 @@ declare const fullApi: ApiFromModules<{
   orders: typeof orders;
   orphanProducts: typeof orphanProducts;
   ownerEntitlements: typeof ownerEntitlements;
+  paymentAvailability: typeof paymentAvailability;
   paymentConnections: typeof paymentConnections;
   paymentEvents: typeof paymentEvents;
   payments: typeof payments;

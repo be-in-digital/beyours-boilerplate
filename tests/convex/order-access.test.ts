@@ -159,7 +159,11 @@ describe("the staff of a restaurant can read its orders", () => {
   test("what staff read is what `list` already gave them", async () => {
     // The branch widens the audience of nothing: `orders.list` is wrapped in
     // `storeQuery({ permission: "orders:read" })` and already returns these
-    // documents whole, to these very people. Opening one shows no more.
+    // documents whole, to these very people. Opening one adds ONLY the
+    // computed invoice surface (#375) — the number-or-reason `getById`
+    // derives for its reader, never a stored field `list` withholds. This
+    // paid order sits on a deployment with no seller identity, so the
+    // surface says exactly that.
     const t = convexTest(schema, modules)
     const storeId = await seedStore(t, "Chez Luigi")
     const asOwner = await seedUser(t, "user:owner", "client_admin", [storeId])
@@ -171,7 +175,11 @@ describe("the staff of a restaurant can read its orders", () => {
     })
     const [listed] = listing.page
     const opened = await asOwner.query(api.orders.getById, { id: orderId })
-    expect(opened).toEqual(listed)
+    expect(opened).toEqual({
+      ...listed,
+      invoiceNumber: null,
+      invoiceRefusal: "seller_incomplete",
+    })
   })
 })
 

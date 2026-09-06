@@ -25,7 +25,12 @@ import {
   Label,
   Separator,
 } from "@be-in-digital/ui"
-import { useCartStore, type OrderType } from "@be-in-digital/restaurant"
+import {
+  resolvePaymentMethod,
+  useCartStore,
+  type OrderType,
+  type PaymentMethodContext,
+} from "@be-in-digital/restaurant"
 import { isOrderTypeOffered, type StoreServices } from "@be-in-digital/convex-schema"
 import {
   MAX_TABLE_NUMBER_LENGTH,
@@ -132,11 +137,17 @@ export function CheckoutForm({
 
   const globalSettings = useQuery(api.globalSettings.get)
   const payments = globalSettings?.payments
+  // Server-measured: can this deployment take a card at all? `cardProvider`
+  // only declares WHICH provider; on a fresh deployment nothing is keyed and
+  // every card attempt fails, so the tile must not be the default (#374).
+  const cardAvailability = useQuery(api.paymentAvailability.get)
 
   const [selectedAddressId, setSelectedAddressId] = useState<
     string | "manual"
   >(addresses.find((a) => a.isDefault)?.id ?? "manual")
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
+  // `null` is "the diner has not chosen": the tile they land on is decided by
+  // `resolvePaymentMethod` below, from what the deployment can actually serve.
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [manualAddress, setManualAddress] = useState<AddressValue>({
     street: "", city: "", postalCode: "", country: "France",
   })
@@ -160,9 +171,23 @@ export function CheckoutForm({
 
   const showAddressFields = addressMode === "selected" || addressMode === "manual"
 
-  // Reset payment method to card if cash becomes unavailable
-  const effectivePaymentMethod: PaymentMethod =
-    paymentMethod === "cash" && (isDelivery || !isAuthenticated) ? "card" : paymentMethod
+  // The diner's choice while it is servable, else the first servable tile in
+  // display order — and `null` when the deployment can serve none, which
+  // disables submit instead of sending a doomed attempt. One rule for the
+  // default and every fallback; the old inline "reset to card" resolved to a
+  // tile no card provider could honour (#374).
+  const paymentContext: PaymentMethodContext = {
+    cardAvailable: cardAvailability?.card,
+    paypalEnabled: payments?.paypal === true,
+    cashEnabled: payments?.cash === true,
+    isDelivery,
+    isAuthenticated,
+  }
+  const effectivePaymentMethod: PaymentMethod | null = resolvePaymentMethod(
+    paymentMethod,
+    paymentContext
+  )
+  const cardUnavailable = cardAvailability?.card === false
 
   const {
     register,
@@ -274,6 +299,10 @@ export function CheckoutForm({
       }
       setTableNumberError(null)
     }
+
+    // No servable method: the button is disabled, but a submit can still race
+    // the availability answer — refuse it rather than send a doomed attempt.
+    if (!effectivePaymentMethod) return
 
     onSubmit({
       name: data.name,
@@ -679,26 +708,33 @@ export function CheckoutForm({
 
         <div className="px-8 pb-4">
           <div className="grid grid-cols-1 gap-3">
-            {/* Card — always available */}
+            {/* Card — shown always, selectable only when the deployment can
+                actually charge one. Pre-selecting a dead card tile is what
+                sent every fresh deployment's first order into #374. */}
             <button
               type="button"
-              onClick={() => setPaymentMethod("card")}
+              onClick={() => !cardUnavailable && setPaymentMethod("card")}
+              disabled={cardUnavailable}
               className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all ${
-                effectivePaymentMethod === "card"
-                  ? "border-emerald-500 bg-emerald-50/30"
-                  : "border-zinc-100 hover:border-zinc-200"
+                cardUnavailable
+                  ? "border-zinc-100 bg-zinc-50 opacity-60 cursor-not-allowed"
+                  : effectivePaymentMethod === "card"
+                    ? "border-emerald-500 bg-emerald-50/30"
+                    : "border-zinc-100 hover:border-zinc-200"
               }`}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
-                <CreditCard className="h-6 w-6 text-zinc-600" />
+                <CreditCard className={`h-6 w-6 ${cardUnavailable ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-600"}`} />
               </div>
               <div>
-                <p className="font-bold text-zinc-800">Carte bancaire</p>
+                <p className={`font-bold ${cardUnavailable ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-800"}`}>Carte bancaire</p>
                 <p className="text-[10px] uppercase tracking-widest text-zinc-500">
-                  {payments?.cardProvider === "sumup" ? "SumUp" : "Visa, Master, Amex"}
+                  {cardUnavailable
+                    ? "Indisponible pour le moment"
+                    : payments?.cardProvider === "sumup" ? "SumUp" : "Visa, Master, Amex"}
                 </p>
               </div>
-              {effectivePaymentMethod === "card" && (
+              {effectivePaymentMethod === "card" && !cardUnavailable && (
                 <CheckCircle2 className="ml-auto h-5 w-5 text-emerald-500" />
               )}
             </button>
@@ -766,7 +802,7 @@ export function CheckoutForm({
         <div className="px-8 pb-8 pt-4">
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !effectivePaymentMethod}
             className="group h-16 w-full rounded-2xl bg-primary text-lg font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-primary-hover"
           >
             {isSubmitting ? (
@@ -780,7 +816,9 @@ export function CheckoutForm({
                   ? "Payer par carte"
                   : effectivePaymentMethod === "paypal"
                     ? "Payer avec PayPal"
-                    : "Confirmer la commande"}
+                    : effectivePaymentMethod === "cash"
+                      ? "Confirmer la commande"
+                      : "Choisissez un moyen de paiement"}
                 <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />
               </>
             )}
