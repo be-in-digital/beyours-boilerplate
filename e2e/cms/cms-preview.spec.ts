@@ -67,11 +67,39 @@ test.describe("CMS Preview", () => {
 
     // The frame must have loaded the storefront route, not a browser error
     // document. A refused frame never reaches this URL.
-    const handle = await frameElement.elementHandle()
-    const frame = await handle!.contentFrame()
-    expect(frame, "the preview iframe exposed no document").not.toBeNull()
-    expect(frame!.url()).toContain("/about")
-    expect(frame!.url()).toContain("preview=true")
+    //
+    // Polled, not read once. `toBeVisible` resolves as soon as React has put
+    // the <iframe> element in the layout, which is before the browser has
+    // committed a navigation to its `src`. The frame object exists in that
+    // window — so the `not.toBeNull()` this replaces was satisfied — and its
+    // url() is the empty string. Measured, by delaying the framed document with
+    // page.route(): the previous version, which snapshotted url() on the next
+    // line with a plain expect() and no retry, reported
+    // `Expected substring: "/about" / Received string: ""`.
+    //
+    // On an idle machine the navigation lands inside that gap and the test
+    // passes; in a full run it does not. Green alone, red under load, which is
+    // the failure mode that teaches an integrator to distrust the whole suite.
+    let frameUrl = ""
+    await expect
+      .poll(
+        async () => {
+          // Re-resolved each iteration: React can replace the element, and a
+          // handle taken once would go stale rather than follow it.
+          const handle = await frameElement.elementHandle()
+          frameUrl = (await handle?.contentFrame())?.url() ?? ""
+          return frameUrl
+        },
+        {
+          timeout: 30_000,
+          message: "the preview iframe never navigated to the storefront route",
+        },
+      )
+      .toContain("/about")
+
+    // Read from what the poll settled on, so this cannot describe a different
+    // navigation than the one just asserted.
+    expect(frameUrl).toContain("preview=true")
 
     // And it must have rendered something. Chrome's blocked-frame document has
     // no heading; the About page's hero does.
