@@ -256,22 +256,30 @@ test.describe("Product Form", () => {
 
       await addOptionButton.click()
 
-      // Look for the button to add a choice within the option group
-      const addChoiceButton = page
-        .getByRole("button", { name: /ajouter un choix|ajouter/i })
-        .filter({ hasNotText: "option" })
+      // Exact names, because the component renders exactly these strings
+      // (packages/admin/src/pages/products/product-form.tsx). What this
+      // replaces guessed at a page nobody had opened: a button matching
+      // /ajouter un choix|ajouter/i minus anything containing "option", then
+      // `.first()`, then an input matched by /nom du choix|choix/i `.or()` a
+      // label /choix/i — which would also accept the "Choix" section heading.
+      // Loose enough that a failure said "not visible" without saying of what,
+      // and `.first()` silently picked whichever element happened to be first.
+      //
+      // No `.first()` now either: one option group has exactly one add-choice
+      // button, so a second match is a defect and Playwright should say so
+      // rather than choose.
+      const addChoiceButton = page.getByRole("button", {
+        name: "Ajouter un choix",
+      })
+      await expect(addChoiceButton).toBeVisible({ timeout: 10_000 })
 
-      // There should be a way to add choices
-      await expect(addChoiceButton.first()).toBeVisible({ timeout: 10_000 })
+      await addChoiceButton.click()
 
-      await addChoiceButton.first().click()
-
-      // A choice input field should appear
-      const choiceInput = page
-        .getByPlaceholder(/nom du choix|choix/i)
-        .or(page.getByLabel(/choix/i))
-
-      await expect(choiceInput.first()).toBeVisible({ timeout: 10_000 })
+      // The choice row the click is supposed to produce, by the placeholder the
+      // component gives its name field.
+      await expect(page.getByPlaceholder("Nom du choix")).toBeVisible({
+        timeout: 10_000,
+      })
     })
 
     test("should remove an option group", async ({ page }) => {
