@@ -174,6 +174,9 @@ export const verifyCheckout = action({
       // cancelled order is owed back, not "paid".
       status: string;
       paymentStatus: string;
+      // Needed by `assertSettlesOrder`: an order already collected through
+      // another method does not accept a second settlement (#378).
+      paymentMethod?: string;
       viewToken?: string;
       customerInfo?: { email?: string };
     }
@@ -194,7 +197,14 @@ export const verifyCheckout = action({
           amountMajor: checkout.amount,
           currency: checkout.currency,
         },
-        { orderId: args.orderId, total: order.total }
+        {
+          orderId: args.orderId,
+          total: order.total,
+          // An order already collected through another method does not accept
+          // a second settlement (#378).
+          paymentMethod: order.paymentMethod,
+          paymentStatus: order.paymentStatus,
+        }
       );
 
       // What this settlement should do to the ORDER — which is not always

@@ -202,6 +202,20 @@ export const create = mutation({
     // `markCashPaid` does not produce a second one.
     await scheduleOrderConfirmation(ctx, await planOrderConfirmation(ctx, orderId));
 
+    // A card session the order no longer needs must not stay payable.
+    //
+    // #374 lets a diner who abandoned Stripe confirm « Espèces » on the same
+    // attempt, and re-methods the reused order to cash. The Stripe session
+    // behind the tab they left open stayed live for ~24 h — long enough to
+    // collect, a second time, an order the counter had already taken in cash
+    // (#378). Stripe has to be told, and only an action can tell it.
+    const abandonedSession = await defs.abandonedCheckoutSession(ctx, orderId);
+    if (abandonedSession) {
+      await ctx.scheduler.runAfter(0, internal.stripe.expireCheckoutSession, {
+        checkoutSessionId: abandonedSession,
+      });
+    }
+
     // Independent of the above, and both belong here: an order that moved
     // tracked stock has to push the new availability to the platforms.
     if (await defs.orderMovedTrackedStock(ctx, orderId)) {

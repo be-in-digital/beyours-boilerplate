@@ -115,7 +115,14 @@ export const handleWebhook = httpAction(async (ctx, request) => {
             amountMinor: (result.amountTotal as number | null) ?? null,
             currency: (result.currency as string | null) ?? null,
           },
-          { orderId, total: order.total }
+          {
+            orderId,
+            total: order.total,
+            // An order the counter has already collected in cash does not
+            // accept a card settlement from a session left live (#378).
+            paymentMethod: order.paymentMethod,
+            paymentStatus: order.paymentStatus,
+          }
         );
 
         // What this settlement should do to the ORDER — which is not always

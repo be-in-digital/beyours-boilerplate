@@ -28,7 +28,14 @@ import { internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
 import { planRefund } from "@be-in-digital/convex-functions/refundPolicy"
-import { paymentStatusAfterSettlement } from "@be-in-digital/convex-functions/paymentSettlement"
+import {
+  assertSettlesOrder,
+  paymentStatusAfterSettlement,
+} from "@be-in-digital/convex-functions/paymentSettlement"
+import {
+  abandonedCheckoutSession,
+  markCashPaid,
+} from "@be-in-digital/convex-functions/orders"
 
 const modules = import.meta.glob("../../convex/**/*.ts")
 
@@ -405,5 +412,231 @@ describe("a settlement arriving after cancellation", () => {
     await settleThroughTheCallSitePath(t, storeId, orderId)
 
     expect((await t.run((ctx) => ctx.db.get(orderId)))?.paymentStatus).toBe("refunded")
+  })
+})
+
+// ============================================================================
+// One order, collected twice — #378
+// ============================================================================
+
+describe("one order collected twice", () => {
+  /**
+   * The full provider path, guard included.
+   *
+   * `settleThroughTheCallSitePath` above replays the two steps that decide what
+   * an arriving payment does to the ORDER. This one adds the step before them:
+   * the binding `assertSettlesOrder` performs, which is where a settlement is
+   * refused outright. All four provider paths run these three in this order —
+   * `settlement-binding.test.ts` asserts that against their source, since none
+   * of them loads under `edge-runtime`.
+   */
+  async function settleLiveCardSession(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    orderId: Id<"orders">
+  ) {
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+
+    assertSettlesOrder(
+      {
+        provider: "stripe",
+        reference: orderId,
+        amountMinor: order!.total,
+        currency: "EUR",
+      },
+      {
+        orderId,
+        total: order!.total,
+        paymentMethod: order!.paymentMethod,
+        paymentStatus: order!.paymentStatus,
+      }
+    )
+
+    const next = paymentStatusAfterSettlement({
+      status: order!.status,
+      paymentStatus: order!.paymentStatus,
+    })
+    if (next) {
+      await t.mutation(internal.orders.internalUpdatePaymentStatus, {
+        id: orderId,
+        paymentStatus: next,
+      })
+    }
+    await t.mutation(internal.payments.internalSettle, settlement(storeId, orderId))
+  }
+
+  /** Step 2 of the reproduction: #374 re-methods the reused order to cash. */
+  async function reMethodToCash(t: ReturnType<typeof convexTest>, orderId: Id<"orders">) {
+    await t.run((ctx) =>
+      ctx.db.patch(orderId, { paymentMethod: "cash", updatedAt: NOW + 1 })
+    )
+  }
+
+  test("refuses the live card session once the counter has taken the cash", async () => {
+    // THE BUG, replayed end to end.
+    //
+    //  1. The diner submits with card: the order is `paymentMethod: "card"`,
+    //     `paymentStatus: "pending"`, and the Stripe session id is recorded.
+    //     That session stays payable for ~24 h.
+    //  2. They press Back and confirm « Espèces » on the same attempt. Since
+    //     #374 the reused order is re-methoded to cash — correct, and the point
+    //     of that fix.
+    //  3. Staff take the notes: a `cash` payment row, order `paid`.
+    //  4. The still-live Stripe session is completed from the tab left open.
+    //  5. Identity, currency and amount all match — it IS this order at this
+    //     total — and `paymentStatusAfterSettlement` answers null for an
+    //     already-paid order, so the order looked untouched while a second
+    //     `succeeded` row went in beside the cash one. `settlePayment`
+    //     deduplicates on `externalId`, and a cash row has none.
+    //
+    // Verbatim probe output on the unfixed code, from the issue:
+    //   PROBE order total: 1200 collected: 2400
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-378-1")
+
+    await t.run((ctx) =>
+      ctx.db.patch(orderId, {
+        paymentMethod: "card",
+        stripeCheckoutSessionId: "cs_test_378",
+        updatedAt: NOW,
+      })
+    )
+    await reMethodToCash(t, orderId)
+
+    // The real thing, not a fixture of it: this is what the « Encaisser en
+    // espèces » button runs.
+    await t.run((ctx) => markCashPaid.handler(ctx, { orderId }))
+
+    await expect(settleLiveCardSession(t, storeId, orderId)).rejects.toThrow(
+      /déjà été réglée/
+    )
+
+    // One meal, collected once.
+    const rows = await paymentsFor(t, orderId)
+    const succeeded = rows.filter((row) => row.status === "succeeded")
+    expect(succeeded).toHaveLength(1)
+    expect(succeeded[0].provider).toBe("cash")
+    expect(succeeded.reduce((sum, row) => sum + row.amount, 0)).toBe(CHARGE)
+  })
+
+  test("still settles a card payment that arrives before any cash", async () => {
+    // The guard must not be satisfiable by refusing everything. A card order
+    // paid by card settles exactly as it always did — and the cash button then
+    // refuses to take the money a second time, which is `markCashPaid`'s own
+    // guard doing its half.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-378-2")
+
+    await t.run((ctx) =>
+      ctx.db.patch(orderId, { paymentMethod: "card", updatedAt: NOW })
+    )
+
+    await settleLiveCardSession(t, storeId, orderId)
+
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+    expect(order?.paymentStatus).toBe("paid")
+
+    const rows = await paymentsFor(t, orderId)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].provider).toBe("stripe")
+
+    // And the counter cannot then take the notes on top of it.
+    const cash = await t.run((ctx) => markCashPaid.handler(ctx, { orderId }))
+    expect(cash.paymentId).toBeNull()
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+
+  test("lets a replayed Stripe delivery through without writing a second row", async () => {
+    // Stripe redelivers for up to three days, and the return page settles the
+    // same charge from a different event. Neither may be refused — a throw is a
+    // 500 answered with more retries — and neither may write a second row.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-378-3")
+
+    await t.run((ctx) =>
+      ctx.db.patch(orderId, { paymentMethod: "card", updatedAt: NOW })
+    )
+
+    await settleLiveCardSession(t, storeId, orderId)
+    await settleLiveCardSession(t, storeId, orderId)
+
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+
+  test("the ledger refuses a second collection even with the guard skipped", async () => {
+    // Defence in depth, and the reason it is not redundant: five provider paths
+    // remember to ask `assertSettlesOrder`, and the sixth one written next year
+    // would not have to. `settlePayment` is the single seam every provider
+    // settlement passes through, so the invariant is stated there too — this
+    // call bypasses the guard entirely, exactly as a forgetful new path would.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-378-4")
+
+    await t.run((ctx) =>
+      ctx.db.patch(orderId, { paymentMethod: "cash", updatedAt: NOW })
+    )
+    await t.run((ctx) => markCashPaid.handler(ctx, { orderId }))
+
+    await expect(
+      t.mutation(internal.payments.internalSettle, settlement(storeId, orderId))
+    ).rejects.toThrow(/double encaissement/)
+
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+})
+
+// ============================================================================
+// The session behind the abandoned checkout — #378, prevention
+// ============================================================================
+
+describe("the Stripe session an order has stopped needing", () => {
+  test("is handed back for expiry once the order is no longer a card order", async () => {
+    // A mutation cannot call Stripe, so `orders.create` asks this and schedules
+    // `stripe.expireCheckoutSession` with the answer. Expiring the session is
+    // what stops the second charge being TAKEN — the difference between the
+    // diner being made whole afterwards and never being charged at all.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-378-5")
+
+    await t.run((ctx) =>
+      ctx.db.patch(orderId, {
+        paymentMethod: "card",
+        stripeCheckoutSessionId: "cs_test_abandoned",
+        updatedAt: NOW,
+      })
+    )
+
+    // Still a card order: the session is the one it is going to pay with.
+    expect(await t.run((ctx) => abandonedCheckoutSession(ctx, orderId))).toBeNull()
+
+    // #374 re-methods it to cash. Now the session is a way to collect the same
+    // order twice.
+    await t.run((ctx) => ctx.db.patch(orderId, { paymentMethod: "cash" }))
+    expect(await t.run((ctx) => abandonedCheckoutSession(ctx, orderId))).toBe(
+      "cs_test_abandoned"
+    )
+
+    // The id stays ON the order: it is the only pointer
+    // `reconcilePendingCheckouts` has, and the one case where the expiry fails
+    // is a session Stripe refuses to expire because it has already been paid —
+    // exactly when that pointer is what recovers the money.
+    expect(
+      (await t.run((ctx) => ctx.db.get(orderId)))?.stripeCheckoutSessionId
+    ).toBe("cs_test_abandoned")
+  })
+
+  test("answers null for an order that never had one", async () => {
+    // Cash from the start, PayPal, and every platform order.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-378-6")
+
+    await t.run((ctx) => ctx.db.patch(orderId, { paymentMethod: "cash" }))
+    expect(await t.run((ctx) => abandonedCheckoutSession(ctx, orderId))).toBeNull()
   })
 })

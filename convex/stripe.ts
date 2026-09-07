@@ -24,6 +24,9 @@ interface OrderData {
   // order is owed back, not "paid".
   status: string;
   paymentStatus: string;
+  // Needed by `assertSettlesOrder`: an order already collected through another
+  // method does not accept a second settlement (#378).
+  paymentMethod?: string;
   viewToken?: string;
   customerInfo?: { email?: string };
 }
@@ -153,6 +156,55 @@ export const createCheckoutSession = action({
 });
 
 /**
+ * Expire a Checkout Session the order has no further use for.
+ *
+ * WHY THIS EXISTS: a session outlives the intention behind it. #374 lets a
+ * diner who abandoned Stripe confirm « Espèces » on the same checkout attempt,
+ * and re-methods the reused order to cash — while the Stripe session stayed
+ * payable for ~24 h behind the tab they left open. Once the counter had taken
+ * the notes, completing that session collected the same order a second time:
+ * a cash row and a payment-intent row, both `succeeded`, both independently
+ * refundable, one meal charged twice (#378). `assertSettlesOrder` refuses that
+ * settlement now; this is what stops the second charge being taken at all,
+ * which is the difference between the diner being made whole and the diner
+ * never being charged.
+ *
+ * Never throws. It runs on the scheduler, behind an order already confirmed to
+ * the diner, and every way it can fail is either harmless or unfixable by a
+ * retry: Stripe refuses to expire a session that is already expired — the
+ * outcome we wanted — and refuses one that is already paid, which is a real
+ * double collection that needs the order's stored session id and a refund, not
+ * another expiry attempt.
+ */
+export const expireCheckoutSession = internalAction({
+  args: { checkoutSessionId: v.string() },
+  handler: async (_ctx, args): Promise<void> => {
+    const sessionId = args.checkoutSessionId.trim();
+    if (!sessionId) return;
+
+    const Stripe = (await import("stripe")).default;
+    const { getSiteEnv } = await import("@be-in-digital/core/env");
+
+    // Nothing to expire on a deployment that takes no card payments.
+    const secretKey = getSiteEnv().STRIPE_SECRET_KEY;
+    if (!secretKey) return;
+
+    const stripe = new Stripe(secretKey, {
+      httpClient: Stripe.createFetchHttpClient(),
+    });
+
+    try {
+      await stripe.checkout.sessions.expire(sessionId);
+    } catch (error) {
+      console.warn(
+        `[Stripe] Could not expire checkout session ${sessionId}:`,
+        error
+      );
+    }
+  },
+});
+
+/**
  * Verify a Stripe Checkout Session after redirect.
  * Updates order and creates payment record if paid.
  */
@@ -220,7 +272,15 @@ export const verifyCheckoutSession = action({
           amountMinor: settlement.amountMinor,
           currency: settlement.currency,
         },
-        { orderId, total: order.total }
+        {
+          orderId,
+          total: order.total,
+          // The order's method as it stands NOW. A session left live behind an
+          // abandoned checkout must not collect an order the counter has since
+          // taken in cash (#378).
+          paymentMethod: order.paymentMethod,
+          paymentStatus: order.paymentStatus,
+        }
       );
 
       // What this settlement should do to the ORDER — which is not always
@@ -407,6 +467,17 @@ export const reconcilePendingCheckouts = internalAction({
         const orderId = candidate.orderId as Id<"orders">;
         const settlement = readStripeCheckoutSession(rawSession);
 
+        // Read BEFORE the guard, not after. `listStrandedCheckouts` picked this
+        // candidate out of an index read taken at the top of the sweep, so its
+        // `paymentStatus` is a snapshot; the method check needs the order as it
+        // is NOW. A sweep that began before the counter took the cash would
+        // otherwise settle the very session #378 is about.
+        const order: OrderData | null = await ctx.runQuery(
+          internal.orders.internalGetById,
+          { id: orderId }
+        );
+        if (!order) continue;
+
         // Same binding as the return page and the webhook: what Stripe reports
         // must equal the order, to the cent, or nothing is marked paid.
         assertSettlesOrder(
@@ -416,14 +487,13 @@ export const reconcilePendingCheckouts = internalAction({
             amountMinor: settlement.amountMinor,
             currency: settlement.currency,
           },
-          { orderId, total: candidate.total }
+          {
+            orderId,
+            total: candidate.total,
+            paymentMethod: order.paymentMethod,
+            paymentStatus: order.paymentStatus,
+          }
         );
-
-        const order: OrderData | null = await ctx.runQuery(
-          internal.orders.internalGetById,
-          { id: orderId }
-        );
-        if (!order) continue;
 
         const nextPaymentStatus = paymentStatusAfterSettlement(order);
         if (nextPaymentStatus) {
