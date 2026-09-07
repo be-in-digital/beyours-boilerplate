@@ -47,7 +47,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
         className={`h-10 rounded-full border px-4 font-black uppercase tracking-widest text-[10px] transition-all ${
           variant === "transparent"
             ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-            : "bg-white border-zinc-100 shadow-sm text-primary hover:bg-zinc-50"
+            : "bg-white border-border shadow-sm text-accent-foreground hover:bg-muted"
         }`}
       >
         <Link href="/sign-in">
@@ -68,7 +68,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
           className={`relative h-10 w-10 rounded-full border-2 p-0 overflow-hidden transition-all ${
             variant === "transparent"
               ? "border-white/20 hover:border-white/40 hover:bg-white/10"
-              : "border-zinc-100 hover:border-primary hover:bg-emerald-50"
+              : "border-border hover:border-primary hover:bg-accent"
           }`}
         >
           <Avatar className="h-full w-full">
@@ -81,7 +81,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
               className={`font-black ${
                 variant === "transparent"
                   ? "bg-white/20 text-white"
-                  : "bg-zinc-100 text-primary"
+                  : "bg-muted text-accent-foreground"
               }`}
             >
               {user.name?.charAt(0).toUpperCase() ?? "U"}
@@ -91,23 +91,23 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="w-72 p-2 rounded-[2rem] border-zinc-100 shadow-2xl space-y-1"
+        className="w-72 p-2 rounded-[2rem] border-border shadow-2xl space-y-1"
         align="end"
         forceMount
       >
         {/* User info */}
-        <div className="flex items-center gap-3 p-4 bg-zinc-50 rounded-[1.5rem] mb-2">
+        <div className="flex items-center gap-3 p-4 bg-muted rounded-[1.5rem] mb-2">
           <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
             <AvatarImage src={user.image ?? undefined} />
-            <AvatarFallback className="bg-orange-100 text-orange-600 font-black">
+            <AvatarFallback className="bg-accent text-accent-foreground font-black">
               {user.name?.charAt(0).toUpperCase() ?? "U"}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col space-y-0.5 overflow-hidden">
-            <p className="text-sm font-black truncate text-zinc-900 leading-none">
+            <p className="text-sm font-black truncate text-foreground leading-none">
               {user.name}
             </p>
-            <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 truncate tracking-tight">
+            <p className="text-xs font-bold text-muted-foreground truncate tracking-tight">
               {user.email}
             </p>
           </div>
@@ -115,8 +115,8 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
 
         <DropdownMenuGroup className="px-1">
           <Link href="/account" className="block w-full">
-            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-primary group transition-colors">
-              <User className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-primary transition-colors" />
+            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-accent focus:bg-accent focus:text-accent-foreground group transition-colors">
+              <User className="mr-3 h-5 w-5 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mon profil
               </span>
@@ -124,8 +124,8 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
           </Link>
 
           <Link href="/account/orders" className="block w-full">
-            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-primary group transition-colors">
-              <ShoppingBag className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-primary transition-colors" />
+            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-accent focus:bg-accent focus:text-accent-foreground group transition-colors">
+              <ShoppingBag className="mr-3 h-5 w-5 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mes commandes
               </span>
@@ -133,8 +133,8 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
           </Link>
 
           <Link href="/account/addresses" className="block w-full">
-            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-primary group transition-colors">
-              <MapPin className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-primary transition-colors" />
+            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-accent focus:bg-accent focus:text-accent-foreground group transition-colors">
+              <MapPin className="mr-3 h-5 w-5 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mes adresses
               </span>
@@ -142,8 +142,8 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
           </Link>
 
           <Link href="/account/favorites" className="block w-full">
-            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-emerald-50 focus:bg-emerald-50 focus:text-primary group transition-colors">
-              <Heart className="mr-3 h-5 w-5 text-zinc-500 dark:text-zinc-400 group-hover:text-primary transition-colors" />
+            <DropdownMenuItem className="cursor-pointer py-3 px-4 rounded-xl hover:bg-accent focus:bg-accent focus:text-accent-foreground group transition-colors">
+              <Heart className="mr-3 h-5 w-5 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
               <span className="font-black uppercase tracking-widest text-[10px]">
                 Mes favoris
               </span>
@@ -151,7 +151,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
           </Link>
         </DropdownMenuGroup>
 
-        <DropdownMenuSeparator className="mx-2 bg-zinc-100" />
+        <DropdownMenuSeparator className="mx-2 bg-muted" />
 
         <div className="px-1 pb-1">
           <DropdownMenuItem

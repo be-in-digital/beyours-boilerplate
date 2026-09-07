@@ -86,7 +86,7 @@ export default async function ProductDetailPage({ params }: Props) {
         <p className="mt-2 text-muted-foreground">
           Ce produit n&apos;existe pas ou a été supprimé.
         </p>
-        <a href="/menu" className="mt-4 inline-block text-primary hover:underline">
+        <a href="/menu" className="mt-4 inline-block text-accent-foreground hover:underline">
           Retour au menu
         </a>
       </div>

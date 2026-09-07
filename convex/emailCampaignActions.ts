@@ -6,7 +6,7 @@ import type { ActionCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
 
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { sendEmail } from "./emailTransport";
 import {
   buildSegmentFilter,
   renderTemplateToEmailHtml,
@@ -25,16 +25,6 @@ import {
 } from "@be-in-digital/convex-functions/sesSending";
 
 const BATCH_DELAY_MS = 100; // ~10 emails/sec, well below SES sandbox limit
-
-function createSESClient() {
-  return new SESv2Client({
-    region: process.env.AWS_REGION ?? "eu-west-3",
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
-  });
-}
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -234,7 +224,6 @@ export const sendBatch = internalAction({
       }
     }
 
-    const sesClient = createSESClient();
     const siteUrl = process.env.CONVEX_SITE_URL ?? "";
     // Media stored without a CDN is a path on the storefront, not on Convex.
     const appUrl = process.env.SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
@@ -285,47 +274,39 @@ export const sendBatch = internalAction({
           siteUrl: appUrl,
         });
 
-        const command = new SendEmailCommand({
-          FromEmailAddress: fromAddress,
-          Destination: { ToAddresses: [subscriber.email] },
-          ReplyToAddresses: config.replyToEmail
-            ? [config.replyToEmail]
-            : undefined,
+        const outcome = await sendEmail({
+          from: fromAddress,
+          to: subscriber.email,
+          subject: delivery.subject,
+          html,
+          text: `Se désabonner: ${unsubscribeUrl}`,
+          ...(config.replyToEmail ? { replyTo: config.replyToEmail } : {}),
           ...configurationSetField,
-          Content: {
-            Simple: {
-              Subject: { Data: delivery.subject, Charset: "UTF-8" },
-              Body: {
-                Html: { Data: html, Charset: "UTF-8" },
-                Text: {
-                  Data: `Se désabonner: ${unsubscribeUrl}`,
-                  Charset: "UTF-8",
-                },
-              },
-              Headers: [
-                { Name: "X-Campaign-Id", Value: String(args.campaignId) },
-                { Name: "X-Subscriber-Id", Value: String(subscriber._id) },
-                { Name: "X-Store-Id", Value: String(campaign.storeId) },
-                // Gmail and Yahoo have required one-click unsubscribe from bulk
-                // senders since February 2024. Without these two headers the
-                // mail is filtered or refused outright — a deliverability
-                // problem that looks exactly like "our campaigns get no opens".
-                //
-                // RFC 8058: the provider POSTs to the https URL with a body of
-                // `List-Unsubscribe=One-Click` and no further interaction, which
-                // is why `POST /email/unsubscribe` exists and takes no CSRF
-                // token. The mailto is the fallback for clients that predate it.
-                {
-                  Name: "List-Unsubscribe",
-                  Value: `<mailto:${config.replyToEmail ?? config.fromEmail}?subject=unsubscribe>, <${unsubscribeUrl}>`,
-                },
-                { Name: "List-Unsubscribe-Post", Value: "List-Unsubscribe=One-Click" },
-              ],
-            },
+          headers: {
+            "X-Campaign-Id": String(args.campaignId),
+            "X-Subscriber-Id": String(subscriber._id),
+            "X-Store-Id": String(campaign.storeId),
+            // Gmail and Yahoo have required one-click unsubscribe from bulk
+            // senders since February 2024. Without these two headers the mail
+            // is filtered or refused outright — a deliverability problem that
+            // looks exactly like "our campaigns get no opens".
+            //
+            // RFC 8058: the provider POSTs to the https URL with a body of
+            // `List-Unsubscribe=One-Click` and no further interaction, which is
+            // why `POST /email/unsubscribe` exists and takes no CSRF token. The
+            // mailto is the fallback for clients that predate it.
+            "List-Unsubscribe": `<mailto:${config.replyToEmail ?? config.fromEmail}?subject=unsubscribe>, <${unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           },
         });
 
-        await sesClient.send(command);
+        // The transport reports rather than throws; the catch below is what
+        // counts a failure towards the abort budget, so a refusal has to be
+        // turned back into one. Losing this is how "Campagne envoyée (0/342)"
+        // happened the first time.
+        if (!outcome.sent) {
+          throw new Error(outcome.error ?? "envoi refusé par le fournisseur");
+        }
 
         // A send that worked clears the budget below: what aborts a batch is a
         // RUN of failures, never a total.
@@ -459,37 +440,28 @@ export const sendTest = action({
       siteUrl: appUrl,
     });
 
-    const sesClient = createSESClient();
     const fromAddress = config.senderName
       ? `${config.senderName} <${config.fromEmail}>`
       : config.fromEmail;
 
-    await sesClient.send(
-      new SendEmailCommand({
-        FromEmailAddress: fromAddress,
-        Destination: { ToAddresses: [args.testEmail] },
-        // Same reasoning as the batch: the set belongs to the client's own AWS
-        // account, and the field is omitted when they have none. A test send
-        // has no catch, so a wrong name surfaces to the admin as an error —
-        // which is exactly how the batch's failure should have surfaced too.
-        ...configurationSetFields(process.env.AWS_SES_CONFIGURATION_SET),
-        Content: {
-          Simple: {
-            Subject: {
-              Data: `[TEST] ${campaign.subject}`,
-              Charset: "UTF-8",
-            },
-            Body: {
-              Html: { Data: html, Charset: "UTF-8" },
-              Text: {
-                Data: `Email test pour: ${campaign.subject}`,
-                Charset: "UTF-8",
-              },
-            },
-          },
-        },
-      })
-    );
+    const outcome = await sendEmail({
+      from: fromAddress,
+      to: args.testEmail,
+      subject: `[TEST] ${campaign.subject}`,
+      html,
+      text: `Email test pour: ${campaign.subject}`,
+      // Same reasoning as the batch: the set belongs to the client's own AWS
+      // account, and the field is omitted when they have none. A test send has
+      // no catch, so a wrong name surfaces to the admin as an error — which is
+      // exactly how the batch's failure should have surfaced too.
+      ...configurationSetFields(process.env.AWS_SES_CONFIGURATION_SET),
+    });
+
+    // Loud on purpose. A test send exists to answer "will this reach anyone?",
+    // and reporting success for a refused send answers it wrongly.
+    if (!outcome.sent) {
+      throw new Error(outcome.error ?? "envoi refusé par le fournisseur");
+    }
 
     return { success: true };
   },

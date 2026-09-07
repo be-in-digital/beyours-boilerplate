@@ -181,13 +181,13 @@ function MenuContent() {
   }[sortBy]
 
   return (
-    <div className="min-h-screen bg-background text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
+    <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden pt-20 transition-colors duration-500">
       {/* ─── HERO ─── */}
       <section className="pt-24 pb-20 px-6 md:px-12 bg-primary relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
         {/* Decorative blurs */}
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px]" />
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
@@ -196,7 +196,7 @@ function MenuContent() {
           </Badge>
           <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-8 italic">
             Découvrez Notre <br />
-            <span className="text-orange-600 dark:text-orange-400 not-italic">Menu</span>
+            <span className="text-accent-foreground not-italic">Menu</span>
           </h1>
           <p className="text-xl text-white/80 max-w-2xl mx-auto mb-12 font-medium">
             Explorez notre sélection de plats préparés avec soin
@@ -206,12 +206,12 @@ function MenuContent() {
           <div className="max-w-3xl mx-auto relative group">
             <div className="bg-white rounded-[2rem] p-2 shadow-2xl flex items-center gap-2 border-4 border-white/10 group-focus-within:border-primary/20 transition-all">
               <div className="pl-6 flex items-center justify-center">
-                <Search className="h-6 w-6 text-zinc-500 dark:text-zinc-400" />
+                <Search className="h-6 w-6 text-muted-foreground" />
               </div>
               <input
                 type="text"
                 placeholder="Rechercher un plat..."
-                className="flex-1 h-14 bg-transparent border-none outline-none text-lg font-bold placeholder:text-zinc-500 text-zinc-900"
+                className="flex-1 h-14 bg-transparent border-none outline-none text-lg font-bold placeholder:text-muted-foreground text-foreground"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
@@ -222,14 +222,14 @@ function MenuContent() {
                     setSearch("")
                     updateSearchParams("q", null)
                   }}
-                  className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-600"
+                  className="p-2 text-muted-foreground hover:text-muted-foreground"
                 >
                   <X className="h-5 w-5" />
                 </button>
               )}
               <Button
                 onClick={handleSearchSubmit}
-                className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary-hover text-white font-black uppercase tracking-widest text-xs shadow-xl transition-all"
+                className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest text-xs shadow-xl transition-all"
               >
                 Rechercher
               </Button>
@@ -245,8 +245,8 @@ function MenuContent() {
             onClick={() => handleCategorySelect(null)}
             className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 border-2 shrink-0 h-14 ${
               !categorySlug
-                ? "bg-primary border-primary text-white shadow-[0_10px_20px_-5px_rgba(13,92,63,0.25)]"
-                : "bg-white border-zinc-100 text-zinc-500 dark:text-zinc-400 hover:border-zinc-200 hover:bg-zinc-50"
+                ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/25"
+                : "bg-card border-border text-muted-foreground hover:border-border hover:bg-muted"
             }`}
           >
             <span className="text-xl leading-none">✨</span>
@@ -258,8 +258,8 @@ function MenuContent() {
               onClick={() => handleCategorySelect(cat.slug)}
               className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 border-2 shrink-0 h-14 ${
                 categorySlug === cat.slug
-                  ? "bg-primary border-primary text-white shadow-[0_10px_20px_-5px_rgba(13,92,63,0.25)]"
-                  : "bg-white border-zinc-100 text-zinc-500 dark:text-zinc-400 hover:border-zinc-200 hover:bg-zinc-50"
+                  ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/25"
+                  : "bg-card border-border text-muted-foreground hover:border-border hover:bg-muted"
               }`}
             >
               {cat.name}
@@ -270,9 +270,9 @@ function MenuContent() {
         {/* ─── SHOWING + FILTERS + SORT ─── */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-16 px-4 gap-6">
           <div>
-            <h2 className="text-2xl font-black tracking-tighter text-zinc-800 uppercase">
-              Affichage : <span className="text-emerald-500">{activeCategoryName}</span>
-              <span className="ml-2 text-zinc-300">
+            <h2 className="text-2xl font-black tracking-tighter text-foreground uppercase">
+              Affichage : <span className="text-accent-foreground">{activeCategoryName}</span>
+              <span className="ml-2 text-muted-foreground">
                 ({filteredProducts?.length ?? 0})
               </span>
             </h2>
@@ -283,14 +283,14 @@ function MenuContent() {
             <Button
               variant="outline"
               onClick={() => setFilters((prev) => ({ availableOnly: !prev.availableOnly }))}
-              className={`h-12 rounded-xl border-zinc-100 bg-white font-bold text-zinc-600 gap-2 px-6 hover:bg-zinc-50 transition-all ${
-                filters.availableOnly ? "border-primary bg-emerald-50 text-primary" : ""
+              className={`h-12 rounded-xl border-border bg-white font-bold text-muted-foreground gap-2 px-6 hover:bg-muted transition-all ${
+                filters.availableOnly ? "border-primary bg-accent text-accent-foreground" : ""
               }`}
             >
               <SlidersHorizontal className="h-4 w-4" />
               {filters.availableOnly ? "Disponible" : "Filtres"}
               {filters.availableOnly && (
-                <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center bg-orange-500 rounded-full text-[10px] border-none">
+                <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center bg-primary rounded-full text-[10px] border-none">
                   1
                 </Badge>
               )}
@@ -301,28 +301,28 @@ function MenuContent() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-12 rounded-xl border-zinc-100 bg-white font-bold text-zinc-600 gap-2 px-6 hover:bg-zinc-50 transition-all"
+                  className="h-12 rounded-xl border-border bg-white font-bold text-muted-foreground gap-2 px-6 hover:bg-muted transition-all"
                 >
-                  Trier par : <span className="text-primary font-black">{sortLabel}</span>
+                  Trier par : <span className="text-accent-foreground font-black">{sortLabel}</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="rounded-2xl p-2 min-w-[200px] shadow-2xl border-zinc-100 bg-white">
+              <DropdownMenuContent className="rounded-2xl p-2 min-w-[200px] shadow-2xl border-border bg-white">
                 <DropdownMenuItem
                   onClick={() => updateSearchParams("sort", null)}
-                  className="rounded-xl font-bold text-zinc-600 p-3 cursor-pointer hover:bg-zinc-50"
+                  className="rounded-xl font-bold text-muted-foreground p-3 cursor-pointer hover:bg-muted"
                 >
                   Recommandé
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => updateSearchParams("sort", "name")}
-                  className="rounded-xl font-bold text-zinc-600 p-3 cursor-pointer hover:bg-zinc-50"
+                  className="rounded-xl font-bold text-muted-foreground p-3 cursor-pointer hover:bg-muted"
                 >
                   Nom A-Z
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => updateSearchParams("sort", "price")}
-                  className="rounded-xl font-bold text-zinc-600 p-3 cursor-pointer hover:bg-zinc-50"
+                  className="rounded-xl font-bold text-muted-foreground p-3 cursor-pointer hover:bg-muted"
                 >
                   Prix croissant
                 </DropdownMenuItem>
@@ -354,12 +354,12 @@ function MenuContent() {
       {/* ─── DELIVERY APPS SECTION ─── */}
       <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto mb-24">
         <div className="text-center mb-16">
-          <Badge className="bg-orange-500/10 text-orange-600 border-orange-200 px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px]">
+          <Badge className="bg-primary/10 text-accent-foreground border-primary/20 px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px]">
             Livraison
           </Badge>
-          <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-zinc-800 leading-tight">
+          <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-foreground leading-tight">
             Commandez aussi sur{" "}
-            <span className="text-orange-600 dark:text-orange-400 italic">vos apps</span>
+            <span className="text-accent-foreground italic">vos apps</span>
           </h2>
         </div>
 
@@ -368,7 +368,7 @@ function MenuContent() {
             href="https://www.ubereats.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="group relative overflow-hidden rounded-[3rem] p-12 flex flex-col items-center text-center transition-all shadow-2xl shadow-emerald-900/10 bg-[#06C167] hover:-translate-y-2 duration-300"
+            className="group relative overflow-hidden rounded-[3rem] p-12 flex flex-col items-center text-center transition-all shadow-2xl shadow-primary/10 bg-[#06C167] hover:-translate-y-2 duration-300"
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-150 transition-transform duration-700" />
             <div className="h-24 w-full relative mb-8 flex items-center justify-center">
@@ -387,7 +387,7 @@ function MenuContent() {
             href="https://www.deliveroo.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="group relative overflow-hidden rounded-[3rem] p-12 flex flex-col items-center text-center transition-all shadow-2xl shadow-emerald-900/10 bg-[#00CCBC] hover:-translate-y-2 duration-300"
+            className="group relative overflow-hidden rounded-[3rem] p-12 flex flex-col items-center text-center transition-all shadow-2xl shadow-primary/10 bg-[#00CCBC] hover:-translate-y-2 duration-300"
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-150 transition-transform duration-700" />
             <div className="h-24 w-full relative mb-8 flex items-center justify-center">
@@ -406,7 +406,7 @@ function MenuContent() {
 
       {/* ─── CTA SECTION ─── */}
       <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto mb-24">
-        <div className="relative rounded-[4rem] bg-orange-500 p-12 md:p-24 overflow-hidden text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-12">
+        <div className="relative rounded-[4rem] bg-primary p-12 md:p-24 overflow-hidden text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-12">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-48 -mt-48" />
           <div className="relative z-10 max-w-2xl">
             <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px]">
@@ -414,14 +414,14 @@ function MenuContent() {
             </Badge>
             <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none mb-6 italic">
               Besoin d&apos;aide pour{" "}
-              <span className="text-primary not-italic">votre commande ?</span>
+              <span className="text-accent-foreground not-italic">votre commande ?</span>
             </h2>
             <p className="text-lg text-white/90 font-medium">
               Notre équipe est disponible pour répondre à toutes vos questions
             </p>
           </div>
           <Link href="/contact">
-            <Button className="relative z-10 h-20 px-12 rounded-[2rem] bg-primary hover:bg-primary-hover text-white font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
+            <Button className="relative z-10 h-20 px-12 rounded-[2rem] bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
               Contactez-nous
               <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />
             </Button>
@@ -431,17 +431,17 @@ function MenuContent() {
 
       {/* ─── BLOG SECTION ─── */}
       {(latestArticles?.length ?? 0) > 0 && (
-        <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-white rounded-[5rem] shadow-sm mb-24 border border-zinc-100">
+        <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-white rounded-[5rem] shadow-sm mb-24 border border-border">
           <div className="flex items-end justify-between mb-16 px-8">
             <div>
-              <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-zinc-800 leading-[0.9] mb-6 whitespace-pre-line">
+              <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-foreground leading-[0.9] mb-6 whitespace-pre-line">
                 Consultez notre{"\n"}
-                <span className="text-orange-600 dark:text-orange-400 italic">Blog</span>
+                <span className="text-accent-foreground italic">Blog</span>
               </h2>
-              <div className="h-2 w-24 bg-emerald-800 rounded-full" />
+              <div className="h-2 w-24 bg-primary rounded-full" />
             </div>
             <Link href="/blog">
-              <Button variant="ghost" className="text-emerald-700 font-black uppercase tracking-widest text-[10px] items-center gap-2 hover:bg-emerald-50">
+              <Button variant="ghost" className="text-accent-foreground font-black uppercase tracking-widest text-[10px] items-center gap-2 hover:bg-accent">
                 Tout voir <ChevronRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -450,8 +450,8 @@ function MenuContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-8">
             {latestArticles?.map((post) => (
               <Link key={post._id} href={`/blog/${post.slug}`} className="group">
-                <div className="bg-zinc-50 rounded-[2.5rem] overflow-hidden shadow-lg shadow-black/[0.03] border border-zinc-100 hover:shadow-xl transition-all h-full flex flex-col">
-                  <div className="relative aspect-[16/10] overflow-hidden bg-zinc-100">
+                <div className="bg-muted rounded-[2.5rem] overflow-hidden shadow-lg shadow-black/[0.03] border border-border hover:shadow-xl transition-all h-full flex flex-col">
+                  <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                     {post.coverImage?.url && (
                       <Image
                         src={post.coverImage.url}
@@ -460,17 +460,17 @@ function MenuContent() {
                         className="object-cover group-hover:scale-110 transition-all duration-700"
                       />
                     )}
-                    <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-2xl shadow-lg border border-zinc-100">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                    <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-2xl shadow-lg border border-border">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-accent-foreground">
                         {formatArticleDate(post.publishedAt)}
                       </p>
                     </div>
                   </div>
                   <div className="p-8 flex-1 flex flex-col">
-                    <h3 className="text-xl font-black tracking-tighter text-zinc-800 leading-tight group-hover:text-primary transition-colors">
+                    <h3 className="text-xl font-black tracking-tighter text-foreground leading-tight group-hover:text-accent-foreground transition-colors">
                       {post.title}
                     </h3>
-                    <div className="mt-auto pt-6 flex items-center text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-400 group-hover:gap-3 gap-2 transition-all">
+                    <div className="mt-auto pt-6 flex items-center text-[10px] font-black uppercase tracking-widest text-accent-foreground group-hover:gap-3 gap-2 transition-all">
                       Lire la suite <ArrowRight className="h-3 w-3" />
                     </div>
                   </div>

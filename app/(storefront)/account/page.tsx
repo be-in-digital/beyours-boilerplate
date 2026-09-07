@@ -108,14 +108,14 @@ const quickLinks = [
     icon: Package,
     label: "Mes commandes",
     description: "Historique et suivi",
-    color: "bg-emerald-100 text-emerald-600",
+    color: "bg-accent text-accent-foreground",
   },
   {
     href: "/account/addresses",
     icon: MapPin,
     label: "Mes adresses",
     description: "Adresses de livraison",
-    color: "bg-orange-100 text-orange-600",
+    color: "bg-accent text-accent-foreground",
   },
   {
     href: "/account/favorites",
@@ -415,12 +415,12 @@ export default function AccountPage() {
     profileLanguage !== (profile?.language ?? "fr")
 
   return (
-    <div className="min-h-screen bg-background text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
+    <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden pt-20 transition-colors duration-500">
       {/* Hero header */}
       <section className="pt-24 pb-20 px-6 md:px-12 bg-primary relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px]" />
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
@@ -430,13 +430,13 @@ export default function AccountPage() {
 
           <Avatar className="mx-auto mb-6 h-24 w-24 border-4 border-white/20 shadow-2xl">
             <AvatarImage src={avatarUrl} />
-            <AvatarFallback className="bg-orange-100 text-orange-600 text-3xl font-black">
+            <AvatarFallback className="bg-accent text-accent-foreground text-3xl font-black">
               {user.name?.charAt(0).toUpperCase() ?? "U"}
             </AvatarFallback>
           </Avatar>
 
           <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-8 italic">
-            Mon <span className="text-orange-600 dark:text-orange-400 not-italic">Compte</span>
+            Mon <span className="text-accent-foreground not-italic">Compte</span>
           </h1>
           <p className="text-xl text-white/80 max-w-2xl mx-auto font-medium">
             Bonjour, {user.name ?? user.email}
@@ -449,29 +449,29 @@ export default function AccountPage() {
         <div className="grid gap-4 md:grid-cols-3 mb-8">
           {quickLinks.map((link) => (
             <Link key={link.href} href={link.href}>
-              <div className="group flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm border border-zinc-100 hover:shadow-md hover:border-emerald-100 transition-all">
+              <div className="group flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm border border-border hover:shadow-md hover:border-primary/20 transition-all">
                 <div className={`rounded-xl p-3 ${link.color} transition-transform group-hover:scale-110`}>
                   <link.icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-black text-sm text-zinc-900 uppercase tracking-tight">
+                  <p className="font-black text-sm text-foreground uppercase tracking-tight">
                     {link.label}
                   </p>
-                  <p className="text-xs text-zinc-500 font-medium">
+                  <p className="text-xs text-muted-foreground font-medium">
                     {link.description}
                   </p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-primary transition-colors" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
               </div>
             </Link>
           ))}
         </div>
 
         {/* Profile management tabs */}
-        <div className="rounded-3xl bg-white shadow-sm border border-zinc-100 overflow-hidden">
+        <div className="rounded-3xl bg-white shadow-sm border border-border overflow-hidden">
           <Tabs defaultValue="general" className="w-full">
             <div className="px-6 pt-6">
-              <TabsList className="grid w-full grid-cols-3 bg-zinc-100/80 p-1 rounded-2xl">
+              <TabsList className="grid w-full grid-cols-3 bg-muted/80 p-1 rounded-2xl">
                 <TabsTrigger
                   value="general"
                   className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all font-bold text-xs uppercase"
@@ -498,11 +498,11 @@ export default function AccountPage() {
               <TabsContent value="general" className="outline-none mt-0">
                 <div className="space-y-4 pt-2">
                   {/* Avatar section */}
-                  <div className="flex items-center gap-5 p-4 bg-zinc-50 rounded-3xl border border-zinc-100">
+                  <div className="flex items-center gap-5 p-4 bg-muted rounded-3xl border border-border">
                     <div className="relative group">
                       <Avatar className="h-20 w-20 border-4 border-white shadow-md transition-transform duration-300 group-hover:scale-105">
                         <AvatarImage src={avatarUrl} />
-                        <AvatarFallback className="text-xl bg-orange-100 text-orange-600 font-black">
+                        <AvatarFallback className="text-xl bg-accent text-accent-foreground font-black">
                           {user.name?.charAt(0).toUpperCase() ?? "U"}
                         </AvatarFallback>
                       </Avatar>
@@ -510,7 +510,7 @@ export default function AccountPage() {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploadingAvatar}
-                        className="absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-1.5 shadow-lg hover:bg-primary-hover transition-colors disabled:opacity-50"
+                        className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg hover:bg-primary-hover transition-colors disabled:opacity-50"
                       >
                         {isUploadingAvatar ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -527,13 +527,13 @@ export default function AccountPage() {
                       />
                     </div>
                     <div className="overflow-hidden">
-                      <h3 className="font-black text-xl text-zinc-900 truncate tracking-tight">
+                      <h3 className="font-black text-xl text-foreground truncate tracking-tight">
                         {user.name}
                       </h3>
-                      <p className="text-sm text-zinc-500 truncate mb-1">
+                      <p className="text-sm text-muted-foreground truncate mb-1">
                         {user.email}
                       </p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                      <p className="text-xs text-muted-foreground font-medium">
                         Cliquez sur l&apos;icône pour changer votre photo
                       </p>
                     </div>
@@ -543,7 +543,7 @@ export default function AccountPage() {
                     <div className="space-y-1.5 px-1">
                       <Label
                         htmlFor="name"
-                        className="text-xs font-black uppercase tracking-widest text-zinc-500"
+                        className="text-xs font-black uppercase tracking-widest text-muted-foreground"
                       >
                         Nom complet
                       </Label>
@@ -551,13 +551,13 @@ export default function AccountPage() {
                         id="name"
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        className="rounded-xl h-12 bg-white border-zinc-200 focus:border-primary focus:ring-primary/20 font-medium"
+                        className="rounded-xl h-12 bg-white border-border focus:border-primary focus:ring-primary/20 font-medium"
                       />
                     </div>
                     <div className="space-y-1.5 px-1">
                       <Label
                         htmlFor="email"
-                        className="text-xs font-black uppercase tracking-widest text-zinc-500"
+                        className="text-xs font-black uppercase tracking-widest text-muted-foreground"
                       >
                         Adresse email
                       </Label>
@@ -565,21 +565,21 @@ export default function AccountPage() {
                         id="email"
                         defaultValue={user.email}
                         disabled
-                        className="rounded-xl h-12 bg-zinc-50 border-zinc-200 font-medium"
+                        className="rounded-xl h-12 bg-muted border-border font-medium"
                       />
                     </div>
 
                     {/* Multi-phone section */}
                     <div className="space-y-3 px-1">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-black uppercase tracking-widest text-zinc-500">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">
                           <Phone className="inline h-3 w-3 mr-1" />
                           Téléphones
                         </Label>
                         <button
                           type="button"
                           onClick={addPhone}
-                          className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-hover transition-colors"
+                          className="flex items-center gap-1 text-xs font-bold text-accent-foreground hover:text-primary-hover transition-colors"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           Ajouter
@@ -590,7 +590,7 @@ export default function AccountPage() {
                         <button
                           type="button"
                           onClick={addPhone}
-                          className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-dashed border-zinc-200 text-zinc-500 dark:text-zinc-400 hover:border-primary hover:text-primary transition-colors text-sm font-medium"
+                          className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-accent-foreground transition-colors text-sm font-medium"
                         >
                           <Plus className="h-4 w-4" />
                           Ajouter un numéro de téléphone
@@ -600,14 +600,14 @@ export default function AccountPage() {
                       {phones.map((phone, index) => (
                         <div
                           key={index}
-                          className="space-y-2 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-3 animate-in fade-in slide-in-from-top-2 duration-200"
+                          className="space-y-2 rounded-2xl border border-border bg-muted/50 p-3 animate-in fade-in slide-in-from-top-2 duration-200"
                         >
                           {/* Row 1: Label + Delete */}
                           <div className="flex items-center gap-2">
                             <select
                               value={phone.label}
                               onChange={(e) => updatePhone(index, "label", e.target.value)}
-                              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                              className="h-10 rounded-lg border border-border bg-white px-3 text-sm font-medium flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                             >
                               {PHONE_LABELS.map((l) => (
                                 <option key={l} value={l}>
@@ -618,7 +618,7 @@ export default function AccountPage() {
                             <button
                               type="button"
                               onClick={() => removePhone(index)}
-                              className="shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              className="shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -628,7 +628,7 @@ export default function AccountPage() {
                             <select
                               value={phone.countryCode}
                               onChange={(e) => updatePhone(index, "countryCode", e.target.value)}
-                              className="h-12 rounded-xl border border-zinc-200 bg-white pl-3 pr-2 text-sm font-medium shrink-0 w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                              className="h-12 rounded-xl border border-border bg-white pl-3 pr-2 text-sm font-medium shrink-0 w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                             >
                               {COUNTRY_CODES.map((c, ci) => (
                                 <option key={`${c.code}-${ci}`} value={c.code}>
@@ -637,7 +637,7 @@ export default function AccountPage() {
                               ))}
                             </select>
                             <div className="flex-1 relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500 dark:text-zinc-400 font-medium pointer-events-none">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium pointer-events-none">
                                 {getFlagForCode(phone.countryCode)} {phone.countryCode}
                               </span>
                               <Input
@@ -645,7 +645,7 @@ export default function AccountPage() {
                                 value={phone.number}
                                 onChange={(e) => updatePhone(index, "number", e.target.value)}
                                 placeholder="6 12 34 56 78"
-                                className="rounded-xl h-12 bg-white border-zinc-200 focus:border-primary focus:ring-primary/20 font-medium pl-[4.5rem]"
+                                className="rounded-xl h-12 bg-white border-border focus:border-primary focus:ring-primary/20 font-medium pl-[4.5rem]"
                               />
                             </div>
                           </div>
@@ -656,7 +656,7 @@ export default function AccountPage() {
                     <div className="space-y-1.5 px-1">
                       <Label
                         htmlFor="language"
-                        className="text-xs font-black uppercase tracking-widest text-zinc-500"
+                        className="text-xs font-black uppercase tracking-widest text-muted-foreground"
                       >
                         <Globe className="inline h-3 w-3 mr-1" />
                         Langue
@@ -665,7 +665,7 @@ export default function AccountPage() {
                         id="language"
                         value={profileLanguage}
                         onChange={(e) => setProfileLanguage(e.target.value)}
-                        className="flex h-12 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                        className="flex h-12 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                       >
                         {LANGUAGES.map((lang) => (
                           <option key={lang.code} value={lang.code}>
@@ -680,7 +680,7 @@ export default function AccountPage() {
                     <Button
                       onClick={handleUpdateProfile}
                       disabled={isUpdatingProfile || !hasProfileChanges}
-                      className="w-full h-12 rounded-xl bg-primary hover:bg-primary-hover text-white font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="w-full h-12 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                       {isUpdatingProfile ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -699,7 +699,7 @@ export default function AccountPage() {
                     <div className="space-y-1.5 px-1">
                       <Label
                         htmlFor="current-password"
-                        className="text-xs font-black uppercase tracking-widest text-zinc-500"
+                        className="text-xs font-black uppercase tracking-widest text-muted-foreground"
                       >
                         Mot de passe actuel
                       </Label>
@@ -709,13 +709,13 @@ export default function AccountPage() {
                         type="password"
                         placeholder="••••••••"
                         required
-                        className="rounded-xl h-12 border-zinc-200 focus:border-primary"
+                        className="rounded-xl h-12 border-border focus:border-primary"
                       />
                     </div>
                     <div className="space-y-1.5 px-1">
                       <Label
                         htmlFor="new-password"
-                        className="text-xs font-black uppercase tracking-widest text-zinc-500"
+                        className="text-xs font-black uppercase tracking-widest text-muted-foreground"
                       >
                         Nouveau mot de passe
                       </Label>
@@ -725,13 +725,13 @@ export default function AccountPage() {
                         type="password"
                         placeholder="••••••••"
                         required
-                        className="rounded-xl h-12 border-zinc-200 focus:border-primary"
+                        className="rounded-xl h-12 border-border focus:border-primary"
                       />
                     </div>
                     <div className="space-y-1.5 px-1">
                       <Label
                         htmlFor="confirm-password"
-                        className="text-xs font-black uppercase tracking-widest text-zinc-500"
+                        className="text-xs font-black uppercase tracking-widest text-muted-foreground"
                       >
                         Confirmer le mot de passe
                       </Label>
@@ -741,7 +741,7 @@ export default function AccountPage() {
                         type="password"
                         placeholder="••••••••"
                         required
-                        className="rounded-xl h-12 border-zinc-200 focus:border-primary"
+                        className="rounded-xl h-12 border-border focus:border-primary"
                       />
                     </div>
                   </div>
@@ -761,10 +761,10 @@ export default function AccountPage() {
                 <div className="space-y-5 px-1 pt-2">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                      <Label className="text-sm font-black text-zinc-900 tracking-tight">
+                      <Label className="text-sm font-black text-foreground tracking-tight">
                         Notifications email
                       </Label>
-                      <p className="text-xs font-medium text-zinc-500 pr-8">
+                      <p className="text-xs font-medium text-muted-foreground pr-8">
                         Recevoir les mises à jour de commandes et promotions
                       </p>
                     </div>
@@ -774,13 +774,13 @@ export default function AccountPage() {
                       className="data-[state=checked]:bg-primary"
                     />
                   </div>
-                  <div className="pt-6 border-t border-zinc-100">
+                  <div className="pt-6 border-t border-border">
                     <Button
                       variant="outline"
                       onClick={handleUpdateNotificationPreferences}
                       disabled={isSavingPrefs}
                       aria-busy={isSavingPrefs}
-                      className="w-full h-12 rounded-xl border-zinc-200 text-zinc-700 font-black uppercase tracking-widest hover:bg-zinc-50 disabled:opacity-60"
+                      className="w-full h-12 rounded-xl border-border text-foreground font-black uppercase tracking-widest hover:bg-muted disabled:opacity-60"
                     >
                       {isSavingPrefs ? "Enregistrement…" : "Appliquer les préférences"}
                     </Button>

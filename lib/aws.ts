@@ -34,7 +34,9 @@ export {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZES,
   S3_FOLDERS,
+  PRIVATE_S3_FOLDERS,
   isKnownS3Folder,
+  isPrivateS3Folder,
 } from '@be-in-digital/core'
 
 // ============================================================================

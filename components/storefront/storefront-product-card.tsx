@@ -59,12 +59,12 @@ export function StorefrontProductCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/[0.04] border border-white/10 hover:border-emerald-100 transition-all group flex flex-col h-full duration-300 ${
+      className={`bg-white rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/[0.04] border border-white/10 hover:border-primary/20 transition-all group flex flex-col h-full duration-300 ${
         onClick ? "cursor-pointer hover:-translate-y-2.5" : ""
       } ${otherStore ? "opacity-60" : ""}`}
     >
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {product.images?.[0] ? (
           <Image
             src={product.images[0]}
@@ -78,7 +78,7 @@ export function StorefrontProductCard({
             className="object-cover group-hover:scale-110 transition-all duration-700"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-zinc-300">
+          <div className="flex h-full items-center justify-center text-muted-foreground">
             <ShoppingBag className="h-12 w-12" />
           </div>
         )}
@@ -90,11 +90,11 @@ export function StorefrontProductCard({
               {t("product.otherRestaurant")}
             </Badge>
           ) : product.isFeatured ? (
-            <span className="bg-white/90 backdrop-blur-md text-zinc-800 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
+            <span className="bg-white/90 backdrop-blur-md text-foreground border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
               {t("product.popular")}
             </span>
           ) : !available ? (
-            <span className="bg-white/90 backdrop-blur-md text-zinc-800 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
+            <span className="bg-white/90 backdrop-blur-md text-foreground border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
               {t("product.unavailable")}
             </span>
           ) : null}
@@ -112,7 +112,7 @@ export function StorefrontProductCard({
             className={`h-4 w-4 transition-colors ${
               favorited
                 ? "fill-red-500 text-red-500"
-                : "text-zinc-500 dark:text-zinc-400"
+                : "text-muted-foreground"
             }`}
           />
         </button>
@@ -125,22 +125,22 @@ export function StorefrontProductCard({
 
       {/* Content */}
       <div className="p-8 flex flex-col flex-1">
-        <h3 className="text-lg font-black tracking-tighter text-zinc-800 leading-tight mb-3 group-hover:text-emerald-700 transition-colors uppercase line-clamp-1">
+        <h3 className="text-lg font-black tracking-tighter text-foreground leading-tight mb-3 group-hover:text-accent-foreground transition-colors uppercase line-clamp-1">
           {product.name}
         </h3>
 
         {product.description && (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-4 leading-relaxed">
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
             {product.description}
           </p>
         )}
 
         <div className="mt-auto flex items-center justify-between gap-4">
           <div className="flex flex-col">
-            <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none mb-1">
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">
               {t("product.price")}
             </span>
-            <span className="text-xl font-black text-primary leading-none">
+            <span className="text-xl font-black text-accent-foreground leading-none">
               {formatPrice(product.price)}
             </span>
           </div>
@@ -151,12 +151,12 @@ export function StorefrontProductCard({
                 e.stopPropagation()
                 onAddToCart()
               }}
-              className="h-12 w-12 rounded-2xl bg-primary text-white hover:bg-orange-500 shadow-lg shadow-emerald-900/10 hover:scale-110 transition-all flex items-center justify-center"
+              className="h-12 w-12 rounded-2xl bg-primary text-primary-foreground hover:bg-primary-hover shadow-lg shadow-primary/10 hover:scale-110 transition-all flex items-center justify-center"
             >
               <Plus className="h-6 w-6" />
             </button>
           ) : (
-            <div className="h-12 w-12 rounded-2xl bg-zinc-100 text-zinc-300 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center">
               <Plus className="h-6 w-6" />
             </div>
           )}

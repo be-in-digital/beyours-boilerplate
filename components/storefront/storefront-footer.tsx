@@ -113,31 +113,31 @@ export function StorefrontFooter() {
             <h2 className="text-2xl font-black tracking-tighter text-white mb-4">
               {store?.name ?? "BeYours"}
             </h2>
-            <p className="text-sm text-emerald-50/60 leading-relaxed mb-8">
+            <p className="text-sm text-accent-foreground/60 leading-relaxed mb-8">
               Commandez en ligne, retirez en magasin ou faites-vous livrer directement chez vous.
             </p>
 
             <div className="flex flex-col gap-4">
               <div className={`flex items-start gap-3 ${store?.address ? "" : "hidden"}`}>
-                <MapPin className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-emerald-50/80">
+                <MapPin className="h-4 w-4 text-accent-foreground flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-accent-foreground/80">
                   {store?.address ? `${store.address.street}, ${store.address.postalCode} ${store.address.city}` : ""}
                 </span>
               </div>
 
               <div className={`flex items-center gap-3 ${store?.phone ? "" : "hidden"}`}>
-                <Phone className="h-4 w-4 text-orange-400 flex-shrink-0" />
-                <span className="text-sm text-emerald-50/80">{store?.phone ?? ""}</span>
+                <Phone className="h-4 w-4 text-accent-foreground flex-shrink-0" />
+                <span className="text-sm text-accent-foreground/80">{store?.phone ?? ""}</span>
               </div>
 
               <div className={`flex items-center gap-3 ${store?.email ? "" : "hidden"}`}>
-                <Mail className="h-4 w-4 text-orange-400 flex-shrink-0" />
-                <span className="text-sm text-emerald-50/80">{store?.email ?? ""}</span>
+                <Mail className="h-4 w-4 text-accent-foreground flex-shrink-0" />
+                <span className="text-sm text-accent-foreground/80">{store?.email ?? ""}</span>
               </div>
 
               <div className="flex items-center gap-3">
-                <Clock className="h-4 w-4 text-orange-400 flex-shrink-0" />
-                <span className="text-sm text-emerald-50/80">Voir les horaires sur le menu</span>
+                <Clock className="h-4 w-4 text-accent-foreground flex-shrink-0" />
+                <span className="text-sm text-accent-foreground/80">Voir les horaires sur le menu</span>
               </div>
             </div>
           </div>
@@ -152,7 +152,7 @@ export function StorefrontFooter() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-emerald-50/60 font-bold text-sm hover:text-white transition-colors"
+                  className="text-accent-foreground/60 font-bold text-sm hover:text-white transition-colors"
                 >
                   {link.label}
                 </Link>
@@ -170,7 +170,7 @@ export function StorefrontFooter() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-emerald-50/60 font-bold text-sm hover:text-white transition-colors"
+                  className="text-accent-foreground/60 font-bold text-sm hover:text-white transition-colors"
                 >
                   {link.label}
                 </Link>
@@ -183,7 +183,7 @@ export function StorefrontFooter() {
             <h3 className="text-lg font-black uppercase tracking-widest text-white mb-8 border-b border-white/10 pb-4">
               Newsletter
             </h3>
-            <p className="text-sm text-emerald-50/60 mb-6 leading-relaxed">
+            <p className="text-sm text-accent-foreground/60 mb-6 leading-relaxed">
               Recevez nos offres exclusives et nouveautés directement dans votre boîte mail.
             </p>
 
@@ -205,13 +205,13 @@ export function StorefrontFooter() {
                   }}
                   aria-invalid={emailError ? true : undefined}
                   aria-describedby={emailError ? emailErrorId : undefined}
-                  className="bg-white/10 border-white/20 h-14 rounded-xl text-white placeholder:text-white/40 pr-28 focus-visible:ring-orange-400 focus-visible:border-orange-400 aria-invalid:border-orange-300"
+                  className="bg-white/10 border-white/20 h-14 rounded-xl text-white placeholder:text-white/70 pr-28 focus-visible:ring-primary focus-visible:border-primary aria-invalid:border-destructive"
                   required
                 />
                 <Button
                   type="submit"
                   disabled={subscribing || !storeId}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 bg-orange-500 hover:bg-orange-600 font-black text-[10px] uppercase tracking-widest rounded-lg px-4 text-white transition-colors"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 bg-primary hover:bg-primary-hover font-black text-[10px] uppercase tracking-widest rounded-lg px-4 text-white transition-colors"
                 >
                   {subscribing ? "Envoi…" : "S'inscrire"}
                 </Button>
@@ -220,7 +220,7 @@ export function StorefrontFooter() {
                 <p
                   id={emailErrorId}
                   role="alert"
-                  className="mt-2 pl-1 text-xs font-bold text-orange-300"
+                  className="mt-2 pl-1 text-xs font-bold text-accent-foreground"
                 >
                   {emailError}
                 </p>
@@ -231,7 +231,7 @@ export function StorefrontFooter() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/10 pt-12 mt-16 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <p className="text-xs font-bold text-emerald-50/40 uppercase tracking-widest">
+          <p className="text-xs font-bold text-accent-foreground/40 uppercase tracking-widest">
             &copy; {new Date().getFullYear()} {store?.name ?? "Restaurant"}. Tous droits réservés.
           </p>
 
@@ -240,21 +240,21 @@ export function StorefrontFooter() {
             <a
               href="#"
               aria-label="Facebook"
-              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 hover:text-orange-400 text-emerald-50/60 flex items-center justify-center transition-colors"
+              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 hover:text-accent-foreground text-accent-foreground/60 flex items-center justify-center transition-colors"
             >
               <Facebook className="h-4 w-4" />
             </a>
             <a
               href="#"
               aria-label="Twitter / X"
-              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 hover:text-orange-400 text-emerald-50/60 flex items-center justify-center transition-colors"
+              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 hover:text-accent-foreground text-accent-foreground/60 flex items-center justify-center transition-colors"
             >
               <Twitter className="h-4 w-4" />
             </a>
             <a
               href="#"
               aria-label="Instagram"
-              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 hover:text-orange-400 text-emerald-50/60 flex items-center justify-center transition-colors"
+              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 hover:text-accent-foreground text-accent-foreground/60 flex items-center justify-center transition-colors"
             >
               <Instagram className="h-4 w-4" />
             </a>

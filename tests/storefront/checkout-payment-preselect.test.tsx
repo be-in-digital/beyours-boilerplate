@@ -66,7 +66,12 @@ afterEach(async () => {
   }
 })
 
-async function mountCheckoutForm(options: { isAuthenticated: boolean }) {
+async function mountCheckoutForm(options: {
+  isAuthenticated: boolean
+  /** What the page hands the form for a guest who needs an account. */
+  signInAction?: React.ReactNode
+  onSubmit?: (data: unknown) => void
+}) {
   const { CheckoutForm } = await import("@/components/storefront/checkout-form")
   const { useCartStore } = await import("@be-in-digital/restaurant")
   act(() => {
@@ -79,11 +84,12 @@ async function mountCheckoutForm(options: { isAuthenticated: boolean }) {
   await act(async () => {
     root.render(
       <CheckoutForm
-        onSubmit={() => {}}
+        onSubmit={options.onSubmit ?? (() => {})}
         isSubmitting={false}
         addresses={[]}
         isAuthenticated={options.isAuthenticated}
         services={ALL_SERVICES}
+        signInAction={options.signInAction}
       />
     )
   })
@@ -133,7 +139,14 @@ describe("payment tile pre-selection", () => {
     expect(submitButton(container).textContent).toContain("Confirmer la commande")
   })
 
-  test("no servable method disables submit instead of sending a doomed card attempt", async () => {
+  /**
+   * REWRITTEN. This case asserted a disabled button reading « Choisissez un
+   * moyen de paiement » and stopped there — it pinned the dead end in place.
+   * Refusing a doomed submit is right and is still asserted; telling a guest
+   * to choose from a grid with nothing choosable in it is not. On a cash-only
+   * establishment this is not an edge case, it is every guest checkout (#376).
+   */
+  test("no servable method refuses the submit AND tells the diner what to do", async () => {
     // Card dead, cash present but the diner is not signed in — submitting
     // card anyway is exactly the #374 journey.
     state.settings = {
@@ -141,10 +154,102 @@ describe("payment tile pre-selection", () => {
     }
     state.availability = { card: false }
 
-    const container = await mountCheckoutForm({ isAuthenticated: false })
+    const signIn = <button type="button">Se connecter</button>
+    const container = await mountCheckoutForm({
+      isAuthenticated: false,
+      signInAction: signIn,
+    })
 
     const submit = submitButton(container)
     expect(submit.disabled).toBe(true)
-    expect(submit.textContent).toContain("Choisissez un moyen de paiement")
+    // The button no longer asks for a choice that does not exist.
+    expect(submit.textContent).not.toContain("Choisissez un moyen de paiement")
+    expect(submit.textContent).toContain("Connectez-vous pour continuer")
+
+    // And the way out is on the screen, where the diner is blocked.
+    const notice = container.querySelector('[role="alert"]')
+    expect(notice?.textContent).toContain("espèces")
+    expect(buttonByText(container, "Se connecter")).not.toBeNull()
+  })
+})
+
+/**
+ * A cash-only establishment — the food truck, one of the five verticals this
+ * engine is sold for.
+ *
+ * `payments.cardProvider` was a `stripe | sumup` union with no way to say
+ * "we do not take cards", and the checkout rendered the card tile
+ * unconditionally. So the tile could only ever be greyed out under
+ * « Indisponible pour le moment » — which reads as a fault that might clear —
+ * and never removed (#376).
+ */
+describe("an establishment that does not take cards", () => {
+  test("renders no card tile at all", async () => {
+    state.settings = {
+      payments: { cardProvider: "none", paypal: false, cash: true },
+    }
+    state.availability = { card: false, cardOffered: false }
+
+    const container = await mountCheckoutForm({ isAuthenticated: true })
+
+    expect(buttonByText(container, "Carte bancaire")).toBeNull()
+    // Not "unavailable for the moment": there is nothing to come back for.
+    expect(container.textContent).not.toContain("Indisponible pour le moment")
+    // And the diner lands on the tile that works.
+    expect(submitButton(container).textContent).toContain(
+      "Confirmer la commande"
+    )
+  })
+
+  test("gives a guest a way through rather than a dead end", async () => {
+    state.settings = {
+      payments: { cardProvider: "none", paypal: false, cash: true },
+    }
+    state.availability = { card: false, cardOffered: false }
+
+    const container = await mountCheckoutForm({
+      isAuthenticated: false,
+      signInAction: <button type="button">Se connecter</button>,
+    })
+
+    expect(buttonByText(container, "Carte bancaire")).toBeNull()
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      "Connectez-vous"
+    )
+    expect(buttonByText(container, "Se connecter")).not.toBeNull()
+  })
+
+  test("says so plainly when nothing at all is on offer", async () => {
+    // Cards off, cash off, PayPal off. Nothing a diner can do about it — but
+    // they are owed the reason instead of a disabled button.
+    state.settings = {
+      payments: { cardProvider: "none", paypal: false, cash: false },
+    }
+    state.availability = { card: false, cardOffered: false }
+
+    const container = await mountCheckoutForm({ isAuthenticated: true })
+
+    const submit = submitButton(container)
+    expect(submit.disabled).toBe(true)
+    expect(submit.textContent).toContain("Aucun paiement disponible")
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      "Contactez le restaurant"
+    )
+  })
+
+  test("a deployment that only lost its keys still greys the tile", async () => {
+    // The distinction that makes the tile's absence meaningful: this owner
+    // does mean to take cards, and the tile stays, greyed and explained.
+    state.settings = {
+      payments: { cardProvider: "stripe", paypal: false, cash: true },
+    }
+    state.availability = { card: false, cardOffered: true }
+
+    const container = await mountCheckoutForm({ isAuthenticated: true })
+
+    const card = buttonByText(container, "Carte bancaire")
+    expect(card).not.toBeNull()
+    expect(card?.disabled).toBe(true)
+    expect(card?.textContent).toContain("Indisponible pour le moment")
   })
 })

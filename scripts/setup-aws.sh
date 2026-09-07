@@ -5,7 +5,8 @@ set -euo pipefail
 # BeYours Engine - AWS S3 & SES Setup Script
 #
 # Configures:
-#   1. A PRIVATE S3 bucket, with PUT-only CORS, lifecycle rules and folders
+#   1. A PRIVATE S3 bucket, with PUT-only CORS, version-expiring lifecycle rules
+#      and folders
 #   2. SES domain identity with DKIM verification
 #   3. SES email sending configuration
 #   4. IAM user with minimal permissions for the app
@@ -261,8 +262,11 @@ aws s3api put-bucket-cors \
 log_success "CORS configured (PUT only)"
 
 # No bucket policy is attached, deliberately. The IAM user created in step 4
-# carries s3:GetObject / s3:PutObject / s3:DeleteObject on this bucket, which is
-# all the app needs. Adding a policy that grants s3:GetObject to "*" would make
+# carries s3:GetObject / s3:PutObject / s3:DeleteObject on this bucket, plus the
+# three VERSION permissions the bucket's versioning makes necessary
+# (s3:ListBucketVersions, s3:GetObjectVersion, s3:DeleteObjectVersion) — without
+# them the app can only write delete markers, which delete nothing. That is all
+# the app needs. Adding a policy that grants s3:GetObject to "*" would make
 # every uploaded file world-readable and permanently un-revocable - including a
 # file uploaded by a hostile account. That is what #185/#187 closed.
 #
@@ -270,21 +274,91 @@ log_success "CORS configured (PUT only)"
 # an origin access control and let it write its own bucket policy, then set
 # AWS_S3_PUBLIC_BASE_URL. The bucket stays closed to the public internet.
 
-# Lifecycle rules: delete incomplete multipart uploads after 7 days
+# ── Lifecycle rules ─────────────────────────────────────────────────────────
+#
+# The only rule here used to be CleanupIncompleteUploads, and that made the
+# versioning enabled above a one-way ratchet: nothing ever left the bucket.
+#
+# On a VERSIONED bucket a DeleteObject without a VersionId deletes nothing. It
+# writes a *delete marker* over the key and retains every prior version — still
+# billed, still readable by anyone who can name a version id. So « definitivement
+# supprime » in the media library kept every byte, the offboarding runbook ticked
+# an erasure box the infrastructure could not honour, and storage grew without
+# ceiling. Issue #331.
+#
+# The app now purges versions itself (convex/cmsMediaDelete.ts, and
+# packages/core S3Service.delete). These two rules are the floor under that:
+# they collect what a purge could not reach — objects deleted before the purge
+# existed, deployments whose IAM policy predates s3:DeleteObjectVersion, and the
+# noncurrent versions of a file that was merely overwritten rather than deleted.
+#
+# NoncurrentVersionExpiration is 30 days rather than 1. Versioning is also an
+# accident-recovery control: a client who overwrites the wrong photograph has a
+# month to say so. An erasure REQUEST is not served by waiting — the app purges
+# by version id for that, and NewerNoncurrentVersions keeps the window from
+# meaning "keep 400 revisions of a logo for a month".
+#
+# Both rules are needed and neither substitutes for the other:
+#   - expiring the versions leaves the delete marker, which keeps the key
+#     listed as deleted and still costs a request to enumerate;
+#   - expiring the marker alone UN-DELETES the file, because the newest
+#     remaining version becomes current again.
+#
+# The fourth rule is the retention of the NIGHTLY BACKUP that convex/crons.ts
+# now writes under backups/ (issue #366). Thirty daily copies, expired by the
+# bucket rather than by a cron: a lifecycle rule keeps working while the
+# deployment is down, which is the circumstance a backup exists for. Its
+# noncurrent window is 1 day rather than 30 - each night writes a NEW key, so a
+# noncurrent version of a backup only exists if one was overwritten, and keeping
+# those for a month would silently triple what the retention says.
+#
+# `backups/` is deliberately NOT one of the eleven S3_FOLDERS. That constant
+# drives the /api/files proxy's allow-list, and a backup reachable over HTTP is
+# the whole database served to whoever guesses a key.
 log_info "Setting lifecycle rules..."
 aws s3api put-bucket-lifecycle-configuration \
   --bucket "$BUCKET_NAME" \
   --lifecycle-configuration '{
-    "Rules": [{
-      "ID": "CleanupIncompleteUploads",
-      "Status": "Enabled",
-      "Filter": {"Prefix": ""},
-      "AbortIncompleteMultipartUpload": {
-        "DaysAfterInitiation": 7
+    "Rules": [
+      {
+        "ID": "CleanupIncompleteUploads",
+        "Status": "Enabled",
+        "Filter": {"Prefix": ""},
+        "AbortIncompleteMultipartUpload": {
+          "DaysAfterInitiation": 7
+        }
+      },
+      {
+        "ID": "ExpireNoncurrentVersions",
+        "Status": "Enabled",
+        "Filter": {"Prefix": ""},
+        "NoncurrentVersionExpiration": {
+          "NoncurrentDays": 30,
+          "NewerNoncurrentVersions": 3
+        }
+      },
+      {
+        "ID": "ExpireDeleteMarkers",
+        "Status": "Enabled",
+        "Filter": {"Prefix": ""},
+        "Expiration": {
+          "ExpiredObjectDeleteMarker": true
+        }
+      },
+      {
+        "ID": "ExpireNightlyBackups",
+        "Status": "Enabled",
+        "Filter": {"Prefix": "backups/"},
+        "Expiration": {
+          "Days": 30
+        },
+        "NoncurrentVersionExpiration": {
+          "NoncurrentDays": 1
+        }
       }
-    }]
+    ]
   }'
-log_success "Lifecycle rules set"
+log_success "Lifecycle rules set (incomplete uploads, noncurrent versions, delete markers, nightly backups)"
 
 # Create folder structure
 log_info "Creating folder structure..."
@@ -408,7 +482,10 @@ POLICY_DOC=$(cat <<EOF
         "s3:GetObject",
         "s3:DeleteObject",
         "s3:ListBucket",
-        "s3:GetBucketLocation"
+        "s3:GetBucketLocation",
+        "s3:ListBucketVersions",
+        "s3:GetObjectVersion",
+        "s3:DeleteObjectVersion"
       ],
       "Resource": [
         "arn:aws:s3:::${BUCKET_NAME}",
@@ -552,6 +629,7 @@ echo "  Region: $REGION"
 echo "  Folders: products/, branding/, stores/, cms/, blog/"
 echo "  Encryption: AES256"
 echo "  Versioning: Enabled"
+echo "  Lifecycle: incomplete uploads 7d, noncurrent versions 30d (keep 3), delete markers expired, backups/ 30d"
 echo ""
 
 echo -e "${GREEN}SES:${NC}"

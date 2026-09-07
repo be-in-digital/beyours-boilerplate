@@ -12,9 +12,17 @@
  *   pnpm env:check    # status: missing required vars, incomplete integrations
  *   pnpm env:sync     # propagates .env.local → .env.convex + mobile/.env
  *
- * The REQUIRED / GROUPS / CONVEX_KEYS lists mirror the Zod schemas in
- * @be-in-digital/core (src/env/schemas.ts) — keep them in sync when the
- * engine is updated.
+ * The variable lists are NOT restated here. They come from `envManifest` in
+ * @be-in-digital/core/env, which derives them from the Zod schemas the app
+ * boots against.
+ *
+ * They used to be three local arrays under the instruction "keep them in sync
+ * when the engine is updated". Nobody can follow that reliably and nobody had:
+ * `CONVEX_KEYS` was missing eleven keys that `convex/*.ts` reads from
+ * `process.env` — AWS_S3_PUBLIC_BASE_URL, EMAIL_API_SECRET,
+ * ADMIN_BOOTSTRAP_TOKEN, the BID_* billing set. A key missing there is not a
+ * lint failure: it is a Convex function reading `undefined` in production,
+ * visible only when a customer's email does not arrive. See #37.
  */
 
 import fs from "node:fs"
@@ -22,23 +30,25 @@ import path from "node:path"
 import crypto from "node:crypto"
 import readline from "node:readline"
 import { fileURLToPath } from "node:url"
+import { envManifest } from "@be-in-digital/core/env"
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..")
 const ENV_LOCAL = path.join(ROOT, ".env.local")
 const ENV_CONVEX = path.join(ROOT, ".env.convex")
 const ENV_MOBILE = path.join(ROOT, "mobile", ".env")
 
-/** Required for the site to boot (validated by instrumentation.ts). */
-const REQUIRED = [
-  "NEXT_PUBLIC_CONVEX_URL",
-  "CONVEX_SITE_URL",
-  "CONVEX_DEPLOYMENT",
-  "BETTER_AUTH_SECRET",
-  "BETTER_AUTH_URL",
-  "SITE_URL",
-  "NEXT_PUBLIC_APP_URL",
-  "ENCRYPTION_KEY",
-]
+/**
+ * Required for the site to boot — the same list `instrumentation.ts` enforces,
+ * because it is the same list.
+ *
+ * The hand-written version of this array was wrong in both directions: it
+ * carried CONVEX_DEPLOYMENT, BETTER_AUTH_URL and NEXT_PUBLIC_APP_URL, which are
+ * optional and which the wizard therefore nagged about forever, and it omitted
+ * the five AWS variables and OPENAI_API_KEY, without which the deployment
+ * refuses to start. A wizard that reports green on a site that cannot boot is
+ * worse than no wizard.
+ */
+const REQUIRED = envManifest.required
 
 /** Automatic generators used when the value is empty. */
 const GENERATORS = {
@@ -46,44 +56,30 @@ const GENERATORS = {
   ENCRYPTION_KEY: () => crypto.randomBytes(32).toString("hex"),
 }
 
-/** Optional integrations, enabled one by one in the wizard. */
-const GROUPS = [
-  { name: "AWS (S3 médias + SES emails) — requis en prod (compte du client)", keys: ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_BUCKET_NAME", "AWS_SES_FROM_EMAIL", "AWS_SES_FROM_NAME", "AWS_SES_REPLY_TO_EMAIL", "AWS_SES_CONFIGURATION_SET"] },
-  { name: "Stripe (paiement CB)", keys: ["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY", "STRIPE_WEBHOOK_SECRET"] },
-  { name: "PayPal", keys: ["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "PAYPAL_SANDBOX_MODE"] },
-  { name: "SumUp", keys: ["SUMUP_CLIENT_ID", "SUMUP_CLIENT_SECRET"] },
-  { name: "OpenAI (traductions auto) — requis en prod (plateforme)", keys: ["OPENAI_API_KEY"] },
-  { name: "Uber Eats", keys: ["UBER_EATS_CLIENT_ID", "UBER_EATS_CLIENT_SECRET", "UBER_EATS_WEBHOOK_SECRET", "UBER_EATS_SANDBOX_MODE"] },
-  { name: "Deliveroo", keys: ["DELIVEROO_CLIENT_ID", "DELIVEROO_CLIENT_SECRET", "DELIVEROO_WEBHOOK_SECRET", "DELIVEROO_BRAND_ID", "DELIVEROO_SITE_ID", "DELIVEROO_IS_SANDBOX"] },
-  { name: "Google Maps (adresses)", keys: ["NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"] },
-  // Le DSN seul est une configuration complète : les erreurs remontent, seules
-  // les stack traces restent minifiées. Il reste donc seul dans son groupe —
-  // l'ajouter aux trois clés d'upload rendrait le groupe « partiel » et ferait
-  // échouer `env:check` sur une installation qui marche.
-  { name: "Sentry (monitoring) — 1 projet Sentry par client", keys: ["NEXT_PUBLIC_SENTRY_DSN"] },
-  // Tout ou rien, comme SITE_FEATURE_GROUPS côté schéma : la moitié de ce
-  // groupe n'uploade rien et laisse chaque trace de prod minifiée.
-  { name: "Sentry source maps (build) — traces lisibles en prod", keys: ["SENTRY_ORG", "SENTRY_PROJECT", "SENTRY_AUTH_TOKEN"] },
-  { name: "Unsplash (médias CMS)", keys: ["UNSPLASH_ACCESS_KEY"] },
-]
+/**
+ * Optional integrations, enabled one by one in the wizard.
+ *
+ * `feature` and `vars` come straight from the manifest. `requiredTogether` is
+ * the subset the schema refuses to see half-configured, and it replaces the
+ * local guess this script used to make: it filtered out a hard-coded set of
+ * "keys with defaults" to decide whether a group was on. That guess and the
+ * schema's rule disagreed about STRIPE_PUBLISHABLE_KEY, so a correctly
+ * configured Stripe reported as INCOMPLET.
+ */
+const GROUPS = envManifest.groups.map((group) => ({
+  name: group.feature,
+  keys: [...group.vars],
+  requiredTogether: [...group.requiredTogether],
+}))
 
-/** Keys to replicate on the Convex side (backend functions). */
-const CONVEX_KEYS = [
-  "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "SITE_URL", "ENCRYPTION_KEY",
-  "AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
-  "AWS_S3_BUCKET_NAME", "AWS_SES_FROM_EMAIL", "AWS_SES_FROM_NAME",
-  "AWS_SES_REPLY_TO_EMAIL", "AWS_SES_CONFIGURATION_SET",
-  "OPENAI_API_KEY",
-  "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
-  "PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "PAYPAL_SANDBOX_MODE",
-  "SUMUP_CLIENT_ID", "SUMUP_CLIENT_SECRET",
-  "UBER_EATS_CLIENT_ID", "UBER_EATS_CLIENT_SECRET",
-  "UBER_EATS_WEBHOOK_SECRET", "UBER_EATS_SANDBOX_MODE",
-  "DELIVEROO_CLIENT_ID", "DELIVEROO_CLIENT_SECRET",
-  "DELIVEROO_WEBHOOK_SECRET", "DELIVEROO_BRAND_ID", "DELIVEROO_SITE_ID",
-  "DELIVEROO_IS_SANDBOX",
-  "UNSPLASH_ACCESS_KEY",
-]
+/**
+ * Keys to replicate on the Convex side (backend functions).
+ *
+ * Convex functions run in their own isolate with their own environment: a value
+ * in `.env.local` is invisible to them. This is the measured set of what
+ * `convex/*.ts` and the packages it imports read from `process.env`.
+ */
+const CONVEX_KEYS = envManifest.convexKeys
 
 // ---------------------------------------------------------------------------
 
@@ -126,17 +122,21 @@ const isSet = (v) =>
   !/your-deployment|sk_test_\.\.\.|pk_test_\.\.\.|whsec_\.\.\.|sk-\.\.\./.test(v)
 
 /**
- * Keys the template pre-fills with a safe value: they do NOT indicate that
- * an integration is enabled, and they never count as missing.
+ * The keys that decide whether a group counts as configured.
+ *
+ * The schema's own all-or-nothing rule when it has one — those are exactly the
+ * variables `siteEnvOptionalSchema` refuses to see set by halves, so agreeing
+ * with it means `env:check` and the boot check can never disagree. For a group
+ * the schema does not constrain (a lone API key, a sandbox flag), every
+ * variable in it is a signal.
+ *
+ * The sandbox flags are deliberately NOT excluded any more. They have their own
+ * rule in `env/sandbox.ts`: a flag must be DECLARED, not inherited from a
+ * default, so treating one as "pre-filled, ignore it" was the opposite of what
+ * the engine asks for.
  */
-const DEFAULT_KEYS = new Set([
-  "AWS_REGION",
-  "UBER_EATS_SANDBOX_MODE",
-  "DELIVEROO_IS_SANDBOX",
-  "PAYPAL_SANDBOX_MODE",
-])
-
-const signalKeys = (group) => group.keys.filter((k) => !DEFAULT_KEYS.has(k))
+const signalKeys = (group) =>
+  group.requiredTogether.length ? group.requiredTogether : group.keys
 
 function groupStatus(vars, group) {
   const sig = signalKeys(group)

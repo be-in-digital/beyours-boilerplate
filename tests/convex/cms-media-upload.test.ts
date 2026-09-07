@@ -38,6 +38,7 @@ vi.mock("@aws-sdk/client-s3", () => ({
   GetObjectCommand: vi.fn((input: unknown) => ({ _cmd: "get", input })),
   PutObjectCommand: vi.fn((input: unknown) => ({ _cmd: "put", input })),
   DeleteObjectCommand: vi.fn((input: unknown) => ({ _cmd: "delete", input })),
+  ListObjectVersionsCommand: vi.fn((input: unknown) => ({ _cmd: "versions", input })),
 }))
 
 const modules = import.meta.glob("../../convex/**/*.ts")
@@ -176,6 +177,43 @@ function deletedKeys(): string[] {
     .map(([cmd]) => cmd as { _cmd?: string; input?: { Key?: string } })
     .filter((cmd) => cmd?._cmd === "delete")
     .map((cmd) => cmd.input?.Key ?? "")
+}
+
+/** `key@versionId` for every version-scoped delete; `key@current` otherwise. */
+function deletedVersions(): string[] {
+  return send.mock.calls
+    .map(([cmd]) => cmd as { _cmd?: string; input?: { Key?: string; VersionId?: string } })
+    .filter((cmd) => cmd?._cmd === "delete")
+    .map((cmd) => `${cmd.input?.Key ?? ""}@${cmd.input?.VersionId ?? "current"}`)
+}
+
+/**
+ * Answers `ListObjectVersionsCommand` with the versions of one key, and every
+ * other command with `{}`.
+ *
+ * The two arrays are separate in the real response and both are versions:
+ * `Versions` holds the stored objects, `DeleteMarkers` the tombstones written
+ * over them by an earlier marker-only delete.
+ */
+function stubVersions(byKey: Record<string, { versions: string[]; markers?: string[] }>) {
+  send.mockImplementation(
+    async (cmd: { _cmd?: string; input?: { Prefix?: string; Key?: string } }) => {
+      if (cmd._cmd !== "versions") return {}
+      const entry = byKey[cmd.input?.Prefix ?? ""]
+      if (!entry) return { Versions: [], DeleteMarkers: [] }
+      return {
+        Versions: entry.versions.map((VersionId) => ({
+          Key: cmd.input?.Prefix,
+          VersionId,
+        })),
+        DeleteMarkers: (entry.markers ?? []).map((VersionId) => ({
+          Key: cmd.input?.Prefix,
+          VersionId,
+        })),
+        IsTruncated: false,
+      }
+    },
+  )
 }
 
 // ============================================================================
@@ -616,7 +654,12 @@ describe("deleteMedia purges S3", () => {
       s3Keys: ["cms/abc/source.png", "cms/abc/thumb.webp"],
     })
 
-    expect(result).toEqual({ deleted: 2, failed: 0 })
+    expect(result).toEqual({
+      deleted: 2,
+      failed: 0,
+      purged: 2,
+      deleteMarkersOnly: 0,
+    })
     expect(deletedKeys()).toEqual([
       "cms/abc/source.png",
       "cms/abc/thumb.webp",
@@ -630,7 +673,12 @@ describe("deleteMedia purges S3", () => {
       s3Keys: ["cms/../../etc/passwd"],
     })
 
-    expect(result).toEqual({ deleted: 0, failed: 1 })
+    expect(result).toEqual({
+      deleted: 0,
+      failed: 1,
+      purged: 0,
+      deleteMarkersOnly: 0,
+    })
     expect(deletedKeys()).toHaveLength(0)
   })
 
@@ -651,6 +699,131 @@ describe("deleteMedia purges S3", () => {
       ],
     })
 
-    expect(result).toEqual({ deleted: 2, failed: 1 })
+    expect(result).toMatchObject({ deleted: 2, failed: 1 })
+  })
+})
+
+/**
+ * « Définitivement supprimé » has to mean the bytes are gone.
+ *
+ * `setup-aws.sh` turns bucket versioning ON, and on a versioned bucket a
+ * DeleteObject with no VersionId deletes NOTHING: it writes a delete marker
+ * over the key and retains every prior version — still billed, still readable
+ * by anyone who can name a version id. The media library said the file was
+ * permanently deleted, the offboarding runbook ticked an erasure box, and an
+ * RGPD erasure request was answered falsely. Issue #331.
+ */
+describe("purgeS3Objects on a versioned bucket", () => {
+  test("deletes every version and every delete marker, by id", async () => {
+    const t = newHarness()
+    stubVersions({
+      "cms/abc/source.png": { versions: ["v2", "v1"], markers: ["m1"] },
+    })
+
+    const result = await t.action(internal.cmsMediaDelete.purgeS3Objects, {
+      s3Keys: ["cms/abc/source.png"],
+    })
+
+    expect(result).toEqual({
+      deleted: 1,
+      failed: 0,
+      purged: 1,
+      deleteMarkersOnly: 0,
+    })
+    /* The marker is deleted too, and by id. A marker IS a version: removing
+       only the object versions leaves the key hidden with its marker still
+       billed, and removing only the marker un-deletes the file. The trailing
+       `@current` is the unconditional plain delete — between the listing and
+       here another writer may have added a version. */
+    expect(deletedVersions()).toEqual([
+      "cms/abc/source.png@v2",
+      "cms/abc/source.png@v1",
+      "cms/abc/source.png@m1",
+      "cms/abc/source.png@current",
+    ])
+  })
+
+  test("does not take a neighbour whose key merely starts the same", async () => {
+    // The S3 API is prefix-based and `cms/abc/source.png` is a prefix of
+    // `cms/abc/source.png.bak`. Purging by prefix would delete a file nobody
+    // asked to delete.
+    const t = newHarness()
+    send.mockImplementation(async (cmd: { _cmd?: string; input?: { Prefix?: string } }) => {
+      if (cmd._cmd !== "versions") return {}
+      return {
+        Versions: [
+          { Key: "cms/abc/source.png", VersionId: "v1" },
+          { Key: "cms/abc/source.png.bak", VersionId: "bak1" },
+        ],
+        IsTruncated: false,
+      }
+    })
+
+    await t.action(internal.cmsMediaDelete.purgeS3Objects, {
+      s3Keys: ["cms/abc/source.png"],
+    })
+
+    expect(deletedVersions()).not.toContain("cms/abc/source.png@bak1")
+    expect(deletedVersions()).toEqual([
+      "cms/abc/source.png@v1",
+      "cms/abc/source.png@current",
+    ])
+  })
+
+  test("walks a truncated version listing to the end", async () => {
+    const t = newHarness()
+    let page = 0
+    send.mockImplementation(async (cmd: { _cmd?: string }) => {
+      if (cmd._cmd !== "versions") return {}
+      page += 1
+      return page === 1
+        ? {
+            Versions: [{ Key: "cms/abc/source.png", VersionId: "v3" }],
+            IsTruncated: true,
+            NextKeyMarker: "cms/abc/source.png",
+            NextVersionIdMarker: "v3",
+          }
+        : {
+            Versions: [{ Key: "cms/abc/source.png", VersionId: "v2" }],
+            IsTruncated: false,
+          }
+    })
+
+    await t.action(internal.cmsMediaDelete.purgeS3Objects, {
+      s3Keys: ["cms/abc/source.png"],
+    })
+
+    expect(deletedVersions()).toEqual([
+      "cms/abc/source.png@v3",
+      "cms/abc/source.png@v2",
+      "cms/abc/source.png@current",
+    ])
+  })
+
+  test("reports the marker-only outcome when the listing is refused", async () => {
+    /* Every client provisioned before `s3:ListBucketVersions` reached the IAM
+       policy is in this state. Throwing would leave the row deleted and the
+       object present with nobody told; saying nothing would repeat the
+       original lie. */
+    const t = newHarness()
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {})
+    send.mockImplementation(async (cmd: { _cmd?: string }) => {
+      if (cmd._cmd === "versions") throw new Error("AccessDenied")
+      return {}
+    })
+
+    const result = await t.action(internal.cmsMediaDelete.purgeS3Objects, {
+      s3Keys: ["cms/abc/source.png"],
+    })
+
+    expect(result).toEqual({
+      deleted: 1,
+      failed: 0,
+      purged: 0,
+      deleteMarkersOnly: 1,
+    })
+    expect(deletedVersions()).toEqual(["cms/abc/source.png@current"])
+    expect(errors.mock.calls.flat().join(" ")).toContain("s3:DeleteObjectVersion")
+    errors.mockRestore()
   })
 })

@@ -257,6 +257,76 @@ describe("the roster's public surface", () => {
     expect.soft(member?.invitationToken).toBe("tok-minted")
     expect(refusal).toMatch(/no such export/)
   })
+
+  test("does not let a manager bind a roster row to an account they name", async () => {
+    // `create` was the third of the same shape, and the one that outlived #275
+    // precisely because nothing exercised it: a public mutation taking `userId`
+    // AND `invitationStatus`, so a row could be planted against somebody else's
+    // account, pre-marked accepted, with no invitation and no email.
+    //
+    // It is not inert. `propagateMembershipUpdate` gathers every row carrying a
+    // userId and `membershipUpdateEffect` takes the HIGHEST-ranked active role
+    // and the UNION of permissions — so a planted row widens the victim's
+    // profile the next time `update` runs on any of their memberships.
+    //
+    // Captured rather than asserted on the spot, for the reason above: the
+    // refusal and the empty roster are different failures, and the second is
+    // the defect itself.
+    const t = newHarness()
+    const storeId = await seedStore(t, "Chez Luigi")
+    const asOwner = await seedProfile(t, "user-owner", "client_admin", [storeId])
+
+    const refusal = await asOwner
+      .mutation(anyApi.teamMembers.create, {
+        storeId,
+        allStores: false,
+        userId: "user-victim",
+        name: "Yanis Moreau",
+        email: "yanis@resto.example",
+        role: "manager",
+        permissions: ["dashboard", "orders", "team"],
+        invitationStatus: "accepted",
+        isActive: true,
+      })
+      .then(() => "the mutation resolved", (error: unknown) => String(error))
+
+    const roster = await t.run((ctx) => ctx.db.query("teamMembers").collect())
+
+    expect.soft(roster).toHaveLength(0)
+    expect(refusal).toMatch(/no such export/)
+  })
+
+  test("does not expose the two dead roster reads", async () => {
+    // `getByRole` and `getByEmail` were correctly guarded and called by nothing.
+    // They go with `create` rather than after it: a read nobody drives is a
+    // surface nobody watches, and both returned whole roster rows —
+    // userId, permissions and invitation token included.
+    //
+    // `getMyMemberships` deliberately stays. It takes no argument and derives
+    // the caller from the session; deleting it would leave the question it
+    // answers open and invite somebody to write `getByUser` again.
+    const t = newHarness()
+    const storeId = await seedStore(t, "Chez Luigi")
+    const asOwner = await seedProfile(t, "user-owner", "client_admin", [storeId])
+    await seedInvitation(t, { storeId, status: "accepted" })
+
+    const byRole = await asOwner
+      .query(anyApi.teamMembers.getByRole, { storeId, role: "manager" })
+      .then(() => "the query resolved", (error: unknown) => String(error))
+    const byEmail = await asOwner
+      .query(anyApi.teamMembers.getByEmail, {
+        storeId,
+        email: "yanis@resto.example",
+      })
+      .then(() => "the query resolved", (error: unknown) => String(error))
+    const mine = await asOwner.query(api.teamMembers.getMyMemberships, {})
+
+    expect.soft(byRole).toMatch(/no such export/)
+    expect.soft(byEmail).toMatch(/no such export/)
+    // The control: the sanctioned read still answers, so the two refusals above
+    // are about those names and not about the module having vanished.
+    expect(mine).toEqual([])
+  })
 })
 
 // ============================================================================

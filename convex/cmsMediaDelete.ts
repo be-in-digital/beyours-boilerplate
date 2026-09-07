@@ -10,6 +10,31 @@
  * was still in the bucket. An erasure request could not be satisfied, and the
  * media library reported a deletion that had not happened.
  *
+ * ## Then a delete marker was not a deletion either
+ *
+ * `setup-aws.sh` turns bucket **versioning** on. On a versioned bucket
+ * `DeleteObjectCommand` without a `VersionId` deletes nothing at all: it writes
+ * a *delete marker* over the key and retains every prior version. The object
+ * stops appearing in a listing, keeps being billed, and stays readable by
+ * anyone who can name a version id. So « définitivement supprimé » kept every
+ * byte a second time, and the offboarding runbook ticked an erasure box the
+ * infrastructure could not honour.
+ *
+ * The purge below enumerates the key's versions and deletes each one by id.
+ * Delete markers are removed too, and by id: a marker IS a version, so removing
+ * only the object versions leaves the key hidden with its marker still billed,
+ * and removing only the marker un-deletes the file.
+ *
+ * ## The permission this needs, and the deployments that lack it
+ *
+ * `s3:DeleteObjectVersion` and `s3:ListBucketVersions`. `setup-aws.sh` grants
+ * both now; every client provisioned before it did not, and re-running the
+ * script is what fixes them. Rather than throw on those deployments, the action
+ * falls back to the plain delete and REPORTS which of the two happened — the
+ * caller can then say something true. The lifecycle rules the same script
+ * installs (`NoncurrentVersionExpiration` + `ExpiredObjectDeleteMarker`) are
+ * what eventually collects what a fallback leaves behind.
+ *
  * A mutation cannot reach S3, so this runs as a scheduled action. Its keys
  * arrive as arguments: the row is already committed away by the time it runs
  * and there is nothing left to look them up from.
@@ -22,7 +47,11 @@
 
 import { internalAction } from "./_generated/server"
 import { v } from "convex/values"
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3"
+import {
+  S3Client,
+  DeleteObjectCommand,
+  ListObjectVersionsCommand,
+} from "@aws-sdk/client-s3"
 
 function createS3Client() {
   return new S3Client({
@@ -34,20 +63,110 @@ function createS3Client() {
   })
 }
 
+/**
+ * How many version pages one key may cost.
+ *
+ * S3 returns up to 1 000 entries a page. A key with more than a hundred pages
+ * of versions is not a photograph re-uploaded a few times; purging what was
+ * found is still right, and the ceiling stops one media deletion running for
+ * the whole of the action's budget.
+ */
+const MAX_VERSION_PAGES = 100
+
+/** What one key's purge did. `purged` is the only outcome that frees bytes. */
+type KeyOutcome = "purged" | "delete-marker"
+
+/**
+ * Every stored version of exactly one key, or `null` when they cannot be read.
+ *
+ * `null` means the listing was refused — on a versioned bucket that is almost
+ * always an IAM policy predating `s3:ListBucketVersions`. It is not propagated
+ * as a throw: the row is already gone, and a delete that throws leaves the
+ * object present with nobody told.
+ *
+ * Filtered to an EXACT key match, because the S3 API is prefix-based and
+ * `cms/42/source.webp` is a prefix of `cms/42/source.webp.bak`. Purging by
+ * prefix would take a neighbouring object with it.
+ */
+async function collectVersions(
+  client: S3Client,
+  bucketName: string,
+  key: string,
+): Promise<Array<{ VersionId: string }> | null> {
+  const found: Array<{ VersionId: string }> = []
+  let KeyMarker: string | undefined
+  let VersionIdMarker: string | undefined
+
+  try {
+    for (let page = 0; page < MAX_VERSION_PAGES; page += 1) {
+      const result = await client.send(
+        new ListObjectVersionsCommand({
+          Bucket: bucketName,
+          Prefix: key,
+          KeyMarker,
+          VersionIdMarker,
+        }),
+      )
+
+      // Two separate arrays in the response, and both are versions: `Versions`
+      // holds the stored objects, `DeleteMarkers` the tombstones written over
+      // them. Reading only the first is how a purge leaves the markers behind.
+      for (const entry of [...(result.Versions ?? []), ...(result.DeleteMarkers ?? [])]) {
+        if (entry.Key === key && entry.VersionId) {
+          found.push({ VersionId: entry.VersionId })
+        }
+      }
+
+      if (!result.IsTruncated) return found
+      KeyMarker = result.NextKeyMarker
+      VersionIdMarker = result.NextVersionIdMarker
+    }
+  } catch (error) {
+    console.error(
+      `[purgeS3Objects] Could not list versions of ${key} — the IAM policy may predate s3:ListBucketVersions:`,
+      error,
+    )
+    return null
+  }
+
+  return found
+}
+
 export const purgeS3Objects = internalAction({
   args: {
     s3Keys: v.array(v.string()),
   },
-  handler: async (_ctx, args): Promise<{ deleted: number; failed: number }> => {
+  handler: async (
+    _ctx,
+    args,
+  ): Promise<{
+    deleted: number
+    failed: number
+    /** Keys whose every version is gone. */
+    purged: number
+    /**
+     * Keys left behind a delete marker because this deployment cannot purge.
+     * Non-zero means an erasure request is NOT satisfied by this run, and the
+     * bytes wait on the bucket's lifecycle rules.
+     */
+    deleteMarkersOnly: number
+  }> => {
     const bucketName = process.env.AWS_S3_BUCKET_NAME
     if (!bucketName) {
       console.error("[purgeS3Objects] AWS_S3_BUCKET_NAME is not set")
-      return { deleted: 0, failed: args.s3Keys.length }
+      return {
+        deleted: 0,
+        failed: args.s3Keys.length,
+        purged: 0,
+        deleteMarkersOnly: 0,
+      }
     }
 
     const client = createS3Client()
     let deleted = 0
     let failed = 0
+    let purged = 0
+    let deleteMarkersOnly = 0
 
     for (const key of args.s3Keys) {
       // A key that could climb out of the media prefix never came from
@@ -59,16 +178,43 @@ export const purgeS3Objects = internalAction({
       }
 
       try {
-        await client.send(
-          new DeleteObjectCommand({ Bucket: bucketName, Key: key }),
-        )
+        const versions = await collectVersions(client, bucketName, key)
+        let outcome: KeyOutcome = "delete-marker"
+
+        if (versions !== null) {
+          for (const { VersionId } of versions) {
+            await client.send(
+              new DeleteObjectCommand({ Bucket: bucketName, Key: key, VersionId }),
+            )
+          }
+          outcome = "purged"
+        }
+
+        /* Unconditional, and not a tidy-up. Between the listing and here another
+           writer may have added a version, and on an unversioned or suspended
+           bucket the listing legitimately comes back empty while the object
+           exists — that is the case this call covers. */
+        await client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }))
+
         deleted += 1
+        if (outcome === "purged") purged += 1
+        else deleteMarkersOnly += 1
       } catch (error) {
         failed += 1
         console.error(`[purgeS3Objects] Failed to delete ${key}:`, error)
       }
     }
 
-    return { deleted, failed }
+    if (deleteMarkersOnly > 0) {
+      // Loud, because the difference is legal rather than cosmetic: these files
+      // are hidden, not erased, and someone may have been told otherwise.
+      console.error(
+        `[purgeS3Objects] ${deleteMarkersOnly} object(s) left behind a delete marker only — ` +
+          `their bytes remain in the bucket. Re-run scripts/setup-aws.sh to grant ` +
+          `s3:DeleteObjectVersion and s3:ListBucketVersions.`,
+      )
+    }
+
+    return { deleted, failed, purged, deleteMarkersOnly }
   },
 })

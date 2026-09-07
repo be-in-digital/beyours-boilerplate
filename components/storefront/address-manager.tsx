@@ -246,14 +246,14 @@ export function AddressManager() {
         <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
           <div className="p-8">
             <div className="mb-2 flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                 <MapPin className="h-5 w-5" />
               </div>
-              <h2 className="text-2xl font-black uppercase tracking-tighter text-zinc-800">
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-foreground">
                 {editingId ? "Modifier l\u2019adresse" : "Nouvelle adresse"}
               </h2>
             </div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Recherchez votre adresse ou saisissez-la manuellement.
             </p>
           </div>
@@ -268,7 +268,7 @@ export function AddressManager() {
                 value={addressLabel}
                 onChange={(e) => setAddressLabel(e.target.value)}
                 placeholder="ex: Maison, Bureau"
-                className="h-14 rounded-2xl border-transparent bg-zinc-50 px-6 text-sm font-medium transition-all focus:bg-white focus:ring-emerald-500/20"
+                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
               />
             </div>
 
@@ -278,12 +278,12 @@ export function AddressManager() {
                 Rechercher une adresse
               </Label>
               <div className="relative">
-                <MapPin className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600" />
+                <MapPin className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-accent-foreground" />
                 <input
                   ref={addressInputRef}
                   type="text"
                   placeholder="Ex : 12 rue de la Paix, Paris..."
-                  className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-zinc-100 bg-zinc-50 pl-12 pr-6 text-sm font-medium transition-all placeholder:text-zinc-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-border bg-muted pl-12 pr-6 text-sm font-medium transition-all placeholder:text-muted-foreground focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -293,7 +293,7 @@ export function AddressManager() {
               <button
                 type="button"
                 onClick={() => setAddressMode("manual")}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-200 px-4 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-all hover:border-zinc-300 hover:text-zinc-500"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border px-4 py-3 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-all hover:border-border hover:text-muted-foreground"
               >
                 <MapPinOff className="h-3.5 w-3.5" />
                 Je ne trouve pas mon adresse
@@ -302,12 +302,12 @@ export function AddressManager() {
 
             {/* Detail fields — shown after Google select or manual mode */}
             {showAddressFields && (
-              <div className="space-y-4 rounded-2xl border-2 border-emerald-100 bg-emerald-50/30 p-5">
+              <div className="space-y-4 rounded-2xl border-2 border-primary/20 bg-accent/30 p-5">
                 {addressMode === "selected" && (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                      <CheckCircle2 className="h-4 w-4 text-success" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-accent-foreground">
                         Adresse sélectionnée
                       </span>
                     </div>
@@ -317,7 +317,7 @@ export function AddressManager() {
                         setAddressMode("search")
                         setManualAddress(emptyAddress)
                       }}
-                      className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-zinc-600"
+                      className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:text-muted-foreground"
                     >
                       Modifier
                     </button>
@@ -325,7 +325,7 @@ export function AddressManager() {
                 )}
                 {addressMode === "manual" && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                       Saisie manuelle
                     </span>
                     <button
@@ -334,7 +334,7 @@ export function AddressManager() {
                         setAddressMode("search")
                         setManualAddress(emptyAddress)
                       }}
-                      className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 transition-colors hover:text-emerald-700"
+                      className="text-[10px] font-bold uppercase tracking-widest text-accent-foreground transition-colors hover:text-accent-foreground"
                     >
                       Revenir à la recherche
                     </button>
@@ -350,7 +350,7 @@ export function AddressManager() {
                     onChange={(e) => editLocationField("street", e.target.value)}
                     placeholder="123 rue de la Paix"
                     readOnly={addressMode === "selected"}
-                    className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
+                    className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -363,7 +363,7 @@ export function AddressManager() {
                       onChange={(e) => editLocationField("city", e.target.value)}
                       placeholder="Paris"
                       readOnly={addressMode === "selected"}
-                      className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
+                      className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
@@ -375,7 +375,7 @@ export function AddressManager() {
                       onChange={(e) => editLocationField("postalCode", e.target.value)}
                       placeholder="75001"
                       readOnly={addressMode === "selected"}
-                      className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
+                      className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
                     />
                   </div>
                 </div>
@@ -387,7 +387,7 @@ export function AddressManager() {
                     value={manualAddress.country}
                     onChange={(e) => setManualAddress((p) => ({ ...p, country: e.target.value }))}
                     readOnly={addressMode === "selected"}
-                    className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
+                    className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
                   />
                 </div>
               </div>
@@ -398,14 +398,14 @@ export function AddressManager() {
               <Button
                 onClick={handleSubmit}
                 disabled={!showAddressFields}
-                className="h-14 flex-1 rounded-2xl bg-primary font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-primary-hover"
+                className="h-14 flex-1 rounded-2xl bg-primary font-black uppercase tracking-widest text-white shadow-xl shadow-primary/10 transition-all hover:bg-primary-hover"
               >
                 {editingId ? "Enregistrer" : "Ajouter l\u2019adresse"}
               </Button>
               <Button
                 variant="outline"
                 onClick={resetForm}
-                className="h-14 rounded-2xl border-zinc-200 px-8 font-black uppercase tracking-widest transition-all"
+                className="h-14 rounded-2xl border-border px-8 font-black uppercase tracking-widest transition-all"
               >
                 Annuler
               </Button>

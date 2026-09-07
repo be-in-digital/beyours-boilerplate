@@ -40,12 +40,12 @@ export default function BlogPage() {
     const posts = articles?.slice(1) ?? []
 
     return (
-        <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
+        <div className="min-h-screen bg-background dark:bg-muted text-foreground dark:text-foreground font-sans overflow-x-hidden transition-colors duration-500">
             {/* ─── HERO ─── */}
             <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-primary rounded-b-none md:rounded-b-[6rem]">
                 <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
                     <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
-                    <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
+                    <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px]" />
                 </div>
 
                 <motion.div
@@ -58,7 +58,7 @@ export default function BlogPage() {
                         {heroBadge}
                     </Badge>
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
-                        {parseColoredText(heroTitle, "text-orange-600 dark:text-orange-400 italic")}
+                        {parseColoredText(heroTitle, "text-accent-foreground italic")}
                     </h1>
                     <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">
                         {heroSubtitle}
@@ -75,9 +75,9 @@ export default function BlogPage() {
                         transition={{ duration: 0.6, delay: 0.3 }}
                     >
                         <Link href={`/blog/${featured.slug}`} className="group block">
-                            <div className="bg-white dark:bg-zinc-900 rounded-[3rem] overflow-hidden shadow-2xl shadow-black/[0.06] border border-zinc-100 dark:border-zinc-800 hover:shadow-3xl transition-all duration-500">
+                            <div className="bg-card rounded-[3rem] overflow-hidden shadow-2xl shadow-black/[0.06] border border-border hover:shadow-3xl transition-all duration-500">
                                 <div className="flex flex-col lg:flex-row">
-                                    <div className="relative lg:w-3/5 aspect-[16/10] lg:aspect-auto overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                                    <div className="relative lg:w-3/5 aspect-[16/10] lg:aspect-auto overflow-hidden bg-muted">
                                         {featured.coverImage?.url && (
                                             <Image
                                                 src={featured.coverImage.url}
@@ -88,7 +88,7 @@ export default function BlogPage() {
                                         )}
                                         <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent" />
                                         <div className="absolute top-6 left-6">
-                                            <Badge className="bg-orange-500 text-white border-none px-4 py-1.5 rounded-full font-black tracking-widest uppercase text-[10px] shadow-lg">
+                                            <Badge className="bg-primary text-primary-foreground border-none px-4 py-1.5 rounded-full font-black tracking-widest uppercase text-[10px] shadow-lg">
                                                 À la une
                                             </Badge>
                                         </div>
@@ -99,17 +99,17 @@ export default function BlogPage() {
                                                 {featured.category.name}
                                             </Badge>
                                         )}
-                                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight mb-4 text-zinc-800 dark:text-zinc-100 group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors">
+                                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight mb-4 text-foreground group-hover:text-accent-foreground dark:group-hover:text-accent-foreground transition-colors">
                                             {featured.title}
                                         </h2>
-                                        <p className="text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed mb-6">
+                                        <p className="text-muted-foreground font-medium leading-relaxed mb-6">
                                             {featured.excerpt}
                                         </p>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                                 {formatArticleDate(featured.publishedAt)} · {featured.readingMinutes} min de lecture
                                             </span>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-400 flex items-center gap-2 group-hover:gap-3 transition-all">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-accent-foreground flex items-center gap-2 group-hover:gap-3 transition-all">
                                                 Lire <ArrowRight className="h-3 w-3" />
                                             </span>
                                         </div>
@@ -129,14 +129,14 @@ export default function BlogPage() {
             {(isLoading || articles?.length === 0 || posts.length > 0) && (
             <section className={`pb-24 px-6 md:px-12 max-w-7xl mx-auto ${featured ? "" : "pt-24"}`}>
                 <div className="flex items-center gap-3 mb-12">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 dark:bg-emerald-950/30 flex items-center justify-center">
-                        <BookOpen className="h-5 w-5 text-primary dark:text-emerald-400" />
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 dark:bg-primary/30 flex items-center justify-center">
+                        <BookOpen className="h-5 w-5 text-accent-foreground" />
                     </div>
-                    <h2 className="text-2xl font-black uppercase tracking-tighter text-zinc-800 dark:text-zinc-100">
+                    <h2 className="text-2xl font-black uppercase tracking-tighter text-foreground">
                         Tous les articles
                     </h2>
                     {posts.length > 0 && (
-                        <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400">({posts.length})</span>
+                        <span className="text-sm font-bold text-muted-foreground">({posts.length})</span>
                     )}
                 </div>
 
@@ -145,16 +145,16 @@ export default function BlogPage() {
                         {[0, 1, 2].map((i) => (
                             <div
                                 key={i}
-                                className="h-96 rounded-[2.5rem] bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 animate-pulse"
+                                className="h-96 rounded-[2.5rem] bg-card border border-border animate-pulse"
                             />
                         ))}
                     </div>
                 )}
 
                 {!isLoading && articles?.length === 0 && (
-                    <div className="rounded-[2.5rem] border border-dashed border-zinc-200 dark:border-zinc-800 py-20 text-center">
-                        <BookOpen className="h-8 w-8 mx-auto text-zinc-300 dark:text-zinc-700 mb-4" />
-                        <p className="text-zinc-500 dark:text-zinc-400 font-medium">
+                    <div className="rounded-[2.5rem] border border-dashed border-border py-20 text-center">
+                        <BookOpen className="h-8 w-8 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground font-medium">
                             Aucun article pour le moment. Revenez bientôt !
                         </p>
                     </div>
@@ -171,8 +171,8 @@ export default function BlogPage() {
                                 viewport={{ once: true }}
                             >
                                 <Link href={`/blog/${post.slug}`} className="group block h-full">
-                                    <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] overflow-hidden shadow-lg shadow-black/[0.03] border border-zinc-100 dark:border-zinc-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
-                                        <div className="relative aspect-[16/10] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                                    <div className="bg-card rounded-[2.5rem] overflow-hidden shadow-lg shadow-black/[0.03] border border-border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
+                                        <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                                             {post.coverImage?.url && (
                                                 <Image
                                                     src={post.coverImage.url}
@@ -188,21 +188,21 @@ export default function BlogPage() {
                                                     </Badge>
                                                 </div>
                                             )}
-                                            <div className="absolute top-4 right-4 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl shadow-lg border border-zinc-100 dark:border-zinc-800">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-primary dark:text-emerald-400">{post.readingMinutes} min</p>
+                                            <div className="absolute top-4 right-4 bg-card px-3 py-1.5 rounded-xl shadow-lg border border-border">
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-accent-foreground">{post.readingMinutes} min</p>
                                             </div>
                                         </div>
                                         <div className="p-6 md:p-8 flex-1 flex flex-col">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-3">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
                                                 {formatArticleDate(post.publishedAt)}
                                             </p>
-                                            <h3 className="text-xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-tight mb-3 group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors">
+                                            <h3 className="text-xl font-black tracking-tighter text-foreground leading-tight mb-3 group-hover:text-accent-foreground dark:group-hover:text-accent-foreground transition-colors">
                                                 {post.title}
                                             </h3>
-                                            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed flex-1">
+                                            <p className="text-sm text-muted-foreground font-medium leading-relaxed flex-1">
                                                 {post.excerpt}
                                             </p>
-                                            <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-400 group-hover:gap-3 gap-2 transition-all">
+                                            <div className="mt-6 pt-4 border-t border-border flex items-center text-[10px] font-black uppercase tracking-widest text-accent-foreground group-hover:gap-3 gap-2 transition-all">
                                                 Lire la suite <ArrowRight className="h-3 w-3" />
                                             </div>
                                         </div>
@@ -219,13 +219,13 @@ export default function BlogPage() {
             <section className="px-6 md:px-12 max-w-7xl mx-auto mb-24">
                 <div className="bg-primary rounded-[3rem] md:rounded-[4rem] p-10 md:p-16 text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-full h-full pointer-events-none">
-                        <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] bg-emerald-400/10 rounded-full blur-[120px]" />
+                        <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px]" />
                     </div>
                     <div className="relative z-10 max-w-2xl mx-auto">
                         <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight mb-4">
                             Ne manquez rien
                         </h2>
-                        <p className="text-emerald-100/60 font-medium mb-8">
+                        <p className="text-accent-foreground/60 font-medium mb-8">
                             Inscrivez-vous à notre newsletter pour recevoir nos derniers articles et offres exclusives.
                         </p>
                         <form
@@ -256,12 +256,12 @@ export default function BlogPage() {
                                 value={newsletterEmail}
                                 onChange={(e) => setNewsletterEmail(e.target.value)}
                                 placeholder="Votre email..."
-                                className="flex-1 h-14 px-6 rounded-2xl bg-white/10 border border-white/10 text-white placeholder:text-white/40 font-bold text-sm outline-none focus:border-white/30 transition-colors"
+                                className="flex-1 h-14 px-6 rounded-2xl bg-white/10 border border-white/10 text-white placeholder:text-white/70 font-bold text-sm outline-none focus:border-white/30 transition-colors"
                             />
                             <Button
                                 type="submit"
                                 disabled={subscribing}
-                                className="h-14 px-8 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-orange-500/20"
+                                className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20"
                             >
                                 {subscribing ? "..." : "S'inscrire"}
                             </Button>

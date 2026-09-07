@@ -6,39 +6,35 @@ import {
   splitExportedRow,
   type IdMap,
 } from "@be-in-digital/convex-functions/backupRemap"
+import {
+  isBackupTable,
+  isExportedTable,
+  redactExportedRow,
+  type BackupTable,
+} from "@be-in-digital/convex-functions/backupTables"
 
-// ─── Allowlist of tables that can be imported/exported ───────────────────────
+/* ─── The allow-lists ─────────────────────────────────────────────────────────
+ *
+ * Two of them, and the difference is the point. The EXPORT is wider than the
+ * IMPORT: the fiscal archive (`invoices`, `numberSequences`) and the audit log
+ * are carried in the file and must never be written back by a restore. A single
+ * list would have forced a choice between losing them from every backup and
+ * letting a restore rewrite a numbered series.
+ *
+ * Both come from `@be-in-digital/convex-functions/backupTables`, which
+ * `system.ts` also reads. They used to be written out twice and agree by hand;
+ * between them they named 22 of this schema's 77 tables (#169).
+ */
 
-const ALLOWED_TABLES = [
-  "globalSettings",
-  "stores",
-  "languages",
-  "categories",
-  "products",
-  "menus",
-  "cmsPages",
-  "cmsBlocks",
-  "cmsMedia",
-  "blogCategories",
-  "blogTags",
-  "blogArticles",
-  "blogArticleTags",
-  "gameQRCodes",
-  "requiredActions",
-  "games",
-  "prizes",
-  "promotions",
-  "emailConfig",
-  "emailTemplates",
-  "emailSegments",
-  "emailSubscribers",
-] as const
+function assertExportable(tableName: string): void {
+  if (!isExportedTable(tableName)) {
+    throw new Error(`Table "${tableName}" non autorisée pour l'export`)
+  }
+}
 
-type AllowedTable = (typeof ALLOWED_TABLES)[number]
-
-function assertAllowedTable(tableName: string): asserts tableName is AllowedTable {
-  if (!(ALLOWED_TABLES as readonly string[]).includes(tableName)) {
-    throw new Error(`Table "${tableName}" non autorisée pour import/export`)
+function assertImportable(tableName: string): asserts tableName is BackupTable {
+  if (!isBackupTable(tableName)) {
+    throw new Error(`Table "${tableName}" non autorisée pour l'import`)
   }
 }
 
@@ -84,10 +80,19 @@ export const getSettingsInternal = internalQuery({
 export const exportTable = internalQuery({
   args: { tableName: v.string() },
   handler: async (ctx, args) => {
-    assertAllowedTable(args.tableName)
+    assertExportable(args.tableName)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = await (ctx.db.query(args.tableName as never) as any).collect()
-    return rows
+    /* A backup is a JSON file an administrator downloads to whatever laptop
+       they were sitting at, and two single-use credentials were in it: an
+       unexpired team invitation token grants a role to whoever opens the link,
+       and a double-opt-in token confirms a subscription on someone else's
+       behalf. Both fields are optional, so a restore comes back without them
+       and the invitation is simply re-sent. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return rows.map((row: Record<string, unknown>) =>
+      redactExportedRow(args.tableName, row)
+    )
   },
 })
 
@@ -125,7 +130,7 @@ export const importTable = internalMutation({
     idMap: v.optional(v.record(v.string(), v.string())),
   },
   handler: async (ctx, args) => {
-    assertAllowedTable(args.tableName)
+    assertImportable(args.tableName)
 
     const idMap: IdMap = args.idMap ?? {}
 
@@ -148,6 +153,52 @@ export const importTable = internalMutation({
     }
 
     return { idMap: inserted }
+  },
+})
+
+/**
+ * A second pass over one table with the FULL id map.
+ *
+ * The foreign-key graph has a cycle, so no single order can satisfy every edge.
+ * `stores.stationMapping[].categoryId` points at `categories`, and `categories`
+ * points back at `stores` — so whichever comes first restores a reference the
+ * map cannot yet resolve. `stores` goes first, because everything else in the
+ * backup depends on it, and the kitchen routing was therefore restored naming
+ * categories that no longer existed.
+ *
+ * Silently, which is the part that matters: `v.id("categories")` validates an
+ * id's encoding rather than that it resolves, so every ticket simply fell
+ * through to the single-station behaviour and nobody was told the routing had
+ * been lost.
+ *
+ * `remapIds` rewrites any string the map knows, anywhere in a row, so this
+ * needs no per-field knowledge and costs one patch per row that changed.
+ * `DEFERRED_REMAP_TABLES` in `backupTables.ts` is the list of edges the import
+ * order breaks on purpose.
+ */
+export const remapDeferredReferences = internalMutation({
+  args: {
+    tableName: v.string(),
+    idMap: v.record(v.string(), v.string()),
+  },
+  handler: async (ctx, args) => {
+    assertImportable(args.tableName)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = await (ctx.db.query(args.tableName as never) as any).collect()
+    let patched = 0
+
+    for (const row of rows) {
+      const { data } = splitExportedRow(row)
+      const rewritten = remapIds(data, args.idMap)
+      // Compared rather than patched blindly: a restore of a large table would
+      // otherwise write every row a second time for nothing.
+      if (JSON.stringify(rewritten) === JSON.stringify(data)) continue
+      await ctx.db.patch(row._id, rewritten as never)
+      patched += 1
+    }
+
+    return { patched }
   },
 })
 

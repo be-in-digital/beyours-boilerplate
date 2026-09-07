@@ -5,7 +5,7 @@ import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { sendEmail } from "./emailTransport";
 import { renderTemplateToEmailHtml } from "@be-in-digital/marketing";
 import {
   DEFAULT_INACTIVE_AFTER_DAYS,
@@ -19,16 +19,6 @@ import {
   configurationSetFields,
   resolveConfigurationSet,
 } from "@be-in-digital/convex-functions/sesSending";
-
-function createSESClient() {
-  return new SESv2Client({
-    region: process.env.AWS_REGION ?? "eu-west-3",
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
-  });
-}
 
 /**
  * Send one step of an automation to one subscriber, then schedule the next.
@@ -132,37 +122,34 @@ export const runStep = internalAction({
     );
 
     try {
-      await createSESClient().send(
-        new SendEmailCommand({
-          FromEmailAddress: config.senderName
-            ? `${config.senderName} <${config.fromEmail}>`
-            : config.fromEmail,
-          Destination: { ToAddresses: [subscriber.email] },
-          ReplyToAddresses: config.replyToEmail ? [config.replyToEmail] : undefined,
-          ...configurationSetFields(configurationSet),
-          Content: {
-            Simple: {
-              Subject: { Data: template.subject, Charset: "UTF-8" },
-              Body: {
-                Html: { Data: html, Charset: "UTF-8" },
-                Text: { Data: `Se désabonner: ${unsubscribeUrl}`, Charset: "UTF-8" },
-              },
-              Headers: [
-                { Name: "X-Automation-Id", Value: String(args.automationId) },
-                { Name: "X-Subscriber-Id", Value: String(args.subscriberId) },
-                { Name: "X-Store-Id", Value: String(automation.storeId) },
-                // Same obligation as a campaign: this is bulk mail as far as
-                // Gmail and Yahoo are concerned. See emailCampaignActions.
-                {
-                  Name: "List-Unsubscribe",
-                  Value: `<mailto:${config.replyToEmail ?? config.fromEmail}?subject=unsubscribe>, <${unsubscribeUrl}>`,
-                },
-                { Name: "List-Unsubscribe-Post", Value: "List-Unsubscribe=One-Click" },
-              ],
-            },
-          },
-        })
-      );
+      const outcome = await sendEmail({
+        from: config.senderName
+          ? `${config.senderName} <${config.fromEmail}>`
+          : config.fromEmail,
+        to: subscriber.email,
+        subject: template.subject,
+        html,
+        text: `Se désabonner: ${unsubscribeUrl}`,
+        ...(config.replyToEmail ? { replyTo: config.replyToEmail } : {}),
+        // Omitted when there is none — an empty name is not "no tracking" to
+        // SES, it is a name that does not exist. `configurationSetFields`
+        // still owns that rule; this just carries its answer.
+        ...configurationSetFields(configurationSet),
+        headers: {
+          "X-Automation-Id": String(args.automationId),
+          "X-Subscriber-Id": String(args.subscriberId),
+          "X-Store-Id": String(automation.storeId),
+          // Same obligation as a campaign: this is bulk mail as far as
+          // Gmail and Yahoo are concerned. See emailCampaignActions.
+          "List-Unsubscribe": `<mailto:${config.replyToEmail ?? config.fromEmail}?subject=unsubscribe>, <${unsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      });
+      // The transport reports rather than throws, and the catch below is what
+      // leaves the step retryable — so a refusal has to be turned back into one.
+      if (!outcome.sent) {
+        throw new Error(outcome.error ?? "envoi refusé par le fournisseur");
+      }
     } catch (error) {
       // Not recorded, so the step can be retried. Recording a send that failed
       // would drop the message from the sequence for good.
@@ -531,40 +518,30 @@ export const sendConfirmation = internalAction({
     // the send outright.
     const configurationSet = process.env.AWS_SES_CONFIGURATION_SET;
 
-    await createSESClient().send(
-      new SendEmailCommand({
-        FromEmailAddress: fromAddress,
-        Destination: { ToAddresses: [subscriber.email] },
-        ReplyToAddresses: config?.replyToEmail ? [config.replyToEmail] : undefined,
-        ...(configurationSet ? { ConfigurationSetName: configurationSet } : {}),
-        Content: {
-          Simple: {
-            Subject: {
-              Data: `Confirmez votre inscription — ${storeName}`,
-              Charset: "UTF-8",
-            },
-            Body: {
-              Html: {
-                Data: buildConfirmationHtml({ storeName, confirmUrl }),
-                Charset: "UTF-8",
-              },
-              Text: {
-                Data: buildConfirmationText({ storeName, confirmUrl }),
-                Charset: "UTF-8",
-              },
-            },
-            Headers: [
-              // The webhook correlates bounces by these. A confirmation that
-              // hard-bounces is the clearest possible evidence the address is
-              // dead, and `markBounced` now suppresses a `Permanent` one on the
-              // first event — so a typo'd signup stops costing sends
-              // immediately instead of after three.
-              { Name: "X-Subscriber-Id", Value: String(subscriber._id) },
-              { Name: "X-Store-Id", Value: String(subscriber.storeId) },
-            ],
-          },
-        },
-      })
-    );
+    const outcome = await sendEmail({
+      from: fromAddress,
+      to: subscriber.email,
+      subject: `Confirmez votre inscription — ${storeName}`,
+      html: buildConfirmationHtml({ storeName, confirmUrl }),
+      text: buildConfirmationText({ storeName, confirmUrl }),
+      ...(config?.replyToEmail ? { replyTo: config.replyToEmail } : {}),
+      ...(configurationSet ? { configurationSet } : {}),
+      headers: {
+        // The webhook correlates bounces by these. A confirmation that
+        // hard-bounces is the clearest possible evidence the address is dead,
+        // and `markBounced` now suppresses a `Permanent` one on the first
+        // event — so a typo'd signup stops costing sends immediately instead
+        // of after three.
+        "X-Subscriber-Id": String(subscriber._id),
+        "X-Store-Id": String(subscriber.storeId),
+      },
+    });
+
+    // Thrown, not swallowed: the caller burns a confirmation token per attempt
+    // and the 48h expiry runs from the first, so a silent failure spends the
+    // subscriber's only chance to confirm.
+    if (!outcome.sent) {
+      throw new Error(outcome.error ?? "envoi refusé par le fournisseur");
+    }
   },
 });

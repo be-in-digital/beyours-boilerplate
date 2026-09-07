@@ -123,28 +123,28 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-[10px] font-bold uppercase tracking-widest text-white/40 hover:bg-white/10 hover:text-white"
+                            className="text-[10px] font-bold uppercase tracking-widest text-white/70 hover:bg-white/10 hover:text-white"
                           >
                             Tout vider
                           </Button>
                         </AlertDialogTrigger>
                       </TooltipTrigger>
-                      <TooltipContent className="rounded-xl border-none bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-primary">
+                      <TooltipContent className="rounded-xl border-none bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-accent-foreground">
                         Vider ma Box
                       </TooltipContent>
                     </Tooltip>
                     <AlertDialogContent className="rounded-[2rem] border-none p-10">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
+                        <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-foreground">
                           Vider votre Box ?
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-lg font-medium text-zinc-500">
+                        <AlertDialogDescription className="text-lg font-medium text-muted-foreground">
                           Cela supprimera tous les articles de votre sélection.
                           Êtes-vous sûr de vouloir recommencer ?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter className="mt-8 gap-4">
-                        <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-zinc-100 hover:bg-zinc-50">
+                        <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-border hover:bg-muted">
                           {t("common.cancel")}
                         </AlertDialogCancel>
                         <AlertDialogAction
@@ -164,7 +164,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 ref={closeButtonRef}
                 onClick={() => onOpenChange(false)}
                 aria-label="Fermer la Box"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D5C3F]"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -213,7 +213,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                       className="group flex gap-4"
                     >
                       {/* Image */}
-                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-100">
+                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-border bg-muted">
                         {item.imageUrl ? (
                           <img
                             src={item.imageUrl}
@@ -222,7 +222,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
-                            <ShoppingBag className="h-8 w-8 text-zinc-300" />
+                            <ShoppingBag className="h-8 w-8 text-muted-foreground" />
                           </div>
                         )}
                       </div>
@@ -231,7 +231,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                       <div className="flex flex-1 flex-col justify-between py-1">
                         <div>
                           <div className="flex items-start justify-between">
-                            <h4 className="mb-1 text-sm font-black uppercase leading-tight tracking-tight text-zinc-800">
+                            <h4 className="mb-1 text-sm font-black uppercase leading-tight tracking-tight text-foreground">
                               {item.name}
                             </h4>
 
@@ -240,7 +240,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <AlertDialogTrigger asChild>
-                                    <button className="p-1 text-zinc-300 transition-colors hover:text-rose-500">
+                                    <button className="p-1 text-muted-foreground transition-colors hover:text-rose-500">
                                       <X className="h-4 w-4" />
                                     </button>
                                   </AlertDialogTrigger>
@@ -251,19 +251,19 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                               </Tooltip>
                               <AlertDialogContent className="rounded-[2rem] border-none p-10">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
+                                  <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-foreground">
                                     Retirer l&apos;article ?
                                   </AlertDialogTitle>
-                                  <AlertDialogDescription className="text-lg font-medium text-zinc-500">
+                                  <AlertDialogDescription className="text-lg font-medium text-muted-foreground">
                                     Êtes-vous sûr de vouloir retirer{" "}
-                                    <span className="font-bold text-zinc-800">
+                                    <span className="font-bold text-foreground">
                                       {item.name}
                                     </span>{" "}
                                     de votre Box ?
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter className="mt-8 gap-4">
-                                  <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-zinc-100 hover:bg-zinc-50">
+                                  <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-border hover:bg-muted">
                                     Le garder
                                   </AlertDialogCancel>
                                   <AlertDialogAction
@@ -280,7 +280,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           </div>
 
                           {/* Unit price */}
-                          <p className="text-sm font-black text-emerald-700">
+                          <p className="text-sm font-black text-accent-foreground">
                             {formatPrice(unitPrice)}
                           </p>
 
@@ -290,7 +290,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                               {item.options.map((opt, i) => (
                                 <span
                                   key={i}
-                                  className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[9px] font-black uppercase text-emerald-600"
+                                  className="rounded-md bg-accent px-1.5 py-0.5 text-[9px] font-black uppercase text-accent-foreground"
                                 >
                                   + {opt.name}: {opt.choice}
                                 </span>
@@ -301,7 +301,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
                         {/* Quantity controls + line total */}
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center rounded-lg border border-zinc-100 bg-zinc-50 p-1">
+                          <div className="flex items-center rounded-lg border border-border bg-muted p-1">
                             {item.quantity === 1 ? (
                               <AlertDialog>
                                 <Tooltip>
@@ -309,31 +309,31 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                     <AlertDialogTrigger asChild>
                                       <button
                                         aria-label={`Retirer ${lineLabel}`}
-                                        className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-400 transition-all hover:bg-white hover:text-rose-500 hover:shadow-sm"
+                                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white hover:text-rose-500 hover:shadow-sm"
                                       >
                                         <Minus className="h-3 w-3" />
                                       </button>
                                     </AlertDialogTrigger>
                                   </TooltipTrigger>
-                                  <TooltipContent className="rounded-xl border-none bg-zinc-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                  <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
                                     Retirer
                                   </TooltipContent>
                                 </Tooltip>
                                 <AlertDialogContent className="rounded-[2rem] border-none p-10">
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
+                                    <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-foreground">
                                       Retirer l&apos;article ?
                                     </AlertDialogTitle>
-                                    <AlertDialogDescription className="text-lg font-medium text-zinc-500">
+                                    <AlertDialogDescription className="text-lg font-medium text-muted-foreground">
                                       Êtes-vous sûr de vouloir retirer{" "}
-                                      <span className="font-bold text-zinc-800">
+                                      <span className="font-bold text-foreground">
                                         {item.name}
                                       </span>{" "}
                                       de votre Box ?
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter className="mt-8 gap-4">
-                                    <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-zinc-100 hover:bg-zinc-50">
+                                    <AlertDialogCancel className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest border-border hover:bg-muted">
                                       Le garder
                                     </AlertDialogCancel>
                                     <AlertDialogAction
@@ -358,18 +358,18 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                       )
                                     }
                                     aria-label={`Diminuer la quantité de ${lineLabel}`}
-                                    className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-400 transition-all hover:bg-white hover:text-zinc-600 hover:shadow-sm"
+                                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white hover:text-muted-foreground hover:shadow-sm"
                                   >
                                     <Minus className="h-3 w-3" />
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent className="rounded-xl border-none bg-zinc-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
                                   Diminuer
                                 </TooltipContent>
                               </Tooltip>
                             )}
 
-                            <span className="w-10 text-center text-xs font-black text-zinc-800">
+                            <span className="w-10 text-center text-xs font-black text-foreground">
                               {item.quantity}
                             </span>
 
@@ -383,19 +383,19 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                     )
                                   }
                                   aria-label={`Augmenter la quantité de ${lineLabel}`}
-                                  className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-400 transition-all hover:bg-white hover:text-zinc-600 hover:shadow-sm"
+                                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white hover:text-muted-foreground hover:shadow-sm"
                                 >
                                   <Plus className="h-3 w-3" />
                                 </button>
                               </TooltipTrigger>
-                              <TooltipContent className="rounded-xl border-none bg-zinc-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                              <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
                                 Augmenter
                               </TooltipContent>
                             </Tooltip>
                           </div>
 
                           {/* Line total */}
-                          <span className="text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                          <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
                             {formatPrice(lineTotal)}
                           </span>
                         </div>
@@ -410,17 +410,17 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
         {/* Footer — summary + checkout */}
         {items.length > 0 && (
-          <div className="flex flex-col gap-4 border-t border-zinc-100 bg-zinc-50 p-8">
+          <div className="flex flex-col gap-4 border-t border-border bg-muted p-8">
             <div className="w-full space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 <span>{t("common.subtotal")}</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between pt-4">
-                <span className="text-xl font-black uppercase tracking-tighter text-zinc-800">
+                <span className="text-xl font-black uppercase tracking-tighter text-foreground">
                   {t("cart.totalPrice")}
                 </span>
-                <span className="text-2xl font-black tracking-tighter text-primary">
+                <span className="text-2xl font-black tracking-tighter text-accent-foreground">
                   {formatPrice(subtotal)}
                 </span>
               </div>
@@ -430,7 +430,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               className="mt-4 w-full"
               onClick={() => onOpenChange(false)}
             >
-              <Button className="group h-16 w-full rounded-2xl bg-primary text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 hover:bg-primary-hover">
+              <Button className="group h-16 w-full rounded-2xl bg-primary text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-primary/10 hover:bg-primary-hover">
                 {t("cart.orderNow")}
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>

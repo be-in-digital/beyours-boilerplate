@@ -57,7 +57,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
         {trigger ?? (
           <Button
             variant="outline"
-            className="h-14 w-full rounded-2xl border-2 border-orange-200 bg-orange-50 font-black uppercase tracking-widest text-orange-700 transition-all hover:border-orange-300 hover:bg-orange-100"
+            className="h-14 w-full rounded-2xl border-2 border-primary/20 bg-accent font-black uppercase tracking-widest text-accent-foreground transition-all hover:border-primary/20 hover:bg-accent"
           >
             <LogIn className="mr-2 h-5 w-5" />
             Se connecter
@@ -93,7 +93,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="jean@exemple.fr"
-              className="h-14 rounded-2xl border-transparent bg-zinc-50 px-6 text-sm font-medium transition-all focus:bg-white focus:ring-emerald-500/20"
+              className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
             />
           </div>
 
@@ -108,12 +108,12 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="Votre mot de passe"
-                className="h-14 rounded-2xl border-transparent bg-zinc-50 px-6 pr-14 text-sm font-medium transition-all focus:bg-white focus:ring-emerald-500/20"
+                className="h-14 rounded-2xl border-transparent bg-muted px-6 pr-14 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 transition-colors hover:text-zinc-600"
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-muted-foreground"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -123,7 +123,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
           <Button
             type="submit"
             disabled={loading}
-            className="h-14 w-full rounded-2xl bg-primary font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-primary-hover"
+            className="h-14 w-full rounded-2xl bg-primary font-black uppercase tracking-widest text-white shadow-xl shadow-primary/10 transition-all hover:bg-primary-hover"
           >
             {loading ? (
               <span className="flex items-center gap-2">
@@ -135,11 +135,11 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
             )}
           </Button>
 
-          <p className="text-center text-sm text-zinc-500">
+          <p className="text-center text-sm text-muted-foreground">
             Pas encore de compte ?{" "}
             <Link
               href="/sign-up"
-              className="font-bold text-primary hover:underline"
+              className="font-bold text-accent-foreground hover:underline"
             >
               Créer un compte
             </Link>

@@ -8,11 +8,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 const send = vi.fn()
+const isAuthenticated = vi.fn(async () => false)
 
 vi.mock("@aws-sdk/client-s3", () => ({
   S3Client: vi.fn(() => ({ send })),
   GetObjectCommand: vi.fn((input: unknown) => ({ input })),
 }))
+
+// Stubbed rather than exercised: `@/lib/convex` builds a Better Auth client
+// from NEXT_PUBLIC_CONVEX_URL at first call, and there is no deployment here.
+// What these tests are about is which folders the route ASKS the question for.
+vi.mock("@/lib/convex", () => ({ isAuthenticated: () => isAuthenticated() }))
 
 const { GET } = await import("@/app/api/files/[...key]/route")
 
@@ -34,6 +40,8 @@ function s3Object(body: string, contentType = "image/webp") {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // The default is the storefront visitor: nobody is signed in.
+  isAuthenticated.mockResolvedValue(false)
   process.env.AWS_S3_BUCKET_NAME = "test-bucket"
   process.env.AWS_REGION = "eu-west-3"
   process.env.AWS_ACCESS_KEY_ID = "test"
@@ -65,7 +73,7 @@ describe("GET /api/files/:key", () => {
     )
   })
 
-  it.each(["products", "branding", "stores", "cms", "email", "users"])(
+  it.each(["products", "branding", "stores", "cms", "email"])(
     "serves the %s folder the product uploads to",
     async (folder) => {
       send.mockResolvedValue(s3Object("bytes"))
@@ -134,6 +142,77 @@ describe("GET /api/files/:key", () => {
     delete process.env.AWS_S3_BUCKET_NAME
 
     expect((await get("cms/x.webp")).status).toBe(500)
+  })
+})
+
+/**
+ * The prefix split (#188).
+ *
+ * `users/` and `avatars/` hold what an account holder uploaded about
+ * themselves. They used to ride this same anonymous path, guarded only by the
+ * `crypto.randomUUID()` in the key — unguessable-URL secrecy, which a referrer
+ * header, a shared link, a support screenshot or a database export undoes, and
+ * which cannot be revoked once undone.
+ *
+ * The gate is "signed in", not "signed in as the owner": keys carry no account,
+ * so ownership cannot be decided from the request without a new key shape and a
+ * migration of what is already stored.
+ */
+describe("GET /api/files/:key — the folders that need a session", () => {
+  it.each(["users", "avatars"])(
+    "refuses %s to a caller with no session",
+    async (folder) => {
+      send.mockResolvedValue(s3Object("bytes"))
+
+      const response = await get(`${folder}/a-uuid.webp`)
+
+      expect(response.status).toBe(404)
+      // Never reached S3: the refusal cannot be told apart from a key that is
+      // not there, so it leaks nothing about what the bucket holds.
+      expect(send).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each(["users", "avatars"])("serves %s to a signed-in caller", async (folder) => {
+    isAuthenticated.mockResolvedValue(true)
+    send.mockResolvedValue(s3Object("bytes"))
+
+    const response = await get(`${folder}/a-uuid.webp`)
+
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe("bytes")
+  })
+
+  it("never asks for a session to serve the storefront's own media", async () => {
+    // The invariant that makes this a prefix split rather than an
+    // authenticated proxy. A visitor to the public site has no session, so a
+    // session check on a menu photo is a blank page.
+    send.mockResolvedValue(s3Object("bytes"))
+
+    for (const folder of ["products", "categories", "cms", "branding", "blogs"]) {
+      expect((await get(`${folder}/x.webp`)).status).toBe(200)
+    }
+    expect(isAuthenticated).not.toHaveBeenCalled()
+  })
+
+  it("keeps a private response out of every shared cache", async () => {
+    // The half that is easy to omit. Gating the route buys nothing if the
+    // response still says `public`: a CDN or a corporate proxy keeps the bytes
+    // and hands them to the next caller, who has no session.
+    isAuthenticated.mockResolvedValue(true)
+    send.mockResolvedValue(s3Object("bytes", "image/png"))
+
+    const response = await get("users/a-uuid.png")
+
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store")
+  })
+
+  it("still caches a storefront image for a year", async () => {
+    send.mockResolvedValue(s3Object("bytes", "image/png"))
+
+    expect((await get("products/x.png")).headers.get("Cache-Control")).toBe(
+      "public, max-age=31536000, immutable"
+    )
   })
 })
 

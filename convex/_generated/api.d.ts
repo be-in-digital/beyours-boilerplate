@@ -105,6 +105,7 @@ import type * as stripeWebhook from "../stripeWebhook.js";
 import type * as stripeWebhookVerify from "../stripeWebhookVerify.js";
 import type * as sumup from "../sumup.js";
 import type * as system from "../system.js";
+import type * as systemBackupOffsite from "../systemBackupOffsite.js";
 import type * as systemInternal from "../systemInternal.js";
 import type * as teamMembers from "../teamMembers.js";
 import type * as teamMembersEmail from "../teamMembersEmail.js";
@@ -228,6 +229,7 @@ declare const fullApi: ApiFromModules<{
   stripeWebhookVerify: typeof stripeWebhookVerify;
   sumup: typeof sumup;
   system: typeof system;
+  systemBackupOffsite: typeof systemBackupOffsite;
   systemInternal: typeof systemInternal;
   teamMembers: typeof teamMembers;
   teamMembersEmail: typeof teamMembersEmail;

@@ -24,6 +24,10 @@ import { afterEach, describe, expect, test } from "vitest"
 import { internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
+import {
+  BACKUP_TABLES,
+  DEFERRED_REMAP_TABLES,
+} from "@be-in-digital/convex-functions/backupTables"
 
 const modules = import.meta.glob("../../convex/**/*.ts")
 
@@ -145,26 +149,41 @@ async function seedCatalogue(
   })
 }
 
-/** What `exportTable` writes into the backup file: whole rows, `_id` included. */
+/**
+ * What `exportTable` writes into the backup file: whole rows, `_id` included,
+ * with the single-use credentials stripped.
+ *
+ * Goes through the real internal query rather than reading the table directly,
+ * so the redaction of `teamMembers.invitationToken` and
+ * `emailSubscribers.doubleOptInToken` is exercised by every test that exports.
+ */
 async function exportTables(
   t: ReturnType<typeof convexTest>,
-  tables: readonly ("stores" | "categories" | "products")[]
+  tables: readonly string[]
 ) {
   const data: Record<string, Record<string, unknown>[]> = {}
   for (const table of tables) {
-    data[table] = await t.run((ctx) => ctx.db.query(table).collect())
+    data[table] = await t.query(internal.systemInternal.exportTable, {
+      tableName: table,
+    })
   }
   return data
 }
 
-/** Run the restore the way `system.importBackup` does: in dependency order. */
+/**
+ * Run the restore the way `system.importBackup` does.
+ *
+ * `BACKUP_TABLES` rather than a list written out here, so a table added to the
+ * backup is covered by these tests without anyone remembering to add it — and
+ * so a restore that goes wrong because the ORDER changed fails here.
+ */
 async function restore(
   t: ReturnType<typeof convexTest>,
   data: Record<string, Record<string, unknown>[]>
 ) {
   const idMap: Record<string, string> = {}
 
-  for (const tableName of ["stores", "categories", "products"] as const) {
+  for (const tableName of BACKUP_TABLES) {
     const rows = data[tableName]
     if (!rows) continue
     const result = await t.mutation(internal.systemInternal.importTable, {
@@ -175,11 +194,68 @@ async function restore(
     Object.assign(idMap, result.idMap)
   }
 
+  // The second pass over the tables whose edges the order breaks on purpose.
+  for (const tableName of DEFERRED_REMAP_TABLES) {
+    await t.mutation(internal.systemInternal.remapDeferredReferences, {
+      tableName,
+      idMap,
+    })
+  }
+
   const profiles = await t.mutation(internal.systemInternal.remapProfileStores, {
     idMap,
   })
 
   return { idMap, profiles }
+}
+
+
+/**
+ * One paid order, its payment, its kitchen ticket, and the invoice issued for
+ * it — the four tables a restore used to reach zero of.
+ */
+async function seedTrade(
+  t: ReturnType<typeof convexTest>,
+  storeId: Id<"stores">,
+  productId: Id<"products">
+) {
+  return t.run(async (ctx) => {
+    const orderId = await ctx.db.insert("orders", {
+      storeId,
+      orderNumber: "CMD-000042",
+      customerInfo: { name: "Camille Ferrand", email: "camille@example.fr" },
+      type: "pickup" as const,
+      status: "completed" as const,
+      items: [
+        {
+          productId,
+          productName: "Margherita",
+          quantity: 2,
+          unitPrice: 1200,
+          selectedOptions: [],
+          subtotal: 2400,
+        },
+      ],
+      subtotal: 2400,
+      taxAmount: 218,
+      total: 2400,
+      paymentStatus: "paid" as const,
+      source: "website" as const,
+      createdAt: NOW,
+      updatedAt: NOW,
+    })
+    const paymentId = await ctx.db.insert("payments", {
+      orderId,
+      storeId,
+      amount: 2400,
+      currency: "EUR",
+      provider: "stripe" as const,
+      status: "succeeded" as const,
+      createdAt: NOW,
+      updatedAt: NOW,
+    })
+    return { orderId, paymentId }
+  })
 }
 
 // ============================================================================
@@ -332,5 +408,130 @@ describe("restoring a backup", () => {
 
     const stores = await t.run((ctx) => ctx.db.query("stores").collect())
     expect(stores.map((s) => s.name)).toEqual(["Pizzeria Napoli"])
+  })
+})
+
+/**
+ * The half of #169 the maintenance fee was sold on.
+ *
+ * `exportBackup` covered 22 of 77 tables and `orders`, `payments` and
+ * `kitchenTickets` were not among them, so a restore reached **zero orders**:
+ * the establishment's trading history simply was not in the file. The pricing
+ * page said « Sauvegardes automatiques quotidiennes de vos données ».
+ */
+describe("a restore that includes the trade", () => {
+  test("brings back the seeded orders, still attached to their establishment", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t, "Pizzeria Napoli")
+    const { categoryId, productId } = await seedCatalogue(t, storeId)
+    await seedTrade(t, storeId, productId)
+    expect(categoryId).toBeDefined()
+
+    const backup = await exportTables(t, [
+      "stores",
+      "categories",
+      "products",
+      "orders",
+      "payments",
+    ])
+    // The file carries them, which it did not before.
+    expect(backup.orders).toHaveLength(1)
+
+    await restore(t, backup)
+
+    const { store, orders, payments } = await t.run(async (ctx) => ({
+      store: (await ctx.db.query("stores").collect())[0],
+      orders: await ctx.db.query("orders").collect(),
+      payments: await ctx.db.query("payments").collect(),
+    }))
+
+    expect(orders).toHaveLength(1)
+    expect(orders[0]?.orderNumber).toBe("CMD-000042")
+    expect(orders[0]?.total).toBe(2400)
+    // The store came back under a NEW id, and the order followed it.
+    expect(orders[0]?.storeId).toBe(store?._id)
+    // And the payment followed the order, which also moved.
+    expect(payments).toHaveLength(1)
+    expect(payments[0]?.orderId).toBe(orders[0]?._id)
+  })
+
+  test("re-points the kitchen station mapping at the categories it came back as", async () => {
+    /* The cycle the import order has to break: `stores.stationMapping[].categoryId`
+       names a category, and `categories` names a store, so whichever is imported
+       first restores a reference the map cannot yet resolve. `stores` goes first
+       because everything else depends on it — which left the kitchen routing
+       naming categories that no longer existed. Silently: `v.id("categories")`
+       validates an id's encoding, not that it resolves, so every ticket fell
+       through to the single-station behaviour. */
+    const t = newHarness()
+    const storeId = await seedStore(t, "Pizzeria Napoli")
+    const { categoryId } = await seedCatalogue(t, storeId)
+    await t.run((ctx) =>
+      ctx.db.patch(storeId, {
+        kitchenStations: ["chaud", "froid"],
+        stationMapping: [{ categoryId, station: "chaud" }],
+      })
+    )
+
+    const backup = await exportTables(t, ["stores", "categories", "products"])
+    await restore(t, backup)
+
+    const { store, categories } = await t.run(async (ctx) => ({
+      store: (await ctx.db.query("stores").collect())[0],
+      categories: await ctx.db.query("categories").collect(),
+    }))
+
+    expect(store?.stationMapping?.[0]?.categoryId).toBe(categories[0]?._id)
+    expect(store?.stationMapping?.[0]?.station).toBe("chaud")
+  })
+
+  test("strips a live invitation token on the way out", async () => {
+    /* A backup is a JSON file an administrator downloads to a laptop. An
+       unexpired invitation token in it grants a role to whoever opens the link. */
+    const t = newHarness()
+    const storeId = await seedStore(t, "Pizzeria Napoli")
+    await t.run((ctx) =>
+      ctx.db.insert("teamMembers", {
+        storeId,
+        allStores: false,
+        name: "Nadia Bonnet",
+        email: "nadia@example.fr",
+        role: "manager" as const,
+        permissions: [],
+        invitationStatus: "pending" as const,
+        invitationToken: "tok_live_do_not_export",
+        isActive: true,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+
+    const backup = await exportTables(t, ["teamMembers"])
+
+    expect(backup.teamMembers).toHaveLength(1)
+    // The member is carried — a restore that loses the team is a restore that
+    // locks people out — but the credential is not.
+    expect(backup.teamMembers?.[0]?.name).toBe("Nadia Bonnet")
+    expect(backup.teamMembers?.[0]).not.toHaveProperty("invitationToken")
+  })
+
+  test("refuses to import the fiscal archive it happily exports", async () => {
+    /* art. 242 nonies A CGI, and `tables/invoices.ts` states it in the schema:
+       an invoice is never edited and never deleted, so a restore must not
+       delete-and-re-insert the series. The export carries them regardless — a
+       backup that loses an establishment's invoices is not a backup of that
+       establishment. */
+    const t = newHarness()
+
+    await expect(
+      t.query(internal.systemInternal.exportTable, { tableName: "invoices" })
+    ).resolves.toEqual([])
+
+    await expect(
+      t.mutation(internal.systemInternal.importTable, {
+        tableName: "invoices",
+        rows: [],
+      })
+    ).rejects.toThrow(/non autorisée pour l'import/)
   })
 })

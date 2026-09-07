@@ -3,6 +3,12 @@ import {
   buildFileResponseHeaders,
   isInlineSafeContentType,
 } from "../file-serving"
+// The import-free subpath, not `@/lib/aws`: that barrel re-exports the SES and
+// S3 services and would drag the AWS SDK into a test about two string lists.
+import {
+  PRIVATE_S3_FOLDERS,
+  isPrivateS3Folder,
+} from "@be-in-digital/core/aws/folders"
 
 const headersFor = (contentType: string | undefined) =>
   buildFileResponseHeaders({ contentType, contentLength: 42 })
@@ -109,5 +115,69 @@ describe("buildFileResponseHeaders", () => {
         "Content-Length"
       ],
     ).toBe("1234")
+  })
+
+  it("refuses a shared cache for a response that needed a session", () => {
+    // The half of #188 that is easy to leave out. Gating the route buys
+    // nothing if the response still says `public`: a CDN or a corporate proxy
+    // keeps the bytes and serves them to the next caller, who has no session.
+    const headers = buildFileResponseHeaders({
+      contentType: "image/png",
+      contentLength: 42,
+      isPrivate: true,
+    })
+    expect(headers["Cache-Control"]).toBe("private, no-store")
+  })
+
+  it("still caches the storefront's own media for a year", () => {
+    // The gate is a prefix split, not a policy change: menu photos, blog
+    // covers and branding are public and stay cacheable. A regression here
+    // costs every storefront visitor a round trip per image.
+    expect(
+      buildFileResponseHeaders({
+        contentType: "image/png",
+        contentLength: 42,
+        isPrivate: false,
+      })["Cache-Control"],
+    ).toBe("public, max-age=31536000, immutable")
+  })
+})
+
+describe("which folders the proxy will serve anonymously", () => {
+  it("gates exactly the two folders that hold a person's own upload", () => {
+    // Named rather than derived: this list is a security boundary, and a test
+    // that recomputes it from the same constant would pass however the
+    // constant changed.
+    expect([...PRIVATE_S3_FOLDERS].sort()).toEqual(["avatars", "users"])
+  })
+
+  it.each(["users", "avatars"])("requires a session for %s", (folder) => {
+    expect(isPrivateS3Folder(folder)).toBe(true)
+  })
+
+  it.each([
+    "products",
+    "categories",
+    "cms",
+    "branding",
+    "stores",
+    "storefront",
+    "blogs",
+    "blog-auto",
+    "email",
+  ])("keeps %s anonymous, because the storefront renders it", (folder) => {
+    // A visitor to the public site has no session. Gating any of these breaks
+    // the storefront outright, which is why #188 was a prefix split and not an
+    // authenticated proxy.
+    expect(isPrivateS3Folder(folder)).toBe(false)
+  })
+
+  it("does not treat an unknown folder as private", () => {
+    // Not laxity: `SERVABLE_FOLDERS` has already refused anything outside
+    // `S3_FOLDERS` by the time this is asked, so an unknown name never reaches
+    // S3 at all. Answering "private" here would only mislead a future reader
+    // into thinking this function is the allow-list.
+    expect(isPrivateS3Folder("../../etc")).toBe(false)
+    expect(isPrivateS3Folder("secrets")).toBe(false)
   })
 })

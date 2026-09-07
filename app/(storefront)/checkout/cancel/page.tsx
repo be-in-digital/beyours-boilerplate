@@ -20,21 +20,21 @@ function CheckoutCancelContent() {
   const orderId = useSearchParams().get("orderId") ?? undefined
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-4 pb-20 pt-32">
+    <div className="min-h-screen bg-muted px-4 pb-20 pt-32">
       <div className="mx-auto max-w-xl text-center">
         <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-amber-100 text-amber-600">
           <XCircle className="h-12 w-12" />
         </div>
 
-        <h1 className="mb-4 text-4xl font-black uppercase italic tracking-tighter text-zinc-800">
-          Paiement <span className="not-italic text-orange-600 dark:text-orange-400">annulé</span>
+        <h1 className="mb-4 text-4xl font-black uppercase italic tracking-tighter text-foreground">
+          Paiement <span className="not-italic text-accent-foreground">annulé</span>
         </h1>
 
-        <p className="mb-2 text-lg leading-relaxed text-zinc-500">
+        <p className="mb-2 text-lg leading-relaxed text-muted-foreground">
           Vous n&apos;avez pas été débité. Votre panier est intact.
         </p>
         {orderId && (
-          <p className="mb-8 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mb-8 text-sm text-muted-foreground">
             La commande #{orderId.slice(-6).toUpperCase()} reste en attente de
             paiement.
           </p>
@@ -49,7 +49,7 @@ function CheckoutCancelContent() {
           <Link href="/cart">
             <Button
               variant="outline"
-              className="h-14 rounded-2xl border-zinc-200 px-8 font-black uppercase tracking-widest transition-all"
+              className="h-14 rounded-2xl border-border px-8 font-black uppercase tracking-widest transition-all"
             >
               Revoir mon panier
             </Button>

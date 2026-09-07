@@ -32,7 +32,7 @@ import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { emailSender, sendEmail } from "./emailTransport";
 import { renderOrderConfirmation } from "@be-in-digital/core/aws/ses/order-confirmation";
 
 async function sendViaSES(params: {
@@ -44,38 +44,34 @@ async function sendViaSES(params: {
   fromEmail?: string;
   replyToEmail?: string;
 }) {
-  const region = process.env.AWS_REGION ?? "eu-west-3";
-  const fromEmail =
-    params.fromEmail ||
-    process.env.AWS_SES_FROM_EMAIL ||
-    "noreply@beindigital.fr";
+  // No `noreply@beindigital.fr` fallback any more. That address is the
+  // agency's: a client's own SES account cannot sign for it, so the fallback
+  // turned "onboarding is not finished" into a confirmation that bounces
+  // without anyone being told. Refusing names the problem instead — and the
+  // caller at :252 already handles a missing sender that way.
+  const fromEmail = params.fromEmail || emailSender();
+  if (!fromEmail) {
+    throw new Error(
+      "aucun expéditeur : ni la configuration de l'établissement ni AWS_SES_FROM_EMAIL n'est renseigné"
+    );
+  }
 
-  const client = new SESv2Client({
-    region,
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
+  const outcome = await sendEmail({
+    from: fromEmail,
+    to: params.toEmail,
+    subject: params.subject,
+    html: params.htmlBody,
+    text: params.textBody,
+    ...(params.replyToEmail ? { replyTo: params.replyToEmail } : {}),
   });
 
-  const command = new SendEmailCommand({
-    FromEmailAddress: fromEmail,
-    Destination: { ToAddresses: [params.toEmail] },
-    ...(params.replyToEmail
-      ? { ReplyToAddresses: [params.replyToEmail] }
-      : {}),
-    Content: {
-      Simple: {
-        Subject: { Data: params.subject, Charset: "UTF-8" },
-        Body: {
-          Html: { Data: params.htmlBody, Charset: "UTF-8" },
-          Text: { Data: params.textBody, Charset: "UTF-8" },
-        },
-      },
-    },
-  });
-
-  await client.send(command);
+  // This one THROWS where the transport reports, because its caller runs under
+  // a confirmation claim it has to release on failure — see
+  // `releaseConfirmationClaim`. Swallowing here would strand the claim and the
+  // diner would never get a second attempt.
+  if (!outcome.sent) {
+    throw new Error(outcome.error ?? "envoi refusé par le fournisseur");
+  }
 }
 
 /**

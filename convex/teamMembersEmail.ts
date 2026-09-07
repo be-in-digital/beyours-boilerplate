@@ -3,7 +3,7 @@
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { sendFromDeployment } from "./emailTransport";
 import { randomUUID } from "crypto";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -16,40 +16,25 @@ const ROLE_LABELS: Record<string, string> = {
 /**
  * Send an email using AWS SES v2 SDK
  */
+/**
+ * One invitation, through whichever provider this deployment uses.
+ *
+ * Was an inline `SESv2Client` plus a `noreply@beindigital.fr` fallback —
+ * the agency's address, which a client's own SES account cannot sign for. Both
+ * now come from `emailTransport`, which reads `EMAIL_PROVIDER` (#212).
+ */
 async function sendViaSES(params: {
   toEmail: string;
   subject: string;
   htmlBody: string;
   textBody: string;
 }) {
-  const region = process.env.AWS_REGION ?? "eu-west-3";
-  const fromEmail =
-    process.env.AWS_SES_FROM_EMAIL ?? "noreply@beindigital.fr";
-
-  const client = new SESv2Client({
-    region,
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
+  return sendFromDeployment({
+    to: params.toEmail,
+    subject: params.subject,
+    html: params.htmlBody,
+    text: params.textBody,
   });
-
-  const command = new SendEmailCommand({
-    FromEmailAddress: fromEmail,
-    Destination: { ToAddresses: [params.toEmail] },
-    Content: {
-      Simple: {
-        Subject: { Data: params.subject, Charset: "UTF-8" },
-        Body: {
-          Html: { Data: params.htmlBody, Charset: "UTF-8" },
-          Text: { Data: params.textBody, Charset: "UTF-8" },
-        },
-      },
-    },
-  });
-
-  const result = await client.send(command);
-  return result;
 }
 
 /**

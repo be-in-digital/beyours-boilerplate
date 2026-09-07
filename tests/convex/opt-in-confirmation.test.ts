@@ -80,6 +80,25 @@ beforeEach(() => {
   sesSends.length = 0
   vi.stubEnv("CONVEX_SITE_URL", SITE_URL)
   vi.stubEnv("AWS_SES_FROM_EMAIL", "no-reply@chez-luigi.fr")
+  /*
+   * The credentials, stubbed because the send path now RESOLVES a provider
+   * before it composes anything and refuses when the deployment has none.
+   *
+   * That refusal is the point of #212: a client whose SES production-access
+   * request was turned down should be told so, not handed an opaque signature
+   * error from the SDK four calls later. The inline `SESv2Client` this
+   * replaced read the same variables through a `!` and never looked, so a
+   * suite with no credentials used to reach the mock regardless.
+   *
+   * So these are fixtures describing a configured deployment, not inputs the
+   * suite depends on — hence `vi.stubEnv` rather than assigning onto the
+   * environment object, which the guard in `__tests__/turbo-test-env.test.ts`
+   * would read as a dependency and demand be declared in turbo.json. The SDK
+   * itself is mocked above; nothing here signs anything.
+   */
+  vi.stubEnv("AWS_REGION", "eu-west-3")
+  vi.stubEnv("AWS_ACCESS_KEY_ID", "AKIA-test")
+  vi.stubEnv("AWS_SECRET_ACCESS_KEY", "secret-test")
 })
 
 /**
@@ -135,6 +154,27 @@ function scheduledNames(t: ReturnType<typeof convexTest>) {
   })
 }
 
+/**
+ * Drop what `subscribe` queued.
+ *
+ * `emailSubscribers.subscribe` schedules `sendConfirmation`, so a test that
+ * ALSO invokes the action by hand gets two runs of it — and which of them
+ * reaches the transport before the assertion is a race. It used to be won
+ * consistently by the explicit call, so `toHaveLength(1)` passed; #212 shortened
+ * the path to the provider by one hop and the scheduled run started arriving
+ * first, which is a fact about the test rather than about the product. Nothing
+ * outside the tests calls `sendConfirmation` directly — the scheduler is its
+ * only caller.
+ */
+async function dropScheduled(t: ReturnType<typeof convexTest>) {
+  await t.run(async (ctx) => {
+    const jobs = await ctx.db.system.query("_scheduled_functions").collect()
+    for (const job of jobs) {
+      if (job.state.kind === "pending") await ctx.scheduler.cancel(job._id)
+    }
+  })
+}
+
 function onlySubscriber(t: ReturnType<typeof convexTest>) {
   return t.run(async (ctx) => (await ctx.db.query("emailSubscribers").collect())[0])
 }
@@ -165,6 +205,7 @@ describe("signing up from the storefront", () => {
       email: "yanis@resto.example",
     })
     const subscriber = await onlySubscriber(t)
+    await dropScheduled(t)
 
     await t.action(internal.emailAutomationActions.sendConfirmation, {
       subscriberId: subscriber!._id,

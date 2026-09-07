@@ -104,6 +104,25 @@ crons.cron(
   {},
 );
 
+// The nightly backup. Every table the export carries, written to the client's
+// own S3 bucket under `backups/`, kept 30 days by a lifecycle rule.
+//
+// `grep backup` in this file returned nothing until now, and `exportBackup`'s
+// only caller was a button that downloaded a Blob to whatever laptop the
+// administrator was sitting at — while the maintenance fee was sold on
+// « Sauvegardes automatiques quotidiennes de vos données et contenus » (#366).
+//
+// 1:30am UTC, and the hour is chosen rather than free: it is before the three
+// destructive nightly jobs (kitchen tickets at 2:30, customer data at 3:15,
+// invitations at 4:00), so a copy exists of what they are about to carry away.
+// A backup taken after the purge cannot restore what the purge removed.
+crons.cron(
+  "nightly backup",
+  "30 1 * * *",
+  internal.systemBackupOffsite.runNightlyBackup,
+  {},
+);
+
 // Queue the articles an Auto Blog subscription is due. Hourly, because
 // `preferredHour` is an hour: the planner asks each configuration whether this
 // is its hour in its own timezone, and writes a queue row if it is. It calls

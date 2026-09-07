@@ -108,13 +108,13 @@ function CheckoutPayContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-zinc-50 px-4 pb-20 pt-32">
+      <div className="min-h-screen bg-muted px-4 pb-20 pt-32">
         <div className="mx-auto max-w-xl text-center">
           <AlertTriangle className="mx-auto mb-8 h-12 w-12 text-amber-500" />
-          <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
+          <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-foreground">
             Paiement indisponible
           </h1>
-          <p className="mb-8 text-lg text-zinc-500">{error}</p>
+          <p className="mb-8 text-lg text-muted-foreground">{error}</p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Link href="/checkout">
               <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
@@ -124,7 +124,7 @@ function CheckoutPayContent() {
             <Link href="/cart">
               <Button
                 variant="outline"
-                className="h-14 rounded-2xl border-zinc-200 px-8 font-black uppercase tracking-widest transition-all"
+                className="h-14 rounded-2xl border-border px-8 font-black uppercase tracking-widest transition-all"
               >
                 Revoir mon panier
               </Button>
@@ -136,18 +136,18 @@ function CheckoutPayContent() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-4 pb-20 pt-32">
+    <div className="min-h-screen bg-muted px-4 pb-20 pt-32">
       <div className="mx-auto max-w-xl">
-        <h1 className="mb-2 text-center text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
-          Paiement <span className="not-italic text-orange-600 dark:text-orange-400">sécurisé</span>
+        <h1 className="mb-2 text-center text-3xl font-black uppercase italic tracking-tighter text-foreground">
+          Paiement <span className="not-italic text-accent-foreground">sécurisé</span>
         </h1>
-        <p className="mb-8 text-center text-sm text-zinc-500">
+        <p className="mb-8 text-center text-sm text-muted-foreground">
           Réglez par carte pour finaliser votre commande.
         </p>
 
         {!ready && (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-zinc-500 dark:text-zinc-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         )}
 
@@ -157,7 +157,7 @@ function CheckoutPayContent() {
           aria-live="polite"
         />
 
-        <p className="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-6 text-center text-xs text-muted-foreground">
           Ne fermez pas cette page pendant le traitement.
         </p>
       </div>

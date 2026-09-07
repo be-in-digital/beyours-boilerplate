@@ -93,7 +93,7 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
     return (
       <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-[2.5rem] border border-zinc-100 bg-white">
+          <div key={i} className="overflow-hidden rounded-[2.5rem] border border-border bg-white">
             <Skeleton className="aspect-[4/3] w-full" />
             <div className="p-8 space-y-3">
               <Skeleton className="h-5 w-3/4" />
@@ -123,7 +123,7 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
           <EmptyTitle>Aucun favori</EmptyTitle>
           <EmptyDescription>Ajoutez des plats à vos favoris depuis le menu.</EmptyDescription>
         </EmptyHeader>
-        <Link href="/menu" className="text-primary hover:underline text-sm">
+        <Link href="/menu" className="text-accent-foreground hover:underline text-sm">
           Voir le menu
         </Link>
       </Empty>
@@ -154,7 +154,7 @@ export function FavoritesGrid({ storeId }: FavoritesGridProps) {
       {/* Other store favorites */}
       {otherStoreFavorites.length > 0 && (
         <div>
-          <h3 className="mb-8 font-black text-xs uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+          <h3 className="mb-8 font-black text-xs uppercase tracking-widest text-muted-foreground">
             Autres restaurants
           </h3>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">

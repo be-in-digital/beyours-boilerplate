@@ -95,7 +95,16 @@
     --chart-5: 280 65% 60%;
 
     /* Restaurant-specific tokens */
-    --success: 142 76% 36%;
+    /*
+     * `--success` was `142 76% 36%`, which is 3.35:1 on white — below the 4.5:1
+     * WCAG AA floor for text, and below it for white text ON the colour too, so
+     * neither `text-success` nor `bg-success` could carry a word legibly. It
+     * had exactly one use (a design-system swatch), so the storefront spelled
+     * `text-emerald-600` instead and inherited 3.77:1. 28% lightness reads at
+     * 5.18:1 on white and 4.72:1 on `--muted`, the two surfaces it lands on.
+     * See #168.
+     */
+    --success: 142 76% 28%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 224 71% 4%;
@@ -140,8 +149,10 @@
     --chart-5: 340 75% 55%;
 
     /* Restaurant-specific tokens - dark mode */
-    --success: 142 76% 36%;
-    --success-foreground: 210 20% 98%;
+    /* Light enough to read on the dark ground (11:1), so the foreground that
+     * pairs with it is the dark one — the same inversion `--primary` makes. */
+    --success: 142 60% 60%;
+    --success-foreground: 224 71% 4%;
     --warning: 38 92% 50%;
     --warning-foreground: 224 71% 4%;
     --info: 217 91% 60%;

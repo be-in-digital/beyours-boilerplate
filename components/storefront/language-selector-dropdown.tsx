@@ -73,7 +73,7 @@ export function LanguageSelectorDropdown({
                 className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                   isTransparent
                     ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    : "bg-white border-zinc-100 shadow-sm text-primary hover:bg-zinc-50"
+                    : "bg-white border-border shadow-sm text-accent-foreground hover:bg-muted"
                 }`}
                 aria-label={label}
               >
@@ -88,9 +88,9 @@ export function LanguageSelectorDropdown({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-56 p-2 rounded-2xl border border-zinc-100 bg-white shadow-xl"
+        className="w-56 p-2 rounded-2xl border border-border bg-white shadow-xl"
       >
-        <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 px-3 pt-2 pb-3">
+        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground px-3 pt-2 pb-3">
           {label}
         </h3>
 
@@ -109,11 +109,11 @@ export function LanguageSelectorDropdown({
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors flex items-center gap-3 ${
                   isSelected
                     ? "bg-primary/10 border border-primary/20"
-                    : "hover:bg-zinc-50 border border-transparent"
+                    : "hover:bg-muted border border-transparent"
                 }`}
               >
                 {flag && <span className="text-base">{flag}</span>}
-                <span className="text-sm font-bold text-zinc-900">
+                <span className="text-sm font-bold text-foreground">
                   {lang.nativeName}
                 </span>
               </button>

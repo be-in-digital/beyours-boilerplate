@@ -93,12 +93,12 @@ export function OrderSummary({
     <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
       {/* Header */}
       <div className="p-8 pb-0">
-        <h2 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-800">
+        <h2 className="text-2xl font-black uppercase italic tracking-tighter text-foreground">
           Votre Box
         </h2>
-        <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+        <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           <span>Articles ({itemCount})</span>
-          <Link href="/cart" className="text-emerald-600 hover:underline">
+          <Link href="/cart" className="text-accent-foreground hover:underline">
             Modifier
           </Link>
         </div>
@@ -120,7 +120,7 @@ export function OrderSummary({
                 className="flex gap-4"
               >
                 {/* Image */}
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-100 bg-zinc-50">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
                   {item.imageUrl ? (
                     <Image
                       src={item.imageUrl}
@@ -131,7 +131,7 @@ export function OrderSummary({
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center">
-                      <ShoppingBag className="h-5 w-5 text-zinc-300" />
+                      <ShoppingBag className="h-5 w-5 text-muted-foreground" />
                     </div>
                   )}
                   {/* Quantity badge */}
@@ -142,16 +142,16 @@ export function OrderSummary({
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <h4 className="truncate text-sm font-black uppercase tracking-tight text-zinc-800">
+                  <h4 className="truncate text-sm font-black uppercase tracking-tight text-foreground">
                     {item.name}
                   </h4>
                   {item.options.length > 0 && (
-                    <p className="mt-0.5 truncate text-[10px] font-black uppercase text-emerald-600">
+                    <p className="mt-0.5 truncate text-[10px] font-black uppercase text-accent-foreground">
                       +{" "}
                       {item.options.map((o) => o.choice).join(", ")}
                     </p>
                   )}
-                  <p className="mt-1 text-xs font-bold text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-1 text-xs font-bold text-muted-foreground">
                     {formatPrice(lineTotal)}
                   </p>
                 </div>
@@ -164,18 +164,18 @@ export function OrderSummary({
       {/* Promo Code */}
       {onApplyPromo && (
         <div className="px-8 pb-2">
-          <Separator className="mb-6 bg-zinc-100" />
+          <Separator className="mb-6 bg-muted" />
 
           {!appliedPromo && automaticOffer && (
-            <div className="mb-4 flex items-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
-                <Tag className="h-4 w-4 text-emerald-600" />
+            <div className="mb-4 flex items-center gap-3 rounded-2xl border-2 border-primary/20 bg-accent/50 p-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
+                <Tag className="h-4 w-4 text-accent-foreground" />
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
+                <p className="text-xs font-black uppercase tracking-widest text-accent-foreground">
                   Offre automatique
                 </p>
-                <p className="text-[10px] font-medium text-emerald-600">
+                <p className="text-[10px] font-medium text-accent-foreground">
                   {automaticOffer.name} — -{formatPrice(automaticOffer.discountAmount)}
                 </p>
               </div>
@@ -183,16 +183,16 @@ export function OrderSummary({
           )}
 
           {appliedPromo ? (
-            <div className="flex items-center justify-between rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4">
+            <div className="flex items-center justify-between rounded-2xl border-2 border-primary/20 bg-accent/50 p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
-                  <Tag className="h-4 w-4 text-emerald-600" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
+                  <Tag className="h-4 w-4 text-accent-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
+                  <p className="text-xs font-black uppercase tracking-widest text-accent-foreground">
                     {appliedPromo.code}
                   </p>
-                  <p className="text-[10px] font-medium text-emerald-600">
+                  <p className="text-[10px] font-medium text-accent-foreground">
                     {appliedPromo.name} — -{formatPrice(appliedPromo.discountAmount)}
                   </p>
                 </div>
@@ -200,7 +200,7 @@ export function OrderSummary({
               <button
                 type="button"
                 onClick={onRemovePromo}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 dark:text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-muted-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -208,7 +208,7 @@ export function OrderSummary({
           ) : (
             <div>
               <label
-                className="mb-2 block text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
+                className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground"
                 htmlFor="promo-code"
               >
                 Code promo
@@ -220,7 +220,7 @@ export function OrderSummary({
                   onChange={(e) => setPromoInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
                   placeholder="Entrez votre code"
-                  className="h-12 flex-1 rounded-xl border-zinc-100 bg-zinc-50 px-4 text-sm font-bold uppercase tracking-widest transition-all focus:bg-white focus:ring-emerald-500/20"
+                  className="h-12 flex-1 rounded-xl border-border bg-muted px-4 text-sm font-bold uppercase tracking-widest transition-all focus:bg-white focus:ring-primary/20"
                 />
                 <button
                   type="button"
@@ -247,16 +247,16 @@ export function OrderSummary({
 
       {/* Totals */}
       <div className="p-8 pt-0">
-        <Separator className="my-8 bg-zinc-100" />
+        <Separator className="my-8 bg-muted" />
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
             <span>Sous-total</span>
-            <span className="text-zinc-800">{formatPrice(subtotal)}</span>
+            <span className="text-foreground">{formatPrice(subtotal)}</span>
           </div>
 
           {discount > 0 && (
-            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-emerald-600">
+            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-accent-foreground">
               <span className="flex items-center gap-1.5">
                 <Tag className="h-3 w-3" />
                 Réduction
@@ -265,26 +265,26 @@ export function OrderSummary({
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
             <span>Livraison</span>
             {orderType !== "delivery" ? (
-              <span className="font-black text-emerald-700">
+              <span className="font-black text-accent-foreground">
                 GRATUIT (Retrait)
               </span>
             ) : !hasDeliveryAddress ? (
-              <span className="text-zinc-500">Renseignez votre adresse</span>
+              <span className="text-muted-foreground">Renseignez votre adresse</span>
             ) : typeof deliveryFee === "number" && deliveryFee === 0 ? (
-              <span className="font-black text-emerald-700">OFFERTE</span>
+              <span className="font-black text-accent-foreground">OFFERTE</span>
             ) : typeof deliveryFee === "number" && deliveryFee > 0 ? (
-              <span className="text-zinc-800">{formatPrice(deliveryFee)}</span>
+              <span className="text-foreground">{formatPrice(deliveryFee)}</span>
             ) : (
-              <span className="text-zinc-500">Calculée à la validation</span>
+              <span className="text-muted-foreground">Calculée à la validation</span>
             )}
           </div>
 
           {totals.taxAmount > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+              <span className="font-bold uppercase tracking-widest text-muted-foreground">
                 {/* "dont" — the tax is inside the prices above, not added to
                     them. One rate is named; a basket mixing rates is not. */}
                 dont TVA
@@ -292,23 +292,23 @@ export function OrderSummary({
                   ? ` (${totals.taxBreakdown[0]!.ratePercent} %)`
                   : ""}
               </span>
-              <span className="text-zinc-800">
+              <span className="text-foreground">
                 {formatPrice(totals.taxAmount)}
               </span>
             </div>
           )}
 
-          <Separator className="bg-zinc-100" />
+          <Separator className="bg-muted" />
 
           <div className="flex items-center justify-between pt-2">
-            <span className="text-xl font-black uppercase tracking-tighter text-zinc-800">
+            <span className="text-xl font-black uppercase tracking-tighter text-foreground">
               Total
             </span>
             <div className="text-right">
-              <p className="text-3xl font-black leading-none tracking-tighter text-primary">
+              <p className="text-3xl font-black leading-none tracking-tighter text-accent-foreground">
                 {formatPrice(displayTotal)}
               </p>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 {totals.taxAmount > 0 ? "TVA incluse" : "Non soumis à la TVA"}
               </p>
             </div>
@@ -317,8 +317,8 @@ export function OrderSummary({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-zinc-100 bg-primary/[0.02] p-8">
-        <div className="flex items-center gap-3 text-emerald-700">
+      <div className="border-t border-border bg-primary/[0.02] p-8">
+        <div className="flex items-center gap-3 text-accent-foreground">
           <CheckCircle2 className="h-5 w-5" />
           <p className="text-[10px] font-black uppercase tracking-widest">
             Délai estimé : 25-35 mins

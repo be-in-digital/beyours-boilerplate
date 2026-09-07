@@ -37,12 +37,12 @@ export default function FavoritesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-zinc-900 font-sans overflow-x-hidden pt-20 transition-colors duration-500">
+    <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden pt-20 transition-colors duration-500">
       {/* Hero header */}
       <section className="pt-24 pb-20 px-6 md:px-12 bg-primary relative overflow-hidden rounded-b-[4rem] md:rounded-b-[8rem]">
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px]" />
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
@@ -57,7 +57,7 @@ export default function FavoritesContent() {
             Collection
           </Badge>
           <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-8 italic">
-            Mes <span className="text-orange-600 dark:text-orange-400 not-italic">Favoris</span>
+            Mes <span className="text-accent-foreground not-italic">Favoris</span>
           </h1>
           <p className="text-xl text-white/80 max-w-2xl mx-auto font-medium">
             Vos plats préférés, toujours à portée de main
@@ -69,11 +69,11 @@ export default function FavoritesContent() {
         {storeId ? (
           <FavoritesGrid storeId={storeId} />
         ) : (
-          <div className="rounded-3xl bg-white shadow-sm border border-zinc-100 p-12 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-50 text-zinc-300">
+          <div className="rounded-3xl bg-white shadow-sm border border-border p-12 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <Heart className="h-8 w-8" />
             </div>
-            <p className="text-zinc-600 font-medium">
+            <p className="text-muted-foreground font-medium">
               Veuillez sélectionner un restaurant pour voir vos favoris.
             </p>
             <Link

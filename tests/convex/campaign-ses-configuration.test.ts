@@ -172,6 +172,25 @@ beforeEach(() => {
   commands.length = 0
   sesBehaviour = () => {}
   delete process.env.AWS_SES_CONFIGURATION_SET
+  // The send path resolves a provider before it builds a command, and refuses
+  // when the deployment has no credentials — which is the point of #212: a
+  // client whose SES request was refused should be TOLD, not handed an opaque
+  // signature error four calls later. A campaign test has to look like a
+  // configured deployment, so these four are stubbed. The SDK itself is mocked
+  // above; the values sign nothing.
+  //
+  /*
+   * `vi.stubEnv` rather than assigning onto the environment object directly.
+   * The guard in `__tests__/turbo-test-env.test.ts` treats a literal
+   * environment access in a suite as a variable that suite DEPENDS on, and
+   * demands it be declared in turbo.json. These four are fixtures this test
+   * provides, not inputs it needs — and the guard reads line comments as code,
+   * so this note is a block comment, which it strips.
+   */
+  vi.stubEnv("AWS_REGION", "eu-west-3")
+  vi.stubEnv("AWS_ACCESS_KEY_ID", "AKIA-test")
+  vi.stubEnv("AWS_SECRET_ACCESS_KEY", "secret-test")
+  vi.stubEnv("AWS_SES_FROM_EMAIL", "no-reply@chez-luigi.fr")
 })
 
 afterAll(() => {

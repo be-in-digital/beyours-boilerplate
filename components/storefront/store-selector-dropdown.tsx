@@ -45,27 +45,27 @@ function StoreOption({
       className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
         isSelected
           ? "bg-primary/10 border border-primary/20"
-          : "hover:bg-zinc-50 border border-transparent"
+          : "hover:bg-muted border border-transparent"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-zinc-900 truncate">
+            <span className="text-sm font-bold text-foreground truncate">
               {store.name}
             </span>
             <span
               className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
-                isOpen ? "bg-emerald-500" : "bg-zinc-300"
+                isOpen ? "bg-primary" : "bg-muted-foreground"
               }`}
             />
           </div>
-          <p className="text-xs text-zinc-500 truncate mt-0.5">
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
             {store.address?.street}, {store.address?.city}
           </p>
         </div>
         {store.distance != null && (
-          <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider flex-shrink-0 mt-0.5">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex-shrink-0 mt-0.5">
             {formatDistance(store.distance)}
           </span>
         )}
@@ -119,7 +119,7 @@ export function StoreSelectorDropdown({
                 className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                   isTransparent
                     ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    : "bg-white border-zinc-100 shadow-sm text-primary hover:bg-zinc-50"
+                    : "bg-white border-border shadow-sm text-accent-foreground hover:bg-muted"
                 }`}
                 aria-label={tooltipLabel}
               >
@@ -134,19 +134,19 @@ export function StoreSelectorDropdown({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-80 p-2 rounded-2xl border border-zinc-100 bg-white shadow-xl"
+        className="w-80 p-2 rounded-2xl border border-border bg-white shadow-xl"
       >
         <div className="flex items-center justify-between px-3 pt-2 pb-3">
-          <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+          <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
             Nos restaurants
           </h3>
           {isLocating ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-500 dark:text-zinc-400" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
           ) : (
             <button
               type="button"
               onClick={requestLocation}
-              className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/70 uppercase tracking-widest transition-colors"
+              className="flex items-center gap-1 text-[10px] font-bold text-accent-foreground hover:text-accent-foreground/70 uppercase tracking-widest transition-colors"
             >
               <Navigation className="h-3 w-3" />
               Localiser

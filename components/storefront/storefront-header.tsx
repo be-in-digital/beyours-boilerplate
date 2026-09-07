@@ -115,7 +115,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
         } ${
           showTransparent
             ? "bg-transparent border-transparent"
-            : "bg-white/90 backdrop-blur-md shadow-sm border-b border-zinc-100"
+            : "bg-white/90 backdrop-blur-md shadow-sm border-b border-border"
         }`}
       >
         <div className="flex items-center justify-between px-6 md:px-12 py-4">
@@ -123,7 +123,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
           <Link
             href="/"
             className={`font-black text-xl tracking-tighter transition-colors duration-300 ${
-              showTransparent ? "text-white" : "text-primary"
+              showTransparent ? "text-white" : "text-accent-foreground"
             }`}
           >
             {logoUrl ? (
@@ -149,8 +149,8 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                     showTransparent
                       ? "text-white hover:text-white/80"
                       : isActive
-                        ? "text-primary"
-                        : "text-zinc-500 hover:text-primary"
+                        ? "text-accent-foreground"
+                        : "text-muted-foreground hover:text-accent-foreground"
                   }`}
                 >
                   {link.label}
@@ -175,7 +175,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                 className={`font-black text-sm uppercase tracking-widest transition-colors duration-300 ${
                   showTransparent
                     ? "text-white hover:text-white/80"
-                    : "text-zinc-500 hover:text-primary"
+                    : "text-muted-foreground hover:text-accent-foreground"
                 }`}
               >
                 {t("nav.reserve")}
@@ -197,7 +197,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                     className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                       showTransparent
                         ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                        : "bg-white border-zinc-100 shadow-sm text-primary hover:bg-zinc-50"
+                        : "bg-white border-border shadow-sm text-accent-foreground hover:bg-muted"
                     }`}
                     aria-label={t("accessibility.openBox")}
                   >
@@ -227,7 +227,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
               className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                 showTransparent
                   ? "bg-white/10 border-white/20 text-white"
-                  : "bg-white border-zinc-100 shadow-sm text-primary"
+                  : "bg-white border-border shadow-sm text-accent-foreground"
               }`}
               aria-label={t("accessibility.openBox")}
             >
@@ -245,7 +245,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
               className={`flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                 showTransparent
                   ? "bg-white/10 border-white/20 text-white"
-                  : "bg-white border-zinc-100 shadow-sm text-primary"
+                  : "bg-white border-border shadow-sm text-accent-foreground"
               }`}
               aria-label={
                 isMobileMenuOpen

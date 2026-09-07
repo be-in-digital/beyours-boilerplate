@@ -15,7 +15,11 @@ import {
   StoreStatusBadge,
   type StoreStatus,
 } from "@be-in-digital/ui"
-import { useStorefrontStoreSelection, useCartStore } from "@be-in-digital/restaurant"
+import {
+  useStorefrontStoreSelection,
+  useCartStore,
+  useStoreStatusLabels,
+} from "@be-in-digital/restaurant"
 import type { StoreDoc } from "@be-in-digital/restaurant"
 
 export default function StoreSelectorContent() {
@@ -26,6 +30,10 @@ export default function StoreSelectorContent() {
   const stores = useQuery(api.stores.list)
   const setStoreId = useStorefrontStoreSelection((s) => s.setStoreId)
   const setCartStoreId = useCartStore((s) => s.setStoreId)
+  // Ouvert / Fermé / Temporairement indisponible, in the language this page is
+  // being read in. The badge used to hold three English words and no way past
+  // them, on a page whose every other string is French.
+  const statusLabels = useStoreStatusLabels()
 
   const handleSelect = (store: StoreDoc) => {
     setStoreId(store._id)
@@ -72,7 +80,10 @@ export default function StoreSelectorContent() {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <h2 className="font-bold text-lg">{store.name}</h2>
-                  <StoreStatusBadge status={store.status as StoreStatus} />
+                  <StoreStatusBadge
+                    status={store.status as StoreStatus}
+                    labels={statusLabels}
+                  />
                 </div>
 
                 {store.address && (

@@ -22,20 +22,20 @@ export function BlogCard({ title, date, image, className }: BlogCardProps) {
                         className="object-cover group-hover:scale-110 transition-all duration-1000"
                     />
                 ) : (
-                    <div className="w-full h-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-300 dark:text-zinc-600">
+                    <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
                         <Calendar className="h-12 w-12" />
                     </div>
                 )}
-                <div className="absolute top-6 left-6 h-16 w-16 bg-white dark:bg-zinc-900 rounded-2xl flex flex-col items-center justify-center shadow-xl shadow-black/10">
-                    <span className="text-xl font-black text-zinc-800 dark:text-zinc-100 leading-none">{date.split(' ')[0]}</span>
-                    <span className="text-[10px] font-black text-orange-500 uppercase tracking-tighter leading-none mt-1">{date.split(' ')[1]}</span>
+                <div className="absolute top-6 left-6 h-16 w-16 bg-card rounded-2xl flex flex-col items-center justify-center shadow-xl shadow-black/10">
+                    <span className="text-xl font-black text-foreground leading-none">{date.split(' ')[0]}</span>
+                    <span className="text-[10px] font-black text-accent-foreground uppercase tracking-tighter leading-none mt-1">{date.split(' ')[1]}</span>
                 </div>
             </div>
             <div className="px-2">
-                <h3 className="text-2xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-[1.2] group-hover:text-emerald-800 dark:group-hover:text-emerald-500 transition-colors">
+                <h3 className="text-2xl font-black tracking-tighter text-foreground leading-[1.2] group-hover:text-accent-foreground dark:group-hover:text-accent-foreground transition-colors">
                     {title}
                 </h3>
-                <div className="mt-8 flex items-center gap-3 text-emerald-700 dark:text-emerald-500 font-black uppercase tracking-widest text-[10px] group-hover:translate-x-2 transition-all">
+                <div className="mt-8 flex items-center gap-3 text-accent-foreground font-black uppercase tracking-widest text-[10px] group-hover:translate-x-2 transition-all">
                     Read More <ArrowRight className="h-4 w-4" />
                 </div>
             </div>

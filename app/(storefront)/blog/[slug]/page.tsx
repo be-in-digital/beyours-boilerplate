@@ -149,18 +149,18 @@ export default async function BlogArticlePage({ params }: Props) {
   )
 
   return (
-    <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground dark:text-zinc-100 font-sans">
+    <div className="min-h-screen bg-background dark:bg-muted text-foreground dark:text-foreground font-sans">
       <JsonLd data={breadcrumbs} />
       <article className="mx-auto max-w-3xl px-6 md:px-12 py-16 md:py-24">
         <Link
           href="/blog"
-          className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-primary dark:hover:text-emerald-400 transition-colors mb-10"
+          className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-accent-foreground dark:hover:text-accent-foreground transition-colors mb-10"
         >
           <ArrowLeft className="h-3 w-3" /> Tous les articles
         </Link>
 
         {article.category && (
-          <Badge className="w-fit mb-4 px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] bg-primary/10 dark:bg-emerald-950/30 text-primary dark:text-emerald-400 border-none">
+          <Badge className="w-fit mb-4 px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] bg-primary/10 dark:bg-primary/30 text-accent-foreground border-none">
             {article.category.name}
           </Badge>
         )}
@@ -169,20 +169,20 @@ export default async function BlogArticlePage({ params }: Props) {
           {article.content.title}
         </h1>
 
-        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-8">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-8">
           {[formatArticleDate(article.publishedAt), `${article.readingMinutes} min de lecture`]
             .filter(Boolean)
             .join(" · ")}
         </p>
 
         {article.content.excerpt && (
-          <p className="text-lg md:text-xl text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed mb-10">
+          <p className="text-lg md:text-xl text-muted-foreground font-medium leading-relaxed mb-10">
             {article.content.excerpt}
           </p>
         )}
 
         {article.coverImage?.url && (
-          <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden mb-12 border border-zinc-100 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800">
+          <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden mb-12 border border-border bg-muted">
             <Image
               src={article.coverImage.url}
               alt={article.coverImage.alt ?? article.content.title}
@@ -200,7 +200,7 @@ export default async function BlogArticlePage({ params }: Props) {
         />
 
         {article.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-12 pt-8 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="flex flex-wrap gap-2 mt-12 pt-8 border-t border-border">
             {article.tags.map((tag) => (
               <Badge
                 key={tag._id}

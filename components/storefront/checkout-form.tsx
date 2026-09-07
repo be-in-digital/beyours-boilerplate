@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -18,12 +18,14 @@ import {
   CheckCircle2,
   Banknote,
   Utensils,
+  AlertTriangle,
 } from "lucide-react"
 import {
   Button,
   Input,
   Label,
   Separator,
+  Textarea,
 } from "@be-in-digital/ui"
 import {
   resolvePaymentMethod,
@@ -36,6 +38,10 @@ import {
   MAX_TABLE_NUMBER_LENGTH,
   normalizeTableNumber,
 } from "@be-in-digital/core/dining"
+// The server's own cap on the note, read from the server. A textarea that
+// accepts more than `orders.create` stores turns a diner's allergy warning
+// into a refused order at the moment of payment.
+import { FIELD_LIMITS } from "@be-in-digital/convex-functions/rateLimit"
 import { useGooglePlacesAutocomplete } from "@/hooks/useGooglePlacesAutocomplete"
 import type { AddressValue } from "@/lib/address"
 import type { SavedAddress } from "@/lib/stores/addresses-store"
@@ -46,6 +52,23 @@ const checkoutSchema = z.object({
   name: z.string().min(2, "Le nom est requis"),
   email: z.string().email("Email invalide").or(z.literal("")).optional(),
   phone: z.string().optional(),
+  /**
+   * What the diner needs the kitchen to know — an allergy, above all.
+   *
+   * The whole pipeline behind this field already existed: `orders.create`
+   * takes `notes`, the order carries it, `releaseToKitchen` copies it onto the
+   * ticket and the printed slip has a line for it. There was simply no input
+   * anywhere on the storefront, so the line was always blank and a diner with
+   * a nut allergy had no way to say so (#376). Optional, and capped at what
+   * the server stores.
+   */
+  notes: z
+    .string()
+    .max(
+      FIELD_LIMITS.orderNote,
+      `Note trop longue (${FIELD_LIMITS.orderNote} caractères maximum)`
+    )
+    .optional(),
 })
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>
@@ -64,6 +87,8 @@ interface CheckoutFormProps {
     email?: string
     phone?: string
     paymentMethod: PaymentMethod
+    /** The diner's note to the kitchen — allergies included. */
+    notes?: string
     /** Set only for `dine_in`; the server rejects it on the other types. */
     tableNumber?: string
     deliveryAddress?: {
@@ -99,6 +124,17 @@ interface CheckoutFormProps {
    * server validates against.
    */
   services?: StoreServices | null
+  /**
+   * A way to sign in, rendered where the diner discovers they need one.
+   *
+   * Cash requires an account — a recorded decision, so the till knows who to
+   * call — and a cash-only establishment therefore leaves a guest with no
+   * selectable tile at all. The form used to answer that with a disabled
+   * button reading « Choisissez un moyen de paiement », in front of nothing to
+   * choose (#376). The dialog itself belongs to the app, not to this
+   * component, so it arrives as a node.
+   */
+  signInAction?: ReactNode
 }
 
 const fulfillmentOptions: {
@@ -119,6 +155,7 @@ export function CheckoutForm({
   user,
   onAddressChange,
   services,
+  signInAction,
 }: CheckoutFormProps) {
   const orderType = useCartStore((s) => s.orderType)
   const setOrderType = useCartStore((s) => s.setOrderType)
@@ -141,6 +178,13 @@ export function CheckoutForm({
   // only declares WHICH provider; on a fresh deployment nothing is keyed and
   // every card attempt fails, so the tile must not be the default (#374).
   const cardAvailability = useQuery(api.paymentAvailability.get)
+  // Two different answers, and the checkout owes the diner a different screen
+  // for each. `card === false` with `cardOffered === true` is a deployment
+  // that means to take cards and cannot right now — a greyed tile saying so.
+  // `cardOffered === false` is an owner who does not take cards at all: the
+  // tile has no business being on the page. `undefined` while the query is in
+  // flight keeps today's behaviour, which is to show it.
+  const cardOffered = cardAvailability?.cardOffered !== false
 
   const [selectedAddressId, setSelectedAddressId] = useState<
     string | "manual"
@@ -178,6 +222,7 @@ export function CheckoutForm({
   // tile no card provider could honour (#374).
   const paymentContext: PaymentMethodContext = {
     cardAvailable: cardAvailability?.card,
+    cardOffered,
     paypalEnabled: payments?.paypal === true,
     cashEnabled: payments?.cash === true,
     isDelivery,
@@ -188,11 +233,20 @@ export function CheckoutForm({
     paymentContext
   )
   const cardUnavailable = cardAvailability?.card === false
+  // The one blocked state that has a way out the diner can take right now:
+  // cash is offered on this order type and only an account is missing.
+  const cashNeedsAccount =
+    payments?.cash === true && !isDelivery && !isAuthenticated
+  // Nothing selectable, and the answers are in — `undefined` is still loading,
+  // and a notice shown then would flash on every cold checkout.
+  const noPaymentMethod =
+    !effectivePaymentMethod && cardAvailability !== undefined
 
   const {
     register,
     handleSubmit,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -200,6 +254,7 @@ export function CheckoutForm({
       name: user?.name ?? "",
       email: user?.email ?? "",
       phone: user?.phone ?? "",
+      notes: "",
     },
   })
 
@@ -210,9 +265,12 @@ export function CheckoutForm({
         name: user.name ?? "",
         email: user.email ?? "",
         phone: user.phone ?? "",
+        // Kept: signing in mid-checkout must not silently drop an allergy the
+        // diner has already typed.
+        notes: getValues("notes") ?? "",
       })
     }
-  }, [user?.name, user?.email, user?.phone, reset])
+  }, [user?.name, user?.email, user?.phone, reset, getValues])
 
   // Notify parent when the delivery address changes
   useEffect(() => {
@@ -308,6 +366,9 @@ export function CheckoutForm({
       name: data.name,
       email: data.email || undefined,
       phone: data.phone || undefined,
+      // Trimmed, and dropped when it is only whitespace: an empty `Note:` line
+      // on a kitchen slip is noise a cook has to read past.
+      notes: data.notes?.trim() || undefined,
       paymentMethod: effectivePaymentMethod,
       // Sent only for dine-in. Switching the type away from `sur place` must
       // not leave a stale table on the order — the server rejects one on a
@@ -343,15 +404,15 @@ export function CheckoutForm({
               onClick={() => setOrderType(opt.type)}
               className={`group flex h-24 flex-col items-center justify-center gap-2 rounded-[2rem] border-2 transition-all ${
                 isSelected
-                  ? "border-primary bg-primary text-white shadow-xl shadow-emerald-900/10"
-                  : "border-zinc-100 bg-white text-zinc-500 dark:text-zinc-400 hover:border-zinc-200"
+                  ? "border-primary bg-primary text-primary-foreground shadow-xl shadow-primary/10"
+                  : "border-border bg-white text-muted-foreground hover:border-border"
               }`}
             >
               <Icon
                 className={`h-6 w-6 transition-colors ${
                   isSelected
-                    ? "text-orange-400"
-                    : "text-zinc-500 group-hover:text-zinc-700"
+                    ? "text-accent-foreground"
+                    : "text-muted-foreground group-hover:text-foreground"
                 }`}
               />
               <span className="text-[10px] font-black uppercase tracking-widest">
@@ -402,14 +463,14 @@ export function CheckoutForm({
       <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
         <div className="p-8">
           <div className="mb-2 flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
               <Mail className="h-5 w-5" />
             </div>
-            <h2 className="text-2xl font-black uppercase tracking-tighter text-zinc-800">
+            <h2 className="text-2xl font-black uppercase tracking-tighter text-foreground">
               Contact
             </h2>
           </div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Renseignez vos coordonnées pour la confirmation de commande.
           </p>
         </div>
@@ -426,7 +487,7 @@ export function CheckoutForm({
               id="name"
               {...register("name")}
               placeholder="Jean Dupont"
-              className="h-14 rounded-2xl border-transparent bg-zinc-50 px-6 text-sm font-medium transition-all focus:bg-white focus:ring-emerald-500/20"
+              className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
             />
             {errors.name && (
               <p className="ml-1 text-xs font-medium text-rose-500">
@@ -448,7 +509,7 @@ export function CheckoutForm({
                 type="email"
                 {...register("email")}
                 placeholder="jean.dupont@exemple.fr"
-                className="h-14 rounded-2xl border-transparent bg-zinc-50 px-6 text-sm font-medium transition-all focus:bg-white focus:ring-emerald-500/20"
+                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
               />
               {errors.email && (
                 <p className="ml-1 text-xs font-medium text-rose-500">
@@ -468,7 +529,7 @@ export function CheckoutForm({
                 type="tel"
                 {...register("phone")}
                 placeholder="+33 6 00 00 00 00"
-                className="h-14 rounded-2xl border-transparent bg-zinc-50 px-6 text-sm font-medium transition-all focus:bg-white focus:ring-emerald-500/20"
+                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
               />
             </div>
           </div>
@@ -480,14 +541,14 @@ export function CheckoutForm({
         <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
           <div className="p-8">
             <div className="mb-2 flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                 <MapPin className="h-5 w-5" />
               </div>
-              <h2 className="text-2xl font-black uppercase tracking-tighter text-zinc-800">
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-foreground">
                 Livraison
               </h2>
             </div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Où souhaitez-vous recevoir votre commande ?
             </p>
           </div>
@@ -503,15 +564,15 @@ export function CheckoutForm({
                     onClick={() => setSelectedAddressId(addr.id)}
                     className={`flex w-full items-center gap-3 rounded-2xl border-2 px-5 py-4 text-left text-sm transition-all ${
                       selectedAddressId === addr.id
-                        ? "border-emerald-500 bg-emerald-50/30"
-                        : "border-zinc-100 hover:border-zinc-200"
+                        ? "border-primary bg-accent/30"
+                        : "border-border hover:border-border"
                     }`}
                   >
                     <div
                       className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
                         selectedAddressId === addr.id
-                          ? "border-emerald-500 bg-emerald-500"
-                          : "border-zinc-300"
+                          ? "border-primary bg-primary"
+                          : "border-border"
                       }`}
                     >
                       {selectedAddressId === addr.id && (
@@ -522,12 +583,12 @@ export function CheckoutForm({
                       {addr.label && (
                         <span className="font-bold">{addr.label} — </span>
                       )}
-                      <span className="font-medium text-zinc-600">
+                      <span className="font-medium text-muted-foreground">
                         {addr.street}, {addr.postalCode} {addr.city}
                       </span>
                     </div>
                     {selectedAddressId === addr.id && (
-                      <CheckCircle2 className="ml-auto h-5 w-5 shrink-0 text-emerald-500" />
+                      <CheckCircle2 className="ml-auto h-5 w-5 shrink-0 text-success" />
                     )}
                   </button>
                 ))}
@@ -537,22 +598,22 @@ export function CheckoutForm({
                   onClick={() => setSelectedAddressId("manual")}
                   className={`flex w-full items-center gap-3 rounded-2xl border-2 px-5 py-4 text-left text-sm transition-all ${
                     selectedAddressId === "manual"
-                      ? "border-emerald-500 bg-emerald-50/30"
-                      : "border-zinc-100 hover:border-zinc-200"
+                      ? "border-primary bg-accent/30"
+                      : "border-border hover:border-border"
                   }`}
                 >
                   <div
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
                       selectedAddressId === "manual"
-                        ? "border-emerald-500 bg-emerald-500"
-                        : "border-zinc-300"
+                        ? "border-primary bg-primary"
+                        : "border-border"
                     }`}
                   >
                     {selectedAddressId === "manual" && (
                       <div className="h-2 w-2 rounded-full bg-white" />
                     )}
                   </div>
-                  <span className="font-bold text-zinc-600">
+                  <span className="font-bold text-muted-foreground">
                     Nouvelle adresse
                   </span>
                 </button>
@@ -570,12 +631,12 @@ export function CheckoutForm({
                     Rechercher une adresse
                   </Label>
                   <div className="relative">
-                    <MapPin className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600" />
+                    <MapPin className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-accent-foreground" />
                     <input
                       ref={addressInputRef}
                       type="text"
                       placeholder="Ex : 12 rue de la Paix, Paris..."
-                      className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-zinc-100 bg-zinc-50 pl-12 pr-6 text-sm font-medium transition-all placeholder:text-zinc-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-border bg-muted pl-12 pr-6 text-sm font-medium transition-all placeholder:text-muted-foreground focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
@@ -585,7 +646,7 @@ export function CheckoutForm({
                   <button
                     type="button"
                     onClick={() => setAddressMode("manual")}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-200 px-4 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-all hover:border-zinc-300 hover:text-zinc-500"
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border px-4 py-3 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-all hover:border-border hover:text-muted-foreground"
                   >
                     <MapPinOff className="h-3.5 w-3.5" />
                     Je ne trouve pas mon adresse
@@ -594,12 +655,12 @@ export function CheckoutForm({
 
                 {/* Detail fields — shown after Google select or manual mode */}
                 {showAddressFields && (
-                  <div className="space-y-4 rounded-2xl border-2 border-emerald-100 bg-emerald-50/30 p-5">
+                  <div className="space-y-4 rounded-2xl border-2 border-primary/20 bg-accent/30 p-5">
                     {addressMode === "selected" && (
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                          <CheckCircle2 className="h-4 w-4 text-success" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-accent-foreground">
                             Adresse sélectionnée
                           </span>
                         </div>
@@ -609,7 +670,7 @@ export function CheckoutForm({
                             setAddressMode("search")
                             setManualAddress({ street: "", city: "", postalCode: "", country: "France" })
                           }}
-                          className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-zinc-600"
+                          className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:text-muted-foreground"
                         >
                           Modifier
                         </button>
@@ -617,7 +678,7 @@ export function CheckoutForm({
                     )}
                     {addressMode === "manual" && (
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           Saisie manuelle
                         </span>
                         <button
@@ -626,7 +687,7 @@ export function CheckoutForm({
                             setAddressMode("search")
                             setManualAddress({ street: "", city: "", postalCode: "", country: "France" })
                           }}
-                          className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 transition-colors hover:text-emerald-700"
+                          className="text-[10px] font-bold uppercase tracking-widest text-accent-foreground transition-colors hover:text-accent-foreground"
                         >
                           Revenir à la recherche
                         </button>
@@ -642,7 +703,7 @@ export function CheckoutForm({
                         onChange={(e) => setManualAddress((p) => ({ ...p, street: e.target.value }))}
                         placeholder="123 rue de la Paix"
                         readOnly={addressMode === "selected"}
-                        className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
+                        className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
                       />
                     </div>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -655,7 +716,7 @@ export function CheckoutForm({
                           onChange={(e) => setManualAddress((p) => ({ ...p, city: e.target.value }))}
                           placeholder="Paris"
                           readOnly={addressMode === "selected"}
-                          className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
+                          className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
                         />
                       </div>
                       <div className="space-y-2">
@@ -667,7 +728,7 @@ export function CheckoutForm({
                           onChange={(e) => setManualAddress((p) => ({ ...p, postalCode: e.target.value }))}
                           placeholder="75001"
                           readOnly={addressMode === "selected"}
-                          className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
+                          className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
                         />
                       </div>
                     </div>
@@ -679,7 +740,7 @@ export function CheckoutForm({
                         value={manualAddress.country}
                         onChange={(e) => setManualAddress((p) => ({ ...p, country: e.target.value }))}
                         readOnly={addressMode === "selected"}
-                        className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-emerald-500/20"
+                        className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
                       />
                     </div>
                   </div>
@@ -690,54 +751,115 @@ export function CheckoutForm({
         </div>
       )}
 
+      {/* Allergies and instructions for the kitchen */}
+      <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
+        <div className="p-8">
+          <div className="mb-2 flex items-center gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <h2 className="text-2xl font-black uppercase tracking-tighter text-zinc-800">
+              Allergies &amp; instructions
+            </h2>
+          </div>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Une allergie, une intolérance, une préférence&nbsp;? Dites-le à la
+            cuisine.
+          </p>
+        </div>
+
+        <div className="space-y-2 px-8 pb-8">
+          <Label
+            htmlFor="notes"
+            className="ml-1 text-[10px] font-black uppercase tracking-widest"
+          >
+            Note pour la cuisine
+          </Label>
+          <Textarea
+            id="notes"
+            rows={3}
+            maxLength={FIELD_LIMITS.orderNote}
+            {...register("notes")}
+            placeholder="Ex : allergie aux arachides, sauce à part, sans oignon…"
+            aria-describedby={errors.notes ? "notes-error" : "notes-hint"}
+            aria-invalid={errors.notes ? true : undefined}
+            className="min-h-[96px] rounded-2xl border-transparent bg-zinc-50 px-6 py-4 text-sm font-medium transition-all focus:bg-white focus:ring-emerald-500/20"
+          />
+          {errors.notes ? (
+            <p
+              id="notes-error"
+              role="alert"
+              className="ml-1 text-xs font-medium text-rose-500"
+            >
+              {errors.notes.message}
+            </p>
+          ) : (
+            <p id="notes-hint" className="ml-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Cette note est imprimée sur le ticket de cuisine. Elle ne remplace
+              pas un échange avec le restaurant en cas d&apos;allergie grave.
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Payment section + Submit */}
       <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
         <div className="p-8">
           <div className="mb-2 flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
               <CreditCard className="h-5 w-5" />
             </div>
-            <h2 className="text-2xl font-black uppercase tracking-tighter text-zinc-800">
+            <h2 className="text-2xl font-black uppercase tracking-tighter text-foreground">
               Paiement
             </h2>
           </div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Choisissez votre moyen de paiement préféré.
           </p>
         </div>
 
         <div className="px-8 pb-4">
           <div className="grid grid-cols-1 gap-3">
-            {/* Card — shown always, selectable only when the deployment can
-                actually charge one. Pre-selecting a dead card tile is what
-                sent every fresh deployment's first order into #374. */}
-            <button
-              type="button"
-              onClick={() => !cardUnavailable && setPaymentMethod("card")}
-              disabled={cardUnavailable}
-              className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all ${
-                cardUnavailable
-                  ? "border-zinc-100 bg-zinc-50 opacity-60 cursor-not-allowed"
-                  : effectivePaymentMethod === "card"
-                    ? "border-emerald-500 bg-emerald-50/30"
-                    : "border-zinc-100 hover:border-zinc-200"
-              }`}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
-                <CreditCard className={`h-6 w-6 ${cardUnavailable ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-600"}`} />
-              </div>
-              <div>
-                <p className={`font-bold ${cardUnavailable ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-800"}`}>Carte bancaire</p>
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500">
-                  {cardUnavailable
-                    ? "Indisponible pour le moment"
-                    : payments?.cardProvider === "sumup" ? "SumUp" : "Visa, Master, Amex"}
-                </p>
-              </div>
-              {effectivePaymentMethod === "card" && !cardUnavailable && (
-                <CheckCircle2 className="ml-auto h-5 w-5 text-emerald-500" />
-              )}
-            </button>
+            {/* Card — rendered when the establishment takes cards at all,
+                selectable only when it can actually charge one. Pre-selecting
+                a dead card tile is what sent every fresh deployment's first
+                order into #374; rendering one an owner has switched off is
+                what left a cash-only food truck with a payment method it could
+                never honour (#376). Two different states, two different
+                answers: greyed for the first, absent for the second. */}
+            {cardOffered && (
+              <button
+                type="button"
+                onClick={() => !cardUnavailable && setPaymentMethod("card")}
+                disabled={cardUnavailable}
+                className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all ${
+                  cardUnavailable
+                    ? "border-border bg-muted opacity-60 cursor-not-allowed"
+                    : effectivePaymentMethod === "card"
+                      ? "border-primary bg-accent/30"
+                      : "border-border hover:border-border"
+                }`}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                  {/* The unavailable tile already carries `opacity-60`, so the
+                      icon needs no second dimming of its own — the ternary that
+                      used to be here chose between two greys that #41 maps to
+                      the same token. */}
+                  <CreditCard className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className={`font-bold ${cardUnavailable ? "text-muted-foreground" : "text-foreground"}`}>Carte bancaire</p>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {cardUnavailable
+                      ? "Indisponible pour le moment"
+                      : payments?.cardProvider === "sumup" ? "SumUp" : "Visa, Master, Amex"}
+                  </p>
+                </div>
+                {effectivePaymentMethod === "card" && !cardUnavailable && (
+                  <CheckCircle2 className="ml-auto h-5 w-5 text-success" />
+                )}
+              </button>
+            )}
 
             {/* PayPal — if enabled */}
             {payments?.paypal && (
@@ -746,21 +868,21 @@ export function CheckoutForm({
                 onClick={() => setPaymentMethod("paypal")}
                 className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all ${
                   effectivePaymentMethod === "paypal"
-                    ? "border-emerald-500 bg-emerald-50/30"
-                    : "border-zinc-100 hover:border-zinc-200"
+                    ? "border-primary bg-accent/30"
+                    : "border-border hover:border-border"
                 }`}
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
                   <span className="text-lg font-black text-blue-600">P</span>
                 </div>
                 <div>
-                  <p className="font-bold text-zinc-800">PayPal</p>
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500">
+                  <p className="font-bold text-foreground">PayPal</p>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                     Paiement sécurisé
                   </p>
                 </div>
                 {effectivePaymentMethod === "paypal" && (
-                  <CheckCircle2 className="ml-auto h-5 w-5 text-emerald-500" />
+                  <CheckCircle2 className="ml-auto h-5 w-5 text-success" />
                 )}
               </button>
             )}
@@ -773,28 +895,53 @@ export function CheckoutForm({
                 disabled={!isAuthenticated}
                 className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all ${
                   !isAuthenticated
-                    ? "border-zinc-100 bg-zinc-50 opacity-60 cursor-not-allowed"
+                    ? "border-border bg-muted opacity-60 cursor-not-allowed"
                     : effectivePaymentMethod === "cash"
-                      ? "border-emerald-500 bg-emerald-50/30"
-                      : "border-zinc-100 hover:border-zinc-200"
+                      ? "border-primary bg-accent/30"
+                      : "border-border hover:border-border"
                 }`}
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${isAuthenticated ? "bg-emerald-50" : "bg-zinc-100"}`}>
-                  <Banknote className={`h-6 w-6 ${isAuthenticated ? "text-emerald-600" : "text-zinc-500 dark:text-zinc-400"}`} />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${isAuthenticated ? "bg-accent" : "bg-muted"}`}>
+                  <Banknote className={`h-6 w-6 ${isAuthenticated ? "text-accent-foreground" : "text-muted-foreground"}`} />
                 </div>
                 <div>
-                  <p className={`font-bold ${isAuthenticated ? "text-zinc-800" : "text-zinc-500 dark:text-zinc-400"}`}>Espèces</p>
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500">
+                  <p className={`font-bold ${isAuthenticated ? "text-foreground" : "text-muted-foreground"}`}>Espèces</p>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                     {isAuthenticated ? "Paiement au retrait" : "Connectez-vous pour payer en espèces"}
                   </p>
                 </div>
                 {effectivePaymentMethod === "cash" && isAuthenticated && (
-                  <CheckCircle2 className="ml-auto h-5 w-5 text-emerald-500" />
+                  <CheckCircle2 className="ml-auto h-5 w-5 text-success" />
                 )}
               </button>
             )}
           </div>
-          <p className="mt-3 text-[10px] font-medium italic text-zinc-500 dark:text-zinc-400">
+          {/*
+            No tile is selectable. Say which of the two situations this is and
+            what to do about it — a disabled button in front of an empty grid
+            tells a diner nothing, and it is the last screen before they give
+            up. A cash-only establishment reaches this on every guest checkout.
+
+            The amber stays literal through #41's tokenisation: it means
+            "warning", not "brand", so a template must not recolour it — the
+            same reasoning that kept the order-status pill and the cancelled
+            red out of the sweep.
+          */}
+          {noPaymentMethod && (
+            <div
+              role="alert"
+              className="mt-3 space-y-3 rounded-2xl border-2 border-amber-200 bg-amber-50/60 p-5"
+            >
+              <p className="text-sm font-medium text-amber-900">
+                {cashNeedsAccount
+                  ? "Le paiement en espèces sur place est le seul moyen disponible ici. Connectez-vous pour confirmer votre commande : nous avons besoin d'un nom et d'un contact pour la préparer."
+                  : "Aucun moyen de paiement n'est disponible en ligne pour le moment. Contactez le restaurant pour commander."}
+              </p>
+              {cashNeedsAccount && signInAction}
+            </div>
+          )}
+
+          <p className="mt-3 text-[10px] font-medium italic text-muted-foreground">
             Le paiement sera traité de manière sécurisée au moment de la validation.
           </p>
         </div>
@@ -803,7 +950,7 @@ export function CheckoutForm({
           <Button
             type="submit"
             disabled={isSubmitting || !effectivePaymentMethod}
-            className="group h-16 w-full rounded-2xl bg-primary text-lg font-black uppercase tracking-widest text-white shadow-xl shadow-emerald-900/10 transition-all hover:bg-primary-hover"
+            className="group h-16 w-full rounded-2xl bg-primary text-lg font-black uppercase tracking-widest text-white shadow-xl shadow-primary/10 transition-all hover:bg-primary-hover"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
@@ -818,7 +965,12 @@ export function CheckoutForm({
                     ? "Payer avec PayPal"
                     : effectivePaymentMethod === "cash"
                       ? "Confirmer la commande"
-                      : "Choisissez un moyen de paiement"}
+                      : /* Not "choose a payment method": on a cash-only
+                           establishment there is nothing on this screen to
+                           choose, and the button said so to every guest. */
+                        cashNeedsAccount
+                        ? "Connectez-vous pour continuer"
+                        : "Aucun paiement disponible"}
                 <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />
               </>
             )}

@@ -22,9 +22,9 @@ export function Heading({
     description,
     align = "left",
     viewAll,
-    badgeColor = "bg-orange-100 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400",
+    badgeColor = "bg-accent text-accent-foreground dark:bg-primary/30 dark:text-accent-foreground",
     barColor,
-    textColor = "text-zinc-800 dark:text-zinc-100",
+    textColor = "text-foreground",
     className
 }: HeadingProps) {
     const isCenter = align === "center";
@@ -53,7 +53,7 @@ export function Heading({
                         title.split(/(\{[\s\S]*?\})/g).map((part, i) => {
                             if (part.startsWith("{") && part.endsWith("}")) {
                                 return (
-                                    <span key={i} className="text-orange-500 italic">
+                                    <span key={i} className="text-accent-foreground italic">
                                         {part.slice(1, -1)}
                                     </span>
                                 );
@@ -66,7 +66,7 @@ export function Heading({
                 </h2>
                 {description && (
                     <p className={cn(
-                        "text-zinc-500 dark:text-zinc-400 font-medium max-w-xl",
+                        "text-muted-foreground font-medium max-w-xl",
                         isCenter ? "text-lg md:text-xl" : "text-md"
                     )}>
                         {description}
@@ -79,9 +79,16 @@ export function Heading({
 
             {viewAll && (
                 <Link href={viewAll.href}>
+                    {/*
+                        This used to branch on whether `barColor` or `badgeColor`
+                        SPELLED "emerald", to pick between a green and an orange
+                        "View all". Both palettes were the brand wearing two
+                        names, so both branches now resolve to the brand token
+                        and the test between them has nothing left to decide.
+                    */}
                     <Button variant="ghost" className={cn(
                         "font-black uppercase tracking-widest text-[10px] items-center gap-2",
-                        (barColor?.includes("emerald") || barColor?.includes("#0D5C3F") || badgeColor.includes("emerald")) ? "text-emerald-600 hover:bg-emerald-50" : "text-orange-500 hover:bg-orange-50"
+                        "text-accent-foreground hover:bg-accent"
                     )}>
                         {viewAll.label || "View All"} <ChevronRight className="h-4 w-4" />
                     </Button>

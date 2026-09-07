@@ -344,30 +344,30 @@ export default function CheckoutPage() {
   // Success screen
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-zinc-50 px-4 pb-20 pt-32">
+      <div className="min-h-screen bg-muted px-4 pb-20 pt-32">
         <div className="mx-auto max-w-xl text-center">
-          <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+          <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-success/10 text-success">
             <CheckCircle2 className="h-12 w-12" />
           </div>
-          <h1 className="mb-4 text-4xl font-black uppercase italic tracking-tighter text-zinc-800">
+          <h1 className="mb-4 text-4xl font-black uppercase italic tracking-tighter text-foreground">
             Commande {" "}
-            <span className="not-italic text-orange-600 dark:text-orange-400">Confirmée</span>
+            <span className="not-italic text-accent-foreground">Confirmée</span>
           </h1>
 
           <div className="mb-6">
-            <span className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-black uppercase tracking-widest leading-none text-zinc-500">
+            <span className="rounded-full bg-muted px-4 py-2 text-xs font-black uppercase tracking-widest leading-none text-muted-foreground">
               Commande #{lastOrderId?.slice(-6).toUpperCase()}
             </span>
           </div>
 
-          <p className="mb-8 text-lg leading-relaxed text-zinc-500">
+          <p className="mb-8 text-lg leading-relaxed text-muted-foreground">
             Votre commande a bien été prise en compte. Vous recevrez une
             confirmation
             {formEmail && (
               <>
                 {" "}
                 à{" "}
-                <span className="font-bold text-zinc-800">{formEmail}</span>
+                <span className="font-bold text-foreground">{formEmail}</span>
               </>
             )}
             .
@@ -382,7 +382,7 @@ export default function CheckoutPage() {
             <Link href="/">
               <Button
                 variant="outline"
-                className="h-14 rounded-2xl border-zinc-200 px-8 font-black uppercase tracking-widest transition-all"
+                className="h-14 rounded-2xl border-border px-8 font-black uppercase tracking-widest transition-all"
               >
                 Page d&apos;accueil
               </Button>
@@ -403,6 +403,7 @@ export default function CheckoutPage() {
     email?: string
     phone?: string
     paymentMethod: "card" | "paypal" | "cash"
+    notes?: string
     tableNumber?: string
     deliveryAddress?: {
       street: string
@@ -501,6 +502,10 @@ export default function CheckoutPage() {
         })),
         type: orderType,
         paymentMethod: data.paymentMethod,
+        // The diner's note to the kitchen — an allergy, most of the time. It
+        // rides the order through `releaseToKitchen` onto the ticket, which
+        // has had a line for it all along and never had anything to print.
+        notes: data.notes,
         // The server recomputes the discount from this promotion. The
         // `appliedPromo.discountAmount` computed above is for display only and
         // is deliberately not sent — it used to be, and was trusted verbatim.
@@ -601,22 +606,22 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-4 pb-20 pt-32">
+    <div className="min-h-screen bg-muted px-4 pb-20 pt-32">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <header className="mb-12">
           <Link
             href="/cart"
-            className="group mb-4 inline-flex items-center text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 transition-colors hover:text-primary"
+            className="group mb-4 inline-flex items-center text-sm font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:text-accent-foreground"
           >
             <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Retour à la Box
           </Link>
 
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            <h1 className="text-5xl font-black uppercase italic tracking-tighter text-zinc-800">
+            <h1 className="text-5xl font-black uppercase italic tracking-tighter text-foreground">
               Finaliser{" "}
-              <span className="not-italic text-orange-600 dark:text-orange-400">Commande</span>
+              <span className="not-italic text-accent-foreground">Commande</span>
             </h1>
 
             {!session && (
@@ -639,6 +644,10 @@ export default function CheckoutPage() {
               } : undefined}
               onAddressChange={handleAddressChange}
               services={services}
+              // Only for a guest: a signed-in diner has no use for it, and the
+              // form only renders it when cash is the sole path and an account
+              // is what is missing.
+              signInAction={!session ? <SignInDialog /> : undefined}
             />
           </div>
 
@@ -665,15 +674,15 @@ export default function CheckoutPage() {
               )}
 
               {/* Security badge */}
-              <div className="flex items-center gap-4 rounded-[2rem] border border-emerald-100 bg-emerald-50 p-8">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+              <div className="flex items-center gap-4 rounded-[2rem] border border-success/20 bg-success/5 p-8">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-success/10 text-success">
                   <ShieldCheck className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-bold text-emerald-950">
+                  <p className="font-bold text-foreground">
                     Paiement 100% Sécurisé
                   </p>
-                  <p className="text-xs leading-tight text-emerald-900/60">
+                  <p className="text-xs leading-tight text-muted-foreground">
                     Vos informations de paiement sont cryptées et ne sont jamais
                     stockées sur nos serveurs.
                   </p>

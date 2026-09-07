@@ -67,7 +67,7 @@ export function FavoriteButton({ itemId, itemTitle, className }: FavoriteButtonP
                     <Heart className={cn("h-5 w-5", isFav && "fill-current")} />
                 </button>
             </TooltipTrigger>
-            <TooltipContent side="left" className="bg-primary text-white border-none font-bold uppercase text-[10px] tracking-widest px-4 py-2 rounded-xl shadow-xl">
+            <TooltipContent side="left" className="bg-primary text-primary-foreground border-none font-bold uppercase text-[10px] tracking-widest px-4 py-2 rounded-xl shadow-xl">
                 {isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
             </TooltipContent>
         </Tooltip>

@@ -214,12 +214,6 @@ export const list = storeQuery({
   handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
-export const getByRole = storeQuery({
-  permission: "team:read",
-  args: defs.getByRole.args,
-  handler: (ctx, args) => defs.getByRole.handler(ctx, args),
-});
-
 /**
  * The caller's own memberships.
  *
@@ -234,15 +228,6 @@ export const getMyMemberships = query({
     if (!identity) return [];
     return defs.getByUser.handler(ctx, { userId: identity.subject });
   },
-});
-
-export const getByEmail = storeQuery({
-  permission: "team:read",
-  args: {
-    email: v.string(),
-    storeId: v.id("stores"),
-  },
-  handler: (ctx, args) => defs.getByEmail.handler(ctx, args),
 });
 
 /**
@@ -600,18 +585,17 @@ export const resendInvitationInternal = internalMutation({
   },
 });
 
-// @guarded-inline: `requireCanManage` applies the roster policy, which the
-// store-scoped seam cannot express (chain-wide members have no storeId)
-export const create = mutation({
-  args: defs.create.args,
-  handler: async (ctx, args) => {
-    await requireCanManage(ctx, {
-      storeId: args.storeId,
-      allStores: args.allStores ?? false,
-    });
-    return defs.create.handler(ctx, args);
-  },
-});
+/**
+ * There is no `create`.
+ *
+ * It was a public mutation taking `userId` and `invitationStatus` as arguments,
+ * with no caller anywhere in the product: a manager could bind a roster row to
+ * an account they named, pre-marked "accepted", and `propagateMembershipUpdate`
+ * would then fold that row's role and permissions into the person's profile the
+ * next time `update` ran on any of their memberships. The roster is written by
+ * `sendInvitationEmail` -> `inviteInternal` -> `acceptInvitation`, which takes
+ * the identity from the session. See #281.
+ */
 
 // @guarded-inline: `requireCanManage` applies the roster policy, which the
 // store-scoped seam cannot express (chain-wide members have no storeId)

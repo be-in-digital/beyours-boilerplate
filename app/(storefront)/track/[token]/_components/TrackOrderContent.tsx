@@ -66,11 +66,11 @@ export default function TrackOrderContent() {
   if (ticket === null) {
     return (
       <Wrapper>
-        <XCircle className="mx-auto mb-8 h-12 w-12 text-zinc-300" />
-        <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-zinc-800">
+        <XCircle className="mx-auto mb-8 h-12 w-12 text-muted-foreground" />
+        <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-foreground">
           Commande introuvable
         </h1>
-        <p className="mb-8 text-lg text-zinc-500">
+        <p className="mb-8 text-lg text-muted-foreground">
           Ce lien de suivi n&apos;est plus valide.
         </p>
         <Link href="/menu">
@@ -88,19 +88,19 @@ export default function TrackOrderContent() {
   return (
     <Wrapper>
       {ticket.storeBranding?.name && (
-        <p className="mb-2 text-xs font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+        <p className="mb-2 text-xs font-black uppercase tracking-widest text-muted-foreground">
           {ticket.storeBranding.name}
         </p>
       )}
 
-      <h1 className="mb-2 text-4xl font-black uppercase italic tracking-tighter text-zinc-800">
+      <h1 className="mb-2 text-4xl font-black uppercase italic tracking-tighter text-foreground">
         Commande{" "}
-        <span className="not-italic text-orange-600 dark:text-orange-400">
+        <span className="not-italic text-accent-foreground">
           #{ticket.orderNumber}
         </span>
       </h1>
 
-      <p className="mb-10 text-lg text-zinc-500">
+      <p className="mb-10 text-lg text-muted-foreground">
         {cancelled
           ? "Cette commande a été annulée."
           : ticket.status === "ready"
@@ -113,7 +113,7 @@ export default function TrackOrderContent() {
       {cancelled ? (
         <div className="rounded-2xl bg-red-50 p-8 text-center">
           <XCircle className="mx-auto mb-4 h-10 w-10 text-red-500" />
-          <p className="font-bold text-zinc-700">Commande annulée</p>
+          <p className="font-bold text-foreground">Commande annulée</p>
         </div>
       ) : (
         <ol className="space-y-3 text-left">
@@ -135,7 +135,7 @@ export default function TrackOrderContent() {
                 key={step.key}
                 className={`flex items-center gap-4 rounded-2xl p-4 transition-colors ${
                   active
-                    ? "bg-emerald-50 ring-1 ring-emerald-200"
+                    ? "bg-accent ring-1 ring-primary"
                     : done
                       ? "bg-white"
                       : "bg-white/60"
@@ -144,8 +144,8 @@ export default function TrackOrderContent() {
                 <span
                   className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
                     done || active
-                      ? "bg-emerald-100 text-emerald-600"
-                      : "bg-zinc-100 text-zinc-300"
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   <Icon className="h-5 w-5" />
@@ -153,17 +153,17 @@ export default function TrackOrderContent() {
                 <span className="flex-1">
                   <span
                     className={`block font-black uppercase tracking-wide ${
-                      done || active ? "text-zinc-800" : "text-zinc-500 dark:text-zinc-400"
+                      done || active ? "text-foreground" : "text-muted-foreground"
                     }`}
                   >
                     {step.label}
                   </span>
                   {(done || active) && stamp && (
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">{stamp}</span>
+                    <span className="text-sm text-muted-foreground">{stamp}</span>
                   )}
                 </span>
                 {active && (
-                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-accent-foreground">
                     En cours
                   </span>
                 )}
@@ -174,7 +174,7 @@ export default function TrackOrderContent() {
       )}
 
       {storeAddress && (
-        <p className="mt-8 text-sm text-zinc-500">{storeAddress}</p>
+        <p className="mt-8 text-sm text-muted-foreground">{storeAddress}</p>
       )}
     </Wrapper>
   )
@@ -182,7 +182,7 @@ export default function TrackOrderContent() {
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-zinc-50 px-4 pb-20 pt-32">
+    <div className="min-h-screen bg-muted px-4 pb-20 pt-32">
       <div className="mx-auto max-w-lg text-center">{children}</div>
     </div>
   )

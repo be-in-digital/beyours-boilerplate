@@ -62,7 +62,7 @@ export function OrderTypeSelector({
             onClick={() => onChange(opt.type)}
             className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-3 text-center transition-colors ${
               isSelected
-                ? "border-primary bg-primary/5 text-primary"
+                ? "border-primary bg-primary/5 text-accent-foreground"
                 : "border-border text-muted-foreground hover:border-primary/50"
             }`}
           >

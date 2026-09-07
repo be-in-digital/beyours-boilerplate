@@ -286,21 +286,61 @@ test.describe("Promotions Page", () => {
     await expect(dialog.getByLabel(/Valeur.*€/)).toBeVisible()
     await expect(dialog.getByLabel("Plafond (€)")).toBeHidden()
 
-    // BOGO
-    await dialog.getByRole("combobox").first().click()
-    await chooseOption(page, "Offre BOGO (1+1)")
-    await expect(dialog.getByLabel("Quantité achetée")).toBeVisible()
-    await expect(dialog.getByLabel("Quantité offerte")).toBeVisible()
-
-    // Free product
-    await dialog.getByRole("combobox").first().click()
-    await chooseOption(page, "Produit offert")
-    await expect(dialog.getByLabel(/Valeur/)).toBeHidden()
-
     // Free delivery
     await dialog.getByRole("combobox").first().click()
     await chooseOption(page, "Livraison offerte")
     await expect(dialog.getByLabel(/Valeur/)).toBeHidden()
+  })
+
+  /**
+   * REWRITTEN (#376). The case above used to click « Offre BOGO (1+1) » and
+   * « Produit offert » and assert the fields each revealed. Both were
+   * decorative: `resolvePromotionDiscount` has always refused them at order
+   * time — they alter the item list rather than the order total, and no code
+   * path builds those items — while the form sold them and `promotions.create`
+   * stored them. An owner configured a campaign, printed the flyers, and
+   * learned it was decorative from a diner at the till.
+   *
+   * They are refused at creation now and the form no longer offers them, so
+   * the clicks time out. What the suite pins instead is the decision: the
+   * picker offers exactly the types the resolver can honour. Implement one of
+   * them in `promotionDiscount.ts` and this case says so — the option
+   * reappears, and the assertion below has to be updated in the same commit.
+   */
+  test("offers only the discount types an order can actually be given", async ({
+    page,
+  }) => {
+    await page.goto(PROMOTIONS_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    })
+    await waitForAdminPage(page)
+
+    const dialog = await openCreateDialogAndWaitForForm(page)
+    await dialog.getByRole("combobox").first().click()
+
+    // Scoped to the open listbox, and `.first()`, for the reason
+    // `chooseOption` documents: Radix renders each item twice — the styled one
+    // and a hidden native option — so an unscoped match is ambiguous.
+    const listbox = page.getByRole("listbox")
+
+    for (const label of [
+      "Pourcentage (%)",
+      "Montant fixe (€)",
+      "Livraison offerte",
+    ]) {
+      await expect(
+        listbox.getByRole("option", { name: label }).first()
+      ).toBeVisible()
+    }
+
+    // The two the order path cannot honour are not on offer at all. A count of
+    // zero is unambiguous whether Radix renders an item once or twice.
+    for (const withdrawn of ["Offre BOGO (1+1)", "Produit offert"]) {
+      await expect(
+        listbox.getByRole("option", { name: withdrawn })
+      ).toHaveCount(0)
+    }
   })
 
   // ──────────────────────────────────────────────────

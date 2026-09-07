@@ -146,7 +146,7 @@ export function ProductDetailClient({
   return (
     <>
       {/* Image */}
-      <div className="relative aspect-video w-full bg-zinc-100">
+      <div className="relative aspect-video w-full bg-muted">
         {product.images?.[0] ? (
           <img
             src={product.images[0]}
@@ -154,7 +154,7 @@ export function ProductDetailClient({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-zinc-300">
+          <div className="flex h-full items-center justify-center text-muted-foreground">
             <ShoppingBag className="h-16 w-16" />
           </div>
         )}
@@ -162,7 +162,7 @@ export function ProductDetailClient({
         {/* Badges */}
         <div className="absolute top-6 left-6 flex gap-2">
           {product.isFeatured && (
-            <span className="bg-white/90 backdrop-blur-md text-zinc-800 border-none py-2 px-4 rounded-xl font-bold uppercase text-[10px] shadow-sm">
+            <span className="bg-white/90 backdrop-blur-md text-foreground border-none py-2 px-4 rounded-xl font-bold uppercase text-[10px] shadow-sm">
               Populaire
             </span>
           )}
@@ -183,7 +183,7 @@ export function ProductDetailClient({
               className={`h-5 w-5 ${
                 isFavorite(product._id, storeId)
                   ? "fill-red-500 text-red-500"
-                  : "text-zinc-500 dark:text-zinc-400"
+                  : "text-muted-foreground"
               }`}
             />
           </button>
@@ -211,12 +211,12 @@ export function ProductDetailClient({
             )}
           </div>
 
-          <h2 className="text-4xl font-black tracking-tighter text-zinc-800 uppercase italic leading-none">
+          <h2 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
             {product.name}
           </h2>
 
           {product.description && (
-            <p className="text-zinc-500 font-medium leading-relaxed text-lg">
+            <p className="text-muted-foreground font-medium leading-relaxed text-lg">
               {product.description}
             </p>
           )}
@@ -228,7 +228,7 @@ export function ProductDetailClient({
             {product.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-zinc-50 border border-zinc-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
+                className="rounded-full bg-muted border border-border px-3 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground"
               >
                 {tag}
               </span>
@@ -252,18 +252,18 @@ export function ProductDetailClient({
                           group of controls has no single control to point at. */}
                       <Label
                         id={labelId}
-                        className="text-sm font-black uppercase tracking-tighter text-zinc-800 flex items-center gap-2"
+                        className="text-sm font-black uppercase tracking-tighter text-foreground flex items-center gap-2"
                       >
                         {option.name}
                         {option.required && (
-                          <span className="bg-orange-500/10 text-orange-600 border-none py-0.5 px-2 rounded-md text-[8px] font-black uppercase">
+                          <span className="bg-primary/10 text-accent-foreground border-none py-0.5 px-2 rounded-md text-[8px] font-black uppercase">
                             Requis
                           </span>
                         )}
                       </Label>
                       <p
                         id={hintId}
-                        className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest"
+                        className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest"
                       >
                         {isRadio
                           ? "Choisir 1"
@@ -306,8 +306,8 @@ export function ProductDetailClient({
                           key={choice.id}
                           className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:border-primary ${
                             isSelected
-                              ? "bg-emerald-50 border-emerald-200"
-                              : "bg-zinc-50 border-zinc-100 hover:border-emerald-100"
+                              ? "bg-accent border-primary/20"
+                              : "bg-muted border-border hover:border-primary/20"
                           } ${atLimit ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                           <div className="flex items-center gap-4">
@@ -336,7 +336,7 @@ export function ProductDetailClient({
                                 className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
                                   isSelected
                                     ? "border-primary bg-primary"
-                                    : "border-zinc-300"
+                                    : "border-border"
                                 }`}
                               >
                                 {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
@@ -347,17 +347,17 @@ export function ProductDetailClient({
                                 className={`h-5 w-5 rounded-md border-2 flex items-center justify-center transition-colors ${
                                   isSelected
                                     ? "border-primary bg-primary"
-                                    : "border-zinc-300"
+                                    : "border-border"
                                 }`}
                               >
                                 {isSelected && <Check className="h-3 w-3 text-white" />}
                               </span>
                             )}
-                            <span className="font-bold text-sm text-zinc-700">
+                            <span className="font-bold text-sm text-foreground">
                               {choice.name}
                             </span>
                           </div>
-                          <span className="font-black text-[10px] text-emerald-600">
+                          <span className="font-black text-[10px] text-accent-foreground">
                             {choice.priceModifier > 0
                               ? `+ ${formatPrice(choice.priceModifier)}`
                               : "Inclus"}
@@ -372,35 +372,35 @@ export function ProductDetailClient({
           </div>
         )}
 
-        <Separator className="bg-zinc-100" />
+        <Separator className="bg-muted" />
 
         {/* Footer: Price + Quantity + Add */}
         <div className="flex items-center justify-between pt-6">
           <div className="flex flex-col">
-            <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none mb-1">
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">
               Prix total
             </span>
-            <span className="text-4xl font-black text-primary tracking-tighter leading-none">
+            <span className="text-4xl font-black text-accent-foreground tracking-tighter leading-none">
               {formatPrice(totalPrice * quantity)}
             </span>
           </div>
 
           <div className="flex gap-4 items-center">
             {/* Quantity */}
-            <div className="flex items-center bg-zinc-50 rounded-2xl p-2 border border-zinc-100 h-16">
+            <div className="flex items-center bg-muted rounded-2xl p-2 border border-border h-16">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
-                className="h-12 w-12 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-primary hover:bg-white transition-all flex items-center justify-center disabled:opacity-30"
+                className="h-12 w-12 rounded-xl text-muted-foreground hover:text-accent-foreground hover:bg-white transition-all flex items-center justify-center disabled:opacity-30"
               >
                 <Minus className="h-5 w-5" />
               </button>
-              <div className="w-12 text-center font-black text-lg text-zinc-800">
+              <div className="w-12 text-center font-black text-lg text-foreground">
                 {quantity}
               </div>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="h-12 w-12 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-primary hover:bg-white transition-all flex items-center justify-center"
+                className="h-12 w-12 rounded-xl text-muted-foreground hover:text-accent-foreground hover:bg-white transition-all flex items-center justify-center"
               >
                 <Plus className="h-5 w-5" />
               </button>
@@ -412,8 +412,8 @@ export function ProductDetailClient({
               disabled={!canAdd}
               className={`h-16 px-10 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl transition-all flex items-center gap-3 ${
                 canAdd
-                  ? "bg-primary hover:bg-primary-hover text-white shadow-emerald-900/20"
-                  : "bg-zinc-300 text-white cursor-not-allowed shadow-none"
+                  ? "bg-primary hover:bg-primary-hover text-primary-foreground shadow-primary/20"
+                  : "bg-muted-foreground text-white cursor-not-allowed shadow-none"
               }`}
             >
               <ShoppingBag className="h-5 w-5" />

@@ -101,12 +101,12 @@ export default function LandingPage() {
     const blogViewAll = blog.field("viewAllLabel").text ?? "Tout voir"
 
     return (
-        <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
+        <div className="min-h-screen bg-background dark:bg-muted text-foreground dark:text-foreground font-sans overflow-x-hidden transition-colors duration-500">
             {/* ─── HERO ─── */}
             <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-primary rounded-b-none md:rounded-b-[6rem]">
                 <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
                     <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
-                    <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-400/10 rounded-full blur-[120px]" />
+                    <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px]" />
                 </div>
 
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 relative z-10">
@@ -120,7 +120,7 @@ export default function LandingPage() {
                             {heroBadge}
                         </Badge>
                         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 drop-shadow-2xl whitespace-pre-line">
-                            {parseColoredText(heroTitle, "text-orange-600 dark:text-orange-400 italic")}
+                            {parseColoredText(heroTitle, "text-accent-foreground italic")}
                         </h1>
                         <p className="text-lg md:text-xl text-white/90 mb-10 max-w-lg leading-relaxed font-black drop-shadow-md">
                             {heroSubtitle}
@@ -128,7 +128,7 @@ export default function LandingPage() {
                         <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
                             <Button
                                 asChild
-                                className="h-16 w-full sm:w-auto px-10 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-orange-500/20 group transition-all duration-300"
+                                className="h-16 w-full sm:w-auto px-10 rounded-2xl bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 group transition-all duration-300"
                             >
                                 <Link href="/menu">
                                     {heroCtaLabel}
@@ -162,7 +162,7 @@ export default function LandingPage() {
                                 className="absolute top-10 -left-10 z-30 bg-white/20 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-orange-500 rounded-full">
+                                    <div className="p-2 bg-primary rounded-full">
                                         <Star className="h-4 w-4 text-white fill-current" />
                                     </div>
                                     <div className="text-white text-left">
@@ -183,7 +183,7 @@ export default function LandingPage() {
                                 className="absolute bottom-1/4 -right-10 z-30 bg-white/20 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-emerald-500 rounded-full">
+                                    <div className="p-2 bg-primary rounded-full">
                                         <Clock className="h-4 w-4 text-white" />
                                     </div>
                                     <div className="text-white text-left">
@@ -204,11 +204,11 @@ export default function LandingPage() {
             {/* ─── FEATURES STRIP ─── */}
             <section className="py-12 px-6 md:px-12 max-w-7xl mx-auto -mt-16 relative z-30">
                 <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                    <FeatureItem icon={feat1Img ?? Truck} label={feat1} color="bg-orange-100 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400" isImageUrl={!!feat1Img} />
-                    <FeatureItem icon={feat2Img ?? CreditCard} label={feat2} color="bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400" isImageUrl={!!feat2Img} />
+                    <FeatureItem icon={feat1Img ?? Truck} label={feat1} color="bg-accent text-accent-foreground" isImageUrl={!!feat1Img} />
+                    <FeatureItem icon={feat2Img ?? CreditCard} label={feat2} color="bg-accent text-accent-foreground" isImageUrl={!!feat2Img} />
                     <FeatureItem icon={feat3Img ?? Leaf} label={feat3} color="bg-blue-100 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400" isImageUrl={!!feat3Img} />
                     <FeatureItem icon={feat4Img ?? ShoppingBag} label={feat4} color="bg-purple-100 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400" isImageUrl={!!feat4Img} />
-                    <FeatureItem icon={feat5Img ?? Star} label={feat5} color="bg-orange-100 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400" isImageUrl={!!feat5Img} />
+                    <FeatureItem icon={feat5Img ?? Star} label={feat5} color="bg-accent text-accent-foreground" isImageUrl={!!feat5Img} />
                 </div>
             </section>
 
@@ -227,39 +227,39 @@ export default function LandingPage() {
 
             {/* ─── CTA / PROMO BANNER ─── */}
             <section className="py-12 md:py-32 px-0 md:px-6 relative overflow-hidden">
-                <div className="max-w-7xl mx-auto bg-primary-hover rounded-none md:rounded-[6rem] overflow-hidden relative p-12 md:p-16 lg:p-24 shadow-3xl shadow-emerald-950/40">
+                <div className="max-w-7xl mx-auto bg-primary-hover rounded-none md:rounded-[6rem] overflow-hidden relative p-12 md:p-16 lg:p-24 shadow-3xl shadow-primary/40">
                     <div className="absolute top-0 right-0 w-full h-full pointer-events-none">
-                        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-400/10 rounded-full blur-[120px]" />
-                        <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-orange-400/10 rounded-full blur-[100px]" />
+                        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]" />
+                        <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-primary/10 rounded-full blur-[100px]" />
                     </div>
 
                     <div className="relative z-10">
                         <div className="text-center mb-16 lg:mb-24">
-                            <Badge className="bg-orange-500 text-white mb-8 px-4 py-1.5 rounded-full border-none font-black uppercase text-[10px] tracking-widest shadow-lg shadow-orange-500/20">
+                            <Badge className="bg-primary text-primary-foreground mb-8 px-4 py-1.5 rounded-full border-none font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
                                 {ctaBadge}
                             </Badge>
                             <h2 className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white leading-[0.9] tracking-tighter italic whitespace-pre-line">
-                                {parseColoredText(ctaTitle, "text-orange-600 dark:text-orange-400 not-italic")}
+                                {parseColoredText(ctaTitle, "text-accent-foreground not-italic")}
                             </h2>
                         </div>
 
                         <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
                             <div className="flex-1 text-center lg:text-left w-full">
-                                <p className="text-emerald-50/70 text-lg md:text-xl font-medium mb-12 max-w-xl leading-relaxed mx-auto lg:mx-0">
+                                <p className="text-accent-foreground/70 text-lg md:text-xl font-medium mb-12 max-w-xl leading-relaxed mx-auto lg:mx-0">
                                     {ctaSubtitle}
                                 </p>
 
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-8 mb-12">
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10">
-                                            <Truck className="h-5 w-5 text-orange-400" />
+                                            <Truck className="h-5 w-5 text-accent-foreground" />
                                         </div>
                                         <span className="text-white font-bold text-sm">Livraison Gratuite</span>
                                     </div>
                                 </div>
 
                                 <Link href="/menu">
-                                    <Button className="h-18 w-full md:w-auto px-12 rounded-2xl bg-white text-primary hover:bg-zinc-100 font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
+                                    <Button className="h-18 w-full md:w-auto px-12 rounded-2xl bg-white text-accent-foreground hover:bg-muted font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
                                         {ctaButtonText}
                                         <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />
                                     </Button>
@@ -281,7 +281,7 @@ export default function LandingPage() {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-primary-hover/80 via-transparent to-transparent" />
 
-                                    <button className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-white border border-white/30 hover:bg-white hover:text-primary transition-all shadow-2xl group/play">
+                                    <button className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-white border border-white/30 hover:bg-white hover:text-accent-foreground transition-all shadow-2xl group/play">
                                         <Play className="h-10 w-10 fill-current translate-x-1 group-hover/play:scale-110 transition-transform" />
                                         <div className="absolute inset-0 rounded-full bg-white animate-ping opacity-20 group-hover:opacity-0" />
                                     </button>
@@ -290,9 +290,9 @@ export default function LandingPage() {
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-white font-black text-sm uppercase tracking-wider mb-1">Watch our story</p>
-                                                <p className="text-emerald-50/60 text-xs font-bold">2:45 Mins • Quality First</p>
+                                                <p className="text-accent-foreground/60 text-xs font-bold">2:45 Mins • Quality First</p>
                                             </div>
-                                            <div className="h-10 w-10 rounded-full bg-orange-500 flex items-center justify-center shadow-lg">
+                                            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shadow-lg">
                                                 <Play className="h-4 w-4 text-white fill-current translate-x-0.5" />
                                             </div>
                                         </div>
@@ -306,16 +306,16 @@ export default function LandingPage() {
 
             {/* ─── BLOG ─── */}
             {(latestArticles?.length ?? 0) > 0 && (
-                <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-white dark:bg-zinc-900/40 rounded-[5rem] shadow-sm mb-24 border border-zinc-100 dark:border-zinc-800 transition-colors duration-500">
+                <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-card/40 rounded-[5rem] shadow-sm mb-24 border border-border transition-colors duration-500">
                     <div className="flex items-end justify-between mb-16 px-8">
                         <div>
-                            <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-[0.9] mb-6 whitespace-pre-line">
-                                {parseColoredText(blogTitle, "text-orange-600 dark:text-orange-400 italic")}
+                            <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-foreground leading-[0.9] mb-6 whitespace-pre-line">
+                                {parseColoredText(blogTitle, "text-accent-foreground italic")}
                             </h2>
-                            <div className="h-2 w-24 bg-emerald-800 rounded-full" />
+                            <div className="h-2 w-24 bg-primary rounded-full" />
                         </div>
                         <Link href="/blog">
-                            <Button variant="ghost" className="text-emerald-700 font-black uppercase tracking-widest text-[10px] items-center gap-2 hover:bg-emerald-50">
+                            <Button variant="ghost" className="text-accent-foreground font-black uppercase tracking-widest text-[10px] items-center gap-2 hover:bg-accent">
                                 {blogViewAll} <ChevronRight className="h-4 w-4" />
                             </Button>
                         </Link>

@@ -135,6 +135,7 @@
   "order.preparing": "Preparing",
   "order.ready": "Ready",
   "order.delivering": "Delivering",
+  "order.delivered": "Delivered",
   "order.completed": "Completed",
   "order.cancelled": "Cancelled",
   "order.refunded": "Refunded",

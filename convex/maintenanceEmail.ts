@@ -14,7 +14,7 @@
 
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { sendFromDeployment } from "./emailTransport";
 
 const SCOPE_LABELS: Record<string, string> = {
   code: "Code du site",
@@ -24,39 +24,24 @@ const SCOPE_LABELS: Record<string, string> = {
   emails: "Emails & templates",
 };
 
+/**
+ * A migration notice, through whichever provider this deployment uses.
+ *
+ * See `emailTransport` — this was an inline client and the agency's
+ * `noreply@` fallback, repeated in four files (#212).
+ */
 async function sendViaSES(params: {
   toEmail: string;
   subject: string;
   htmlBody: string;
   textBody: string;
 }) {
-  const region = process.env.AWS_REGION ?? "eu-west-3";
-  const fromEmail =
-    process.env.AWS_SES_FROM_EMAIL ?? "noreply@beindigital.fr";
-
-  const client = new SESv2Client({
-    region,
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
+  return sendFromDeployment({
+    to: params.toEmail,
+    subject: params.subject,
+    html: params.htmlBody,
+    text: params.textBody,
   });
-
-  const command = new SendEmailCommand({
-    FromEmailAddress: fromEmail,
-    Destination: { ToAddresses: [params.toEmail] },
-    Content: {
-      Simple: {
-        Subject: { Data: params.subject, Charset: "UTF-8" },
-        Body: {
-          Html: { Data: params.htmlBody, Charset: "UTF-8" },
-          Text: { Data: params.textBody, Charset: "UTF-8" },
-        },
-      },
-    },
-  });
-
-  return client.send(command);
 }
 
 interface MigrationRequestEmailData {

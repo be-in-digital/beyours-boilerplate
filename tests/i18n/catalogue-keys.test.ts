@@ -19,6 +19,7 @@ import {
   REFERENCE_LOCALE,
   REFERENCE_STRINGS,
 } from "@/lib/i18n/index"
+import { STATUS_LABEL_KEYS } from "@be-in-digital/core/status-labels"
 
 const CATALOGUES: Record<string, Record<string, string>> = { en, es }
 
@@ -83,6 +84,29 @@ describe("the synchronously available reference catalogue", () => {
     // a page of raw keys.
     const missing = Object.keys(fr).filter((k) => !(k in REFERENCE_STRINGS))
     expect(missing).toEqual([])
+  })
+})
+
+describe("the keys an engine package asks for", () => {
+  /**
+   * The sweep below this one reads `t("…")` literals out of the app's own
+   * components. Some keys are asked for from inside an engine package, where
+   * that sweep cannot see them: `useOrderStatusLabels` and
+   * `useStoreStatusLabels` in `@be-in-digital/restaurant` resolve the status
+   * vocabulary through `t()` for the two storefront badges. A key with no
+   * entry falls back to the source-language word rather than rendering raw —
+   * but it also means a French label on a Spanish page, silently.
+   */
+  it("answers every status label key the badges translate through", () => {
+    const reference = new Set(Object.keys(fr))
+    const unknown = STATUS_LABEL_KEYS.filter((key) => !reference.has(key))
+
+    expect(unknown).toEqual([])
+  })
+
+  it("asks for more than a token number of them", () => {
+    // Guards the guard: an empty vocabulary would make the check above pass.
+    expect(STATUS_LABEL_KEYS.length).toBeGreaterThanOrEqual(11)
   })
 })
 

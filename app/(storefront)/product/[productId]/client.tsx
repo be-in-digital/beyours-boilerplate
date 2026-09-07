@@ -31,7 +31,7 @@ export function ProductDetailClientPage({ product }: Props) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <p className="text-muted-foreground">Veuillez sélectionner un restaurant.</p>
-        <a href="/store-selector" className="mt-4 inline-block text-primary hover:underline">
+        <a href="/store-selector" className="mt-4 inline-block text-accent-foreground hover:underline">
           Choisir un restaurant
         </a>
       </div>

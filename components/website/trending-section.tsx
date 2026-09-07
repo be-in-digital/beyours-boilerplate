@@ -56,7 +56,7 @@ export function TrendingSection({ sectionTitle, viewAllLabel }: TrendingSectionP
             <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
                 <Heading
                     title={sectionTitle}
-                    barColor="bg-orange-500"
+                    barColor="bg-primary"
                     viewAll={{ label: viewAllLabel, href: "/menu" }}
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -77,7 +77,7 @@ export function TrendingSection({ sectionTitle, viewAllLabel }: TrendingSectionP
         <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
             <Heading
                 title={sectionTitle}
-                barColor="bg-orange-500"
+                barColor="bg-primary"
                 viewAll={{ label: viewAllLabel, href: "/menu" }}
             />
 
@@ -96,8 +96,8 @@ export function TrendingSection({ sectionTitle, viewAllLabel }: TrendingSectionP
                     ))}
                 </CarouselContent>
                 <div className="flex justify-center md:justify-end gap-4 mt-8">
-                    <CarouselPrevious className="static translate-y-0 h-12 w-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center hover:bg-primary hover:text-white transition-all bg-white dark:bg-zinc-900 dark:text-zinc-100" />
-                    <CarouselNext className="static translate-y-0 h-12 w-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center bg-primary text-white hover:scale-105 transition-all" />
+                    <CarouselPrevious className="static translate-y-0 h-12 w-12 rounded-full border border-border flex items-center justify-center hover:bg-primary-hover hover:text-white transition-all bg-card dark:text-foreground" />
+                    <CarouselNext className="static translate-y-0 h-12 w-12 rounded-full border border-border flex items-center justify-center bg-primary text-primary-foreground hover:scale-105 transition-all" />
                 </div>
             </Carousel>
         </section>

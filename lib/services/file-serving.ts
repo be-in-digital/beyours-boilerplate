@@ -68,6 +68,18 @@ export function isInlineSafeContentType(contentType: string | undefined): boolea
 export function buildFileResponseHeaders(input: {
   contentType: string | undefined
   contentLength: number
+  /**
+   * True for the folders that needed a session to be read at all (#188).
+   *
+   * The gate is undone by the cache directive if this is missed: `public`
+   * invites any shared cache — a CDN, a corporate proxy — to keep the bytes and
+   * hand them to the next caller, who has no session. `private, no-store` is
+   * the one honest answer for a response whose audience is one account.
+   *
+   * A private object therefore loses the year-long cache. That is the cost of
+   * the gate, and it is small: these are avatars, one per page.
+   */
+  isPrivate?: boolean
 }): Record<string, string> {
   const inlineSafe = isInlineSafeContentType(input.contentType)
 
@@ -81,7 +93,9 @@ export function buildFileResponseHeaders(input: {
     // document whatever the declared type says.
     "X-Content-Type-Options": "nosniff",
     "Content-Security-Policy": INERT_DOCUMENT_CSP,
-    "Cache-Control": "public, max-age=31536000, immutable",
+    "Cache-Control": input.isPrivate
+      ? "private, no-store"
+      : "public, max-age=31536000, immutable",
     "Content-Length": String(input.contentLength),
   }
 }

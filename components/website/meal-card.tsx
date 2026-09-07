@@ -75,7 +75,7 @@ export function MealCard({
         <motion.div
             whileHover={{ y: -10 }}
             className={cn(
-                "bg-white dark:bg-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/[0.04] border border-white/10 dark:border-zinc-800 hover:border-emerald-100 dark:hover:border-emerald-900/50 transition-all group flex flex-col h-full cursor-pointer",
+                "bg-card rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/[0.04] border border-border hover:border-primary/20 transition-all group flex flex-col h-full cursor-pointer",
                 className
             )}
         >
@@ -90,9 +90,9 @@ export function MealCard({
                 )}
                 <div className="absolute top-4 left-4 flex gap-2">
                     {isVeg ? (
-                        <Badge className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-zinc-800 dark:text-zinc-100 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">Veg</Badge>
+                        <Badge className="bg-card/90 backdrop-blur-md text-foreground border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">Veg</Badge>
                     ) : isSpicy ? (
-                        <Badge className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-zinc-800 dark:text-zinc-100 border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">Spicy</Badge>
+                        <Badge className="bg-card/90 backdrop-blur-md text-foreground border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">Spicy</Badge>
                     ) : null}
                 </div>
                 <div className="absolute top-4 right-4 z-10">
@@ -100,12 +100,12 @@ export function MealCard({
                 </div>
             </div>
             <div className="p-8 flex flex-col flex-1">
-                <h3 className="text-lg font-black tracking-tighter text-zinc-800 dark:text-zinc-100 leading-tight mb-3 group-hover:text-emerald-700 dark:group-hover:text-emerald-500 transition-colors uppercase">
+                <h3 className="text-lg font-black tracking-tighter text-foreground leading-tight mb-3 group-hover:text-accent-foreground transition-colors uppercase">
                     {title}
                 </h3>
                 {rating !== undefined && (
                     <div className="flex items-center gap-4 mb-6">
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 rounded-lg text-[10px] font-black">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-accent text-accent-foreground rounded-lg text-[10px] font-black">
                             <Star className="h-3 w-3 fill-current" />
                             {rating}
                         </div>
@@ -114,20 +114,20 @@ export function MealCard({
 
                 <div className="mt-auto flex items-center justify-between gap-4">
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none mb-1">Price</span>
-                        <span className="text-xl font-black text-primary dark:text-emerald-400 leading-none">{formatPrice(Math.round(price * 100))}</span>
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Price</span>
+                        <span className="text-xl font-black text-accent-foreground leading-none">{formatPrice(Math.round(price * 100))}</span>
                     </div>
 
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
                                 onClick={handleAddToCart}
-                                className="h-12 w-12 rounded-2xl bg-primary text-white hover:bg-orange-500 shadow-lg shadow-emerald-900/10 hover:scale-110 transition-all p-0 border-none"
+                                className="h-12 w-12 rounded-2xl bg-primary text-primary-foreground hover:bg-primary-hover shadow-lg shadow-primary/10 hover:scale-110 transition-all p-0 border-none"
                             >
                                 <Plus className="h-6 w-6" />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-primary text-white border-none font-bold uppercase text-[10px] tracking-widest px-4 py-2 rounded-xl">
+                        <TooltipContent className="bg-primary text-primary-foreground border-none font-bold uppercase text-[10px] tracking-widest px-4 py-2 rounded-xl">
                             Ajouter au panier
                         </TooltipContent>
                     </Tooltip>
