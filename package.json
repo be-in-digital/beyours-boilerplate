@@ -46,7 +46,7 @@
     "@aws-sdk/client-s3": "^3.1024.0",
     "@aws-sdk/client-sesv2": "^3.1024.0",
     "@aws-sdk/s3-request-presigner": "^3.1024.0",
-    "@be-in-digital/admin": "^9.0.0",
+    "@be-in-digital/admin": "^9.0.1",
     "@be-in-digital/cms": "^3.1.0",
     "@be-in-digital/convex-functions": "^4.0.0",
     "@be-in-digital/convex-schema": "^4.0.0",

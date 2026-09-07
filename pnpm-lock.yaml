@@ -21,8 +21,8 @@ importers:
         specifier: ^3.1024.0
         version: 3.1079.0
       '@be-in-digital/admin':
-        specifier: ^9.0.0
-        version: 9.0.0(18e1a99341b681a3332ac7787515e8bf)
+        specifier: ^9.0.1
+        version: 9.0.1(18e1a99341b681a3332ac7787515e8bf)
       '@be-in-digital/cms':
         specifier: ^3.1.0
         version: 3.1.0(@noble/hashes@2.2.0)
@@ -454,8 +454,8 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@be-in-digital/admin@9.0.0':
-    resolution: {integrity: sha512-28k7gyZFJ8GcZasUDtYerDTxtUOb2uG35fM6vdC2jgj7X+PljSWs8Gby5CmuTtB+j+mlhxyhXtdrRfSekQnAsw==, tarball: https://npm.pkg.github.com/download/@be-in-digital/admin/9.0.0/90aeb72d2285abc2bcff10644a0d71b7db21335d}
+  '@be-in-digital/admin@9.0.1':
+    resolution: {integrity: sha512-3jj5iEa0BoptDMEhm9MPNWC02Wfvb1Jv7Y+kJ5Ur688/6dZFwKJivtW9wGyTtPKGjIciaYmWc64Oh9ID2L5rnQ==, tarball: https://npm.pkg.github.com/download/@be-in-digital/admin/9.0.1/2a500ccbac6eb8dddb3f49c7baa84d621fb3f76a}
     peerDependencies:
       '@be-in-digital/convex-functions': ^4.0.0
       '@be-in-digital/convex-schema': ^4.0.0
@@ -6074,7 +6074,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@be-in-digital/admin@9.0.0(18e1a99341b681a3332ac7787515e8bf)':
+  '@be-in-digital/admin@9.0.1(18e1a99341b681a3332ac7787515e8bf)':
     dependencies:
       '@be-in-digital/convex-functions': 4.0.0(@noble/hashes@2.2.0)(convex@1.44.0(react@19.2.4))
       '@be-in-digital/convex-schema': 4.0.0(convex@1.44.0(react@19.2.4))
