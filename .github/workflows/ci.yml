@@ -295,6 +295,21 @@ jobs:
           #
           # CONVEX_DEPLOYMENT is deliberately absent: the Convex CLI refuses to
           # run when it is set alongside CONVEX_SELF_HOSTED_URL.
+          #
+          # NEXT_PUBLIC_ENABLE_TEST_ROUTES opens the Playwright harness routes
+          # under app/(test) — /address-test and the rest. Their layout calls
+          # notFound() in a production build unless it is "true", and this suite
+          # drives them, so without it the three specs in
+          # address-autocomplete.spec.ts fail on a 404 that is the guard working
+          # exactly as designed. Measured on this build, both ways: 3 failed
+          # without it on `page-title` never appearing, 3 passed with it.
+          # Every client's first CI run was red on those three.
+          #
+          # It goes here and nowhere else. This file is written by the job, on
+          # the runner, for a build nobody serves; a client's own deployment
+          # never sees it, so the harness routes stay 404 in their production,
+          # which is the whole point of the guard. Setting it anywhere more
+          # durable would ship the harness with the site.
           cat > .env.local <<EOF
           NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:${CONVEX_PORT}
           NEXT_PUBLIC_CONVEX_SITE_URL=http://127.0.0.1:${CONVEX_SITE_PORT}
@@ -318,6 +333,7 @@ jobs:
           OPENAI_API_KEY=sk-placeholder
           SEED_ADMIN_EMAIL=test.owner@beindigital.fr
           SEED_PASSWORD=e2e-seed-password-not-for-production
+          NEXT_PUBLIC_ENABLE_TEST_ROUTES=true
           EOF
 
           # Nothing above reaches S3, SES or OpenAI. They only have to be present
@@ -417,17 +433,36 @@ jobs:
         # skipped, they are never declared — and every test that signs in can
         # self-skip when SEED_PASSWORD is empty.
         #
-        # The floor is deliberately loose. Upstream this same assertion carries
-        # per-project floors derived from a measured run; this suite has never
-        # completed once, so there is no measurement to derive them from, and a
-        # floor guessed too high would redden every pull request on day one.
-        # After the first green run, read the "Playwright executed" table in the
-        # log and tighten this to `--min <~75% of total>
-        # --projects setup:1,public:<~80%>,admin:<~80%>`.
+        # The floors below are measured, not guessed. This comment used to say
+        # the suite had never completed once and to keep `--min 100` until it
+        # had; it has now, on 07/09/2026, under these exact conditions —
+        # production build, local Convex backend, seeded users, CI=true, one
+        # worker:
+        #
+        #     setup     1 ran,   0 skipped
+        #     public   80 ran,   0 skipped
+        #     admin   469 ran,   8 skipped
+        #     total   550 ran,   8 skipped   (558 declared)
+        #
+        # So: ~75% of the total and ~80% of each project, which is the rule the
+        # earlier version of this comment prescribed.
+        #
+        # The headroom is not decoration. The eight skips are data-dependent —
+        # "when the inbox has one", "or empty state", "when enough items" — so
+        # their number moves with what the seed happens to produce, and a floor
+        # set at the measured count would redden a run for having seeded one
+        # fewer order. 94 admin tests of slack absorbs that and still catches
+        # what this step exists for: `admin` and `setup` vanishing entirely with
+        # the backend, or every signing-in test self-skipping without
+        # SEED_PASSWORD. Both leave counts far below these floors, not just
+        # under them.
+        #
+        # Raise them when the suite grows; a floor that never moves stops
+        # meaning anything.
         if: always()
         run: |
           node scripts/assert-e2e-ran.mjs playwright-report/report.json \
-            --min 100 --projects setup,public,admin
+            --min 412 --projects setup:1,public:64,admin:375
 
       - name: Upload Playwright report
         # always(), not failure(): a run that passed over 13 of 56 spec files
@@ -440,8 +475,17 @@ jobs:
           retention-days: 7
 
       - name: Convex backend log
+        # `tail`, not `cat`, and the bench has had it that way since it hit the
+        # same wall (.github/workflows/e2e.yml). The backend logs every HTTP
+        # request it serves, so a completed suite leaves tens of thousands of
+        # access lines; `cat` appended ~5000 of them AFTER the Playwright
+        # summary, and every reader of a job log — the Actions UI, the API,
+        # anything scripted — reads from the end. The first red run of this job
+        # (07/09/2026) could not be diagnosed from its own log for that reason.
+        # The last lines are the only ones that ever mattered anyway: a backend
+        # that died takes the suite with it and says so on the way out.
         if: failure()
-        run: cat "$HOME/convex-backend.log" || true
+        run: tail -100 "$HOME/convex-backend.log" || true
 
   # One check name to require, and it tells the truth.
   #
