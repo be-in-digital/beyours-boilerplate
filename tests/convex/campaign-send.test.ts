@@ -270,3 +270,82 @@ describe("dispatchScheduled", () => {
     expect((await campaignRow(t, id))?.status).toBe("paused")
   })
 })
+/**
+ * A send that cannot finish says so, on the screen the owner is looking at
+ * (#326.2).
+ *
+ * `sendBatch` had one reaction to a template, a config or a segment it could
+ * not read: `console.error` and `return`. The campaign stayed at `sending` for
+ * ever, the campaigns screen went on reading "En cours" against a send that had
+ * stopped, and the only record was a log line no restaurant sees.
+ *
+ * The batch itself is a `"use node"` action and cannot run under this harness —
+ * see `cancelScheduled` above. What can, and what the defect was actually about,
+ * is the state it now writes: `failed` plus the sentence naming what to fix, who
+ * may write it, and what relaunching does.
+ */
+describe("markFailed", () => {
+  test("stops the send and keeps the reason the owner has to act on", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const id = await seedCampaign(t, storeId, { status: "sending" })
+
+    await t.mutation(internal.emailCampaigns.markFailed, {
+      id,
+      reason: "Le modèle d'email de cette campagne est introuvable : il a été supprimé.",
+    })
+
+    const campaign = await campaignRow(t, id)
+    expect(campaign?.status).toBe("failed")
+    // A status word on its own would be no better than the log line it replaces.
+    expect(campaign?.failureReason).toContain("modèle")
+  })
+
+  test("does not overwrite a state a person chose", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const id = await seedCampaign(t, storeId, { status: "paused" })
+
+    // A batch still in flight when the owner presses Pause lands here late.
+    // Pausing is a decision, and a straggler must not undo it.
+    await t.mutation(internal.emailCampaigns.markFailed, { id, reason: "trop tard" })
+
+    expect((await campaignRow(t, id))?.status).toBe("paused")
+    expect((await campaignRow(t, id))?.failureReason).toBeUndefined()
+  })
+
+  test("relaunching clears the reason and resumes from the cursor", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const id = await seedCampaign(t, storeId, { status: "sending" })
+
+    await t.mutation(internal.emailCampaigns.saveSendCursor, { id, cursor: "page-3" })
+    await t.mutation(internal.emailCampaigns.markFailed, { id, reason: "segment supprimé" })
+    await t.mutation(internal.emailCampaigns.markSending, { id })
+
+    const campaign = await campaignRow(t, id)
+    expect(campaign?.status).toBe("sending")
+    // Stale under a running campaign, it would read as a live problem.
+    expect(campaign?.failureReason).toBeUndefined()
+    // Untouched, so "Relancer" continues rather than mailing the first batch
+    // a second time.
+    expect(campaign?.sendCursor).toBe("page-3")
+  })
+
+  test("is not picked up again by the scheduler on its own", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const id = await seedCampaign(t, storeId, {
+      status: "sending",
+      scheduledAt: Date.now() - 60_000,
+    })
+
+    await t.mutation(internal.emailCampaigns.markFailed, { id, reason: "modèle supprimé" })
+    await t.action(internal.emailCampaigns.dispatchScheduled, {})
+    await cancelScheduled(t)
+
+    // `dueForSending` reads `scheduled` only. A cron restarting a send that
+    // stopped for a reason nobody has fixed would loop for ever.
+    expect((await campaignRow(t, id))?.status).toBe("failed")
+  })
+})

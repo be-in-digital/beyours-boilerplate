@@ -67,7 +67,10 @@ export const send = action({
       permission: "marketing:write",
     });
 
-    if (!["draft", "scheduled", "paused"].includes(campaign.status)) {
+    // `failed` included: "Relancer" on a campaign whose send stopped is the
+    // whole point of that status. `markSending` keeps the cursor, so it resumes
+    // rather than mailing the first batch a second time.
+    if (!["draft", "scheduled", "paused", "failed"].includes(campaign.status)) {
       throw new Error(
         "La campagne ne peut pas être envoyée dans son état actuel. Statut actuel : " +
           campaign.status
@@ -156,8 +159,29 @@ export const sendBatch = internalAction({
     const config: any = await ctx.runQuery(internal.emailConfig.getInternal, {
       storeId: campaign.storeId,
     });
-    if (!template || !config) {
-      console.error("[emailCampaigns] template or config missing; send halted");
+    // A batch that cannot read what it needs FAILS the campaign; it does not
+    // hold. This used to be `console.error` and `return`: the campaign stayed
+    // at "sending" for ever, the owner's screen read "En cours" against a send
+    // that had stopped, and the only record was a log line no restaurant sees.
+    // Deleting the template a scheduled campaign named was enough to do it —
+    // `emailTemplates.remove` now refuses that, and this is the other half,
+    // because a template can go missing in ways no refusal covers.
+    if (!template) {
+      await ctx.runMutation(internal.emailCampaigns.markFailed, {
+        id: args.campaignId,
+        reason:
+          "Le modèle d'email de cette campagne est introuvable : il a été supprimé. " +
+          "Choisissez un autre modèle, puis relancez.",
+      });
+      return;
+    }
+    if (!config) {
+      await ctx.runMutation(internal.emailCampaigns.markFailed, {
+        id: args.campaignId,
+        reason:
+          "La configuration email de l'établissement est introuvable. " +
+          "Renseignez l'expéditeur dans Marketing → Configuration, puis relancez.",
+      });
       return;
     }
 
@@ -169,14 +193,30 @@ export const sendBatch = internalAction({
 
     let recipients: any[] = page.page;
 
+    // A missing segment FAILS the campaign, and this is the one that had to
+    // change most. The code read "if the segment is there, filter by it", so a
+    // segment that had been deleted meant no filter at all — the campaign did
+    // not stop, it went to the WHOLE list. Copy written for "clients inactifs
+    // depuis 6 mois" reached every subscriber the establishment has, in
+    // batches, and marketing mail cannot be recalled. Stopping is the only
+    // correct answer: the audience the owner chose no longer exists, so there
+    // is no send to fall back to.
     if (campaign.segmentId) {
       const segment: any = await ctx.runQuery(internal.emailSegments.getByIdInternal, {
         id: campaign.segmentId,
       });
-      if (segment) {
-        const predicate = buildSegmentFilter(segment.rules, segment.ruleOperator);
-        recipients = recipients.filter((s: any) => predicate(s));
+      if (!segment) {
+        await ctx.runMutation(internal.emailCampaigns.markFailed, {
+          id: args.campaignId,
+          reason:
+            "Le segment ciblé par cette campagne est introuvable : il a été supprimé. " +
+            "L'envoi a été arrêté pour ne pas écrire à toute la liste. " +
+            "Choisissez une autre audience, puis relancez.",
+        });
+        return;
       }
+      const predicate = buildSegmentFilter(segment.rules, segment.ruleOperator);
+      recipients = recipients.filter((s: any) => predicate(s));
     }
 
     // One round-trip for the whole page, not one per subscriber.

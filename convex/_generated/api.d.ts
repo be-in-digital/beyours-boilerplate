@@ -119,7 +119,6 @@ import type * as uberEatsImport from "../uberEatsImport.js";
 import type * as uberEatsMenuSync from "../uberEatsMenuSync.js";
 import type * as uberEatsOAuth from "../uberEatsOAuth.js";
 import type * as uberEatsOAuthHttp from "../uberEatsOAuthHttp.js";
-import type * as uberEatsOrders from "../uberEatsOrders.js";
 import type * as uberEatsWebhook from "../uberEatsWebhook.js";
 import type * as unsplashSearch from "../unsplashSearch.js";
 import type * as userProfiles from "../userProfiles.js";
@@ -243,7 +242,6 @@ declare const fullApi: ApiFromModules<{
   uberEatsMenuSync: typeof uberEatsMenuSync;
   uberEatsOAuth: typeof uberEatsOAuth;
   uberEatsOAuthHttp: typeof uberEatsOAuthHttp;
-  uberEatsOrders: typeof uberEatsOrders;
   uberEatsWebhook: typeof uberEatsWebhook;
   unsplashSearch: typeof unsplashSearch;
   userProfiles: typeof userProfiles;

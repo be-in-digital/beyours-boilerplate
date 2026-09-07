@@ -133,6 +133,7 @@ export const dispatchScheduled = internalAction({
   },
 });
 export const markSent = internalMutation(defs.markSent);
+export const markFailed = internalMutation(defs.markFailed);
 export const resetStats = internalMutation(defs.resetStats);
 export const incrementStats = internalMutation(defs.incrementStats);
 
