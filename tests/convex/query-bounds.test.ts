@@ -633,6 +633,275 @@ describe("an automation with a mailing list behind it", () => {
 })
 
 // ===========================================================================
+// B4 — the mailing list, and the homepage that reads the order book
+// ===========================================================================
+
+describe("a mailing list that has succeeded", () => {
+  const SUBSCRIBER_STATUSES = [
+    "active",
+    "pending",
+    "unsubscribed",
+    "bounced",
+    "complained",
+  ] as const
+
+  async function seedSubscribers(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    count = BUSY
+  ) {
+    await t.run(async (ctx) => {
+      for (let i = 0; i < count; i++) {
+        await ctx.db.insert("emailSubscribers", {
+          storeId,
+          email: `diner${i}@example.fr`,
+          status: SUBSCRIBER_STATUSES[i % SUBSCRIBER_STATUSES.length]!,
+          source: i % 3 === 0 ? ("import" as const) : ("storefront_form" as const),
+          tags: i % 4 === 0 ? ["vip"] : [],
+          consentAt: NOW,
+          consentSource: "checkout",
+          bounceCount: 0,
+          metadata: {
+            ...EMPTY_SUBSCRIBER_METADATA,
+            totalSpent: (i % 10) * 1_000,
+          },
+          createdAt: NOW - i * 1_000,
+          updatedAt: NOW,
+        })
+      }
+    })
+  }
+
+  test("the audience page serves one page rather than the list", async () => {
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const owner = await seedOwner(t, [storeId])
+    await seedSubscribers(t, storeId)
+
+    const first = await owner.query(api.emailSubscribers.list, {
+      storeId,
+      paginationOpts: { numItems: PAGE, cursor: null },
+    })
+    expect(first.page).toHaveLength(PAGE)
+    expect(first.isDone).toBe(false)
+
+    const second = await owner.query(api.emailSubscribers.list, {
+      storeId,
+      paginationOpts: { numItems: PAGE, cursor: first.continueCursor },
+    })
+    const firstIds = new Set(first.page.map((s) => s._id))
+    expect(second.page.some((s) => firstIds.has(s._id))).toBe(false)
+  })
+
+  test("a status tab is an index read on `by_storeId_status`", async () => {
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const owner = await seedOwner(t, [storeId])
+    await seedSubscribers(t, storeId)
+
+    const page = await owner.query(api.emailSubscribers.list, {
+      storeId,
+      status: "bounced" as const,
+      paginationOpts: { numItems: PAGE, cursor: null },
+    })
+    expect(page.page).toHaveLength(PAGE)
+    expect(page.page.every((s) => s.status === "bounced")).toBe(true)
+  })
+
+  test("serves a clamped page however large a page the caller asks for", async () => {
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const owner = await seedOwner(t, [storeId])
+    await seedSubscribers(t, storeId)
+
+    const page = await owner.query(api.emailSubscribers.list, {
+      storeId,
+      paginationOpts: { numItems: 1_000_000, cursor: null },
+    })
+    expect(page.page.length).toBeLessThanOrEqual(200)
+  })
+
+  test("the dashboard counts through the index rather than downloading the list", async () => {
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const owner = await seedOwner(t, [storeId])
+    await seedSubscribers(t, storeId)
+
+    const counts = await owner.query(api.emailSubscribers.countByStatus, { storeId })
+    // Five equal slices of the seed, and the cap is far above them: exact.
+    expect(counts.active).toBe(BUSY / SUBSCRIBER_STATUSES.length)
+    expect(counts.total).toBe(BUSY)
+    expect(counts.truncated).toBe(false)
+  })
+
+  test("the segment preview says which population its count describes", async () => {
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const owner = await seedOwner(t, [storeId])
+    await seedSubscribers(t, storeId)
+
+    const preview = await owner.query(api.emailSegments.countMatchingSubscribers, {
+      storeId,
+      rules: [
+        { id: "r1", field: "metadata.totalSpent", operator: "gte" as const, value: "5000" },
+      ],
+      ruleOperator: "and" as const,
+    })
+    // Only the active fifth of the seed is an audience at all.
+    expect(preview.scanned).toBe(BUSY / SUBSCRIBER_STATUSES.length)
+    expect(preview.count).toBeGreaterThan(0)
+    expect(preview.count).toBeLessThanOrEqual(preview.scanned)
+    expect(preview.truncated).toBe(false)
+  })
+})
+
+describe("a homepage carousel on a busy month", () => {
+  async function seedSoldOrders(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    distinctProducts = 12
+  ) {
+    return t.run(async (ctx) => {
+      const categoryId = await ctx.db.insert("categories", {
+        storeId,
+        name: "Pizzas",
+        slug: "pizzas",
+        sortOrder: 0,
+        isActive: true,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+      const productIds: Id<"products">[] = []
+      for (let i = 0; i < distinctProducts; i++) {
+        productIds.push(
+          await ctx.db.insert("products", {
+            storeId,
+            categoryId,
+            name: `Plat ${i}`,
+            slug: `plat-${i}`,
+            price: 1_200,
+            taxRate: 10,
+            images: [],
+            options: [],
+            allergens: [],
+            tags: [],
+            // The last one is de-listed: a carousel must not offer a dish the
+            // kitchen has taken off the menu, however well it sold.
+            isActive: i < distinctProducts - 1,
+            isFeatured: false,
+            sortOrder: i,
+            source: "manual",
+            createdAt: NOW,
+            updatedAt: NOW,
+          })
+        )
+      }
+
+      for (let i = 0; i < BUSY; i++) {
+        await ctx.db.insert("orders", {
+          storeId,
+          orderNumber: `SOLD-${i}`,
+          customerInfo: { name: "Camille" },
+          type: "pickup" as const,
+          // A cancelled order sold nothing, and a pending one has not sold yet.
+          status: i % 9 === 0 ? ("cancelled" as const) : ("completed" as const),
+          items: [
+            {
+              productId: productIds[i % distinctProducts]!,
+              productName: `Plat ${i % distinctProducts}`,
+              quantity: 1,
+              unitPrice: 1_200,
+              selectedOptions: [],
+              subtotal: 1_200,
+            },
+          ],
+          subtotal: 1_200,
+          taxAmount: 120,
+          total: 1_320,
+          paymentStatus: "paid" as const,
+          source: "website" as const,
+          createdAt: NOW - i * 60_000,
+          updatedAt: NOW,
+        })
+      }
+      return productIds
+    })
+  }
+
+  test("ranks a window of recent orders, and skips what is off the menu", async () => {
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const productIds = await seedSoldOrders(t, storeId)
+
+    // No identity: this is the storefront's own query, on the public homepage.
+    const trending = await t.query(api.products.getTrending, { storeId })
+
+    expect(trending.length).toBeGreaterThan(0)
+    expect(trending.length).toBeLessThanOrEqual(8)
+    expect(trending.every((p) => p.isActive)).toBe(true)
+    expect(trending.some((p) => p._id === productIds[productIds.length - 1])).toBe(false)
+  })
+
+  test("refuses a carousel the size of the catalogue because a visitor asked", async () => {
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    await seedSoldOrders(t, storeId)
+
+    const trending = await t.query(api.products.getTrending, { storeId, limit: 1_000_000 })
+    expect(trending.length).toBeLessThanOrEqual(24)
+  })
+})
+
+describe("the scheduled-campaign sweep", () => {
+  test("finds the due campaign through `by_storeId_status`, not by scanning the archive", async () => {
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+
+    const dueId = await t.run(async (ctx) => {
+      const templateId = await ctx.db.insert("emailTemplates", {
+        storeId,
+        name: "Nouveautés",
+        subject: "Du nouveau chez Luigi",
+        blocks: [],
+        category: "marketing" as const,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+      const campaign = (
+        status: "draft" | "scheduled" | "sent",
+        scheduledAt: number | undefined,
+        name: string
+      ) =>
+        ctx.db.insert("emailCampaigns", {
+          storeId,
+          name,
+          subject: "Du nouveau chez Luigi",
+          templateId,
+          status,
+          scheduledAt,
+          abTestEnabled: false,
+          stats: EMPTY_CAMPAIGN_STATS,
+          createdAt: NOW,
+          updatedAt: NOW,
+        })
+
+      // An archive of campaigns that have already gone out, which the sweep
+      // used to read in full once a minute for ever.
+      for (let i = 0; i < BUSY; i++) {
+        await campaign(i % 2 === 0 ? "sent" : "draft", NOW - DAY, `ARCHIVE-${i}`)
+      }
+      await campaign("scheduled", NOW + DAY, "PLUS TARD")
+      return campaign("scheduled", NOW - 60_000, "MAINTENANT")
+    })
+
+    const due = await t.run((ctx) =>
+      ctx.runQuery(internal.emailCampaigns.dueForSending, { now: NOW })
+    )
+    expect(due).toEqual([dueId])
+  })
+})
+
+// ===========================================================================
 // The sweep — a coupon that worked can still be deleted
 // ===========================================================================
 

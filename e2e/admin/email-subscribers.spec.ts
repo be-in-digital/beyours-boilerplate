@@ -10,6 +10,9 @@ import {
 import { chooseOption } from "../helpers/filter.helpers"
 
 const SUBSCRIBERS_URL = "/dashboard/email/subscribers"
+// The list is paginated, and the placeholder says which subscribers the box
+// actually searches — see `email-subscribers-page.tsx`.
+const SEARCH_PLACEHOLDER = "Rechercher parmi les abonnés chargés (email ou nom)..."
 
 test.describe("Email Subscribers Page", () => {
   test.describe("Page Structure", () => {
@@ -41,7 +44,7 @@ test.describe("Email Subscribers Page", () => {
 
     test("should display search input", async ({ page }) => {
       await expect(
-        page.getByPlaceholder("Rechercher un abonné...")
+        page.getByPlaceholder(SEARCH_PLACEHOLDER)
       ).toBeVisible({ timeout: 15_000 })
     })
 
@@ -146,7 +149,7 @@ test.describe("Email Subscribers Page", () => {
     })
 
     test("should filter subscribers by search", async ({ page }) => {
-      const searchInput = page.getByPlaceholder("Rechercher un abonné...")
+      const searchInput = page.getByPlaceholder(SEARCH_PLACEHOLDER)
       await expect(searchInput).toBeVisible({ timeout: 15_000 })
 
       await searchInput.fill("test")
@@ -172,7 +175,7 @@ test.describe("Email Subscribers Page", () => {
     })
 
     test("should clear search", async ({ page }) => {
-      const searchInput = page.getByPlaceholder("Rechercher un abonné...")
+      const searchInput = page.getByPlaceholder(SEARCH_PLACEHOLDER)
 
       await searchInput.fill("test")
       await page.waitForTimeout(500)

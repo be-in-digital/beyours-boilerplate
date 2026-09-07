@@ -135,7 +135,6 @@ export const dispatchScheduled = internalAction({
 export const markSent = internalMutation(defs.markSent);
 export const resetStats = internalMutation(defs.resetStats);
 export const incrementStats = internalMutation(defs.incrementStats);
-export const incrementRevenue = internalMutation(defs.incrementRevenue);
 
 /**
  * The same row, for a caller with no session.
