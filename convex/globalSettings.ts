@@ -1,4 +1,9 @@
-import { query, mutation, internalQuery } from "./_generated/server";
+import {
+  query,
+  mutation,
+  internalQuery,
+  internalMutation,
+} from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/globalSettings";
 import { getAuthUser } from "@be-in-digital/convex-functions/auth";
 import { hasPermission, type Role } from "@be-in-digital/core/auth/rbac";
@@ -96,3 +101,13 @@ export const upsert = mutation({
     return defs.upsert.handler(ctx, args);
   },
 });
+/**
+ * Record what the card provider said about our credentials.
+ *
+ * Internal: written by the nightly probe and by the checkout action, both of
+ * which run with no user identity. Read back by `paymentAvailability.get`,
+ * which is what decides whether the checkout arms its card tile (#411).
+ */
+export const internalRecordCardProviderHealth = internalMutation(
+  defs.recordCardProviderHealth
+);

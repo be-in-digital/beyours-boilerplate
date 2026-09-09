@@ -116,13 +116,13 @@ export default function LandingPage() {
                         transition={{ duration: 0.8, ease: "easeOut" }}
                         className="flex-1 text-center md:text-left"
                     >
-                        <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
+                        <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
                             {heroBadge}
                         </Badge>
-                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 drop-shadow-2xl whitespace-pre-line">
-                            {parseColoredText(heroTitle, "text-accent-foreground italic")}
+                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-primary-foreground leading-[0.9] tracking-tighter mb-8 drop-shadow-2xl whitespace-pre-line">
+                            {parseColoredText(heroTitle, "text-primary-foreground italic")}
                         </h1>
-                        <p className="text-lg md:text-xl text-white/90 mb-10 max-w-lg leading-relaxed font-black drop-shadow-md">
+                        <p className="text-lg md:text-xl text-primary-foreground mb-10 max-w-lg leading-relaxed font-black drop-shadow-md">
                             {heroSubtitle}
                         </p>
                         <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
@@ -163,9 +163,9 @@ export default function LandingPage() {
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-primary rounded-full">
-                                        <Star className="h-4 w-4 text-white fill-current" />
+                                        <Star className="h-4 w-4 text-primary-foreground fill-current" />
                                     </div>
-                                    <div className="text-white text-left">
+                                    <div className="text-primary-foreground text-left">
                                         <p className="text-[10px] font-black uppercase tracking-tighter opacity-70 leading-none mb-1">
                                             {fb1Title}
                                         </p>
@@ -184,9 +184,9 @@ export default function LandingPage() {
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-primary rounded-full">
-                                        <Clock className="h-4 w-4 text-white" />
+                                        <Clock className="h-4 w-4 text-primary-foreground" />
                                     </div>
-                                    <div className="text-white text-left">
+                                    <div className="text-primary-foreground text-left">
                                         <p className="text-[10px] font-black uppercase tracking-tighter opacity-70 leading-none mb-1">
                                             {fb2Title}
                                         </p>
@@ -238,28 +238,28 @@ export default function LandingPage() {
                             <Badge className="bg-primary text-primary-foreground mb-8 px-4 py-1.5 rounded-full border-none font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
                                 {ctaBadge}
                             </Badge>
-                            <h2 className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white leading-[0.9] tracking-tighter italic whitespace-pre-line">
-                                {parseColoredText(ctaTitle, "text-accent-foreground not-italic")}
+                            <h2 className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-primary-foreground leading-[0.9] tracking-tighter italic whitespace-pre-line">
+                                {parseColoredText(ctaTitle, "text-primary-foreground not-italic")}
                             </h2>
                         </div>
 
                         <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
                             <div className="flex-1 text-center lg:text-left w-full">
-                                <p className="text-accent-foreground/70 text-lg md:text-xl font-medium mb-12 max-w-xl leading-relaxed mx-auto lg:mx-0">
+                                <p className="text-primary-foreground text-lg md:text-xl font-medium mb-12 max-w-xl leading-relaxed mx-auto lg:mx-0">
                                     {ctaSubtitle}
                                 </p>
 
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-8 mb-12">
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10">
-                                            <Truck className="h-5 w-5 text-accent-foreground" />
+                                            <Truck className="h-5 w-5 text-primary-foreground" />
                                         </div>
-                                        <span className="text-white font-bold text-sm">Livraison Gratuite</span>
+                                        <span className="text-primary-foreground font-bold text-sm">Livraison Gratuite</span>
                                     </div>
                                 </div>
 
                                 <Link href="/menu">
-                                    <Button className="h-18 w-full md:w-auto px-12 rounded-2xl bg-white text-accent-foreground hover:bg-muted font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
+                                    <Button className="h-18 w-full md:w-auto px-12 rounded-2xl bg-card text-accent-foreground hover:bg-muted font-black uppercase tracking-widest text-sm shadow-2xl transition-all hover:scale-105 group">
                                         {ctaButtonText}
                                         <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />
                                     </Button>
@@ -281,19 +281,19 @@ export default function LandingPage() {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-primary-hover/80 via-transparent to-transparent" />
 
-                                    <button className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-white border border-white/30 hover:bg-white hover:text-accent-foreground transition-all shadow-2xl group/play">
+                                    <button className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-primary-foreground border border-white/30 hover:bg-card hover:text-accent-foreground transition-all shadow-2xl group/play">
                                         <Play className="h-10 w-10 fill-current translate-x-1 group-hover/play:scale-110 transition-transform" />
-                                        <div className="absolute inset-0 rounded-full bg-white animate-ping opacity-20 group-hover:opacity-0" />
+                                        <div className="absolute inset-0 rounded-full bg-card animate-ping opacity-20 group-hover:opacity-0" />
                                     </button>
 
                                     <div className="absolute bottom-8 left-8 right-8 p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-white font-black text-sm uppercase tracking-wider mb-1">Watch our story</p>
-                                                <p className="text-accent-foreground/60 text-xs font-bold">2:45 Mins • Quality First</p>
+                                                <p className="text-primary-foreground font-black text-sm uppercase tracking-wider mb-1">Watch our story</p>
+                                                <p className="text-primary-foreground text-xs font-bold">2:45 Mins • Quality First</p>
                                             </div>
                                             <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                                                <Play className="h-4 w-4 text-white fill-current translate-x-0.5" />
+                                                <Play className="h-4 w-4 text-primary-foreground fill-current translate-x-0.5" />
                                             </div>
                                         </div>
                                     </div>

@@ -19,13 +19,6 @@ export const create = storeMutation({
   handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
-export const update = storeMutation({
-  permission: "translations:write",
-  args: defs.update.args,
-  storeIdFrom: languageStoreId,
-  handler: (ctx, args) => defs.update.handler(ctx, args),
-});
-
 export const toggleActive = storeMutation({
   permission: "translations:write",
   args: defs.toggleActive.args,

@@ -57,164 +57,26 @@ async function requireAuth(ctx: ActionCtx): Promise<void> {
 // Integration Config
 // ============================================================
 
-// @guarded-inline: requireAuth checks settings:write by role
-export const activateIntegration = action({
-  args: {
-    storeId: v.string(),
-    integratorStoreId: v.string(),
-    integratorBrandId: v.optional(v.string()),
-    merchantStoreId: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const credentials = readCredentials();
-    const { uberEats } = await import("@be-in-digital/integrations");
-    await uberEats.activateIntegration(credentials, args.storeId, {
-      integration_enabled: true,
-      integrator_store_id: args.integratorStoreId,
-      integrator_brand_id: args.integratorBrandId,
-      merchant_store_id: args.merchantStoreId,
-    });
-    return { success: true, storeId: args.storeId };
-  },
-});
-
-// @guarded-inline: requireAuth checks settings:write by role
-export const getIntegrationDetails = action({
-  args: { storeId: v.string() },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const credentials = readCredentials();
-    const { uberEats } = await import("@be-in-digital/integrations");
-    // Cast to a structural type so the package interface name does not leak
-    // into Convex's generated .d.ts (TS4023).
-    return (await uberEats.getIntegrationDetails(credentials, args.storeId)) as Record<string, unknown>;
-  },
-});
-
-// @guarded-inline: requireAuth checks settings:write by role
-export const getStoresForUser = action({
-  args: { limit: v.optional(v.number()), pageToken: v.optional(v.string()) },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const credentials = readCredentials();
-    const { uberEats } = await import("@be-in-digital/integrations");
-    const res = await uberEats.getStoresForUser(credentials, {
-      limit: args.limit,
-      pageToken: args.pageToken,
-    });
-    return res as { stores: Array<Record<string, unknown>>; next_page_token?: string };
-  },
-});
-
 // ============================================================
 // Menu
 // ============================================================
-
-// @guarded-inline: requireAuth checks settings:write by role
-export const updateMenuItem = action({
-  args: {
-    storeId: v.string(),
-    itemId: v.string(),
-    payload: v.any(),
-  },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const credentials = readCredentials();
-    const { uberEats } = await import("@be-in-digital/integrations");
-    await uberEats.updateMenuItem(credentials, args.storeId, args.itemId, args.payload as Record<string, unknown>);
-    return { success: true };
-  },
-});
-
-// @guarded-inline: requireAuth checks settings:write by role
-export const updateModifierGroup = action({
-  args: {
-    storeId: v.string(),
-    modifierGroupId: v.string(),
-    payload: v.any(),
-  },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const credentials = readCredentials();
-    const { uberEats } = await import("@be-in-digital/integrations");
-    await uberEats.updateModifierGroup(credentials, args.storeId, args.modifierGroupId, args.payload as Record<string, unknown>);
-    return { success: true };
-  },
-});
 
 // ============================================================
 // Promotions
 // ============================================================
 
-// @guarded-inline: requireAuth checks settings:write by role
-export const createPromotion = action({
-  args: { storeId: v.string(), payload: v.any() },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const credentials = readCredentials();
-    const { uberEats } = await import("@be-in-digital/integrations");
-    return await uberEats.createPromotion(credentials, args.storeId, args.payload as Record<string, unknown>);
-  },
-});
-
 // ============================================================
 // Reporting
 // ============================================================
-
-// @guarded-inline: requireAuth checks settings:write by role
-export const requestReport = action({
-  args: {
-    reportType: v.string(),
-    startDate: v.string(),
-    endDate: v.string(),
-    storeUuids: v.optional(v.array(v.string())),
-  },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const credentials = readCredentials();
-    const { uberEats } = await import("@be-in-digital/integrations");
-    return await uberEats.requestReport(credentials, {
-      report_type: args.reportType,
-      start_date: args.startDate,
-      end_date: args.endDate,
-      store_uuids: args.storeUuids,
-    });
-  },
-});
 
 // ============================================================
 // Order — Resolve Fulfillment Issues (recommended)
 // ============================================================
 
-// @guarded-inline: requireAuth checks settings:write by role
-export const resolveFulfillmentIssues = action({
-  args: { orderId: v.string(), payload: v.any() },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const credentials = readCredentials();
-    const { uberEats } = await import("@be-in-digital/integrations");
-    await uberEats.resolveFulfillmentIssues(credentials, args.orderId, args.payload as { fulfillment_issues: Array<{ issue_type: string }> });
-    return { success: true };
-  },
-});
-
 // ============================================================
 // Order — Mark as Ready (also wired in kitchenTickets.readyTicket;
 // exposed here for direct testing during Uber validation)
 // ============================================================
-
-// @guarded-inline: requireAuth checks settings:write by role
-export const markOrderAsReady = action({
-  args: { orderId: v.string() },
-  handler: async (ctx, args) => {
-    await requireAuth(ctx);
-    const credentials = readCredentials();
-    const { uberEats } = await import("@be-in-digital/integrations");
-    await uberEats.markOrderAsReady(credentials, args.orderId);
-    return { success: true };
-  },
-});
 
 // ============================================================
 // Validation runner — exercises every endpoint Uber requires.
@@ -239,6 +101,14 @@ async function runStep(
   }
 }
 
+// @kept-callerless: no screen calls this, and it is not dead. It is the
+// production-validation run Uber asks for, and `apps/docs/guides/delivery-integrations.md`
+// tells an operator to invoke it by name. It drives the endpoints directly
+// through `@be-in-digital/integrations`, which is why the nine sibling actions
+// that wrapped those same endpoints one-by-one were removed as duplicates
+// (#413). Public rather than internal deliberately: `requireAuth` reads the
+// caller's identity, and an internal function reached from the dashboard or the
+// CLI has none — it would refuse every caller it could ever have.
 // @guarded-inline: requireAuth checks settings:write by role
 export const runValidation = action({
   args: {

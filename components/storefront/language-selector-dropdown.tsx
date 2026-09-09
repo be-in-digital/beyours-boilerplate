@@ -73,7 +73,7 @@ export function LanguageSelectorDropdown({
                 className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                   isTransparent
                     ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    : "bg-white border-border shadow-sm text-accent-foreground hover:bg-muted"
+                    : "bg-card border-border shadow-sm text-accent-foreground hover:bg-muted"
                 }`}
                 aria-label={label}
               >
@@ -88,7 +88,7 @@ export function LanguageSelectorDropdown({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-56 p-2 rounded-2xl border border-border bg-white shadow-xl"
+        className="w-56 p-2 rounded-2xl border border-border bg-card shadow-xl"
       >
         <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground px-3 pt-2 pb-3">
           {label}
@@ -108,7 +108,7 @@ export function LanguageSelectorDropdown({
                 aria-current={isSelected ? "true" : undefined}
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors flex items-center gap-3 ${
                   isSelected
-                    ? "bg-primary/10 border border-primary/20"
+                    ? "bg-accent border border-primary/20"
                     : "hover:bg-muted border border-transparent"
                 }`}
               >

@@ -393,3 +393,189 @@ describe("POST /webhooks/ses — Bounce", () => {
     expect(after?.bounceCount).toBe(0)
   })
 })
+
+/**
+ * The bounce that carries no correlation headers at all.
+ *
+ * `handleSesWebhook` reads `X-Store-Id` and `X-Subscriber-Id` out of
+ * `mail.headers`, and SES omits `mail.headers` from a notification unless the
+ * sending identity is configured to include the original headers. Nothing
+ * configured that: `setup-aws.sh` created the configuration set with no
+ * destination, no SNS topic and no identity notification of any kind, so
+ * `POST /webhooks/ses` was routed and never called. Wired by hand it still
+ * dropped everything — the handler's whole body sat behind
+ * `if (!storeId || !subscriberId) return 200`, which reads a headerless bounce
+ * as "sent outside the campaign system".
+ *
+ * A 200 is the worst available answer there: it tells SNS the delivery
+ * succeeded, so nothing retries and nothing is queued for inspection. The dead
+ * address stays `active` and is re-mailed on every campaign, and AWS suspends
+ * the account at a 5 % complaint rate with nothing in the product able to say
+ * why.
+ *
+ * `setup-aws.sh` Step 2b now sets the headers flag, so the precise path is the
+ * one a new deployment takes. These hold the other one — every client
+ * provisioned before it.
+ */
+describe("POST /webhooks/ses — no correlation headers", () => {
+  /** The same envelope as `signedBounce`, with `mail.headers` left out. */
+  function headerlessNotification(args: {
+    type: "Bounce" | "Complaint" | "Delivery"
+    bounceType?: "Permanent" | "Transient" | "Undetermined"
+    email?: string
+    messageId?: string
+  }) {
+    const email = args.email ?? "yanis@resto.example"
+    const notification: Record<string, unknown> = {
+      notificationType: args.type,
+      mail: {
+        messageId: args.messageId ?? "ses-headerless",
+        source: "no-reply@beyours.fr",
+        destination: [email],
+      },
+    }
+    if (args.type === "Bounce") {
+      notification.bounce = {
+        bounceType: args.bounceType ?? "Permanent",
+        bouncedRecipients: [{ emailAddress: email }],
+      }
+    }
+    if (args.type === "Complaint") {
+      notification.complaint = { complainedRecipients: [{ emailAddress: email }] }
+    }
+    return signedNotification(notification, args.messageId ?? "sns-headerless")
+  }
+
+  /** Every report `captureBackendError` has queued, by source. */
+  function queuedReports(t: ReturnType<typeof convexTest>) {
+    return t.run(async (ctx) => {
+      const jobs = await ctx.db.system.query("_scheduled_functions").collect()
+      return jobs
+        .filter((job) => job.name.includes("reportError"))
+        .map((job) => job.args[0] as { source?: string; message?: string })
+    })
+  }
+
+  test("a permanent bounce suppresses the address it names", async () => {
+    const t = newHarness()
+    stubCertificateFetch()
+    const { id } = await seedSubscriber(t)
+
+    expect(await deliverBounce(t, headerlessNotification({ type: "Bounce" }))).toBe(200)
+
+    // The whole defect: this used to still read `active`, for ever.
+    expect((await readSubscriber(t, id))?.status).toBe("bounced")
+  })
+
+  test("a complaint suppresses the address it names", async () => {
+    const t = newHarness()
+    stubCertificateFetch()
+    const { id } = await seedSubscriber(t)
+
+    expect(await deliverBounce(t, headerlessNotification({ type: "Complaint" }))).toBe(200)
+
+    expect((await readSubscriber(t, id))?.status).toBe("complained")
+  })
+
+  test("it suppresses the address in every store that holds it", async () => {
+    // Deliberate, and the conservative direction rather than the convenient
+    // one. A hard bounce is a fact about the MAILBOX and is equally true of
+    // every store carrying it, and the complaint rate AWS suspends over is
+    // per-account — one AWS account per client, every store of theirs inside
+    // it. Leaving the second row `active` keeps mailing an address already
+    // known to be dead, on the same account.
+    const t = newHarness()
+    stubCertificateFetch()
+    const first = await seedSubscriber(t)
+    const second = await seedSubscriber(t)
+    expect(first.storeId).not.toBe(second.storeId)
+
+    await deliverBounce(t, headerlessNotification({ type: "Bounce" }))
+
+    expect((await readSubscriber(t, first.id))?.status).toBe("bounced")
+    expect((await readSubscriber(t, second.id))?.status).toBe("bounced")
+  })
+
+  test("the address is matched case-insensitively, as SES reports it", async () => {
+    const t = newHarness()
+    stubCertificateFetch()
+    const { id } = await seedSubscriber(t)
+
+    await deliverBounce(
+      t,
+      headerlessNotification({ type: "Bounce", email: "Yanis@Resto.Example" })
+    )
+
+    expect((await readSubscriber(t, id))?.status).toBe("bounced")
+  })
+
+  test("a delivery does NOT fall back — that would corrupt a campaign figure", async () => {
+    // Suppression is a fact about the address; a delivery, an open and a click
+    // are campaign statistics, and attributing one to a store that did not send
+    // the message makes the number wrong rather than complete.
+    const t = newHarness()
+    stubCertificateFetch()
+    const { id } = await seedSubscriber(t)
+
+    expect(await deliverBounce(t, headerlessNotification({ type: "Delivery" }))).toBe(200)
+
+    expect((await readSubscriber(t, id))?.status).toBe("active")
+    const events = await t.run((ctx) => ctx.db.query("emailEvents").collect())
+    expect(events).toHaveLength(0)
+  })
+
+  test("a bounce matching no subscriber is reported, not silently dropped", async () => {
+    // The configuration fault has to be visible somewhere. Answering 200 and
+    // recording nothing is exactly how this stayed invisible until an account
+    // was suspended.
+    const t = newHarness()
+    stubCertificateFetch()
+    await seedSubscriber(t)
+
+    expect(
+      await deliverBounce(
+        t,
+        headerlessNotification({ type: "Bounce", email: "nobody@resto.example" })
+      )
+    ).toBe(200)
+
+    const reports = await queuedReports(t)
+    expect(reports).toHaveLength(1)
+    expect(reports[0]?.source).toBe("emailHttpHandlers.handleSesWebhook")
+    // Named, so whoever reads the report knows which half to go and fix.
+    expect(reports[0]?.message).toContain("no original headers")
+  })
+
+  test("a delivery matching nobody is not reported — it is ordinary", async () => {
+    const t = newHarness()
+    stubCertificateFetch()
+
+    await deliverBounce(
+      t,
+      headerlessNotification({ type: "Delivery", email: "nobody@resto.example" })
+    )
+
+    expect(await queuedReports(t)).toHaveLength(0)
+  })
+
+  test("headers still win when SES sends them", async () => {
+    // The precise path stays precise: a bounce carrying `X-Subscriber-Id`
+    // marks that subscriber and no other, whatever else holds the address.
+    const t = newHarness()
+    stubCertificateFetch()
+    const first = await seedSubscriber(t)
+    const second = await seedSubscriber(t)
+
+    await deliverBounce(
+      t,
+      signedBounce({
+        storeId: first.storeId,
+        subscriberId: first.id,
+        bounceType: "Permanent",
+      })
+    )
+
+    expect((await readSubscriber(t, first.id))?.status).toBe("bounced")
+    expect((await readSubscriber(t, second.id))?.status).toBe("active")
+  })
+})

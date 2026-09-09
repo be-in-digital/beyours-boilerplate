@@ -44,25 +44,25 @@ export default function AddressesContent() {
         <div className="max-w-7xl mx-auto relative z-10 text-center">
           <Link
             href="/account"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors font-medium"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-primary-foreground transition-colors hover:underline hover:underline-offset-4 font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
             Mon compte
           </Link>
-          <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg block mx-auto w-fit">
+          <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg block mx-auto w-fit">
             Livraison
           </Badge>
-          <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-8 italic">
-            Mes <span className="text-accent-foreground not-italic">Adresses</span>
+          <h1 className="text-6xl md:text-8xl font-black text-primary-foreground tracking-tighter leading-none mb-8 italic">
+            Mes <span className="text-primary-foreground not-italic">Adresses</span>
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto font-medium">
+          <p className="text-xl text-primary-foreground max-w-2xl mx-auto font-medium">
             Gérez vos adresses de livraison
           </p>
         </div>
       </section>
 
       <div className="max-w-7xl mx-auto px-6 md:px-12 py-12">
-        <div className="rounded-3xl bg-white shadow-sm border border-border p-6">
+        <div className="rounded-3xl bg-card shadow-sm border border-border p-6">
           <AddressManager />
         </div>
       </div>

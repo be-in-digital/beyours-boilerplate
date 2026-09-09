@@ -59,9 +59,9 @@ export function StorefrontProductCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/[0.04] border border-white/10 hover:border-primary/20 transition-all group flex flex-col h-full duration-300 ${
+      className={`bg-card rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/[0.04] border border-white/10 hover:border-primary/20 transition-all group flex flex-col h-full duration-300 ${
         onClick ? "cursor-pointer hover:-translate-y-2.5" : ""
-      } ${otherStore ? "opacity-60" : ""}`}
+      }`}
     >
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
@@ -75,7 +75,9 @@ export function StorefrontProductCard({
             // full-viewport image for a quarter-viewport slot, twelve times a
             // menu page.
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover group-hover:scale-110 transition-all duration-700"
+            className={`object-cover group-hover:scale-110 transition-all duration-700 ${
+              otherStore ? "opacity-60" : ""
+            }`}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -86,15 +88,15 @@ export function StorefrontProductCard({
         {/* Badge top-left */}
         <div className="absolute top-4 left-4 flex gap-2">
           {otherStore ? (
-            <Badge variant="secondary" className="bg-white/90 backdrop-blur-md border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
+            <Badge variant="secondary" className="bg-card/90 backdrop-blur-md border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
               {t("product.otherRestaurant")}
             </Badge>
           ) : product.isFeatured ? (
-            <span className="bg-white/90 backdrop-blur-md text-foreground border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
+            <span className="bg-card/90 backdrop-blur-md text-foreground border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
               {t("product.popular")}
             </span>
           ) : !available ? (
-            <span className="bg-white/90 backdrop-blur-md text-foreground border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
+            <span className="bg-card/90 backdrop-blur-md text-foreground border-none py-1.5 px-3 rounded-lg font-bold uppercase text-[9px] shadow-sm">
               {t("product.unavailable")}
             </span>
           ) : null}
@@ -106,12 +108,12 @@ export function StorefrontProductCard({
             e.stopPropagation()
             onToggleFavorite()
           }}
-          className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:scale-110"
+          className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur-sm transition-all hover:bg-card hover:scale-110"
         >
           <Heart
             className={`h-4 w-4 transition-colors ${
               favorited
-                ? "fill-red-500 text-red-500"
+                ? "fill-destructive text-destructive"
                 : "text-muted-foreground"
             }`}
           />

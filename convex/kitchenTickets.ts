@@ -2,11 +2,10 @@ import { query, internalMutation, internalQuery, action } from "./_generated/ser
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/kitchenTickets";
-import { storeQuery, storeMutation, storeIdFromDocument, storeIdFromField } from "./lib/storeFunctions";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 import { captureBackendError } from "./errorReporting";
 
 const kitchenTicketsStoreId = storeIdFromDocument("Ticket not found");
-const kitchenTickets_getByOrderStoreId = storeIdFromField("orderId", "Order not found");
 
 // === INTERNAL QUERIES (no auth, called from actions) ===
 
@@ -64,19 +63,6 @@ export const getByStatus = storeQuery({
   handler: (ctx, args) => defs.getByStatus.handler(ctx, args),
 });
 
-export const getByStation = storeQuery({
-  permission: "kitchen:read",
-  args: defs.getByStation.args,
-  handler: (ctx, args) => defs.getByStation.handler(ctx, args),
-});
-
-export const getByOrder = storeQuery({
-  permission: "kitchen:read",
-  storeIdFrom: kitchenTickets_getByOrderStoreId,
-  args: defs.getByOrder.args,
-  handler: (ctx, args) => defs.getByOrder.handler(ctx, args),
-});
-
 export const getPrintQueue = storeQuery({
   permission: "kitchen:read",
   args: defs.getPrintQueue.args,
@@ -108,24 +94,11 @@ export const getByTrackingToken = query(defs.getByTrackingToken);
 
 // === MUTATIONS (authenticated) ===
 
-export const create = storeMutation({
-  permission: "kitchen:write",
-  args: defs.create.args,
-  handler: (ctx, args) => defs.create.handler(ctx, args),
-});
-
 export const updateStatus = storeMutation({
   permission: "kitchen:write",
   storeIdFrom: kitchenTicketsStoreId,
   args: defs.updateStatus.args,
   handler: (ctx, args) => defs.updateStatus.handler(ctx, args),
-});
-
-export const markPickedUp = storeMutation({
-  permission: "kitchen:write",
-  storeIdFrom: kitchenTicketsStoreId,
-  args: defs.markPickedUp.args,
-  handler: (ctx, args) => defs.markPickedUp.handler(ctx, args),
 });
 
 // Taking a ticket is a kitchen write, and it must be reachable by whichever
@@ -157,28 +130,6 @@ export const requestReprint = storeMutation({
   storeIdFrom: kitchenTicketsStoreId,
   args: defs.requestReprint.args,
   handler: (ctx, args) => defs.requestReprint.handler(ctx, args),
-});
-
-export const assignStation = storeMutation({
-  permission: "kitchen:write",
-  storeIdFrom: kitchenTicketsStoreId,
-  args: defs.assignStation.args,
-  handler: (ctx, args) => defs.assignStation.handler(ctx, args),
-});
-
-export const assignTo = storeMutation({
-  permission: "kitchen:write",
-  storeIdFrom: kitchenTicketsStoreId,
-  args: defs.assignTo.args,
-  handler: (ctx, args) => defs.assignTo.handler(ctx, args),
-});
-
-/** @deprecated Use markPrintSent instead */
-export const incrementPrintCount = storeMutation({
-  permission: "kitchen:write",
-  storeIdFrom: kitchenTicketsStoreId,
-  args: defs.incrementPrintCount.args,
-  handler: (ctx, args) => defs.incrementPrintCount.handler(ctx, args),
 });
 
 // === ACTIONS (authenticated, can call external APIs) ===

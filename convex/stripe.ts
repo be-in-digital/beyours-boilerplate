@@ -7,6 +7,8 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
   assertSettlesOrder,
+  deliberateSettlementRefusal,
+  orderAlreadyCollected,
   paymentStatusAfterSettlement,
   readStripeCheckoutSession,
 } from "@be-in-digital/convex-functions/paymentSettlement";
@@ -14,7 +16,10 @@ import {
   resolveStripeCharge,
   StripeChargeRouteError,
 } from "@be-in-digital/convex-functions/stripeChargeRouting";
-import { CardPaymentUnavailableError } from "@be-in-digital/convex-functions/refusal";
+import {
+  CardPaymentUnavailableError,
+  OrderAlreadyPaidError,
+} from "@be-in-digital/convex-functions/refusal";
 
 interface OrderData {
   total: number;
@@ -27,6 +32,10 @@ interface OrderData {
   // Needed by `assertSettlesOrder`: an order already collected through another
   // method does not accept a second settlement (#378).
   paymentMethod?: string;
+  // Needed by `createCheckoutSession`: the session this order was last sent to
+  // pay through, so a second checkout does not leave the first one payable
+  // beside it (#411).
+  stripeCheckoutSessionId?: string;
   viewToken?: string;
   customerInfo?: { email?: string };
 }
@@ -64,6 +73,62 @@ async function assertChargeableOnPlatform(ctx: ActionCtx): Promise<void> {
   );
 
   resolveStripeCharge(connection);
+}
+
+/**
+ * Is this Stripe error about OUR credentials, rather than about the payment?
+ *
+ * The distinction decides whether the card tile is disarmed for everybody, so
+ * it has to be narrow. `StripeAuthenticationError` is Stripe refusing the key
+ * itself; `StripePermissionError` is a key that is real but not allowed to do
+ * this. A declined card, a rate limit, an idempotency conflict or an outage
+ * say nothing about the key, and recording those as "unusable" would take card
+ * payments away from a working establishment over a transient failure.
+ *
+ * Matched on `type` rather than with `instanceof`: the SDK is imported
+ * dynamically in each action, and its error classes are not worth pinning a
+ * second import for.
+ */
+function isStripeCredentialsRefusal(error: unknown): boolean {
+  const type = (error as { type?: unknown } | null)?.type;
+  return (
+    type === "StripeAuthenticationError" || type === "StripePermissionError"
+  );
+}
+
+/**
+ * Has money already been taken for this order?
+ *
+ * TWO READS, because one of them is not enough and the missing half is what
+ * #411 is about.
+ *
+ * `paymentStatus` is the order's own account of itself, and it is the stricter
+ * of the two: it counts `refunded`, so a refunded order is closed to new
+ * payment attempts exactly as `orders.markCashPaid` has always closed it. A
+ * refunded order is finished business, and taking money on it again should be
+ * a new order rather than a second attempt at the old one.
+ *
+ * It is also not the whole truth. A settlement writes the payment row and the
+ * order status in two transactions, so between them an order reads `pending`
+ * with a `succeeded` row already against it — and a gate that trusts the
+ * status alone sends the diner to pay a second time in exactly the window
+ * where a payment is being recorded. `internalCollectionOnOrder` asks the
+ * ledger, which is where the answer actually is.
+ *
+ * Shared by all three provider checkouts: the rule is about the order, not
+ * about which page the diner happens to be on.
+ */
+async function orderAlreadyPaid(
+  ctx: ActionCtx,
+  orderId: Id<"orders">,
+  paymentStatus: string | undefined
+): Promise<boolean> {
+  if (orderAlreadyCollected(paymentStatus)) return true;
+  const collected = await ctx.runQuery(
+    internal.payments.internalCollectionOnOrder,
+    { orderId }
+  );
+  return collected !== null;
 }
 
 /**
@@ -107,35 +172,137 @@ export const createCheckoutSession = action({
     });
     if (!order) throw new Error("Order not found");
 
+    // Nothing is owed twice. An order whose money has already arrived must not
+    // be sent to a payment page at all: `orders.create` is idempotent on the
+    // diner's key, so a back-navigation and a resubmit land on the SAME order,
+    // and opening a second session on a paid one charges the same meal again.
+    // The ledger refuses the second row afterwards (#411), which keeps the
+    // books right and leaves the diner debited and waiting for a refund. This
+    // is the half that stops the charge being taken.
+    if (await orderAlreadyPaid(ctx, args.orderId, order.paymentStatus)) {
+      throw new OrderAlreadyPaidError();
+    }
+
     const stripe = new Stripe(secretKey, {
       httpClient: Stripe.createFetchHttpClient(),
     });
 
-    const session: { url: string | null; id: string } = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "eur",
-            unit_amount: order.total,
-            product_data: {
-              name: `Commande #${order.orderNumber}`,
+    // One order, one payable session — as far as an action can promise that.
+    //
+    // What this DOES close is the sequential case, which is the one the issue
+    // describes and by far the commonest: open, go back, open again. What it
+    // cannot close is two opens genuinely in flight at once, or a Stripe read
+    // that fails while the create succeeds — an action is four round trips
+    // with no transaction around them, and there is no lock to take. Those
+    // fall through to the ledger, which IS serializable: two completed
+    // sessions on one order produce one `succeeded` row, the second is refused
+    // and recorded for a refund. Prevention here, guarantee there.
+    //
+    // Nothing used to close the previous one: `internalAttachCheckoutSession`
+    // overwrote the stored id and Stripe kept the old session live for ~24 h.
+    // A diner who opened checkout twice — a stale tab, a back-navigation, a
+    // retry — therefore left TWO payable sessions against one order, and both
+    // could be completed. Both referenced the same order at the same total in
+    // the same currency, and both were `card`, so no check on the settlement
+    // side could tell them apart; the ledger now refuses the second row, but
+    // only after the diner has been charged 2 400 € for a 1 200 € order
+    // (#411).
+    //
+    // Awaited rather than scheduled: the new session must not become payable
+    // while the old one still is. `expireCheckoutSession` never throws — Stripe
+    // refuses to expire a session that is already expired, which is the outcome
+    // we wanted anyway — so this cannot stop a diner paying.
+    //
+    // Its ANSWER is read, though, and one answer stops the checkout dead.
+    // `already_paid` means the previous session has been completed and its
+    // settlement has not reached us yet — the webhook is in flight, or the
+    // diner closed the tab before the return page. The order still reads
+    // `pending`, so the gate above saw nothing, and opening a replacement
+    // would charge the same meal twice with both charges legitimate as far as
+    // every later check can tell. This is the window the gate cannot see, and
+    // ignoring the outcome left it open.
+    if (order.stripeCheckoutSessionId) {
+      const outcome = await ctx.runAction(internal.stripe.expireCheckoutSession, {
+        checkoutSessionId: order.stripeCheckoutSessionId,
+      });
+      if (outcome === "already_paid") {
+        throw new OrderAlreadyPaidError();
+      }
+    }
+
+    // A key Stripe REFUSES is the case `paymentAvailability` could not see.
+    // Its check is `startsWith("sk_")` — the shape of a string — so a
+    // well-formed key that is revoked, rolled or from another account armed the
+    // card tile, and the exception thrown here is a plain
+    // `Stripe.errors.StripeAuthenticationError`, which Convex redacts to
+    // "Server Error": exactly the screen #374 was written to remove, on
+    // exactly the tile it was written to stop pre-selecting (#411).
+    //
+    // So the refusal is made legible AND remembered. The diner reads the same
+    // French sentence as on a keyless deployment — to them it is one fact,
+    // this establishment cannot take a card — and the verdict disarms the tile
+    // for everyone behind them instead of each one discovering it in turn.
+    //
+    // This is the DETECTION half only. Recovery cannot come from here: a
+    // disarmed tile is one no diner can select, so nothing reaches this line
+    // again until the key works. `verifyStripeKey` on the hourly cron is what
+    // brings the tile back.
+    let session: { url: string | null; id: string };
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "eur",
+              unit_amount: order.total,
+              product_data: {
+                name: `Commande #${order.orderNumber}`,
+              },
             },
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        success_url: `${args.successUrl}${args.successUrl.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: args.cancelUrl,
+        metadata: {
+          orderId: args.orderId,
+          storeId: order.storeId,
         },
-      ],
-      success_url: `${args.successUrl}${args.successUrl.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: args.cancelUrl,
-      metadata: {
-        orderId: args.orderId,
-        storeId: order.storeId,
-      },
-      ...(order.customerInfo?.email
-        ? { customer_email: order.customerInfo.email }
-        : {}),
-    });
+        ...(order.customerInfo?.email
+          ? { customer_email: order.customerInfo.email }
+          : {}),
+      });
+    } catch (error) {
+      // Only a credentials refusal. A declined card, a rate limit or a Stripe
+      // outage says nothing about the key, and recording those as "unusable"
+      // would take the card tile away from a working establishment over a
+      // transient failure.
+      if (isStripeCredentialsRefusal(error)) {
+        await ctx.runMutation(
+          internal.globalSettings.internalRecordCardProviderHealth,
+          {
+            provider: "stripe" as const,
+            usable: false,
+            detail: error instanceof Error ? error.message : String(error),
+          }
+        );
+        console.error(
+          "[Stripe] la clé de ce déploiement a été refusée par Stripe:",
+          error
+        );
+        throw new CardPaymentUnavailableError();
+      }
+      throw error;
+    }
+
+    // The key works. Written on every success rather than only on a change:
+    // `checkedAt` is what tells an operator how fresh the verdict is.
+    await ctx.runMutation(
+      internal.globalSettings.internalRecordCardProviderHealth,
+      { provider: "stripe" as const, usable: true }
+    );
 
     if (!session.url) {
       throw new Error("Stripe did not return a checkout URL");
@@ -156,6 +323,28 @@ export const createCheckoutSession = action({
 });
 
 /**
+ * What became of a Checkout Session this order has stopped needing.
+ *
+ *  - `expired`       — it was open, and is now closed. Nobody can pay it.
+ *  - `already_paid`  — it has been COMPLETED and its settlement has not
+ *                      reached us yet. The caller must not open a replacement:
+ *                      the order still reads `pending`, so no status gate can
+ *                      see this, and a second session would collect the same
+ *                      meal twice (#411).
+ *  - `nothing_to_do` — no session, no Stripe key, or a session that was
+ *                      already closed. The outcome we wanted either way.
+ *  - `unknown`       — Stripe could not be reached or refused the read. The
+ *                      caller decides; this action does not throw, because it
+ *                      also runs on the scheduler behind an order already
+ *                      confirmed to a diner.
+ */
+type CheckoutSessionClosure =
+  | "expired"
+  | "already_paid"
+  | "nothing_to_do"
+  | "unknown";
+
+/**
  * Expire a Checkout Session the order has no further use for.
  *
  * WHY THIS EXISTS: a session outlives the intention behind it. #374 lets a
@@ -169,37 +358,60 @@ export const createCheckoutSession = action({
  * which is the difference between the diner being made whole and the diner
  * never being charged.
  *
- * Never throws. It runs on the scheduler, behind an order already confirmed to
- * the diner, and every way it can fail is either harmless or unfixable by a
- * retry: Stripe refuses to expire a session that is already expired — the
- * outcome we wanted — and refuses one that is already paid, which is a real
- * double collection that needs the order's stored session id and a refund, not
- * another expiry attempt.
+ * Never throws, and ANSWERS instead. It is called two ways: scheduled, behind
+ * an order already confirmed to the diner, where a throw would be noise; and
+ * awaited by `createCheckoutSession` before it opens a replacement, where a
+ * throw would block a payment. So every failure is caught and reported as a
+ * `CheckoutSessionClosure` — including the whole set-up, since `getSiteEnv()`
+ * parses the environment and the dynamic import can fail too.
+ *
+ * Why it RETRIEVES first. Stripe refuses to expire anything that is not `open`
+ * and reports "already expired" and "already paid" with the same error, and
+ * those two need opposite responses. The first is the outcome we wanted. The
+ * second means the previous session has been completed and its settlement has
+ * not reached us yet — the order still reads `pending`, so no status gate can
+ * see it — and opening a replacement then collects the same meal twice (#411).
  */
 export const expireCheckoutSession = internalAction({
   args: { checkoutSessionId: v.string() },
-  handler: async (_ctx, args): Promise<void> => {
+  handler: async (_ctx, args): Promise<CheckoutSessionClosure> => {
     const sessionId = args.checkoutSessionId.trim();
-    if (!sessionId) return;
+    if (!sessionId) return "nothing_to_do";
 
-    const Stripe = (await import("stripe")).default;
-    const { getSiteEnv } = await import("@be-in-digital/core/env");
-
-    // Nothing to expire on a deployment that takes no card payments.
-    const secretKey = getSiteEnv().STRIPE_SECRET_KEY;
-    if (!secretKey) return;
-
-    const stripe = new Stripe(secretKey, {
-      httpClient: Stripe.createFetchHttpClient(),
-    });
-
+    // INSIDE the try, all of it. This action is `await`ed on the diner's
+    // checkout path now, not only scheduled behind a confirmed order, so
+    // "never throws" has to be enforced rather than asserted: `getSiteEnv()`
+    // parses the environment and can throw, and so can the dynamic import.
     try {
+      const Stripe = (await import("stripe")).default;
+      const { getSiteEnv } = await import("@be-in-digital/core/env");
+
+      // Nothing to expire on a deployment that takes no card payments.
+      const secretKey = getSiteEnv().STRIPE_SECRET_KEY;
+      if (!secretKey) return "nothing_to_do";
+
+      const stripe = new Stripe(secretKey, {
+        httpClient: Stripe.createFetchHttpClient(),
+      });
+
+      // Read before writing. `sessions.expire` refuses anything that is not
+      // `open`, and reports "already paid" and "already expired" with the same
+      // error — two outcomes that need opposite responses from the caller. One
+      // is what we wanted; the other is a charge that has already been taken.
+      // The extra call runs only on the rare path where one order is sent to
+      // checkout twice.
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.payment_status === "paid") return "already_paid";
+      if (session.status !== "open") return "nothing_to_do";
+
       await stripe.checkout.sessions.expire(sessionId);
+      return "expired";
     } catch (error) {
       console.warn(
         `[Stripe] Could not expire checkout session ${sessionId}:`,
         error
       );
+      return "unknown";
     }
   },
 });
@@ -519,6 +731,27 @@ export const reconcilePendingCheckouts = internalAction({
           `[Stripe Reconcile] order ${candidate.orderId} (session ${candidate.checkoutSessionId}):`,
           error
         );
+
+        // A refusal here means what it means on the webhook: a real charge
+        // exists at Stripe for an order this deployment will not record again,
+        // and somebody owes the diner a refund. The sweep runs unattended at
+        // 3am, so a `console.error` in one client's Convex dashboard is
+        // precisely nobody being told (#411).
+        const refusal = deliberateSettlementRefusal(error);
+        if (refusal) {
+          await ctx.runMutation(
+            internal.payments.internalRecordRefusedCollection,
+            {
+              provider: "stripe" as const,
+              code: refusal.code,
+              message: refusal.message,
+              eventType: "reconcilePendingCheckouts",
+              externalId: candidate.checkoutSessionId,
+              orderId: candidate.orderId as Id<"orders">,
+              storeId: candidate.storeId as Id<"stores">,
+            }
+          );
+        }
       }
     }
 
@@ -529,5 +762,75 @@ export const reconcilePendingCheckouts = internalAction({
     }
 
     return { examined: candidates.length, settled, failed };
+  },
+});
+
+/**
+ * Ask Stripe whether this deployment's key still works, and write it down.
+ *
+ * WHY A SCHEDULED CHECK AND NOT ONLY THE CHECKOUT PATH. Two reasons, and the
+ * second is the one that decides the interval. A key is revoked or rolled
+ * between orders, so left to the checkout alone the first diner of the day is
+ * the one who finds out. And once a verdict has disarmed the tile, the
+ * checkout is unreachable — no diner can select a tile the storefront renders
+ * disabled — so the checkout can never be what discovers the key has been put
+ * right. This is the only writer that can bring card payments back, which is
+ * why it runs hourly rather than nightly.
+ *
+ * `balance.retrieve` is the cheapest authenticated call Stripe offers and it
+ * reads nothing about anybody: it answers the one question asked here, which
+ * is whether these credentials are accepted at all.
+ *
+ * Never throws — it is a cron, and the deployment must not go red over a
+ * check. A failure that is NOT about the credentials leaves the last verdict
+ * standing rather than replacing it with a guess.
+ */
+export const verifyStripeKey = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ checked: boolean; usable: boolean }> => {
+    const { getSiteEnv } = await import("@be-in-digital/core/env");
+
+    let secretKey: string | undefined;
+    try {
+      secretKey = getSiteEnv().STRIPE_SECRET_KEY;
+    } catch {
+      // A malformed env refuses to parse. `paymentAvailability` already reads
+      // that as unavailable through its own key check.
+      return { checked: false, usable: false };
+    }
+
+    // Nothing to verify on a deployment that takes no card payments. Recording
+    // "unusable" here would be redundant — the key check already answers it —
+    // and would overwrite a verdict about a key that may come back.
+    if (!secretKey) return { checked: false, usable: false };
+
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(secretKey, {
+      httpClient: Stripe.createFetchHttpClient(),
+    });
+
+    try {
+      await stripe.balance.retrieve();
+    } catch (error) {
+      if (!isStripeCredentialsRefusal(error)) {
+        console.warn("[Stripe] key check could not complete:", error);
+        return { checked: false, usable: false };
+      }
+      await ctx.runMutation(
+        internal.globalSettings.internalRecordCardProviderHealth,
+        {
+          provider: "stripe" as const,
+          usable: false,
+          detail: error instanceof Error ? error.message : String(error),
+        }
+      );
+      return { checked: true, usable: false };
+    }
+
+    await ctx.runMutation(
+      internal.globalSettings.internalRecordCardProviderHealth,
+      { provider: "stripe" as const, usable: true }
+    );
+    return { checked: true, usable: true };
   },
 });

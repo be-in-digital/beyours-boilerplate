@@ -74,7 +74,7 @@ export default function TrackOrderContent() {
           Ce lien de suivi n&apos;est plus valide.
         </p>
         <Link href="/menu">
-          <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
+          <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary-hover">
             Retour au menu
           </Button>
         </Link>
@@ -111,8 +111,8 @@ export default function TrackOrderContent() {
       </p>
 
       {cancelled ? (
-        <div className="rounded-2xl bg-red-50 p-8 text-center">
-          <XCircle className="mx-auto mb-4 h-10 w-10 text-red-500" />
+        <div className="rounded-2xl bg-destructive/5 p-8 text-center">
+          <XCircle className="mx-auto mb-4 h-10 w-10 text-destructive" />
           <p className="font-bold text-foreground">Commande annulée</p>
         </div>
       ) : (
@@ -137,7 +137,7 @@ export default function TrackOrderContent() {
                   active
                     ? "bg-accent ring-1 ring-primary"
                     : done
-                      ? "bg-white"
+                      ? "bg-card"
                       : "bg-white/60"
                 }`}
               >

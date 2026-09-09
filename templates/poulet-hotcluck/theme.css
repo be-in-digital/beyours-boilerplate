@@ -6,7 +6,7 @@
  */
 
 :root {
-  --background: 20 30% 95%;
+  --background: 20 30% 95.5%;
   --foreground: 0 0% 8%;
   --card: 20 30% 97%;
   --card-foreground: 0 0% 8%;
@@ -16,12 +16,12 @@
   --primary-foreground: 20 60% 96%;
   --secondary: 19 28% 90%;
   --secondary-foreground: 0 0% 8%;
-  --muted: 19 28% 90%;
+  --muted: 19 28% 95.5%;
   --muted-foreground: 7 10% 38%;
   --accent: 14 70% 90%;
   --accent-foreground: 14 75% 26%;
   --border: 18 26% 85%;
-  --input: 18 26% 85%;
+  --input: 18 26% 55.5%;
   --ring: 14 90% 38%;
   --chart-1: 14 90% 38%;
   --chart-2: 164 55% 40%;
@@ -46,7 +46,7 @@
   --accent: 14 45% 13%;
   --accent-foreground: 16 85% 74%;
   --border: 3 3% 17%;
-  --input: 3 3% 17%;
+  --input: 3 3% 38%;
   --ring: 14 92% 55%;
   --chart-1: 14 92% 55%;
   --chart-2: 164 55% 52%;

@@ -121,7 +121,7 @@ export default function InvitePage({
   const signUpHref = `/sign-up?redirect=${encodeURIComponent(`/invite/${token}`)}`
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans flex items-center justify-center px-6 py-20">
+    <div className="min-h-screen bg-background text-foreground font-sans flex items-center justify-center px-6 py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -129,20 +129,20 @@ export default function InvitePage({
         className="w-full max-w-xl"
       >
         <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[0.95] text-zinc-800 italic">
-            Rejoindre <span className="text-orange-500 not-italic">l&apos;équipe</span>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[0.95] text-foreground italic">
+            Rejoindre <span className="text-accent-solid not-italic">l&apos;équipe</span>
           </h1>
         </div>
 
-        <div className="rounded-[3rem] border border-zinc-100 bg-white p-8 md:p-12 shadow-2xl shadow-emerald-950/5">
+        <div className="rounded-[3rem] border border-border bg-card text-card-foreground p-8 md:p-12 shadow-2xl shadow-primary/5">
           {invitation === undefined || sessionPending ? (
             <div className="flex justify-center py-10">
-              <Loader2 className="h-6 w-6 animate-spin text-zinc-300" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : invitation.status === "not_found" ? (
             <InviteNotice
               testId="invite-not-found"
-              icon={<SearchX className="h-7 w-7 text-zinc-500" />}
+              icon={<SearchX className="h-7 w-7" />}
               tone="neutral"
               title="Invitation introuvable"
               body="Ce lien ne correspond à aucune invitation. Il a peut-être déjà
@@ -152,7 +152,7 @@ export default function InvitePage({
           ) : invitation.status === "invitation_expired" ? (
             <InviteNotice
               testId="invite-expired"
-              icon={<CalendarX className="h-7 w-7 text-orange-500" />}
+              icon={<CalendarX className="h-7 w-7" />}
               tone="warning"
               title="Invitation expirée"
               body="Les invitations sont valables sept jours. Demandez un
@@ -162,7 +162,7 @@ export default function InvitePage({
           ) : invitation.status === "invitation_not_pending" ? (
             <InviteNotice
               testId="invite-already-accepted"
-              icon={<BadgeCheck className="h-7 w-7 text-[#0D5C3F]" />}
+              icon={<BadgeCheck className="h-7 w-7" />}
               tone="success"
               title="Invitation déjà acceptée"
               body="Ce poste vous a déjà été attribué. Connectez-vous pour
@@ -170,7 +170,7 @@ export default function InvitePage({
               action={
                 <Button
                   asChild
-                  className="h-14 w-full rounded-2xl bg-[#0D5C3F] text-xs font-black uppercase tracking-widest hover:bg-[#0A412D]"
+                  className="h-14 w-full rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest hover:bg-primary-hover"
                 >
                   <Link href={session ? "/dashboard" : signInHref}>
                     {session ? "Aller au dashboard" : "Se connecter"}
@@ -184,7 +184,7 @@ export default function InvitePage({
             // means the deployment answered something this build does not know.
             <InviteNotice
               testId="invite-unreadable"
-              icon={<SearchX className="h-7 w-7 text-zinc-500" />}
+              icon={<SearchX className="h-7 w-7" />}
               tone="neutral"
               title="Invitation illisible"
               body="Cette invitation n'a pas pu être lue. Demandez à la personne
@@ -192,16 +192,16 @@ export default function InvitePage({
             />
           ) : (
             <div className="space-y-7" data-testid="invite-pending">
-              <div className="space-y-4 rounded-3xl bg-zinc-50 p-6">
+              <div className="space-y-4 rounded-3xl bg-muted text-card-foreground p-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white">
-                    <Building2 className="h-5 w-5 text-[#0D5C3F]" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-background">
+                    <Building2 className="h-5 w-5 text-primary-ink" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                       Établissement
                     </p>
-                    <p className="truncate text-lg font-black text-zinc-800">
+                    <p className="truncate text-lg font-black text-card-foreground">
                       {offer.allStores
                         ? "Tous les établissements"
                         : (offer.storeName ?? "Établissement")}
@@ -209,14 +209,14 @@ export default function InvitePage({
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white">
-                    <BadgeCheck className="h-5 w-5 text-orange-500" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-background">
+                    <BadgeCheck className="h-5 w-5 text-accent-solid" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                       Rôle
                     </p>
-                    <p className="text-lg font-black text-zinc-800">
+                    <p className="text-lg font-black text-card-foreground">
                       {ROLE_LABELS[offer.role] ?? offer.role}
                     </p>
                   </div>
@@ -225,9 +225,9 @@ export default function InvitePage({
 
               {session ? (
                 <>
-                  <p className="text-center text-sm text-zinc-500 leading-relaxed">
+                  <p className="text-center text-sm text-muted-foreground leading-relaxed">
                     Le poste sera attribué à{" "}
-                    <span className="font-black text-zinc-800">
+                    <span className="font-black text-card-foreground">
                       {session.user.email}
                     </span>
                     .{" "}
@@ -235,7 +235,7 @@ export default function InvitePage({
                       offer.email.toLowerCase() && (
                       <>
                         L&apos;invitation a été envoyée à{" "}
-                        <span className="font-black text-zinc-800">
+                        <span className="font-black text-card-foreground">
                           {offer.email}
                         </span>{" "}
                         — connectez-vous avec ce compte si ce n&apos;est pas le
@@ -248,7 +248,7 @@ export default function InvitePage({
                     onClick={handleAccept}
                     disabled={accepting}
                     data-testid="accept-invitation"
-                    className="group h-16 w-full rounded-2xl bg-orange-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-orange-500/20 transition-all hover:bg-orange-600 disabled:opacity-60"
+                    className="group h-16 w-full rounded-2xl bg-accent-solid text-xs font-black uppercase tracking-widest text-accent-solid-foreground shadow-xl shadow-accent-solid/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
                   >
                     {accepting ? (
                       <>
@@ -265,17 +265,17 @@ export default function InvitePage({
                 </>
               ) : (
                 <div className="space-y-4" data-testid="invite-signin-required">
-                  <p className="text-center text-sm leading-relaxed text-zinc-500">
+                  <p className="text-center text-sm leading-relaxed text-muted-foreground">
                     Le poste est attribué à un compte. Connectez-vous — ou créez
                     votre compte avec{" "}
-                    <span className="font-black text-zinc-800">
+                    <span className="font-black text-card-foreground">
                       {offer.email}
                     </span>{" "}
                     — et vous reviendrez ici.
                   </p>
                   <Button
                     asChild
-                    className="h-14 w-full rounded-2xl bg-[#0D5C3F] text-xs font-black uppercase tracking-widest hover:bg-[#0A412D]"
+                    className="h-14 w-full rounded-2xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-widest hover:bg-primary-hover"
                   >
                     <Link href={signInHref}>
                       <LogIn className="mr-2 h-4 w-4" />
@@ -284,7 +284,7 @@ export default function InvitePage({
                   </Button>
                   <Link
                     href={signUpHref}
-                    className="block text-center text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-600"
+                    className="block text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-card-foreground"
                   >
                     Créer un compte
                   </Link>
@@ -298,7 +298,17 @@ export default function InvitePage({
   )
 }
 
-/** The three dead ends share a shape; only the words and the icon differ. */
+/**
+ * The three dead ends share a shape; only the words, the icon and the tone
+ * differ.
+ *
+ * The tone carries the ink as well as the fill, and the icons above are handed
+ * in WITHOUT a colour of their own so they inherit it. Written the other way —
+ * a colour on the icon, at the call site — the two would be resolved against
+ * different surfaces: the icon's is this badge, but the call site's is the
+ * card, and a green that reads on `--accent` is not the green that reads on
+ * `--card` once dark mode inverts one of them.
+ */
 function InviteNotice({
   testId,
   icon,
@@ -315,7 +325,11 @@ function InviteNotice({
   action?: React.ReactNode
 }) {
   const toneClass =
-    tone === "warning" ? "bg-orange-50" : tone === "success" ? "bg-emerald-50" : "bg-zinc-50"
+    tone === "warning"
+      ? "bg-warning text-warning-foreground"
+      : tone === "success"
+        ? "bg-accent text-accent-foreground"
+        : "bg-muted text-muted-foreground"
 
   return (
     <div className="space-y-5 text-center" data-testid={testId}>
@@ -323,7 +337,7 @@ function InviteNotice({
         {icon}
       </div>
       <h2 className="text-xl font-black tracking-tight">{title}</h2>
-      <p className="text-zinc-500 leading-relaxed">{body}</p>
+      <p className="text-muted-foreground leading-relaxed">{body}</p>
       {action}
     </div>
   )

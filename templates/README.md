@@ -60,9 +60,25 @@ templates/<slug>/
 
 ## Catalogue rules
 
-- **AA contrast verified**: every palette passes WCAG AA (4.5:1) on the
-  text/background pairs of both modes, CTAs and sidebar included. Any color
-  tweak has to keep those ratios.
+- **AA contrast verified**: every palette passes WCAG 2.1 AA — 4.5:1 on the
+  text/background pairs of both modes, and 3:1 on the controls WCAG 1.4.11 asks
+  it of (`--primary`, `--ring`, `--input`, `--accent-solid`, `--destructive`
+  against the page). Any color tweak has to keep those ratios.
+
+  This sentence stood here for months with **nothing measuring it**, and it was
+  false the whole time: swept for the first time on 9 September 2026, 50 of the
+  51 palettes carried at least one failing pair. The dominant one was a single
+  mistake copied 50 times — `--input` set to the same value as `--border`,
+  which is exactly the defect `app/globals.css:126-135` had already found and
+  fixed for the engine. `--input` is the boundary of every form field, so every
+  delivered site had form fields whose edge was not there: 1.09:1 against a 3:1
+  requirement, at the worst.
+
+  What makes the claim true now is `tests/a11y/template-contrast.test.ts`,
+  which loads each template over `app/globals.css` in the real cascade and
+  measures all 51 in the four scopes a site renders under. Run it with
+  `pnpm --filter @beyours/themes test`. Do not restore an unmeasured claim
+  here: if that guard is ever removed, delete this sentence with it.
 - **Semantic tokens untouched**: `--success`, `--warning`, `--info`,
   `--destructive` and `--status-*` stay the engine's. They carry functional
   meaning (kitchen, till, orders) and are not part of the identity.
@@ -79,7 +95,11 @@ templates/<slug>/
 1. Copy an existing folder, rename the slug.
 2. Design the palette (both modes + sidebar + charts), the font pair
    (`next/font/google`, keep the variable names) and the radius scale.
-3. Check the AA contrast of the pairs listed above.
+3. Run `pnpm --filter @beyours/themes test tests/a11y/template-contrast.test.ts`.
+   It measures the new palette in the real cascade and prints every failing
+   pair with its ratio; a template that does not clear it is not shippable.
+   Move the ink or the control, never the background — hue and saturation are
+   the identity, lightness is what clears the bar.
 4. Document the direction in `DESIGN.md`, fill in `template.json`.
 5. Add the matching block to `preview.html`.
 

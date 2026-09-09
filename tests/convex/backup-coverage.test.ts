@@ -24,9 +24,13 @@
  *     states the rule in the schema itself (art. 242 nonies A CGI).
  */
 
+import { readFileSync } from "node:fs"
+import { createRequire } from "node:module"
 import { describe, expect, test } from "vitest"
 import schema from "../../convex/schema"
 import {
+  ARCHIVE_EDGES,
+  ARCHIVE_RELINK_TABLES,
   BACKUP_TABLES,
   DEFERRED_REMAP_TABLES,
   EXCLUDED_TABLES,
@@ -34,6 +38,20 @@ import {
   EXPORT_ONLY_TABLES,
   REDACTED_BACKUP_FIELDS,
 } from "@be-in-digital/convex-functions/backupTables"
+
+/**
+ * The source of `backupTables.ts`, read rather than remembered.
+ *
+ * Two of the assertions below are about the PROSE in that file, because prose is
+ * how the last two defects here were introduced: a header that claimed the
+ * `orders → invoices` edge survived a restore (it does not, in either
+ * direction), and a sentence that said "two edges" over a one-element array from
+ * the day it was written. A comment nothing checks is a comment that drifts.
+ */
+const BACKUP_TABLES_SRC = readFileSync(
+  createRequire(import.meta.url).resolve("@be-in-digital/convex-functions/backupTables"),
+  "utf8",
+)
 
 const SCHEMA_TABLES = Object.keys(schema.tables)
 
@@ -109,8 +127,14 @@ describe("backup coverage", () => {
     const violations: string[] = []
     for (const table of BACKUP_TABLES) {
       for (const target of referencedTables(table)) {
-        // Never re-inserted, so its ids never change and the reference still
-        // resolves after a restore. See the module header of backupTables.ts.
+        /* An export-only table has no position in this order — it is never
+           inserted — so the ORDER cannot answer this edge either way, and the
+           topological check has nothing to say about it. It used to be skipped
+           on a different and false ground: that the reference "still resolves"
+           because the invoice ids never change. Both ends of that link move, and
+           the edges are declared and answered in `ARCHIVE_EDGES` now. The test
+           below checks that declaration against the schema, so a NEW edge into
+           the archive fails there rather than disappearing here. */
         if (exportOnly.has(target)) continue
 
         if (!position.has(target)) {
@@ -140,6 +164,79 @@ describe("backup coverage", () => {
           (position.get(target) as number) > (position.get(table) as number),
       )
       expect(late.length).toBeGreaterThan(0)
+    }
+  })
+
+  test("every edge that crosses the archive boundary is declared, in both directions", () => {
+    /* THE HOLE THIS CLOSES. The topological check above walks `BACKUP_TABLES`
+       only, so `invoices`' own references were never examined at all — and
+       `invoices.orderId` breaks on EVERY restore, this deployment included:
+       `orders` is deleted and re-inserted under new ids while the invoices sit
+       untouched. That is the authoritative half of `assertOrderHasNoInvoice`.
+
+       Derived from the schema in both directions, so a new `v.id("invoices")`
+       anywhere, or a new reference out of an export-only table, fails here and
+       has to be answered in `ARCHIVE_EDGES` rather than discovered during
+       someone's restore. */
+    const exportOnly = new Set<string>(EXPORT_ONLY_TABLES)
+    const restored = new Set<string>(BACKUP_TABLES)
+
+    const actual: string[] = []
+    for (const table of BACKUP_TABLES) {
+      for (const target of referencedTables(table)) {
+        if (exportOnly.has(target)) actual.push(`${table} -> ${target}`)
+      }
+    }
+    for (const table of EXPORT_ONLY_TABLES) {
+      for (const target of referencedTables(table)) {
+        if (restored.has(target)) actual.push(`${table} -> ${target}`)
+      }
+    }
+
+    const declared = ARCHIVE_EDGES.map((edge) => `${edge.from} -> ${edge.to}`)
+    expect([...actual].sort()).toEqual([...declared].sort())
+
+    // A declaration with no reason is the state this whole file exists to end.
+    for (const edge of ARCHIVE_EDGES) {
+      expect(edge.note.length, `${edge.from} -> ${edge.to} has no reason`).toBeGreaterThan(40)
+    }
+  })
+
+  test("the tables relinked after an import are export-only, and every relinked edge is theirs", () => {
+    // `relinkArchiveReferences` patches rows the restore never inserted. That
+    // permission must not reach a table `importTable` also owns, and must not
+    // reach one the archive does not contain.
+    for (const table of ARCHIVE_RELINK_TABLES) {
+      expect(EXPORT_ONLY_TABLES as readonly string[]).toContain(table)
+      expect(BACKUP_TABLES as readonly string[]).not.toContain(table)
+    }
+    for (const edge of ARCHIVE_EDGES) {
+      if (edge.answer === "relinked") expect(ARCHIVE_RELINK_TABLES).toContain(edge.from)
+    }
+  })
+
+  test("the header's count of deferred edges is the array's own length", () => {
+    /* `backupTables.ts` said "Two edges the order deliberately breaks are
+       declared in `DEFERRED_REMAP_TABLES` below" over a one-element array, from
+       the commit that introduced both (58f890f). No second edge was ever
+       removed — the plural was never true, and a bullet list introduced by one
+       reads as though a bullet was lost. */
+    const claim = BACKUP_TABLES_SRC.match(/DEFERRED_REMAP_TABLES\.length === (\d+)/)
+    expect(claim, "backupTables.ts no longer states the deferred-edge count").not.toBeNull()
+    expect(Number(claim![1])).toBe(DEFERRED_REMAP_TABLES.length)
+  })
+
+  test("every deferred table is named in the bullets above the array", () => {
+    // The other half of the same drift: a count that agrees with the array while
+    // the bullets under it describe a different set.
+    const block = BACKUP_TABLES_SRC.slice(
+      BACKUP_TABLES_SRC.lastIndexOf("/**", BACKUP_TABLES_SRC.indexOf("export const DEFERRED_REMAP_TABLES")),
+      BACKUP_TABLES_SRC.indexOf("export const DEFERRED_REMAP_TABLES"),
+    )
+    const bullets = block.match(/^\s*\*\s+- /gm) ?? []
+    expect(bullets).toHaveLength(DEFERRED_REMAP_TABLES.length)
+    for (const table of DEFERRED_REMAP_TABLES) {
+      expect(block, `${table} has no bullet`).toContain(`\`${table}\` \u2192`)
     }
   })
 

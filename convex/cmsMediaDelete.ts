@@ -30,10 +30,23 @@
  * `s3:DeleteObjectVersion` and `s3:ListBucketVersions`. `setup-aws.sh` grants
  * both now; every client provisioned before it did not, and re-running the
  * script is what fixes them. Rather than throw on those deployments, the action
- * falls back to the plain delete and REPORTS which of the two happened — the
- * caller can then say something true. The lifecycle rules the same script
- * installs (`NoncurrentVersionExpiration` + `ExpiredObjectDeleteMarker`) are
- * what eventually collects what a fallback leaves behind.
+ * falls back to the plain delete and reports which of the two happened. The
+ * lifecycle rules the same script installs (`NoncurrentVersionExpiration` +
+ * `ExpiredObjectDeleteMarker`) are what eventually collects what a fallback
+ * leaves behind.
+ *
+ * ## Who that report is for, and who it is NOT for
+ *
+ * Not the caller. `deleteMedia` schedules this action and answers the browser
+ * before it runs (`cmsMedia.ts`), so the returned counts reach nobody — the
+ * media library cannot know the outcome even in principle, and its confirmation
+ * dialog is written accordingly.
+ *
+ * So the fallback goes to `captureBackendError` as well as to `console.error`.
+ * A Convex log line lives in one client's dashboard and expires; #368 settled
+ * that this is not a record of a failure that carries legal weight, and "the
+ * files a restaurant was told were permanently deleted are still in the bucket"
+ * is one. An operator has to be able to find out afterwards.
  *
  * A mutation cannot reach S3, so this runs as a scheduled action. Its keys
  * arrive as arguments: the row is already committed away by the time it runs
@@ -46,6 +59,8 @@
  */
 
 import { internalAction } from "./_generated/server"
+import type { ActionCtx } from "./_generated/server"
+import { captureBackendError } from "./errorReporting"
 import { v } from "convex/values"
 import {
   S3Client,
@@ -84,11 +99,18 @@ type KeyOutcome = "purged" | "delete-marker"
  * as a throw: the row is already gone, and a delete that throws leaves the
  * object present with nobody told.
  *
+ * It IS reported, though. The refusal is the moment this deployment stops being
+ * able to honour an erasure request, and a `console.error` alone puts that in
+ * one client's Convex log window, which expires — #368 ruled that inadequate
+ * for a failure with legal consequences, and this is one. `ctx` is here for no
+ * other reason.
+ *
  * Filtered to an EXACT key match, because the S3 API is prefix-based and
  * `cms/42/source.webp` is a prefix of `cms/42/source.webp.bak`. Purging by
  * prefix would take a neighbouring object with it.
  */
 async function collectVersions(
+  ctx: ActionCtx,
   client: S3Client,
   bucketName: string,
   key: string,
@@ -126,6 +148,12 @@ async function collectVersions(
       `[purgeS3Objects] Could not list versions of ${key} — the IAM policy may predate s3:ListBucketVersions:`,
       error,
     )
+    await captureBackendError(ctx, {
+      error,
+      source: "cmsMediaDelete.purgeS3Objects",
+      tags: { step: "list-versions-refused" },
+      extra: { key },
+    })
     return null
   }
 
@@ -137,7 +165,7 @@ export const purgeS3Objects = internalAction({
     s3Keys: v.array(v.string()),
   },
   handler: async (
-    _ctx,
+    ctx,
     args,
   ): Promise<{
     deleted: number
@@ -178,7 +206,7 @@ export const purgeS3Objects = internalAction({
       }
 
       try {
-        const versions = await collectVersions(client, bucketName, key)
+        const versions = await collectVersions(ctx, client, bucketName, key)
         let outcome: KeyOutcome = "delete-marker"
 
         if (versions !== null) {
@@ -208,11 +236,24 @@ export const purgeS3Objects = internalAction({
     if (deleteMarkersOnly > 0) {
       // Loud, because the difference is legal rather than cosmetic: these files
       // are hidden, not erased, and someone may have been told otherwise.
-      console.error(
-        `[purgeS3Objects] ${deleteMarkersOnly} object(s) left behind a delete marker only — ` +
-          `their bytes remain in the bucket. Re-run scripts/setup-aws.sh to grant ` +
-          `s3:DeleteObjectVersion and s3:ListBucketVersions.`,
-      )
+      const summary =
+        `${deleteMarkersOnly} object(s) left behind a delete marker only — ` +
+        `their bytes remain in the bucket. Re-run scripts/setup-aws.sh to grant ` +
+        `s3:DeleteObjectVersion and s3:ListBucketVersions.`
+      console.error(`[purgeS3Objects] ${summary}`)
+      // And durably, not only into the log. Nobody reads this return value —
+      // `deleteMedia` schedules the action and answers the browser before it
+      // runs — so the tracker is the only place an operator can later learn
+      // that « définitivement supprimé » was not true of these files. #368
+      // settled that a console.error is not a record of a failure that carries
+      // legal weight.
+      await captureBackendError(ctx, {
+        error: new Error(`[purgeS3Objects] ${summary}`),
+        source: "cmsMediaDelete.purgeS3Objects",
+        level: "warning",
+        tags: { step: "delete-marker-only" },
+        extra: { deleteMarkersOnly, purged, deleted, failed },
+      })
     }
 
     return { deleted, failed, purged, deleteMarkersOnly }

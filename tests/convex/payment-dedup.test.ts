@@ -30,6 +30,7 @@ import schema from "../../convex/schema"
 import { planRefund } from "@be-in-digital/convex-functions/refundPolicy"
 import {
   assertSettlesOrder,
+  deliberateSettlementRefusal,
   paymentStatusAfterSettlement,
 } from "@be-in-digital/convex-functions/paymentSettlement"
 import {
@@ -638,5 +639,390 @@ describe("the Stripe session an order has stopped needing", () => {
 
     await t.run((ctx) => ctx.db.patch(orderId, { paymentMethod: "cash" }))
     expect(await t.run((ctx) => abandonedCheckoutSession(ctx, orderId))).toBeNull()
+  })
+})
+// ============================================================================
+// Two live card sessions on one order — #411
+// ============================================================================
+
+/**
+ * The vector #378 did not cover.
+ *
+ * #378 closed cash-then-card: `assertSettlesOrder` refuses a card settlement
+ * on an order the counter has already collected, because the ORDER records
+ * which method it is on and the two differ. Two card sessions differ in
+ * nothing it can see. A diner who opens checkout twice — a stale tab, a
+ * back-navigation, a retry — leaves two live Stripe Checkout Sessions against
+ * one order; both reference that order, that currency and that total, so the
+ * guard passes both, and both are `card`, so the method check does not
+ * separate them.
+ *
+ * Verbatim probe output on the unfixed code:
+ *   [PROBE] order total: 120000  collected: 240000
+ *   [PROBE] succeeded rows: 2
+ *   [PROBE] second session refused: false
+ *
+ * A 1 200 € order collected 2 400 €, in two `succeeded` rows, each
+ * independently refundable, with the order untouched and nothing anywhere
+ * saying so.
+ */
+describe("one order, two live card sessions", () => {
+  /** The full provider path for ONE completed session. */
+  async function completeCardSession(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    orderId: Id<"orders">,
+    paymentIntent: string
+  ) {
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+
+    assertSettlesOrder(
+      {
+        provider: "stripe",
+        reference: orderId,
+        amountMinor: order!.total,
+        currency: "EUR",
+      },
+      {
+        orderId,
+        total: order!.total,
+        paymentMethod: order!.paymentMethod,
+        paymentStatus: order!.paymentStatus,
+      }
+    )
+
+    const next = paymentStatusAfterSettlement({
+      status: order!.status,
+      paymentStatus: order!.paymentStatus,
+    })
+    if (next) {
+      await t.mutation(internal.orders.internalUpdatePaymentStatus, {
+        id: orderId,
+        paymentStatus: next,
+      })
+    }
+    await t.mutation(
+      internal.payments.internalSettle,
+      settlement(storeId, orderId, paymentIntent)
+    )
+  }
+
+  async function cardOrder(t: ReturnType<typeof convexTest>, number: string) {
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, number)
+    await t.run((ctx) =>
+      ctx.db.patch(orderId, { paymentMethod: "card", updatedAt: NOW })
+    )
+    return { storeId, orderId }
+  }
+
+  test("collects the order once, however many sessions were completed", async () => {
+    const t = newHarness()
+    const { storeId, orderId } = await cardOrder(t, "A-411-1")
+
+    await completeCardSession(t, storeId, orderId, "pi_session_A")
+    await expect(
+      completeCardSession(t, storeId, orderId, "pi_session_B")
+    ).rejects.toThrow(/double encaissement/)
+
+    const succeeded = (await paymentsFor(t, orderId)).filter(
+      (row) => row.status === "succeeded"
+    )
+    expect(succeeded).toHaveLength(1)
+    expect(succeeded.reduce((sum, row) => sum + row.amount, 0)).toBe(CHARGE)
+  })
+
+  test("refuses the third and the fourth as well", async () => {
+    // The rule is about the ORDER, not about "the second one". A diner who
+    // reloads a tab four times must not be able to grind past it.
+    const t = newHarness()
+    const { storeId, orderId } = await cardOrder(t, "A-411-2")
+
+    await completeCardSession(t, storeId, orderId, "pi_1")
+    for (const intent of ["pi_2", "pi_3", "pi_4"]) {
+      await expect(
+        completeCardSession(t, storeId, orderId, intent)
+      ).rejects.toThrow(/double encaissement/)
+    }
+
+    expect(
+      (await paymentsFor(t, orderId)).filter((r) => r.status === "succeeded")
+    ).toHaveLength(1)
+  })
+
+  test("refuses in a form the webhook can tell from a crash", async () => {
+    // The other half of #411: the refusal used to reach the webhook as an
+    // opaque throw and be answered 500, so Stripe retried a permanent refusal
+    // for three days. `deliberateSettlementRefusal` is what the route reads,
+    // and it reads `data`, not the class — Convex rebuilds the error across
+    // the mutation boundary and the instance does not survive.
+    const t = newHarness()
+    const { storeId, orderId } = await cardOrder(t, "A-411-3")
+
+    await completeCardSession(t, storeId, orderId, "pi_1")
+
+    const refused = await completeCardSession(t, storeId, orderId, "pi_2").then(
+      () => null,
+      (error: unknown) => error
+    )
+    expect(refused).not.toBeNull()
+    expect(deliberateSettlementRefusal(refused)?.code).toBe(
+      "order_already_collected"
+    )
+  })
+
+  test("still lets the FIRST card session settle", async () => {
+    // A rule satisfied by refusing everything would take the diner's money and
+    // record nothing.
+    const t = newHarness()
+    const { storeId, orderId } = await cardOrder(t, "A-411-4")
+
+    await completeCardSession(t, storeId, orderId, "pi_only")
+
+    const order = await t.run((ctx) => ctx.db.get(orderId))
+    expect(order?.paymentStatus).toBe("paid")
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+
+  test("still lets the SAME session be redelivered, writing nothing", async () => {
+    // Stripe redelivers for up to three days, and the return page settles the
+    // same charge from a different event. Neither may be refused: a throw is a
+    // 500 answered with more retries. This is what the removed
+    // `p.provider !== args.provider` clause was mistaken for.
+    const t = newHarness()
+    const { storeId, orderId } = await cardOrder(t, "A-411-5")
+
+    await completeCardSession(t, storeId, orderId, "pi_same")
+    await completeCardSession(t, storeId, orderId, "pi_same")
+
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+
+  test("refuses a second collection from ANY provider, not just another one", async () => {
+    // The clause that was removed only refused a DIFFERENT provider, so PayPal
+    // after Stripe was caught and Stripe after Stripe was not. Both are one
+    // order collected twice.
+    const t = newHarness()
+    const { storeId, orderId } = await cardOrder(t, "A-411-6")
+
+    await completeCardSession(t, storeId, orderId, "pi_card")
+
+    await expect(
+      t.mutation(internal.payments.internalSettle, {
+        storeId,
+        orderId,
+        amount: CHARGE,
+        currency: "EUR",
+        provider: "paypal" as const,
+        externalId: "capture_1",
+      })
+    ).rejects.toThrow(/double encaissement/)
+
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+})
+
+// ============================================================================
+// Telling somebody a second charge was taken — #411
+// ============================================================================
+
+describe("a refused collection is written down", () => {
+  test("names the order, the charge and the reason where an operator reads them", async () => {
+    // Refusing the row keeps the LEDGER right. It does not make the diner
+    // whole: the provider does not report a charge it did not take, so by the
+    // time the refusal fires the money has left their account a second time.
+    // Before this, the only trace was a `console.error` in one client's Convex
+    // dashboard — which is to say, nobody was told.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-411-7")
+
+    await t.mutation(internal.payments.internalRecordRefusedCollection, {
+      provider: "stripe",
+      code: "order_already_collected",
+      message: "Cette commande a déjà été encaissée (stripe).",
+      externalId: "pi_second",
+      eventType: "checkout.session.completed",
+      orderId,
+      storeId,
+    })
+
+    const entries = await t.run((ctx) =>
+      ctx.db.query("systemAuditLog").collect()
+    )
+    const refusal = entries.find(
+      (e) => e.action === "payment_collection_refused"
+    )
+    expect(refusal).toBeDefined()
+    expect(refusal?.result).toBe("failure")
+    expect(refusal?.targetStoreId).toBe(storeId)
+    expect(refusal?.errorMessage).toContain("déjà été encaissée")
+
+    const details = JSON.parse(refusal!.details!)
+    expect(details).toMatchObject({
+      code: "order_already_collected",
+      provider: "stripe",
+      orderId,
+      externalId: "pi_second",
+      eventType: "checkout.session.completed",
+    })
+  })
+
+  test("records what it can when the delivery named no order", async () => {
+    // A `payment_intent.succeeded` carries no `metadata.orderId`. The entry is
+    // still worth writing: the payment intent is what a human takes to Stripe.
+    const t = newHarness()
+
+    await t.mutation(internal.payments.internalRecordRefusedCollection, {
+      provider: "stripe",
+      code: "charge_settles_another_order",
+      message: "Ce paiement stripe règle déjà la commande orders:9.",
+      externalId: "pi_orphan",
+    })
+
+    const entries = await t.run((ctx) =>
+      ctx.db.query("systemAuditLog").collect()
+    )
+    expect(entries).toHaveLength(1)
+    expect(entries[0].targetStoreId).toBeUndefined()
+    expect(JSON.parse(entries[0].details!).externalId).toBe("pi_orphan")
+  })
+})
+// ============================================================================
+// The two other writers that reach the payments table — #411
+// ============================================================================
+
+/**
+ * The invariant is the LEDGER's, or it is nobody's.
+ *
+ * #411's first fix stated "one order, one collection" inside `settlePayment`
+ * and claimed it was "a property of the ledger rather than of five call sites
+ * remembering to ask a guard". Two other writers reach the same table and
+ * asked nothing: `orders.markCashPaid` inserts a `succeeded` row directly, and
+ * `payments.create` + `payments.updateStatus` is a public pair under
+ * `payments:write` that writes one in two steps. Either could put a second
+ * collection on an order the four provider paths would have refused.
+ */
+describe("every writer asks the ledger, not only the provider paths", () => {
+  test("the cash button refuses an order a card has already collected", async () => {
+    // The reachable shape: a settlement writes the payment row and the order
+    // status in two transactions, so between them the order reads `pending`
+    // with a `succeeded` row against it — and `markCashPaid`'s four status
+    // checks all wave the notes through.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-411-W1")
+
+    await t.mutation(internal.payments.internalSettle, settlement(storeId, orderId))
+    expect((await t.run((ctx) => ctx.db.get(orderId)))?.paymentStatus).toBe(
+      "pending"
+    )
+
+    await expect(
+      t.run((ctx) => markCashPaid.handler(ctx, { orderId }))
+    ).rejects.toThrow(/déjà été encaissée/)
+
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+
+  test("the cash button still works on an order nothing has collected", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-411-W2")
+
+    const { paymentId } = await t.run((ctx) =>
+      markCashPaid.handler(ctx, { orderId })
+    )
+    expect(paymentId).not.toBeNull()
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+
+  test("a manual status promotion cannot write a second collection", async () => {
+    // `payments.create` inserts at `pending` under `payments:write` and
+    // `updateStatus` promotes it. Nothing calls the pair today — which is
+    // exactly why nothing would have noticed.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-411-W3")
+
+    await t.mutation(internal.payments.internalSettle, settlement(storeId, orderId))
+
+    const secondRow = await t.mutation(internal.payments.internalCreate, {
+      storeId,
+      orderId,
+      amount: CHARGE,
+      currency: "EUR",
+      provider: "sumup" as const,
+      externalId: "sumup_manual_1",
+    })
+
+    await expect(
+      t.mutation(internal.payments.internalUpdateStatus, {
+        id: secondRow,
+        status: "succeeded" as const,
+      })
+    ).rejects.toThrow(/double encaissement/)
+
+    const succeeded = (await paymentsFor(t, orderId)).filter(
+      (row) => row.status === "succeeded"
+    )
+    expect(succeeded).toHaveLength(1)
+  })
+
+  test("a promotion still works on the only row an order has", async () => {
+    // The guard must not be satisfiable by refusing everything, and it must
+    // not refuse a row promoting ITSELF.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-411-W4")
+
+    const rowId = await t.mutation(internal.payments.internalCreate, {
+      storeId,
+      orderId,
+      amount: CHARGE,
+      currency: "EUR",
+      provider: "sumup" as const,
+      externalId: "sumup_manual_2",
+    })
+
+    await t.mutation(internal.payments.internalUpdateStatus, {
+      id: rowId,
+      status: "succeeded" as const,
+    })
+
+    const rows = await paymentsFor(t, orderId)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].status).toBe("succeeded")
+
+    // And re-promoting the same row is not a second collection either.
+    await t.mutation(internal.payments.internalUpdateStatus, {
+      id: rowId,
+      status: "succeeded" as const,
+    })
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+
+  test("a failed row is not a collection and does not block one", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-411-W5")
+
+    const rowId = await t.mutation(internal.payments.internalCreate, {
+      storeId,
+      orderId,
+      amount: CHARGE,
+      currency: "EUR",
+      provider: "sumup" as const,
+      externalId: "sumup_declined",
+    })
+    await t.mutation(internal.payments.internalUpdateStatus, {
+      id: rowId,
+      status: "failed" as const,
+    })
+
+    await t.mutation(internal.payments.internalSettle, settlement(storeId, orderId))
+    expect(
+      (await paymentsFor(t, orderId)).filter((r) => r.status === "succeeded")
+    ).toHaveLength(1)
   })
 })

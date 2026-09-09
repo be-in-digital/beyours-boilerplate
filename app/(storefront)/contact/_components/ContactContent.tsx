@@ -105,13 +105,13 @@ export default function ContactPage() {
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="max-w-4xl mx-auto relative z-10 text-center"
                 >
-                    <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
+                    <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
                         {heroBadge}
                     </Badge>
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
-                        {parseColoredText(heroTitle, "text-accent-foreground italic")}
+                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-primary-foreground leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
+                        {parseColoredText(heroTitle, "text-primary-foreground italic")}
                     </h1>
-                    <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">
+                    <p className="text-lg md:text-xl text-primary-foreground max-w-2xl mx-auto leading-relaxed font-medium">
                         {heroSubtitle}
                     </p>
                 </motion.div>
@@ -330,8 +330,8 @@ export default function ContactPage() {
                         {/* Contact */}
                         <div className="bg-card rounded-[2rem] p-8 shadow-lg shadow-black/[0.03] border border-border">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center">
-                                    <Phone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                <div className="h-10 w-10 rounded-xl bg-info/10 flex items-center justify-center">
+                                    <Phone className="h-5 w-5 text-info" />
                                 </div>
                                 <h3 className="text-sm font-black uppercase tracking-widest text-foreground">
                                     {infoContact}
@@ -382,12 +382,12 @@ export default function ContactPage() {
                             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16" />
                             <div className="relative z-10">
                                 <div className="h-14 w-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center mx-auto mb-4">
-                                    <Clock className="h-6 w-6 text-accent-foreground" />
+                                    <Clock className="h-6 w-6 text-primary-foreground" />
                                 </div>
-                                <p className="text-white font-black text-lg tracking-tight mb-1">
+                                <p className="text-primary-foreground font-black text-lg tracking-tight mb-1">
                                     Réponse rapide
                                 </p>
-                                <p className="text-accent-foreground/60 text-sm font-medium">
+                                <p className="text-primary-foreground text-sm font-medium">
                                     Nous répondons sous 24h en moyenne
                                 </p>
                             </div>

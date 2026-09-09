@@ -75,7 +75,6 @@ export type Order = {
   notes?: string
   estimatedPrepTime?: number
   estimatedDeliveryTime?: number
-  scheduledFor?: number
   completedAt?: number
   cancelledAt?: number
   cancellationReason?: string

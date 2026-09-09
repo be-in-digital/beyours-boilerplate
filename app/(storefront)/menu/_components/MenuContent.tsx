@@ -191,20 +191,20 @@ function MenuContent() {
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
-          <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg">
+          <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg">
             Notre Carte
           </Badge>
-          <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-8 italic">
+          <h1 className="text-6xl md:text-8xl font-black text-primary-foreground tracking-tighter leading-none mb-8 italic">
             Découvrez Notre <br />
-            <span className="text-accent-foreground not-italic">Menu</span>
+            <span className="text-primary-foreground not-italic">Menu</span>
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto mb-12 font-medium">
+          <p className="text-xl text-primary-foreground max-w-2xl mx-auto mb-12 font-medium">
             Explorez notre sélection de plats préparés avec soin
           </p>
 
           {/* Search bar */}
           <div className="max-w-3xl mx-auto relative group">
-            <div className="bg-white rounded-[2rem] p-2 shadow-2xl flex items-center gap-2 border-4 border-white/10 group-focus-within:border-primary/20 transition-all">
+            <div className="bg-card rounded-[2rem] p-2 shadow-2xl flex items-center gap-2 border-4 border-white/10 group-focus-within:border-primary/20 transition-all">
               <div className="pl-6 flex items-center justify-center">
                 <Search className="h-6 w-6 text-muted-foreground" />
               </div>
@@ -283,7 +283,7 @@ function MenuContent() {
             <Button
               variant="outline"
               onClick={() => setFilters((prev) => ({ availableOnly: !prev.availableOnly }))}
-              className={`h-12 rounded-xl border-border bg-white font-bold text-muted-foreground gap-2 px-6 hover:bg-muted transition-all ${
+              className={`h-12 rounded-xl border-border bg-card font-bold text-muted-foreground gap-2 px-6 hover:bg-muted transition-all ${
                 filters.availableOnly ? "border-primary bg-accent text-accent-foreground" : ""
               }`}
             >
@@ -301,13 +301,13 @@ function MenuContent() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-12 rounded-xl border-border bg-white font-bold text-muted-foreground gap-2 px-6 hover:bg-muted transition-all"
+                  className="h-12 rounded-xl border-border bg-card font-bold text-muted-foreground gap-2 px-6 hover:bg-muted transition-all"
                 >
                   Trier par : <span className="text-accent-foreground font-black">{sortLabel}</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="rounded-2xl p-2 min-w-[200px] shadow-2xl border-border bg-white">
+              <DropdownMenuContent className="rounded-2xl p-2 min-w-[200px] shadow-2xl border-border bg-card">
                 <DropdownMenuItem
                   onClick={() => updateSearchParams("sort", null)}
                   className="rounded-xl font-bold text-muted-foreground p-3 cursor-pointer hover:bg-muted"
@@ -372,13 +372,13 @@ function MenuContent() {
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-150 transition-transform duration-700" />
             <div className="h-24 w-full relative mb-8 flex items-center justify-center">
-              <div className="text-white text-4xl font-black tracking-tighter uppercase italic">Uber Eats</div>
+              <div className="text-black text-4xl font-black tracking-tighter uppercase italic">Uber Eats</div>
             </div>
-            <h3 className="text-2xl font-black text-white mb-4">Livraison rapide</h3>
-            <p className="text-white/80 font-medium mb-8 max-w-xs">
+            <h3 className="text-2xl font-black text-black mb-4">Livraison rapide</h3>
+            <p className="text-black font-medium mb-8 max-w-xs">
               Recevez vos plats préférés directement chez vous
             </p>
-            <Button className="h-14 px-8 rounded-2xl bg-white border-none font-black uppercase tracking-widest text-xs shadow-xl group-hover:px-10 transition-all text-[#06C167]">
+            <Button className="h-14 px-8 rounded-2xl bg-card border-none font-black uppercase tracking-widest text-xs shadow-xl group-hover:px-10 transition-all text-foreground">
               Commander <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </a>
@@ -391,13 +391,13 @@ function MenuContent() {
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-150 transition-transform duration-700" />
             <div className="h-24 w-full relative mb-8 flex items-center justify-center">
-              <div className="text-white text-4xl font-black tracking-tighter uppercase italic">Deliveroo</div>
+              <div className="text-black text-4xl font-black tracking-tighter uppercase italic">Deliveroo</div>
             </div>
-            <h3 className="text-2xl font-black text-white mb-4">À votre porte</h3>
-            <p className="text-white/80 font-medium mb-8 max-w-xs">
+            <h3 className="text-2xl font-black text-black mb-4">À votre porte</h3>
+            <p className="text-black font-medium mb-8 max-w-xs">
               Commandez et faites-vous livrer en quelques minutes
             </p>
-            <Button className="h-14 px-8 rounded-2xl bg-white border-none font-black uppercase tracking-widest text-xs shadow-xl group-hover:px-10 transition-all text-[#00CCBC]">
+            <Button className="h-14 px-8 rounded-2xl bg-card border-none font-black uppercase tracking-widest text-xs shadow-xl group-hover:px-10 transition-all text-foreground">
               Commander <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </a>
@@ -409,14 +409,14 @@ function MenuContent() {
         <div className="relative rounded-[4rem] bg-primary p-12 md:p-24 overflow-hidden text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-12">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-48 -mt-48" />
           <div className="relative z-10 max-w-2xl">
-            <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px]">
+            <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px]">
               Une question ?
             </Badge>
-            <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none mb-6 italic">
+            <h2 className="text-4xl md:text-6xl font-black text-primary-foreground tracking-tighter leading-none mb-6 italic">
               Besoin d&apos;aide pour{" "}
-              <span className="text-accent-foreground not-italic">votre commande ?</span>
+              <span className="text-primary-foreground not-italic">votre commande ?</span>
             </h2>
-            <p className="text-lg text-white/90 font-medium">
+            <p className="text-lg text-primary-foreground font-medium">
               Notre équipe est disponible pour répondre à toutes vos questions
             </p>
           </div>
@@ -431,7 +431,7 @@ function MenuContent() {
 
       {/* ─── BLOG SECTION ─── */}
       {(latestArticles?.length ?? 0) > 0 && (
-        <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-white rounded-[5rem] shadow-sm mb-24 border border-border">
+        <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto bg-card rounded-[5rem] shadow-sm mb-24 border border-border">
           <div className="flex items-end justify-between mb-16 px-8">
             <div>
               <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-foreground leading-[0.9] mb-6 whitespace-pre-line">
@@ -460,7 +460,7 @@ function MenuContent() {
                         className="object-cover group-hover:scale-110 transition-all duration-700"
                       />
                     )}
-                    <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-2xl shadow-lg border border-border">
+                    <div className="absolute top-4 left-4 bg-card px-4 py-2 rounded-2xl shadow-lg border border-border">
                       <p className="text-[10px] font-black uppercase tracking-widest text-accent-foreground">
                         {formatArticleDate(post.publishedAt)}
                       </p>

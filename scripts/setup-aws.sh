@@ -9,7 +9,10 @@ set -euo pipefail
 #      and folders
 #   2. SES domain identity with DKIM verification
 #   3. SES email sending configuration
-#   4. IAM user with minimal permissions for the app
+#   4. SES bounce and complaint feedback: an SNS topic, the identity
+#      notifications that publish to it WITH the original headers, and a
+#      subscription pointing at the deployment's /webhooks/ses
+#   5. IAM user with minimal permissions for the app
 #
 # The bucket is private and nothing here makes it public. Media reaches the
 # browser through the app's /api/files proxy, or through a CDN with an origin
@@ -286,11 +289,16 @@ log_success "CORS configured (PUT only)"
 # an erasure box the infrastructure could not honour, and storage grew without
 # ceiling. Issue #331.
 #
-# The app now purges versions itself (convex/cmsMediaDelete.ts, and
-# packages/core S3Service.delete). These two rules are the floor under that:
-# they collect what a purge could not reach — objects deleted before the purge
-# existed, deployments whose IAM policy predates s3:DeleteObjectVersion, and the
-# noncurrent versions of a file that was merely overwritten rather than deleted.
+# The app now purges versions itself: convex/cmsMediaDelete.ts, which is the
+# only media-deletion path the delivered app runs. (packages/core's
+# S3Service.delete does the same for a consumer of that package, and only when
+# the injected S3Operations adapter implements listObjectVersions and
+# deleteObjectVersion — they are optional on the interface. Nothing in apps/*
+# calls it.) These two rules are the floor under all of that: they collect what
+# a purge could not reach — objects deleted before the purge existed,
+# deployments whose IAM policy predates s3:DeleteObjectVersion, adapters without
+# the version methods, and the noncurrent versions of a file that was merely
+# overwritten rather than deleted.
 #
 # NoncurrentVersionExpiration is 30 days rather than 1. Versioning is also an
 # accident-recovery control: a client who overwrites the wrong photograph has a
@@ -451,6 +459,152 @@ aws sesv2 create-configuration-set \
   --reputation-options '{"ReputationMetricsEnabled": true}' \
   --region "$REGION" 2>/dev/null || log_warn "Configuration set already exists"
 log_success "Configuration set '$SES_CONFIG_SET' ready"
+
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 2b: BOUNCE AND COMPLAINT FEEDBACK
+# ════════════════════════════════════════════════════════════════════════════
+#
+# WHAT WAS MISSING. The configuration set above was created with no destination
+# of any kind, and no SNS topic existed anywhere in this script. `POST
+# /webhooks/ses` is routed in `convex/http.ts` and nothing ever caused AWS to
+# call it, so `emailSubscribers.markBounced` and `markComplained` had no way to
+# fire. A dead mailbox therefore stayed `active` and was re-mailed on every
+# campaign, and AWS suspends a sending account at a 5 % complaint rate — with
+# nothing in the product able to explain why the mail stopped.
+#
+# WHY IDENTITY NOTIFICATION TOPICS AND NOT AN EVENT DESTINATION. The two
+# publish DIFFERENT JSON. A configuration set event destination sends the
+# event-publishing envelope, keyed `eventType`; an identity notification topic
+# sends the classic notification envelope, keyed `notificationType`, with
+# `bounce.bounceType` and `mail.destination` beside it. `handleSesWebhook`
+# switches on `notificationType` (`convex/emailHttpHandlers.ts`), so an event
+# destination would deliver a body that parses, matches no case, and is dropped
+# — which looks exactly like the silence it was meant to end.
+#
+# WHY THE HEADERS FLAG IS NOT OPTIONAL. The handler correlates a bounce to a
+# subscriber through `X-Store-Id` / `X-Subscriber-Id` / `X-Campaign-Id`,
+# injected at send time and readable only from `mail.headers` — and SES OMITS
+# `mail.headers` from a notification unless the identity is told to include the
+# original headers. Without the two commands below the endpoint receives every
+# bounce and can act on none of them.
+#
+# Feedback forwarding is deliberately left alone: setting a topic does not turn
+# the operator's own bounce emails off, and having both while a client is new is
+# worth more than a tidy inbox.
+
+log_section "Step 2b: Bounce & Complaint Feedback"
+
+SNS_TOPIC_NAME="${SNS_TOPIC_NAME:-${SES_CONFIG_SET}-feedback}"
+
+# Where SES notifications are delivered. `CONVEX_SITE_URL` names the Convex
+# deployment's HTTP router — the `.convex.site` host, not the `.convex.cloud`
+# one — and `/webhooks/ses` is the route `http.ts` registers.
+SES_WEBHOOK_URL="${SES_WEBHOOK_URL:-}"
+if [ -z "$SES_WEBHOOK_URL" ] && [ -n "${CONVEX_SITE_URL:-}" ]; then
+  SES_WEBHOOK_URL="${CONVEX_SITE_URL%/}/webhooks/ses"
+fi
+# Falling back to the env file, because this script is usually run before
+# anything exports the Convex variables into the shell. `|| true` throughout:
+# `set -e` is on and a grep that matches nothing exits 1.
+if [ -z "$SES_WEBHOOK_URL" ] && [ -f "$ENV_FILE" ]; then
+  ENV_SITE_URL=$(grep -E '^CONVEX_SITE_URL=' "$ENV_FILE" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"'\''' | tr -d '\r' || true)
+  if [ -n "${ENV_SITE_URL:-}" ]; then
+    SES_WEBHOOK_URL="${ENV_SITE_URL%/}/webhooks/ses"
+  fi
+fi
+
+log_info "Creating SNS topic '$SNS_TOPIC_NAME'..."
+# `create-topic` is idempotent: an existing topic of the same name is returned
+# rather than duplicated.
+SNS_TOPIC_ARN=$(aws sns create-topic \
+  --name "$SNS_TOPIC_NAME" \
+  --region "$REGION" \
+  --query TopicArn --output text)
+log_success "SNS topic ready: $SNS_TOPIC_ARN"
+
+# SES has to be allowed to publish, and a topic's default policy allows only
+# its owner. Scoped to this account so another account's SES cannot publish
+# into a client's feedback topic.
+SNS_POLICY=$(cat <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowSESPublish",
+      "Effect": "Allow",
+      "Principal": { "Service": "ses.amazonaws.com" },
+      "Action": "sns:Publish",
+      "Resource": "${SNS_TOPIC_ARN}",
+      "Condition": {
+        "StringEquals": { "AWS:SourceAccount": "${ACCOUNT_ID}" }
+      }
+    }
+  ]
+}
+EOF
+)
+aws sns set-topic-attributes \
+  --topic-arn "$SNS_TOPIC_ARN" \
+  --attribute-name Policy \
+  --attribute-value "$SNS_POLICY" \
+  --region "$REGION"
+log_success "SNS topic policy allows SES to publish"
+
+# Bounce and Complaint are the two that decide whether the account keeps
+# sending. Delivery is wired too because `handleSesWebhook` records it as a
+# campaign statistic, and a « delivered » count that is always zero reads as a
+# broken campaign rather than a missing subscription.
+for NOTIFICATION_TYPE in Bounce Complaint Delivery; do
+  aws ses set-identity-notification-topic \
+    --identity "$DOMAIN" \
+    --notification-type "$NOTIFICATION_TYPE" \
+    --sns-topic "$SNS_TOPIC_ARN" \
+    --region "$REGION"
+
+  # The half without which the endpoint receives every bounce and can act on
+  # none: no headers, no `X-Subscriber-Id`, nothing to mark.
+  aws ses set-identity-headers-in-notifications-enabled \
+    --identity "$DOMAIN" \
+    --notification-type "$NOTIFICATION_TYPE" \
+    --enabled \
+    --region "$REGION"
+done
+log_success "Bounce, Complaint and Delivery notifications publish to the topic, with original headers"
+
+if [ -n "$SES_WEBHOOK_URL" ]; then
+  # Only subscribe once. Re-subscribing the same endpoint leaves a second
+  # PendingConfirmation subscription behind for ever, and every notification is
+  # then delivered twice to the one that did confirm.
+  EXISTING_SUB=$(aws sns list-subscriptions-by-topic \
+    --topic-arn "$SNS_TOPIC_ARN" \
+    --region "$REGION" \
+    --query "Subscriptions[?Endpoint=='${SES_WEBHOOK_URL}'] | [0].SubscriptionArn" \
+    --output text 2>/dev/null || echo "None")
+
+  if [ "$EXISTING_SUB" = "None" ] || [ -z "$EXISTING_SUB" ]; then
+    log_info "Subscribing $SES_WEBHOOK_URL..."
+    aws sns subscribe \
+      --topic-arn "$SNS_TOPIC_ARN" \
+      --protocol https \
+      --notification-endpoint "$SES_WEBHOOK_URL" \
+      --region "$REGION" > /dev/null
+    # SNS POSTs a SubscriptionConfirmation immediately; `handleSesWebhook`
+    # verifies Amazon's signature and then fetches the SubscribeURL itself, so
+    # a deployed backend confirms without anyone doing anything. A backend that
+    # is not up yet leaves the subscription PendingConfirmation, and SNS does
+    # not retry indefinitely — re-run this script once it is.
+    log_success "Subscription requested (the deployment confirms it on the first POST)"
+  else
+    log_success "Already subscribed: $SES_WEBHOOK_URL"
+  fi
+else
+  log_warn "CONVEX_SITE_URL is unknown, so nothing is subscribed to the topic."
+  log_warn "Bounces and complaints will publish to SNS and reach nobody."
+  log_warn "Once the Convex deployment exists, re-run this script, or:"
+  log_warn "  aws sns subscribe --topic-arn $SNS_TOPIC_ARN \\"
+  log_warn "    --protocol https --region $REGION \\"
+  log_warn "    --notification-endpoint https://<deployment>.convex.site/webhooks/ses"
+fi
 
 # ════════════════════════════════════════════════════════════════════════════
 # STEP 3: IAM USER FOR THE APP
@@ -637,6 +791,12 @@ echo "  Domain: $DOMAIN"
 echo "  From: $FROM_EMAIL"
 echo "  Config Set: $SES_CONFIG_SET"
 echo "  Region: $REGION"
+echo "  Feedback topic: ${SNS_TOPIC_ARN:-none}"
+if [ -n "${SES_WEBHOOK_URL:-}" ]; then
+  echo "  Bounces & complaints: $SES_WEBHOOK_URL"
+else
+  echo -e "  Bounces & complaints: ${YELLOW}not subscribed — see the warning above${NC}"
+fi
 echo ""
 
 if [ -n "${NEW_ACCESS_KEY:-}" ]; then

@@ -72,7 +72,7 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans flex items-center justify-center px-6 py-20">
+    <div className="min-h-screen bg-background text-foreground font-sans flex items-center justify-center px-6 py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -80,69 +80,69 @@ export default function SetupPage() {
         className="w-full max-w-xl"
       >
         <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[0.95] text-zinc-800 italic">
-            Premier <span className="text-orange-500 not-italic">administrateur</span>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-[0.95] text-foreground italic">
+            Premier <span className="text-accent-solid not-italic">administrateur</span>
           </h1>
         </div>
 
-        <div className="rounded-[3rem] border border-zinc-100 bg-white p-8 md:p-12 shadow-2xl shadow-emerald-950/5">
+        <div className="rounded-[3rem] border border-border bg-card text-card-foreground p-8 md:p-12 shadow-2xl shadow-primary/5">
           {status === undefined || sessionPending ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-zinc-300" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : status.claimed ? (
             <div className="space-y-5 text-center" data-testid="setup-claimed">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50">
-                <ShieldCheck className="h-7 w-7 text-[#0D5C3F]" />
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+                <ShieldCheck className="h-7 w-7" />
               </div>
               <h2 className="text-xl font-black tracking-tight">Déploiement déjà configuré</h2>
-              <p className="text-zinc-500 leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed">
                 Un administrateur a été désigné. Cette page ne sert plus à rien —
                 demandez-lui une invitation depuis l&apos;écran Équipe.
               </p>
-              <Button asChild className="h-14 w-full rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] font-black uppercase tracking-widest text-xs">
+              <Button asChild className="h-14 w-full rounded-2xl bg-primary text-primary-foreground hover:bg-primary-hover font-black uppercase tracking-widest text-xs">
                 <Link href="/dashboard">Aller au dashboard</Link>
               </Button>
             </div>
           ) : !status.configured ? (
             <div className="space-y-5" data-testid="setup-unconfigured">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50">
-                <AlertTriangle className="h-7 w-7 text-orange-500" />
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-warning text-warning-foreground">
+                <AlertTriangle className="h-7 w-7" />
               </div>
               <h2 className="text-xl font-black tracking-tight text-center">
                 Amorçage non configuré
               </h2>
-              <p className="text-zinc-500 leading-relaxed text-center">
+              <p className="text-muted-foreground leading-relaxed text-center">
                 Ce déploiement n&apos;a pas de jeton d&apos;amorçage, donc personne
                 ne peut devenir administrateur — y compris par erreur. C&apos;est
                 voulu : la commande ci-dessous est réservée à qui a déployé le
                 backend.
               </p>
-              <pre className="overflow-x-auto rounded-2xl bg-zinc-900 px-5 py-4 text-xs leading-relaxed text-zinc-100">
+              <pre className="overflow-x-auto rounded-2xl bg-foreground px-5 py-4 text-xs leading-relaxed text-background">
 {`npx convex env set ADMIN_BOOTSTRAP_TOKEN "$(openssl rand -base64 32)"
 npx convex env get ADMIN_BOOTSTRAP_TOKEN`}
               </pre>
-              <p className="text-center text-xs text-zinc-400">
+              <p className="text-center text-xs text-muted-foreground">
                 Rechargez cette page une fois la variable posée.
               </p>
             </div>
           ) : !session ? (
             <div className="space-y-5 text-center" data-testid="setup-signin-required">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-50">
-                <KeyRound className="h-7 w-7 text-zinc-500" />
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                <KeyRound className="h-7 w-7" />
               </div>
               <h2 className="text-xl font-black tracking-tight">Connectez-vous d&apos;abord</h2>
-              <p className="text-zinc-500 leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed">
                 Le siège d&apos;administrateur est attribué à un compte, pas à un
                 jeton. Créez le vôtre, confirmez votre adresse, puis revenez ici.
               </p>
               <div className="space-y-3">
-                <Button asChild className="h-14 w-full rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] font-black uppercase tracking-widest text-xs">
+                <Button asChild className="h-14 w-full rounded-2xl bg-primary text-primary-foreground hover:bg-primary-hover font-black uppercase tracking-widest text-xs">
                   <Link href="/sign-in?redirect=%2Fsetup">Se connecter</Link>
                 </Button>
                 <Link
                   href="/sign-up?redirect=%2Fsetup"
-                  className="block text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-600"
+                  className="block text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-card-foreground"
                 >
                   Créer un compte
                 </Link>
@@ -150,9 +150,9 @@ npx convex env get ADMIN_BOOTSTRAP_TOKEN`}
             </div>
           ) : (
             <form onSubmit={handleClaim} className="space-y-6" data-testid="setup-form">
-              <p className="text-zinc-500 leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed">
                 Vous êtes connecté en tant que{" "}
-                <span className="font-black text-zinc-800">{session.user.email}</span>.
+                <span className="font-black text-card-foreground">{session.user.email}</span>.
                 Collez le jeton d&apos;amorçage pour attribuer le siège
                 d&apos;administrateur à ce compte.
               </p>
@@ -160,18 +160,18 @@ npx convex env get ADMIN_BOOTSTRAP_TOKEN`}
               <div className="space-y-3">
                 <Label
                   htmlFor="bootstrap-token"
-                  className="ml-1 text-[10px] font-black uppercase tracking-widest text-zinc-800"
+                  className="ml-1 text-[10px] font-black uppercase tracking-widest text-card-foreground"
                 >
                   Jeton d&apos;amorçage
                 </Label>
                 <div className="relative group">
-                  <KeyRound className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <KeyRound className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary-ink transition-colors" />
                   <Input
                     id="bootstrap-token"
                     name="bootstrap-token"
                     type="password"
                     autoComplete="off"
-                    className="h-14 rounded-2xl border-zinc-100 bg-zinc-50 pl-12 pr-4 font-bold text-zinc-900 placeholder:text-zinc-400 focus:bg-white"
+                    className="h-14 rounded-2xl border-border bg-muted pl-12 pr-4 font-bold text-card-foreground placeholder:text-muted-foreground focus:bg-card"
                     placeholder="ADMIN_BOOTSTRAP_TOKEN"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
@@ -183,7 +183,7 @@ npx convex env get ADMIN_BOOTSTRAP_TOKEN`}
               <Button
                 type="submit"
                 disabled={claiming}
-                className="group h-16 w-full rounded-2xl bg-orange-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-orange-500/20 transition-all hover:bg-orange-600 disabled:opacity-60"
+                className="group h-16 w-full rounded-2xl bg-accent-solid text-xs font-black uppercase tracking-widest text-accent-solid-foreground shadow-xl shadow-accent-solid/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
               >
                 {claiming ? (
                   <>

@@ -68,17 +68,17 @@ function SignInForm() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans overflow-hidden relative flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-background text-foreground font-sans overflow-hidden relative flex flex-col items-center justify-center px-6">
       {/* Background blobs */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-400/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-orange-400/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-accent-solid/10 rounded-full blur-[100px]" />
       </div>
 
       {/* Back link */}
       <Link
         href="/"
-        className="absolute top-8 left-8 flex items-center gap-2 text-[#0D5C3F] font-black uppercase tracking-widest text-[10px] hover:translate-x-[-4px] transition-transform z-20"
+        className="absolute top-8 left-8 flex items-center gap-2 text-primary-ink font-black uppercase tracking-widest text-[10px] hover:translate-x-[-4px] transition-transform z-20"
       >
         <ArrowLeft className="h-4 w-4" /> Retour
       </Link>
@@ -91,30 +91,30 @@ function SignInForm() {
       >
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-black text-zinc-800 tracking-tighter leading-[0.9] italic">
+          <h1 className="text-5xl md:text-6xl font-black text-foreground tracking-tighter leading-[0.9] italic">
             Bon retour <br />
-            <span className="text-orange-500 not-italic">parmi nous</span>
+            <span className="text-accent-solid not-italic">parmi nous</span>
           </h1>
         </div>
 
         {/* Form card */}
-        <div className="bg-white rounded-[3rem] shadow-2xl shadow-emerald-950/5 border border-zinc-100 overflow-hidden">
+        <div className="bg-card text-card-foreground rounded-[3rem] shadow-2xl shadow-primary/5 border border-border overflow-hidden">
           <div className="p-8 md:p-12">
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Email */}
               <div className="space-y-3">
                 <Label
                   htmlFor="email"
-                  className="text-zinc-800 font-black uppercase tracking-widest text-[10px] ml-1"
+                  className="text-card-foreground font-black uppercase tracking-widest text-[10px] ml-1"
                 >
                   Adresse email
                 </Label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary-ink transition-colors" />
                   <Input
                     id="email"
                     type="email"
-                    className="h-16 pl-12 pr-4 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400 focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20"
+                    className="h-16 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10 focus:border-primary/20"
                     placeholder="jean@exemple.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -128,23 +128,23 @@ function SignInForm() {
                 <div className="flex justify-between items-center px-1">
                   <Label
                     htmlFor="password"
-                    className="text-zinc-800 font-black uppercase tracking-widest text-[10px]"
+                    className="text-card-foreground font-black uppercase tracking-widest text-[10px]"
                   >
                     Mot de passe
                   </Label>
                   <Link
                     href="/forgot-password"
-                    className="text-[10px] text-orange-600 font-black uppercase tracking-widest hover:underline"
+                    className="text-[10px] text-accent-solid font-black uppercase tracking-widest hover:underline underline-offset-4"
                   >
                     Mot de passe oublié ?
                   </Link>
                 </div>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary-ink transition-colors" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    className="h-16 pl-12 pr-12 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400 focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20"
+                    className="h-16 pl-12 pr-12 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10 focus:border-primary/20"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -153,7 +153,7 @@ function SignInForm() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-card-foreground transition-colors"
                     tabIndex={-1}
                   >
                     {showPassword ? (
@@ -169,7 +169,7 @@ function SignInForm() {
                 <div
                   data-testid="unverified-notice"
                   role="status"
-                  className="rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-sm text-orange-900"
+                  className="rounded-2xl border border-warning bg-warning/10 px-5 py-4 text-sm text-card-foreground"
                 >
                   Cette adresse n&apos;est pas encore confirmée. Nous venons de
                   vous renvoyer le lien de confirmation — vérifiez votre boîte
@@ -182,7 +182,7 @@ function SignInForm() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-16 rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-950/20 transition-all hover:scale-[1.02] active:scale-[0.98] group disabled:opacity-60"
+                  className="w-full h-16 rounded-2xl bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group disabled:opacity-60"
                 >
                   {loading ? (
                     <>
@@ -208,11 +208,11 @@ function SignInForm() {
         </div>
 
         {/* Footer link */}
-        <p className="text-center mt-12 text-zinc-500 font-medium">
+        <p className="text-center mt-12 text-muted-foreground font-medium">
           Pas encore de compte ?{" "}
           <Link
             href={`/sign-up?redirect=${encodeURIComponent(redirectTo)}`}
-            className="text-[#0D5C3F] font-black hover:underline underline-offset-4"
+            className="text-primary-ink font-black hover:underline underline-offset-4"
           >
             Créer un compte
           </Link>
@@ -239,13 +239,13 @@ export default function SignInPage() {
 /** The page frame, shown while the client half of the route hydrates. */
 function AuthPageFallback() {
   return (
-    <div className="min-h-screen bg-[#FDFCF6] flex items-center justify-center px-6">
-      <div className="w-full max-w-xl rounded-[3rem] border border-zinc-100 bg-white p-12 shadow-2xl shadow-emerald-950/5">
-        <div className="h-6 w-40 animate-pulse rounded-full bg-zinc-100" />
+    <div className="min-h-screen bg-background flex items-center justify-center px-6">
+      <div className="w-full max-w-xl rounded-[3rem] border border-border bg-card p-12 shadow-2xl shadow-primary/5">
+        <div className="h-6 w-40 animate-pulse rounded-full bg-muted" />
         <div className="mt-8 space-y-4">
-          <div className="h-14 animate-pulse rounded-2xl bg-zinc-50" />
-          <div className="h-14 animate-pulse rounded-2xl bg-zinc-50" />
-          <div className="h-16 animate-pulse rounded-2xl bg-zinc-100" />
+          <div className="h-14 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-14 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-16 animate-pulse rounded-2xl bg-muted" />
         </div>
       </div>
     </div>

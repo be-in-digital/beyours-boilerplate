@@ -25,9 +25,11 @@ import { internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
 import {
+  ARCHIVE_RELINK_TABLES,
   BACKUP_TABLES,
   DEFERRED_REMAP_TABLES,
 } from "@be-in-digital/convex-functions/backupTables"
+import { invoiceRefusal } from "@be-in-digital/convex-functions/invoices"
 
 const modules = import.meta.glob("../../convex/**/*.ts")
 
@@ -202,17 +204,43 @@ async function restore(
     })
   }
 
+  /* The archive. `invoices` is never re-inserted, so no ordering reaches it,
+     and every invoice was left naming the order and the store it had BEFORE the
+     restore — on EVERY restore, this deployment included. Run here rather than
+     written out, so a test cannot pass against a flow the real `importBackup`
+     does not have. */
+  let archiveRelinks = 0
+  for (const tableName of ARCHIVE_RELINK_TABLES) {
+    const pass = await t.mutation(internal.systemInternal.relinkArchiveReferences, {
+      tableName,
+      idMap,
+    })
+    archiveRelinks += pass.relinked
+  }
+
+  // And the other end of the same link: an `orders.invoiceId` naming an invoice
+  // this deployment does not have.
+  const invoiceLinks = await t.mutation(
+    internal.systemInternal.reconcileOrderInvoiceLinks,
+    {}
+  )
+
   const profiles = await t.mutation(internal.systemInternal.remapProfileStores, {
     idMap,
   })
 
-  return { idMap, profiles }
+  return { idMap, profiles, archiveRelinks, invoiceLinks }
 }
 
 
 /**
  * One paid order, its payment, its kitchen ticket, and the invoice issued for
  * it — the four tables a restore used to reach zero of.
+ *
+ * This comment promised all four and the body seeded two: no ticket, no
+ * invoice, and `orders.invoiceId` never set. The two it skipped are exactly the
+ * pair whose link a restore breaks, so the gap between the sentence and the
+ * code was also the gap in the coverage.
  */
 async function seedTrade(
   t: ReturnType<typeof convexTest>,
@@ -254,7 +282,48 @@ async function seedTrade(
       createdAt: NOW,
       updatedAt: NOW,
     })
-    return { orderId, paymentId }
+    const ticketId = await ctx.db.insert("kitchenTickets", {
+      storeId,
+      orderId,
+      status: "completed" as const,
+      priority: "normal" as const,
+      items: [{ productName: "Margherita", quantity: 2, options: [] }],
+      source: "website" as const,
+      orderNumber: "CMD-000042",
+      orderType: "pickup" as const,
+      trackingToken: "trk_000000000000000042",
+      printStatus: "printed" as const,
+      printAttempts: 1,
+      createdAt: NOW,
+      updatedAt: NOW,
+    })
+    /* The numbered document the sale issued (#367). Both directions of the link
+       are seeded — `invoices.orderId` and `orders.invoiceId` — because a restore
+       breaks them at different times: the first on every restore, the second
+       only on a deployment rebuilt from the file. */
+    const invoiceId = await ctx.db.insert("invoices", {
+      number: "FA-2026-000001",
+      kind: "invoice" as const,
+      issuedAt: NOW,
+      year: 2026,
+      orderId,
+      orderNumber: "CMD-000042",
+      storeId,
+      seller: { legalName: "Pizzeria Napoli SARL", storeName: "Pizzeria Napoli" },
+      buyer: { name: "Camille Ferrand", email: "camille@example.fr" },
+      lines: [
+        { description: "Margherita", quantity: 2, unitPrice: 1200, subtotal: 2400, taxRatePercent: 10 },
+      ],
+      subtotal: 2400,
+      total: 2400,
+      taxAmount: 218,
+      taxBreakdown: [{ ratePercent: 10, grossAmount: 2400, taxAmount: 218 }],
+      currency: "EUR",
+      payment: { method: "card", paidAt: NOW, provider: "stripe" },
+      createdAt: NOW,
+    })
+    await ctx.db.patch(orderId, { invoiceId })
+    return { orderId, paymentId, ticketId, invoiceId }
   })
 }
 
@@ -513,6 +582,155 @@ describe("a restore that includes the trade", () => {
     // locks people out — but the credential is not.
     expect(backup.teamMembers?.[0]?.name).toBe("Nadia Bonnet")
     expect(backup.teamMembers?.[0]).not.toHaveProperty("invitationToken")
+  })
+
+  test("keeps the invoice attached to the order it came back as", async () => {
+    /* `invoices` is export-only and `orders` is restored, so on EVERY restore —
+       this deployment included — the invoices were left naming the ids the
+       orders had before. `backupTables.ts` claimed the opposite ("the invoice
+       rows are never re-inserted, so their ids never change, so the reference
+       still resolves"), which is true of the invoice's own id and says nothing
+       about the ids inside it, and `backup-coverage.test.ts` skipped the edge on
+       the strength of that sentence.
+
+       `invoices.by_orderId` is the AUTHORITATIVE half of
+       `assertOrderHasNoInvoice` — the half that exists for an order invoiced
+       before `orders.invoiceId` was populated — so after a restore such an order
+       could be deleted with its invoice standing. */
+    const t = newHarness()
+    const storeId = await seedStore(t, "Pizzeria Napoli")
+    const { productId } = await seedCatalogue(t, storeId)
+    const { orderId } = await seedTrade(t, storeId, productId)
+
+    const backup = await exportTables(t, [
+      "stores",
+      "categories",
+      "products",
+      "orders",
+      "payments",
+      "kitchenTickets",
+    ])
+
+    const { archiveRelinks } = await restore(t, backup)
+    expect(archiveRelinks).toBe(1)
+
+    const { order, invoice, byOrder, store } = await t.run(async (ctx) => {
+      const order = (await ctx.db.query("orders").collect())[0]!
+      const invoice = (await ctx.db.query("invoices").collect())[0]!
+      return {
+        order,
+        invoice,
+        store: (await ctx.db.query("stores").collect())[0]!,
+        byOrder: await ctx.db
+          .query("invoices")
+          .withIndex("by_orderId", (q) => q.eq("orderId", order._id))
+          .first(),
+      }
+    })
+
+    // The order moved, and the invoice followed it.
+    expect(order._id).not.toBe(orderId)
+    expect(invoice.orderId).toBe(order._id)
+    // The lookup `assertOrderHasNoInvoice` falls back to finds it again.
+    expect(byOrder?.number).toBe("FA-2026-000001")
+    // And the establishment's own invoice list is not empty either.
+    expect(invoice.storeId).toBe(store._id)
+    // Nothing about the DOCUMENT changed: only this deployment's pointers.
+    expect(invoice.number).toBe("FA-2026-000001")
+    expect(invoice.total).toBe(2400)
+    expect(invoice.taxAmount).toBe(218)
+  })
+
+  test("leaves a restored order invoiceable when the invoice is not on this deployment", async () => {
+    /* The other half, and the one only a REBUILT deployment sees. The invoices
+       are in the file and are never re-inserted, so `orders.invoiceId` comes
+       back naming a row nothing here has — and `invoiceRefusal` reads that field
+       for TRUTHINESS rather than resolution:
+
+           if (order.invoiceId) return "already_issued"
+
+       so the sale could never be invoiced again, by the automatic path or the
+       manual one, and the admin's order screen showed no number and the reason
+       "already issued". For ever. */
+    const t = newHarness()
+    const storeId = await seedStore(t, "Pizzeria Napoli")
+    const { productId } = await seedCatalogue(t, storeId)
+    const { invoiceId } = await seedTrade(t, storeId, productId)
+
+    const backup = await exportTables(t, [
+      "stores",
+      "categories",
+      "products",
+      "orders",
+      "payments",
+      "kitchenTickets",
+    ])
+    // The file carries the invoice id, which is the whole point: it is what the
+    // restored order will come back holding.
+    expect(backup.orders?.[0]?.invoiceId).toBe(invoiceId)
+
+    // A deployment rebuilt from the file: it has no fiscal archive of its own.
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("invoices").collect()) {
+        await ctx.db.delete(row._id)
+      }
+    })
+
+    const { invoiceLinks } = await restore(t, backup)
+    expect(invoiceLinks).toEqual({ repointed: 0, cleared: 1 })
+
+    const order = await t.run(
+      async (ctx) => (await ctx.db.query("orders").collect())[0]!
+    )
+
+    expect(order.invoiceId).toBeUndefined()
+    // Invoiceable again, from this deployment's own fresh series. Nothing
+    // fiscal was deleted: the documents are in the backup file, which is now the
+    // only copy of that series.
+    expect(invoiceRefusal(order, { legalName: "Pizzeria Napoli SARL" })).toBeNull()
+  })
+
+  test("re-points rather than clears when an invoice does stand for the order", async () => {
+    // Clearing a link that IS recoverable would let a SECOND invoice be issued
+    // for a sale that already has one — a duplicate fiscal document, which is a
+    // worse outcome than the dangling id being fixed.
+    const t = newHarness()
+    const storeId = await seedStore(t, "Pizzeria Napoli")
+    const { productId } = await seedCatalogue(t, storeId)
+    await seedTrade(t, storeId, productId)
+
+    const backup = await exportTables(t, [
+      "stores",
+      "categories",
+      "products",
+      "orders",
+      "payments",
+      "kitchenTickets",
+    ])
+
+    /* The mixed case: the invoice is here, but the order names an id that is
+       not it — a file restored onto a deployment whose archive came back by
+       another route. */
+    await t.run(async (ctx) => {
+      const invoice = (await ctx.db.query("invoices").collect())[0]!
+      const { _id, _creationTime, ...fields } = invoice
+      expect(_id).toBeDefined()
+      expect(_creationTime).toBeDefined()
+      const decoy = await ctx.db.insert("invoices", { ...fields, number: "FA-2026-000002" })
+      await ctx.db.delete(decoy)
+      for (const row of backup.orders ?? []) row.invoiceId = decoy
+    })
+
+    const { invoiceLinks } = await restore(t, backup)
+    expect(invoiceLinks).toEqual({ repointed: 1, cleared: 0 })
+
+    const { order, invoice } = await t.run(async (ctx) => ({
+      order: (await ctx.db.query("orders").collect())[0]!,
+      invoice: (await ctx.db.query("invoices").collect())[0]!,
+    }))
+
+    expect(order.invoiceId).toBe(invoice._id)
+    expect(invoice.number).toBe("FA-2026-000001")
   })
 
   test("refuses to import the fiscal archive it happily exports", async () => {

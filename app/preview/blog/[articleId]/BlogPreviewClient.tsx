@@ -54,11 +54,11 @@ export function BlogPreviewClient({ articleId }: BlogPreviewClientProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Preview banner */}
-      <div className="sticky top-0 z-50 border-b bg-yellow-50 dark:bg-yellow-950">
+      <div className="sticky top-0 z-50 border-b bg-warning/10">
         <div className="mx-auto max-w-4xl flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
-            <Eye className="h-4 w-4 text-yellow-600" />
-            <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+            <Eye className="h-4 w-4 text-warning" />
+            <span className="text-sm font-medium text-warning">
               Aperçu
             </span>
             <Badge variant="outline" className="text-xs">

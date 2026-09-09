@@ -57,13 +57,13 @@ export function MenuPagination({
   }
 
   return (
-    <div className="flex justify-center mt-12 mb-20 bg-white p-6 rounded-3xl border border-border shadow-sm max-w-2xl mx-auto">
+    <div className="flex justify-center mt-12 mb-20 bg-card p-6 rounded-3xl border border-border shadow-sm max-w-2xl mx-auto">
       <Pagination>
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
               onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-              className={`cursor-pointer h-12 w-12 rounded-xl bg-white border-border hover:bg-muted text-foreground transition-all [&>span]:hidden ${
+              className={`cursor-pointer h-12 w-12 rounded-xl bg-card border-border hover:bg-muted text-foreground transition-all [&>span]:hidden ${
                 currentPage === 1 ? "pointer-events-none opacity-50" : ""
               }`}
             />
@@ -81,7 +81,7 @@ export function MenuPagination({
                   isActive={currentPage === page}
                   className={`cursor-pointer font-black h-12 w-12 rounded-xl transition-all ${
                     currentPage === page
-                      ? "bg-primary text-primary-foreground border-none shadow-lg hover:bg-primary-hover hover:text-white"
+                      ? "bg-primary text-primary-foreground border-none shadow-lg hover:bg-primary-hover"
                       : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
@@ -94,7 +94,7 @@ export function MenuPagination({
           <PaginationItem>
             <PaginationNext
               onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-              className={`cursor-pointer h-12 w-12 rounded-xl bg-white border-border hover:bg-muted text-foreground transition-all [&>span]:hidden ${
+              className={`cursor-pointer h-12 w-12 rounded-xl bg-card border-border hover:bg-muted text-foreground transition-all [&>span]:hidden ${
                 currentPage === totalPages ? "pointer-events-none opacity-50" : ""
               }`}
             />

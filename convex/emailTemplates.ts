@@ -19,12 +19,6 @@ export const getById = storeQuery({
   handler: (ctx, args) => defs.getById.handler(ctx, args),
 });
 
-export const listByCategory = storeQuery({
-  permission: "marketing:read",
-  args: defs.listByCategory.args,
-  handler: (ctx, args) => defs.listByCategory.handler(ctx, args),
-});
-
 // === Mutations (auth-protected) ===
 
 export const create = storeMutation({

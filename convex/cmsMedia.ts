@@ -13,8 +13,7 @@ import { internal } from "./_generated/api"
 import {
   storeQuery,
   storeMutation,
-  storeIdFromField,
-} from "./lib/storeFunctions"
+} from "./lib/storeFunctions";
 import { v } from "convex/values"
 import * as mediaDefs from "@be-in-digital/convex-functions/cmsMedia"
 
@@ -29,13 +28,6 @@ export const listMedia = storeQuery({
   permission: "content:read",
   args: mediaDefs.listMedia.args,
   handler: (ctx, args) => mediaDefs.listMedia.handler(ctx, args),
-})
-
-export const getMedia = storeQuery({
-  permission: "content:read",
-  args: mediaDefs.getMedia.args,
-  storeIdFrom: storeIdFromField("mediaId", "Media not found"),
-  handler: (ctx, args) => mediaDefs.getMedia.handler(ctx, args),
 })
 
 // ============================================================================

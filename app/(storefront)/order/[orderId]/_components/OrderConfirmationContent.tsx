@@ -62,8 +62,8 @@ function OrderConfirmationContent() {
       <div className="min-h-screen bg-background pt-20">
         <section className="pt-24 pb-20 px-6 md:px-12 bg-primary rounded-b-[4rem] md:rounded-b-[8rem]">
           <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none italic">
-              Commande <span className="text-accent-foreground not-italic">introuvable</span>
+            <h1 className="text-6xl md:text-8xl font-black text-primary-foreground tracking-tighter leading-none italic">
+              Commande <span className="text-primary-foreground not-italic">introuvable</span>
             </h1>
           </div>
         </section>
@@ -74,7 +74,7 @@ function OrderConfirmationContent() {
           </p>
           <Link
             href="/menu"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3 font-black uppercase tracking-widest text-white text-xs hover:bg-primary-hover transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3 font-black uppercase tracking-widest text-primary-foreground text-xs hover:bg-primary-hover transition-colors"
           >
             Retour au menu
           </Link>
@@ -95,7 +95,7 @@ function OrderConfirmationContent() {
         <div className="max-w-7xl mx-auto relative z-10 text-center">
           <Link
             href="/menu"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors font-medium"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-primary-foreground transition-colors hover:underline hover:underline-offset-4 font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
             Retour au menu
@@ -103,15 +103,15 @@ function OrderConfirmationContent() {
 
           <div className="flex justify-center mb-8">
             <div className="rounded-full bg-white/20 backdrop-blur-md p-4">
-              <CheckCircle className="h-10 w-10 text-white" />
+              <CheckCircle className="h-10 w-10 text-primary-foreground" />
             </div>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none mb-6 italic">
-            Commande <span className="text-accent-foreground not-italic">confirmée</span>
+          <h1 className="text-5xl md:text-7xl font-black text-primary-foreground tracking-tighter leading-none mb-6 italic">
+            Commande <span className="text-primary-foreground not-italic">confirmée</span>
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto font-medium">
-            <span className="font-mono font-bold text-white">{order.orderNumber}</span>
+          <p className="text-xl text-primary-foreground max-w-2xl mx-auto font-medium">
+            <span className="font-mono font-bold text-primary-foreground">{order.orderNumber}</span>
           </p>
         </div>
       </section>
@@ -121,10 +121,10 @@ function OrderConfirmationContent() {
         {trackingToken && (
           <Link
             href={`/track/${trackingToken}`}
-            className="mb-8 flex items-center justify-between rounded-[2rem] bg-primary p-6 text-white shadow-xl shadow-primary/10 hover:bg-primary-hover transition-all group"
+            className="mb-8 flex items-center justify-between rounded-[2rem] bg-primary p-6 text-primary-foreground shadow-xl shadow-primary/10 hover:bg-primary-hover transition-all group"
           >
             <div>
-              <p className="font-black uppercase tracking-widest text-[10px] text-white/60 mb-1">
+              <p className="font-black uppercase tracking-widest text-[10px] text-primary-foreground mb-1">
                 Suivi en temps réel
               </p>
               <p className="text-lg font-black">
@@ -139,7 +139,7 @@ function OrderConfirmationContent() {
 
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Order details */}
-          <div className="rounded-[2rem] bg-white border border-border shadow-2xl shadow-black/[0.04] p-8">
+          <div className="rounded-[2rem] bg-card border border-border shadow-2xl shadow-black/[0.04] p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-black uppercase tracking-tighter">Détails</h2>
               <OrderStatusBadge status={order.status} labels={statusLabels} />
@@ -183,7 +183,7 @@ function OrderConfirmationContent() {
           </div>
 
           {/* Items + totals */}
-          <div className="rounded-[2rem] bg-white border border-border shadow-2xl shadow-black/[0.04] p-8">
+          <div className="rounded-[2rem] bg-card border border-border shadow-2xl shadow-black/[0.04] p-8">
             <h2 className="text-lg font-black uppercase tracking-tighter mb-6">Articles</h2>
 
             <div className="space-y-4">

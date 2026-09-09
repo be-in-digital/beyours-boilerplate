@@ -12,8 +12,6 @@ import { scheduleTranslation } from "./autoTranslate";
 // @public-by-design: storefront category menu, rendered for anonymous visitors
 export const list = query(defs.list);
 // @public-by-design: storefront category menu, rendered for anonymous visitors
-export const getById = query(defs.getById);
-// @public-by-design: storefront category menu, rendered for anonymous visitors
 export const listActiveWithCounts = query(defs.listActiveWithCounts);
 
 // === Mutations (with authorization) ===

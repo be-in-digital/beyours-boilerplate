@@ -144,10 +144,12 @@ describe("Scenario 10: an order scheduled for a moment that has passed", () => {
     "records when the order was actually due, so a late one can be spotted — " +
       "`start_preparing_at` and `prepare_for` are never read at all, and " +
       "`confirm_at` is read in handleNewOrder " +
-      "(convex/deliverooWebhook.ts:477-495) only to compute a scheduler delay; " +
-      "`scheduledAt` and `scheduledFor` both exist on the orders table " +
-      "(convex-schema/src/tables/orders.ts:113 and :122) and createFromWebhook " +
-      "writes neither, so an order an hour overdue is indistinguishable on the " +
-      "KDS from one placed this second",
+      "(convex/deliverooWebhook.ts) only to compute a scheduler delay, then " +
+      "discarded; the orders table has NO field left to record it in, because " +
+      "`scheduledAt` and `scheduledFor` were both removed (#363, #413) as " +
+      "unbacked customer-scheduling claims that no writer ever filled. So an " +
+      "order an hour overdue is still indistinguishable on the KDS from one " +
+      "placed this second, and closing this means adding a field for platform " +
+      "due-time — a KDS lateness concern, not a diner-facing booking feature",
   );
 });

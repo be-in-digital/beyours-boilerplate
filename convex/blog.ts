@@ -36,10 +36,6 @@ const blogStoreId = storeIdFromField("articleId", "Article not found");
 // @public-by-design: published blog content, served to anonymous readers
 export const listPublishedArticles = query(blogDefs.listPublishedArticles)
 // @public-by-design: published blog content, served to anonymous readers
-export const listByCategory = query(blogDefs.listByCategory)
-// @public-by-design: published blog content, served to anonymous readers
-export const listByTag = query(blogDefs.listByTag)
-// @public-by-design: published blog content, served to anonymous readers
 export const getArticleBySlug = query(blogDefs.getArticleBySlug)
 // @public-by-design: published blog content, served to anonymous readers
 export const listCategories = query(blogDefs.listCategories)
@@ -83,15 +79,6 @@ async function storeIdFromCategory(
   const category = await ctx.db.get(args.categoryId)
   if (!category) throw new Error("Category not found")
   return category.storeId
-}
-
-async function storeIdFromTag(
-  ctx: QueryCtx,
-  args: { tagId: Id<"blogTags"> }
-): Promise<Id<"stores">> {
-  const tag = await ctx.db.get(args.tagId)
-  if (!tag) throw new Error("Tag not found")
-  return tag.storeId
 }
 
 // ============================================================================
@@ -243,20 +230,6 @@ export const createTag = storeMutation({
   permission: "content:write",
   args: blogDefs.createTag.args,
   handler: (ctx, args) => blogDefs.createTag.handler(ctx, args),
-})
-
-export const deleteTag = storeMutation({
-  permission: "content:delete",
-  args: blogDefs.deleteTag.args,
-  storeIdFrom: storeIdFromTag,
-  handler: (ctx, args) => blogDefs.deleteTag.handler(ctx, args),
-})
-
-export const updateArticleTags = storeMutation({
-  permission: "content:write",
-  args: blogDefs.updateArticleTags.args,
-  storeIdFrom: storeIdFromArticle,
-  handler: (ctx, args) => blogDefs.updateArticleTags.handler(ctx, args),
 })
 
 // ============================================================================

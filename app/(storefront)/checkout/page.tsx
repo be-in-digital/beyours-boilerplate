@@ -346,7 +346,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-muted px-4 pb-20 pt-32">
         <div className="mx-auto max-w-xl text-center">
-          <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-success/10 text-success">
+          <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-success text-success-foreground">
             <CheckCircle2 className="h-12 w-12" />
           </div>
           <h1 className="mb-4 text-4xl font-black uppercase italic tracking-tighter text-foreground">
@@ -375,7 +375,7 @@ export default function CheckoutPage() {
 
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Link href="/menu">
-              <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
+              <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary-hover">
                 Retour au menu
               </Button>
             </Link>
@@ -668,13 +668,13 @@ export default function CheckoutPage() {
                 })}
               />
               {quoteError && (
-                <p className="px-4 text-center text-sm text-red-600">
+                <p className="px-4 text-center text-sm text-destructive">
                   {quoteError}
                 </p>
               )}
 
               {/* Security badge */}
-              <div className="flex items-center gap-4 rounded-[2rem] border border-success/20 bg-success/5 p-8">
+              <div className="flex items-center gap-4 rounded-[2rem] border border-success/20 bg-card p-8">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-success/10 text-success">
                   <ShieldCheck className="h-6 w-6" />
                 </div>

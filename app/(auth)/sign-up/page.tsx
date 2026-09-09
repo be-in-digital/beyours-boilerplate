@@ -113,17 +113,17 @@ function SignUpForm() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans overflow-hidden relative flex flex-col items-center justify-center py-20 px-6">
+    <div className="min-h-screen bg-background text-foreground font-sans overflow-hidden relative flex flex-col items-center justify-center py-20 px-6">
       {/* Background blobs */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-orange-400/10 rounded-full blur-[120px]" />
-        <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] bg-emerald-400/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-accent-solid/10 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
       </div>
 
       {/* Back link */}
       <Link
         href="/"
-        className="absolute top-8 left-8 flex items-center gap-2 text-[#0D5C3F] font-black uppercase tracking-widest text-[10px] hover:translate-x-[-4px] transition-transform z-20"
+        className="absolute top-8 left-8 flex items-center gap-2 text-primary-ink font-black uppercase tracking-widest text-[10px] hover:translate-x-[-4px] transition-transform z-20"
       >
         <ArrowLeft className="h-4 w-4" /> Retour
       </Link>
@@ -136,33 +136,33 @@ function SignUpForm() {
       >
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-black text-zinc-800 tracking-tighter leading-[0.9] italic">
+          <h1 className="text-5xl md:text-6xl font-black text-foreground tracking-tighter leading-[0.9] italic">
             Créer un <br />
-            <span className="text-orange-500 not-italic">compte</span>
+            <span className="text-accent-solid not-italic">compte</span>
           </h1>
         </div>
 
         {/* Form card */}
-        <div className="bg-white rounded-[3rem] shadow-2xl shadow-emerald-950/5 border border-zinc-100 overflow-hidden">
+        <div className="bg-card text-card-foreground rounded-[3rem] shadow-2xl shadow-primary/5 border border-border overflow-hidden">
           {awaitingVerification ? (
             <div
               className="p-8 md:p-12 text-center space-y-6"
               data-testid="verification-pending"
             >
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
-                <MailCheck className="h-8 w-8 text-[#0D5C3F]" />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+                <MailCheck className="h-8 w-8" />
               </div>
               <div className="space-y-3">
-                <h2 className="text-2xl font-black tracking-tight text-zinc-800">
+                <h2 className="text-2xl font-black tracking-tight text-card-foreground">
                   Vérifiez votre boîte mail
                 </h2>
-                <p className="text-zinc-500 font-medium leading-relaxed">
+                <p className="text-muted-foreground font-medium leading-relaxed">
                   Nous avons envoyé un lien de confirmation à{" "}
-                  <span className="font-black text-zinc-800">{awaitingVerification}</span>.
+                  <span className="font-black text-card-foreground">{awaitingVerification}</span>.
                   Cliquez dessus pour activer votre compte — vous serez connecté
                   automatiquement.
                 </p>
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-muted-foreground">
                   Le lien expire dans une heure. Pensez à regarder vos spams.
                 </p>
               </div>
@@ -171,7 +171,7 @@ function SignUpForm() {
                   type="button"
                   onClick={handleResend}
                   disabled={resending}
-                  className="w-full h-14 rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs disabled:opacity-60"
+                  className="w-full h-14 rounded-2xl bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest text-xs disabled:opacity-60"
                 >
                   {resending ? (
                     <>
@@ -184,7 +184,7 @@ function SignUpForm() {
                 </Button>
                 <Link
                   href={`/sign-in?redirect=${encodeURIComponent(redirectTo)}`}
-                  className="block text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-600"
+                  className="block text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-card-foreground"
                 >
                   Retour à la connexion
                 </Link>
@@ -197,16 +197,16 @@ function SignUpForm() {
               <div className="space-y-3">
                 <Label
                   htmlFor="name"
-                  className="text-zinc-800 font-black uppercase tracking-widest text-[10px] ml-1"
+                  className="text-card-foreground font-black uppercase tracking-widest text-[10px] ml-1"
                 >
                   Nom complet
                 </Label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary-ink transition-colors" />
                   <Input
                     id="name"
                     type="text"
-                    className="h-14 pl-12 pr-4 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400 focus:ring-4 focus:ring-emerald-500/5"
+                    className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10"
                     placeholder="Jean Dupont"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -219,16 +219,16 @@ function SignUpForm() {
               <div className="space-y-3">
                 <Label
                   htmlFor="email"
-                  className="text-zinc-800 font-black uppercase tracking-widest text-[10px] ml-1"
+                  className="text-card-foreground font-black uppercase tracking-widest text-[10px] ml-1"
                 >
                   Adresse email
                 </Label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary-ink transition-colors" />
                   <Input
                     id="email"
                     type="email"
-                    className="h-14 pl-12 pr-4 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400 focus:ring-4 focus:ring-emerald-500/5"
+                    className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10"
                     placeholder="jean@exemple.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -242,16 +242,16 @@ function SignUpForm() {
                 <div className="space-y-3">
                   <Label
                     htmlFor="password"
-                    className="text-zinc-800 font-black uppercase tracking-widest text-[10px] ml-1"
+                    className="text-card-foreground font-black uppercase tracking-widest text-[10px] ml-1"
                   >
                     Mot de passe
                   </Label>
                   <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary-ink transition-colors" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      className="h-14 pl-12 pr-12 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400"
+                      className="h-14 pl-12 pr-12 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground"
                       placeholder="Min. 12 caractères"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -261,7 +261,7 @@ function SignUpForm() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-card-foreground transition-colors"
                       tabIndex={-1}
                     >
                       {showPassword ? (
@@ -275,16 +275,16 @@ function SignUpForm() {
                 <div className="space-y-3">
                   <Label
                     htmlFor="confirm"
-                    className="text-zinc-800 font-black uppercase tracking-widest text-[10px] ml-1"
+                    className="text-card-foreground font-black uppercase tracking-widest text-[10px] ml-1"
                   >
                     Confirmer
                   </Label>
                   <div className="relative group">
-                    <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
+                    <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary-ink transition-colors" />
                     <Input
                       id="confirm"
                       type={showPassword ? "text" : "password"}
-                      className="h-14 pl-12 pr-4 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400"
+                      className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground"
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -300,7 +300,7 @@ function SignUpForm() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-16 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-orange-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] group disabled:opacity-60"
+                  className="w-full h-16 rounded-2xl bg-accent-solid text-accent-solid-foreground font-black uppercase tracking-widest text-xs shadow-xl shadow-accent-solid/20 transition-all hover:scale-[1.02] active:scale-[0.98] group disabled:opacity-60"
                 >
                   {loading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -318,11 +318,11 @@ function SignUpForm() {
         </div>
 
         {/* Footer link */}
-        <p className="text-center mt-12 text-zinc-500 font-medium">
+        <p className="text-center mt-12 text-muted-foreground font-medium">
           Déjà un compte ?{" "}
           <Link
             href={`/sign-in?redirect=${encodeURIComponent(redirectTo)}`}
-            className="text-[#0D5C3F] font-black hover:underline underline-offset-4"
+            className="text-primary-ink font-black hover:underline underline-offset-4"
           >
             Se connecter
           </Link>
@@ -349,13 +349,13 @@ export default function SignUpPage() {
 /** The page frame, shown while the client half of the route hydrates. */
 function AuthPageFallback() {
   return (
-    <div className="min-h-screen bg-[#FDFCF6] flex items-center justify-center px-6">
-      <div className="w-full max-w-xl rounded-[3rem] border border-zinc-100 bg-white p-12 shadow-2xl shadow-emerald-950/5">
-        <div className="h-6 w-40 animate-pulse rounded-full bg-zinc-100" />
+    <div className="min-h-screen bg-background flex items-center justify-center px-6">
+      <div className="w-full max-w-xl rounded-[3rem] border border-border bg-card p-12 shadow-2xl shadow-primary/5">
+        <div className="h-6 w-40 animate-pulse rounded-full bg-muted" />
         <div className="mt-8 space-y-4">
-          <div className="h-14 animate-pulse rounded-2xl bg-zinc-50" />
-          <div className="h-14 animate-pulse rounded-2xl bg-zinc-50" />
-          <div className="h-16 animate-pulse rounded-2xl bg-zinc-100" />
+          <div className="h-14 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-14 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-16 animate-pulse rounded-2xl bg-muted" />
         </div>
       </div>
     </div>

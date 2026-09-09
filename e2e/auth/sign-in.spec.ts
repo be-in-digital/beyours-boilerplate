@@ -149,8 +149,11 @@ test.describe("Sign In Page", () => {
 
       await page.getByRole("button", { name: "Se connecter" }).click()
 
-      // Error banner (div with red styling) or toast should appear
-      const errorBanner = page.locator(".bg-red-50, .bg-red-900\\/20, [role='alert']")
+      // The error surface, addressed by ROLE rather than by colour. These pages
+      // used to be located by `.bg-red-50` and `.bg-red-900/20`; #410 routed
+      // every literal on them through the token layer, and a selector written
+      // against a palette class rots silently the next time the palette moves.
+      const errorBanner = page.locator("[role='alert'], [data-sonner-toast]")
       const errorToast = page.getByText(/échec|erreur|invalide/i)
 
       await expect(errorBanner.or(errorToast).first()).toBeVisible({ timeout: 15_000 })

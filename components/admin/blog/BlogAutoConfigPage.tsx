@@ -109,7 +109,7 @@ function LockedView({
       <CardHeader className="text-center pb-2">
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
           {reason === "Quota mensuel atteint" ? (
-            <AlertTriangle className="h-6 w-6 text-amber-500" />
+            <AlertTriangle className="h-6 w-6 text-warning" />
           ) : (
             <Lock className="h-6 w-6 text-muted-foreground" />
           )}

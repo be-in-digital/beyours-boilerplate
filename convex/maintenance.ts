@@ -110,16 +110,6 @@ export const getOverview = query({
   },
 })
 
-/** All migration requests (history included), newest first */
-// @guarded-inline: account owner or super admin checked in the handler
-export const listMigrationRequests = query({
-  args: { limit: v.optional(v.number()) },
-  handler: async (ctx, args) => {
-    await requireSystemRead(ctx)
-    return maintenanceDefs.listMigrationRequests.handler(ctx, args)
-  },
-})
-
 // ─── Mutations (client side) ────────────────────────────────────────────────────
 
 /**
@@ -209,70 +199,6 @@ export const cancelMigrationRequest = mutation({
 })
 
 // ─── Mutations (BeYours side) ───────────────────────────────────────────────
-
-/** Move a migration request through its fulfilment workflow */
-// @guarded-inline: account owner or super admin checked in the handler
-export const updateMigrationRequestStatus = mutation({
-  args: {
-    requestId: v.id("migrationRequests"),
-    status: maintenanceDefs.migrationRequestStatusValidator,
-    note: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const user = await requireSuperAdmin(ctx)
-
-    await maintenanceDefs.updateMigrationRequestStatus.handler(ctx, {
-      requestId: args.requestId,
-      status: args.status,
-      changedBy: user.userId,
-      note: args.note,
-    })
-
-    await ctx.db.insert("systemAuditLog", {
-      action: "migration_request_status_changed",
-      performedBy: user.userId,
-      performedAt: Date.now(),
-      result: "success",
-      details: JSON.stringify({ requestId: args.requestId, status: args.status }),
-    })
-
-    return args.requestId
-  },
-})
-
-/** Set / renew the maintenance contract (BeYours team) */
-// @guarded-inline: account owner or super admin checked in the handler
-export const setContract = mutation({
-  args: {
-    startedAt: v.number(),
-    coveredUntil: v.number(),
-    autoRenew: v.boolean(),
-    lastRenewedAt: v.optional(v.number()),
-    notes: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const user = await requireSuperAdmin(ctx)
-
-    const contractId = await maintenanceDefs.upsertContract.handler(ctx, {
-      ...args,
-      updatedBy: user.userId,
-    })
-
-    await ctx.db.insert("systemAuditLog", {
-      action: "maintenance_contract_set",
-      performedBy: user.userId,
-      performedAt: Date.now(),
-      result: "success",
-      details: JSON.stringify({
-        startedAt: args.startedAt,
-        coveredUntil: args.coveredUntil,
-        autoRenew: args.autoRenew,
-      }),
-    })
-
-    return contractId
-  },
-})
 
 // ─── Internal (BID ops / actions) ───────────────────────────────────────────────
 
@@ -379,6 +305,87 @@ export const _setContract = internalMutation({
     await ctx.db.insert("systemAuditLog", {
       action: "maintenance_contract_set",
       performedBy: args.updatedBy ?? "beindigital",
+      performedAt: Date.now(),
+      result: "success",
+      details: JSON.stringify({
+        startedAt: args.startedAt,
+        coveredUntil: args.coveredUntil,
+        autoRenew: args.autoRenew,
+      }),
+    })
+
+    return contractId
+  },
+})
+
+// @kept-callerless: no screen calls this. It is the read half of the migration
+// flow `apps/docs/guides/maintenance-and-migration.md` documents: `requestMigration`
+// is live and files a request, and without this nothing can see what was filed.
+// Removing it left a request that could be made and never read (#413).
+// @guarded-inline: account owner or super admin checked in the handler
+export const listMigrationRequests = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    await requireSystemRead(ctx)
+    return maintenanceDefs.listMigrationRequests.handler(ctx, args)
+  },
+})
+
+// @kept-callerless: no screen calls this. `apps/docs/guides/maintenance-and-migration.md:88`
+// names it as the way a super_admin moves a migration request through
+// acknowledged → in_progress → completed (#413).
+// @guarded-inline: account owner or super admin checked in the handler
+export const updateMigrationRequestStatus = mutation({
+  args: {
+    requestId: v.id("migrationRequests"),
+    status: maintenanceDefs.migrationRequestStatusValidator,
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireSuperAdmin(ctx)
+
+    await maintenanceDefs.updateMigrationRequestStatus.handler(ctx, {
+      requestId: args.requestId,
+      status: args.status,
+      changedBy: user.userId,
+      note: args.note,
+    })
+
+    await ctx.db.insert("systemAuditLog", {
+      action: "migration_request_status_changed",
+      performedBy: user.userId,
+      performedAt: Date.now(),
+      result: "success",
+      details: JSON.stringify({ requestId: args.requestId, status: args.status }),
+    })
+
+    return args.requestId
+  },
+})
+
+// @kept-callerless: no screen calls this. `apps/docs/guides/maintenance-and-migration.md:84`
+// names it as the super_admin path for setting and renewing a maintenance
+// contract, alongside the Stripe one (#413).
+// @guarded-inline: account owner or super admin checked in the handler
+export const setContract = mutation({
+  args: {
+    startedAt: v.number(),
+    coveredUntil: v.number(),
+    autoRenew: v.boolean(),
+    lastRenewedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireSuperAdmin(ctx)
+
+    const contractId = await maintenanceDefs.upsertContract.handler(ctx, {
+      ...args,
+      updatedBy: user.userId,
+    })
+
+    await ctx.db.insert("systemAuditLog", {
+      action: "maintenance_contract_set",
+      performedBy: user.userId,
       performedAt: Date.now(),
       result: "success",
       details: JSON.stringify({

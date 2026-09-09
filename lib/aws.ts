@@ -64,6 +64,20 @@ export type {
   DeleteObjectParams,
   GetSignedUrlParams,
   HeadObjectParams,
+  // The version half of the adapter. `setup-aws.sh` turns bucket versioning ON,
+  // and on a versioned bucket a DeleteObject with no VersionId deletes nothing:
+  // it writes a delete marker and keeps every prior version, billed and
+  // readable by anyone who can name a version id. An `S3Operations` adapter
+  // therefore has to implement `listObjectVersions` and `deleteObjectVersion`
+  // to make `S3Service.delete` an actual deletion — and these are the names it
+  // needs to do that. Without them re-exported here, an app could not so much
+  // as spell the parameter types. `DeleteResult` is what `delete()` answers:
+  // only `outcome: 'purged'` means the bytes are gone.
+  ObjectVersion,
+  ListObjectVersionsParams,
+  ListObjectVersionsResult,
+  DeleteObjectVersionParams,
+  DeleteResult,
 } from '@be-in-digital/core'
 
 export {

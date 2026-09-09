@@ -54,13 +54,13 @@ export default function BlogPage() {
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="max-w-4xl mx-auto relative z-10 text-center"
                 >
-                    <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
+                    <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
                         {heroBadge}
                     </Badge>
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
-                        {parseColoredText(heroTitle, "text-accent-foreground italic")}
+                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-primary-foreground leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
+                        {parseColoredText(heroTitle, "text-primary-foreground italic")}
                     </h1>
-                    <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">
+                    <p className="text-lg md:text-xl text-primary-foreground max-w-2xl mx-auto leading-relaxed font-medium">
                         {heroSubtitle}
                     </p>
                 </motion.div>
@@ -222,10 +222,10 @@ export default function BlogPage() {
                         <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px]" />
                     </div>
                     <div className="relative z-10 max-w-2xl mx-auto">
-                        <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight mb-4">
+                        <h2 className="text-3xl md:text-5xl font-black text-primary-foreground tracking-tighter leading-tight mb-4">
                             Ne manquez rien
                         </h2>
-                        <p className="text-accent-foreground/60 font-medium mb-8">
+                        <p className="text-primary-foreground font-medium mb-8">
                             Inscrivez-vous à notre newsletter pour recevoir nos derniers articles et offres exclusives.
                         </p>
                         <form
@@ -256,7 +256,7 @@ export default function BlogPage() {
                                 value={newsletterEmail}
                                 onChange={(e) => setNewsletterEmail(e.target.value)}
                                 placeholder="Votre email..."
-                                className="flex-1 h-14 px-6 rounded-2xl bg-white/10 border border-white/10 text-white placeholder:text-white/70 font-bold text-sm outline-none focus:border-white/30 transition-colors"
+                                className="flex-1 h-14 px-6 rounded-2xl bg-white/10 border border-white/10 text-primary-foreground placeholder:text-primary-foreground font-bold text-sm outline-none focus:border-white/30 transition-colors"
                             />
                             <Button
                                 type="submit"

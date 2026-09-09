@@ -20,10 +20,10 @@ import { Button, Input, Label, Skeleton } from "@be-in-digital/ui"
 
 function ResetPasswordSkeleton() {
   return (
-    <div className="min-h-screen bg-[#FDFCF6] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-xl">
         <Skeleton className="h-20 w-64 mx-auto mb-12 rounded-2xl" />
-        <div className="bg-white rounded-[3rem] p-12 shadow-2xl border border-zinc-100">
+        <div className="bg-card text-card-foreground rounded-[3rem] p-12 shadow-2xl border border-border">
           <div className="space-y-6">
             <Skeleton className="h-4 w-32 rounded" />
             <Skeleton className="h-14 w-full rounded-2xl" />
@@ -83,17 +83,17 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCF6] text-zinc-900 font-sans overflow-hidden relative flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-background text-foreground font-sans overflow-hidden relative flex flex-col items-center justify-center px-6">
       {/* Background blobs */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-400/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-orange-400/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-accent-solid/10 rounded-full blur-[100px]" />
       </div>
 
       {/* Back link */}
       <Link
         href="/sign-in"
-        className="absolute top-8 left-8 flex items-center gap-2 text-[#0D5C3F] font-black uppercase tracking-widest text-[10px] hover:translate-x-[-4px] transition-transform z-20"
+        className="absolute top-8 left-8 flex items-center gap-2 text-primary-ink font-black uppercase tracking-widest text-[10px] hover:translate-x-[-4px] transition-transform z-20"
       >
         <ArrowLeft className="h-4 w-4" /> Connexion
       </Link>
@@ -106,31 +106,31 @@ function ResetPasswordContent() {
       >
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-black text-zinc-800 tracking-tighter leading-[0.9] italic">
+          <h1 className="text-5xl md:text-6xl font-black text-foreground tracking-tighter leading-[0.9] italic">
             Nouveau <br />
-            <span className="text-orange-500 not-italic">mot de passe</span>
+            <span className="text-accent-solid not-italic">mot de passe</span>
           </h1>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-[3rem] shadow-2xl shadow-emerald-950/5 border border-zinc-100 overflow-hidden">
+        <div className="bg-card text-card-foreground rounded-[3rem] shadow-2xl shadow-primary/5 border border-border overflow-hidden">
           <div className="p-8 md:p-12">
             {!token ? (
               /* Invalid/expired link */
               <div className="text-center py-8">
                 <div className="flex justify-center mb-6">
-                  <div className="h-20 w-20 rounded-[2rem] bg-red-50 flex items-center justify-center text-red-500">
+                  <div className="h-20 w-20 rounded-[2rem] bg-destructive text-destructive-foreground flex items-center justify-center">
                     <AlertTriangle className="h-10 w-10" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-black tracking-tighter text-zinc-800 mb-3">
+                <h2 className="text-2xl font-black tracking-tighter text-card-foreground mb-3">
                   Lien invalide
                 </h2>
-                <p className="text-zinc-500 font-medium mb-8">
+                <p className="text-muted-foreground font-medium mb-8">
                   Ce lien de réinitialisation est invalide ou a expiré.
                 </p>
                 <Link href="/forgot-password">
-                  <Button className="rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs h-14 px-8">
+                  <Button className="rounded-2xl bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest text-xs h-14 px-8">
                     Demander un nouveau lien
                   </Button>
                 </Link>
@@ -143,19 +143,19 @@ function ResetPasswordContent() {
                 className="text-center py-8"
               >
                 <div className="flex justify-center mb-6">
-                  <div className="h-20 w-20 rounded-[2rem] bg-emerald-50 flex items-center justify-center text-[#0D5C3F]">
+                  <div className="h-20 w-20 rounded-[2rem] bg-accent text-accent-foreground flex items-center justify-center">
                     <CheckCircle2 className="h-10 w-10" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-black tracking-tighter text-zinc-800 mb-3">
+                <h2 className="text-2xl font-black tracking-tighter text-card-foreground mb-3">
                   Mot de passe modifié !
                 </h2>
-                <p className="text-zinc-500 font-medium mb-8">
+                <p className="text-muted-foreground font-medium mb-8">
                   Votre mot de passe a été réinitialisé avec succès.
                 </p>
                 <Button
                   onClick={() => router.push("/sign-in")}
-                  className="rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs h-14 px-8 group"
+                  className="rounded-2xl bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest text-xs h-14 px-8 group"
                 >
                   Se connecter
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -167,16 +167,16 @@ function ResetPasswordContent() {
                 <div className="space-y-3">
                   <Label
                     htmlFor="password"
-                    className="text-zinc-800 font-black uppercase tracking-widest text-[10px] ml-1"
+                    className="text-card-foreground font-black uppercase tracking-widest text-[10px] ml-1"
                   >
                     Nouveau mot de passe
                   </Label>
                   <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary-ink transition-colors" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      className="h-16 pl-12 pr-12 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400 focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20"
+                      className="h-16 pl-12 pr-12 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10 focus:border-primary/20"
                       placeholder="Min. 12 caractères"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -186,7 +186,7 @@ function ResetPasswordContent() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-card-foreground transition-colors"
                       tabIndex={-1}
                     >
                       {showPassword ? (
@@ -201,16 +201,16 @@ function ResetPasswordContent() {
                 <div className="space-y-3">
                   <Label
                     htmlFor="confirm"
-                    className="text-zinc-800 font-black uppercase tracking-widest text-[10px] ml-1"
+                    className="text-card-foreground font-black uppercase tracking-widest text-[10px] ml-1"
                   >
                     Confirmer le mot de passe
                   </Label>
                   <div className="relative group">
-                    <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-600 transition-colors" />
+                    <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary-ink transition-colors" />
                     <Input
                       id="confirm"
                       type={showPassword ? "text" : "password"}
-                      className="h-16 pl-12 pr-4 rounded-2xl border-zinc-100 bg-zinc-50 focus:bg-white transition-all text-zinc-900 font-bold placeholder:text-zinc-400 focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20"
+                      className="h-16 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10 focus:border-primary/20"
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -223,7 +223,7 @@ function ResetPasswordContent() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-16 rounded-2xl bg-[#0D5C3F] hover:bg-[#0A412D] text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-950/20 transition-all hover:scale-[1.02] active:scale-[0.98] group disabled:opacity-60"
+                  className="w-full h-16 rounded-2xl bg-primary hover:bg-primary-hover text-primary-foreground font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group disabled:opacity-60"
                 >
                   {loading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />

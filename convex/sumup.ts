@@ -6,9 +6,13 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
   assertSettlesOrder,
+  orderAlreadyCollected,
   paymentStatusAfterSettlement,
 } from "@be-in-digital/convex-functions/paymentSettlement";
-import { CardPaymentUnavailableError } from "@be-in-digital/convex-functions/refusal";
+import {
+  CardPaymentUnavailableError,
+  OrderAlreadyPaidError,
+} from "@be-in-digital/convex-functions/refusal";
 
 // ---------------------------------------------------------------------------
 // Inline AES-256-GCM decryption (same pattern as oauthConnect.ts)
@@ -74,6 +78,26 @@ export const createCheckout = action({
       id: args.orderId,
     });
     if (!order) throw new Error("Order not found");
+
+    // Nothing is owed twice. `orders.create` is idempotent on the diner's key,
+    // so a back-navigation and a resubmit land on the SAME order — and opening
+    // a payment on one that is already settled charges the same meal again.
+    // The ledger refuses the second row afterwards (#411), which keeps the
+    // books right and leaves the diner debited and waiting for a refund. This
+    // is what stops the charge being taken. Every provider needs it: the rule
+    // is about the order, not about which page the diner happens to be on.
+    //
+    // Both reads, for the reason `stripe.ts` sets out: the status counts a
+    // refunded order as closed, and the ledger catches the window between a
+    // payment row being written and the status catching up.
+    if (
+      orderAlreadyCollected(order.paymentStatus) ||
+      (await ctx.runQuery(internal.payments.internalCollectionOnOrder, {
+        orderId: args.orderId,
+      })) !== null
+    ) {
+      throw new OrderAlreadyPaidError();
+    }
 
     // The diner-facing path says WHY a card cannot be taken instead of letting
     // `getSumUpAccessToken`'s plain `Error` reach the browser as a redacted

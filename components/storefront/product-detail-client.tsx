@@ -162,12 +162,12 @@ export function ProductDetailClient({
         {/* Badges */}
         <div className="absolute top-6 left-6 flex gap-2">
           {product.isFeatured && (
-            <span className="bg-white/90 backdrop-blur-md text-foreground border-none py-2 px-4 rounded-xl font-bold uppercase text-[10px] shadow-sm">
+            <span className="bg-card/90 backdrop-blur-md text-foreground border-none py-2 px-4 rounded-xl font-bold uppercase text-[10px] shadow-sm">
               Populaire
             </span>
           )}
           {!available && (
-            <span className="bg-red-500/90 backdrop-blur-md text-white border-none py-2 px-4 rounded-xl font-bold uppercase text-[10px] shadow-sm">
+            <span className="bg-destructive/90 backdrop-blur-md text-destructive-foreground border-none py-2 px-4 rounded-xl font-bold uppercase text-[10px] shadow-sm">
               Indisponible
             </span>
           )}
@@ -177,12 +177,12 @@ export function ProductDetailClient({
         <div className="absolute top-6 right-6 z-10">
           <button
             onClick={() => toggleFavorite(product._id, storeId)}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:scale-110"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-card/90 shadow-md backdrop-blur-sm transition-all hover:bg-card hover:scale-110"
           >
             <Heart
               className={`h-5 w-5 ${
                 isFavorite(product._id, storeId)
-                  ? "fill-red-500 text-red-500"
+                  ? "fill-destructive text-destructive"
                   : "text-muted-foreground"
               }`}
             />
@@ -308,7 +308,7 @@ export function ProductDetailClient({
                             isSelected
                               ? "bg-accent border-primary/20"
                               : "bg-muted border-border hover:border-primary/20"
-                          } ${atLimit ? "opacity-50 cursor-not-allowed" : ""}`}
+                          } ${atLimit ? "pointer-events-none opacity-50" : ""}`}
                         >
                           <div className="flex items-center gap-4">
                             {/* Visually replaced by the marker beside it, never
@@ -339,7 +339,7 @@ export function ProductDetailClient({
                                     : "border-border"
                                 }`}
                               >
-                                {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
+                                {isSelected && <span className="h-2 w-2 rounded-full bg-card" />}
                               </span>
                             ) : (
                               <span
@@ -350,7 +350,7 @@ export function ProductDetailClient({
                                     : "border-border"
                                 }`}
                               >
-                                {isSelected && <Check className="h-3 w-3 text-white" />}
+                                {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                               </span>
                             )}
                             <span className="font-bold text-sm text-foreground">
@@ -391,7 +391,7 @@ export function ProductDetailClient({
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
-                className="h-12 w-12 rounded-xl text-muted-foreground hover:text-accent-foreground hover:bg-white transition-all flex items-center justify-center disabled:opacity-30"
+                className="h-12 w-12 rounded-xl text-muted-foreground hover:text-accent-foreground hover:bg-card transition-all flex items-center justify-center disabled:opacity-30"
               >
                 <Minus className="h-5 w-5" />
               </button>
@@ -400,7 +400,7 @@ export function ProductDetailClient({
               </div>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="h-12 w-12 rounded-xl text-muted-foreground hover:text-accent-foreground hover:bg-white transition-all flex items-center justify-center"
+                className="h-12 w-12 rounded-xl text-muted-foreground hover:text-accent-foreground hover:bg-card transition-all flex items-center justify-center"
               >
                 <Plus className="h-5 w-5" />
               </button>
@@ -413,7 +413,7 @@ export function ProductDetailClient({
               className={`h-16 px-10 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl transition-all flex items-center gap-3 ${
                 canAdd
                   ? "bg-primary hover:bg-primary-hover text-primary-foreground shadow-primary/20"
-                  : "bg-muted-foreground text-white cursor-not-allowed shadow-none"
+                  : "bg-muted-foreground text-background cursor-not-allowed shadow-none"
               }`}
             >
               <ShoppingBag className="h-5 w-5" />

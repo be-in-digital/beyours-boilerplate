@@ -48,18 +48,18 @@ export default function FavoritesContent() {
         <div className="max-w-7xl mx-auto relative z-10 text-center">
           <Link
             href="/account"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors font-medium"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-primary-foreground transition-colors hover:underline hover:underline-offset-4 font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
             Mon compte
           </Link>
-          <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg block mx-auto w-fit">
+          <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg block mx-auto w-fit">
             Collection
           </Badge>
-          <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-8 italic">
-            Mes <span className="text-accent-foreground not-italic">Favoris</span>
+          <h1 className="text-6xl md:text-8xl font-black text-primary-foreground tracking-tighter leading-none mb-8 italic">
+            Mes <span className="text-primary-foreground not-italic">Favoris</span>
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto font-medium">
+          <p className="text-xl text-primary-foreground max-w-2xl mx-auto font-medium">
             Vos plats préférés, toujours à portée de main
           </p>
         </div>
@@ -69,7 +69,7 @@ export default function FavoritesContent() {
         {storeId ? (
           <FavoritesGrid storeId={storeId} />
         ) : (
-          <div className="rounded-3xl bg-white shadow-sm border border-border p-12 text-center">
+          <div className="rounded-3xl bg-card shadow-sm border border-border p-12 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <Heart className="h-8 w-8" />
             </div>
@@ -78,7 +78,7 @@ export default function FavoritesContent() {
             </p>
             <Link
               href="/store-selector"
-              className="mt-4 inline-block rounded-xl bg-primary px-8 py-3 font-black uppercase tracking-widest text-white text-xs hover:bg-primary-hover transition-colors"
+              className="mt-4 inline-block rounded-xl bg-primary px-8 py-3 font-black uppercase tracking-widest text-primary-foreground text-xs hover:bg-primary-hover transition-colors"
             >
               Choisir un restaurant
             </Link>

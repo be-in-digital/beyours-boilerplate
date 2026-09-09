@@ -319,125 +319,217 @@ export const handleSesWebhook = httpAction(async (ctx, request) => {
   );
   const storeId = getMailHeader(notification.mail.headers, "X-Store-Id");
 
-  if (!storeId || !subscriberId) {
-    // Email sent outside the campaign system — nothing to track
-    return new Response("OK", { status: 200 });
-  }
-
   const now = Date.now();
-  const typedStoreId = storeId as Id<"stores">;
-  const typedSubscriberId = subscriberId as Id<"emailSubscribers">;
   const typedCampaignId = campaignId
     ? (campaignId as Id<"emailCampaigns">)
     : undefined;
 
+  /* Who this notification is about.
+
+     The headers above are the precise answer and are usually there. They are
+     not always: SES omits `mail.headers` from a notification unless the sending
+     identity is configured to include the original headers, and nothing
+     configured that until `scripts/setup-aws.sh` grew its Step 2b. This
+     function's whole body used to sit behind
+     `if (!storeId || !subscriberId) return 200`, so on a deployment provisioned
+     before then EVERY bounce and EVERY complaint was read as "sent outside the
+     campaign system" and dropped — silently, with the 200 that tells SNS the
+     delivery succeeded and never to send it again.
+
+     So a bounce or a complaint falls back to the address. SES always names the
+     recipient, and the recipient is what the notification is about: a hard
+     bounce says the mailbox does not exist and a complaint says this person
+     reported us, and neither fact depends on knowing which campaign carried the
+     message. Both suppress, and suppression is what keeps the account sending —
+     AWS suspends at a 5 % complaint rate, per ACCOUNT, and one AWS account
+     holds every store an owner runs.
+
+     Deliveries, opens and clicks do NOT fall back. Those are campaign
+     statistics, and attributing one to a store that did not send the message
+     would corrupt the figure rather than complete it. */
+  const targets: Array<{
+    storeId: Id<"stores">;
+    subscriberId: Id<"emailSubscribers">;
+  }> = [];
+
+  if (storeId && subscriberId) {
+    targets.push({
+      storeId: storeId as Id<"stores">,
+      subscriberId: subscriberId as Id<"emailSubscribers">,
+    });
+  } else if (
+    notification.notificationType === "Bounce" ||
+    notification.notificationType === "Complaint"
+  ) {
+    // The per-recipient lists first — one notification can carry several — with
+    // `mail.destination` behind them, which SES always sets.
+    const addresses = new Set(
+      [
+        ...(notification.bounce?.bouncedRecipients ?? []).map(
+          (r) => r.emailAddress
+        ),
+        ...(notification.complaint?.complainedRecipients ?? []).map(
+          (r) => r.emailAddress
+        ),
+        ...(notification.mail.destination ?? []),
+      ]
+        .filter((address): address is string => typeof address === "string")
+        .map((address) => address.toLowerCase())
+    );
+
+    for (const address of addresses) {
+      const matches = await ctx.runQuery(
+        internal.emailSubscribers.listByEmailInternal,
+        { email: address }
+      );
+      for (const subscriber of matches) {
+        targets.push({
+          storeId: subscriber.storeId,
+          subscriberId: subscriber._id,
+        });
+      }
+    }
+  }
+
+  if (targets.length === 0) {
+    /* Genuinely nobody: a transactional mail to an address no list holds, or a
+       Delivery/Open/Click whose headers did not survive. Nothing to record.
+
+       But a bounce or a complaint reaching here is a misconfiguration rather
+       than a stray, so it is reported instead of dropped. A silent 200 is
+       exactly how this stayed invisible: the endpoint answered correctly, SES
+       stopped mentioning it, and the first symptom available to anyone was the
+       account being suspended. */
+    if (
+      notification.notificationType === "Bounce" ||
+      notification.notificationType === "Complaint"
+    ) {
+      await captureBackendError(ctx, {
+        error: new Error(
+          `SES ${notification.notificationType} matched no subscriber` +
+            (notification.mail.headers
+              ? ""
+              : " and carried no original headers — the sending identity is not" +
+                " configured to include them (scripts/setup-aws.sh, Step 2b)")
+        ),
+        source: "emailHttpHandlers.handleSesWebhook",
+      });
+    }
+    return new Response("OK", { status: 200 });
+  }
+
   try {
-    switch (notification.notificationType) {
-      case "Bounce": {
-        // The classification is the whole point of reading this branch.
-        // Without it every dead mailbox was mailed three times, and it is the
-        // bounce ratio — not the number of distinct bad addresses — that AWS
-        // suspends an account over. The body is signed, so this is trustworthy
-        // by the time execution reaches here.
-        await ctx.runMutation(internal.emailSubscribers.markBounced, {
-          id: typedSubscriberId,
-          // Normalised rather than forwarded raw: `markBounced`'s validator is
-          // a closed union, and this whole switch sits inside a catch that
-          // only logs — so an unrecognised value would fail validation, be
-          // swallowed, and lose the bounce entirely.
-          bounceType: normalizeBounceType(notification.bounce?.bounceType),
-        });
-        await ctx.runMutation(internal.emailEvents.create, {
-          storeId: typedStoreId,
-          campaignId: typedCampaignId,
-          subscriberId: typedSubscriberId,
-          type: "bounced",
-          occurredAt: now,
-        });
-        if (typedCampaignId) {
-          await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-            id: typedCampaignId,
-            field: "bounced",
+    for (const {
+      storeId: typedStoreId,
+      subscriberId: typedSubscriberId,
+    } of targets) {
+      switch (notification.notificationType) {
+        case "Bounce": {
+          // The classification is the whole point of reading this branch.
+          // Without it every dead mailbox was mailed three times, and it is the
+          // bounce ratio — not the number of distinct bad addresses — that AWS
+          // suspends an account over. The body is signed, so this is trustworthy
+          // by the time execution reaches here.
+          await ctx.runMutation(internal.emailSubscribers.markBounced, {
+            id: typedSubscriberId,
+            // Normalised rather than forwarded raw: `markBounced`'s validator is
+            // a closed union, and this whole switch sits inside a catch that
+            // only logs — so an unrecognised value would fail validation, be
+            // swallowed, and lose the bounce entirely.
+            bounceType: normalizeBounceType(notification.bounce?.bounceType),
           });
+          await ctx.runMutation(internal.emailEvents.create, {
+            storeId: typedStoreId,
+            campaignId: typedCampaignId,
+            subscriberId: typedSubscriberId,
+            type: "bounced",
+            occurredAt: now,
+          });
+          if (typedCampaignId) {
+            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
+              id: typedCampaignId,
+              field: "bounced",
+            });
+          }
+          break;
         }
-        break;
-      }
 
-      case "Complaint": {
-        await ctx.runMutation(internal.emailSubscribers.markComplained, {
-          id: typedSubscriberId,
-        });
-        await ctx.runMutation(internal.emailEvents.create, {
-          storeId: typedStoreId,
-          campaignId: typedCampaignId,
-          subscriberId: typedSubscriberId,
-          type: "complained",
-          occurredAt: now,
-        });
-        if (typedCampaignId) {
-          await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-            id: typedCampaignId,
-            field: "unsubscribed",
+        case "Complaint": {
+          await ctx.runMutation(internal.emailSubscribers.markComplained, {
+            id: typedSubscriberId,
           });
+          await ctx.runMutation(internal.emailEvents.create, {
+            storeId: typedStoreId,
+            campaignId: typedCampaignId,
+            subscriberId: typedSubscriberId,
+            type: "complained",
+            occurredAt: now,
+          });
+          if (typedCampaignId) {
+            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
+              id: typedCampaignId,
+              field: "unsubscribed",
+            });
+          }
+          break;
         }
-        break;
-      }
 
-      case "Delivery": {
-        await ctx.runMutation(internal.emailEvents.create, {
-          storeId: typedStoreId,
-          campaignId: typedCampaignId,
-          subscriberId: typedSubscriberId,
-          type: "delivered",
-          occurredAt: now,
-        });
-        if (typedCampaignId) {
-          await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-            id: typedCampaignId,
-            field: "delivered",
+        case "Delivery": {
+          await ctx.runMutation(internal.emailEvents.create, {
+            storeId: typedStoreId,
+            campaignId: typedCampaignId,
+            subscriberId: typedSubscriberId,
+            type: "delivered",
+            occurredAt: now,
           });
+          if (typedCampaignId) {
+            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
+              id: typedCampaignId,
+              field: "delivered",
+            });
+          }
+          break;
         }
-        break;
-      }
 
-      case "Open": {
-        await ctx.runMutation(internal.emailEvents.create, {
-          storeId: typedStoreId,
-          campaignId: typedCampaignId,
-          subscriberId: typedSubscriberId,
-          type: "opened",
-          metadata: notification.open?.userAgent
-            ? { userAgent: notification.open.userAgent }
-            : undefined,
-          occurredAt: now,
-        });
-        if (typedCampaignId) {
-          await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-            id: typedCampaignId,
-            field: "opened",
+        case "Open": {
+          await ctx.runMutation(internal.emailEvents.create, {
+            storeId: typedStoreId,
+            campaignId: typedCampaignId,
+            subscriberId: typedSubscriberId,
+            type: "opened",
+            metadata: notification.open?.userAgent
+              ? { userAgent: notification.open.userAgent }
+              : undefined,
+            occurredAt: now,
           });
+          if (typedCampaignId) {
+            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
+              id: typedCampaignId,
+              field: "opened",
+            });
+          }
+          break;
         }
-        break;
-      }
 
-      case "Click": {
-        await ctx.runMutation(internal.emailEvents.create, {
-          storeId: typedStoreId,
-          campaignId: typedCampaignId,
-          subscriberId: typedSubscriberId,
-          type: "clicked",
-          metadata: notification.click?.link
-            ? { linkUrl: notification.click.link }
-            : undefined,
-          occurredAt: now,
-        });
-        if (typedCampaignId) {
-          await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-            id: typedCampaignId,
-            field: "clicked",
+        case "Click": {
+          await ctx.runMutation(internal.emailEvents.create, {
+            storeId: typedStoreId,
+            campaignId: typedCampaignId,
+            subscriberId: typedSubscriberId,
+            type: "clicked",
+            metadata: notification.click?.link
+              ? { linkUrl: notification.click.link }
+              : undefined,
+            occurredAt: now,
           });
+          if (typedCampaignId) {
+            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
+              id: typedCampaignId,
+              field: "clicked",
+            });
+          }
+          break;
         }
-        break;
       }
     }
   } catch (error) {

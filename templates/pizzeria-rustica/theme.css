@@ -16,12 +16,12 @@
   --primary-foreground: 42 45% 96%;
   --secondary: 41 38% 90%;
   --secondary-foreground: 28 30% 14%;
-  --muted: 41 38% 90%;
-  --muted-foreground: 33 33% 42%;
+  --muted: 41 38% 96.5%;
+  --muted-foreground: 33 33% 40.5%;
   --accent: 80 30% 90%;
   --accent-foreground: 90 35% 22%;
   --border: 40 37% 85%;
-  --input: 40 37% 85%;
+  --input: 40 37% 48%;
   --ring: 18 55% 38%;
   --chart-1: 18 55% 38%;
   --chart-2: 168 55% 40%;
@@ -46,7 +46,7 @@
   --accent: 85 20% 15%;
   --accent-foreground: 85 30% 70%;
   --border: 30 23% 20%;
-  --input: 30 23% 20%;
+  --input: 30 23% 38%;
   --ring: 20 60% 55%;
   --chart-1: 20 60% 55%;
   --chart-2: 170 55% 52%;

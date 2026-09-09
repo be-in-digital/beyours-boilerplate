@@ -4,6 +4,7 @@ import { v } from "convex/values"
 import { getAuthUser } from "@be-in-digital/convex-functions/auth"
 import * as maintenanceDefs from "@be-in-digital/convex-functions/maintenance"
 import {
+  ARCHIVE_RELINK_TABLES,
   BACKUP_TABLES,
   DEFERRED_REMAP_TABLES,
   EXCLUDED_TABLES,
@@ -644,9 +645,15 @@ export const importBackup = action({
       /* The same list the export walks, minus the archive. `EXPORT_ONLY_TABLES`
          are in the file and never re-inserted: a numbered fiscal series that a
          restore can rewrite is not a series (art. 242 nonies A CGI), and
-         `tables/invoices.ts` states that rule in the schema itself. Leaving them
-         out is also what keeps `orders.invoiceId` resolving after a restore —
-         the invoice rows are never deleted, so their ids never change. */
+         `tables/invoices.ts` states that rule in the schema itself.
+
+         That does NOT leave the link between an order and its invoice intact,
+         and this comment claimed for months that it did. Both ends of the link
+         move — `orders` is re-inserted under new ids, so the invoices point at
+         nothing; and on a rebuilt deployment the invoices are absent, so the
+         orders point at nothing. Neither can be answered by the import ORDER,
+         because an export-only table has no position in it. Both are repaired
+         after the last insert, below. */
       const importOrder = BACKUP_TABLES
 
       // The id map, carried table by table.
@@ -689,6 +696,37 @@ export const importBackup = action({
         deferredRemaps += pass.patched
       }
 
+      /* The fiscal archive is not re-inserted, so no ordering can reach it —
+         and every invoice was therefore left naming the order and the store it
+         had BEFORE this restore. `invoices.by_orderId` is the authoritative
+         half of `assertOrderHasNoInvoice`, so an order invoiced before
+         `orders.invoiceId` existed became deletable with its invoice standing;
+         `by_storeId_issuedAt` is the establishment's invoice list, and it came
+         back empty. Re-pointing those two ids is not editing the document —
+         art. 242 nonies A fixes its number, dates, parties and figures, not
+         this deployment's pointers at the sale. `ARCHIVE_EDGES` declares every
+         edge that crosses the boundary. */
+      let archiveRelinks = 0
+      for (const tableName of ARCHIVE_RELINK_TABLES) {
+        const pass: { relinked: number } = await ctx.runMutation(
+          internal.systemInternal.relinkArchiveReferences,
+          { tableName, idMap }
+        )
+        archiveRelinks += pass.relinked
+      }
+
+      /* The other half, and the one only a REBUILT deployment sees: the
+         invoices are in the file and not in this database, so a restored
+         `orders.invoiceId` names a row nothing here has. `invoiceRefusal` reads
+         that field for truthiness rather than resolution, so the sale could
+         never be invoiced again — the admin showed no number and the reason
+         "already issued", for ever. Re-pointed where an invoice stands for the
+         order, cleared where none does, and counted either way: an operator has
+         to be told, because the archived documents are then only in the backup
+         file. */
+      const invoiceLinks: { repointed: number; cleared: number } =
+        await ctx.runMutation(internal.systemInternal.reconcileOrderInvoiceLinks, {})
+
       // `userProfiles` is not in the backup — it holds identities, not
       // restaurant data — so its `storeIds` still name the deployment's stores
       // from before the restore. Left alone, every store-scoped screen refuses
@@ -707,11 +745,25 @@ export const importBackup = action({
       await ctx.scheduler.runAfter(0, internal.privacy.sweepExpiredCustomerData, {})
 
       await ctx.runMutation(internal.system._releaseSystemLock, {})
+      /* The counts, not just the row totals. `importBackup`'s `message` is the
+         only place the invoice repair is described, and the admin's toast shows
+         the row count rather than the message — so without this the fact that a
+         restore detached an order from an invoice this deployment does not have
+         would exist only in the return value of an action nobody kept. The
+         rehearsal runbook reads this entry. */
       await ctx.runMutation(internal.system._recordAuditEntry, {
         action: "backup_import",
         performedBy: user.userId,
         result: "success",
-        details: JSON.stringify({ tables: summary }),
+        details: JSON.stringify({
+          tables: summary,
+          deferredRemaps,
+          archiveRelinks,
+          repointedInvoices: invoiceLinks.repointed,
+          clearedInvoiceLinks: invoiceLinks.cleared,
+          remappedProfiles: profiles.updated,
+          droppedProfileStores: profiles.dropped,
+        }),
       })
 
       return {
@@ -722,12 +774,31 @@ export const importBackup = action({
         remappedProfiles: profiles.updated,
         droppedProfileStores: profiles.dropped,
         deferredRemaps,
+        archiveRelinks,
+        repointedInvoices: invoiceLinks.repointed,
+        clearedInvoiceLinks: invoiceLinks.cleared,
         /* What a restore does NOT put back, said every time rather than left to
            be discovered. The old wording named orders, payments, tickets and
            team members; all four are restored now, and the one thing still
-           deliberately untouched is the fiscal archive. */
+           deliberately untouched is the fiscal archive.
+
+           The two sentences after it are the ones that used to be missing. A
+           restore that quietly detached an order from its invoice, or quietly
+           left every invoice pointing at a deleted order, is the same silence
+           the whole backup module exists to end — and on a rebuilt deployment
+           the operator has to be told that the backup FILE is now the only copy
+           of the old series. */
         message:
           "Import terminé. Les factures et leur numérotation sont conservées telles quelles : un document fiscal numéroté ne peut pas être réécrit par une restauration (art. 242 nonies A CGI)." +
+          (archiveRelinks > 0
+            ? ` ${archiveRelinks} facture(s) ont été rattachées aux commandes et aux établissements revenus sous un nouvel identifiant ; le contenu des documents est inchangé.`
+            : "") +
+          (invoiceLinks.repointed > 0
+            ? ` ${invoiceLinks.repointed} commande(s) ont été rattachées à la facture déjà émise pour elles.`
+            : "") +
+          (invoiceLinks.cleared > 0
+            ? ` ${invoiceLinks.cleared} commande(s) renvoyaient à une facture absente de ce déploiement : le lien a été retiré pour qu'une facture puisse de nouveau être émise, dans la série de ce déploiement. Les documents d'origine ne sont que dans le fichier de sauvegarde — conservez-le : il est la seule copie de cette série (art. L102 B du LPF, six ans).`
+            : "") +
           (profiles.dropped > 0
             ? ` ${profiles.dropped} accès à un établissement absent de la sauvegarde ont été retirés des profils.`
             : ""),

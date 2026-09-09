@@ -58,8 +58,29 @@
     --card-foreground: 224 71% 4%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
-    --primary: 24 95% 53%;
+    /*
+     * 37%, not 53%. `#f97015` measures 2.85:1 against white and 2.60:1 against
+     * `--muted` — so `text-primary` could not be read on any surface in the
+     * product, and `bg-primary` could not carry a white label either (2.85:1,
+     * which `branding.ts` has documented as below AA since it was written).
+     * `--primary` is used BOTH ways — 217 `bg-primary` and 77 `text-primary` in
+     * the two apps and the two UI packages — so the colour itself has to clear
+     * 4.5:1 against the light surfaces, and 37% is the first lightness that
+     * does (4.68:1 on `--muted`, the darkest of them; 5.88:1 for a white label
+     * on it). Deeper orange, same hue, same white-on-orange design language.
+     * See #410.
+     */
+    --primary: 24 95% 37%;
     --primary-foreground: 0 0% 100%;
+    /*
+     * The brand colour a WORD can be written in, as opposed to the one a
+     * BUTTON is filled with. They are the same value here only because the
+     * fill was darkened; under an establishment's own branding they part
+     * company — `buildBrandingCss` writes `--primary` as the colour the owner
+     * picked and derives this one by walking the same hue until it can be read
+     * on the page. `text-primary-ink`, never `text-primary`, for a word.
+     */
+    --primary-ink: 24 95% 37%;
     /*
      * `--primary-hover` and `--accent-solid` exist because the storefront
      * needed both and had been spelling them as literal hex.
@@ -74,19 +95,45 @@
      * surfaces; a cart badge or a "new" pill needs the saturated version, and
      * without this token the storefront hard-coded one.
      */
-    --primary-hover: 24 95% 46%;
-    --accent-solid: 24 90% 53%;
+    --primary-hover: 24 95% 30%;
+    /*
+     * The saturated accent a cart badge or a "nouveau" pill is painted with,
+     * so it carries text and has to clear AA both ways: 38% reads at 4.58:1 on
+     * `--muted` and takes a white label at 5.75:1. At 53% it was 2.65:1.
+     */
+    --accent-solid: 24 90% 38%;
+    --accent-solid-foreground: 0 0% 100%;
     --secondary: 220 14% 96%;
     --secondary-foreground: 224 71% 4%;
     --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    /*
+     * 45%, not 46%. One point, and it is the difference between 4.42:1 and
+     * 4.58:1 on `--muted` — the surface `text-muted-foreground` most often
+     * lands on, in 952 places across the two apps and the two UI packages.
+     */
+    --muted-foreground: 220 9% 45%;
     --accent: 24 80% 97%;
     --accent-foreground: 24 95% 30%;
-    --destructive: 0 84% 60%;
+    /*
+     * `text-destructive` outnumbers `bg-destructive` four to one (84 uses
+     * against 22), so this token is read far more often than it is filled.
+     * At 60% it was 3.45:1 on `--muted` and its own white label was 3.78:1;
+     * 47% clears both (4.60:1 and 6.29:1).
+     */
+    --destructive: 0 84% 47%;
     --destructive-foreground: 0 0% 100%;
     --border: 220 13% 93%;
-    --input: 220 13% 93%;
-    --ring: 24 95% 53%;
+    /*
+     * `--input` is the BOUNDARY of a form field, and WCAG 1.4.11 asks 3:1 of
+     * the visual information that identifies a control. It was the same value
+     * as `--border` — 1.15:1 against the page — so every text field in the
+     * product was, to a low-vision user, a rectangle that was not there. 59%
+     * is the first lightness of the same neutral that clears the bar (3.06:1).
+     * `--border` stays where it is: a decorative separator between two blocks
+     * of content is not a control, and 1.4.11 does not ask anything of it.
+     */
+    --input: 220 13% 59%;
+    --ring: 24 95% 37%;
     --radius: 0.625rem;
     --chart-1: 24 90% 58%;
     --chart-2: 173 58% 39%;
@@ -106,9 +153,18 @@
      */
     --success: 142 76% 28%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 224 71% 4%;
-    --info: 217 91% 60%;
+    /*
+     * 30%, and the label inverts with it. At 50% this amber measured 2.09:1 on
+     * the page and 1.95:1 on `--muted` — unreadable as a word, and below even
+     * the 3:1 a warning ICON needs under 1.4.11. It had no `text-` or `bg-`
+     * use at all when #410 measured it, which is why nothing had caught it and
+     * why moving it costs nothing. 30 rather than 31 so it also clears its own
+     * `bg-warning/10` tint, which is how a warning banner is painted.
+     */
+    --warning: 38 92% 30%;
+    --warning-foreground: 0 0% 100%;
+    /* 45%: at 60% a white label on it measured 3.63:1. */
+    --info: 217 91% 45%;
     --info-foreground: 0 0% 100%;
 
     /* Order status colors */
@@ -129,18 +185,28 @@
     --popover-foreground: 210 20% 98%;
     --primary: 24 95% 58%;
     --primary-foreground: 224 71% 4%;
+    --primary-ink: 24 95% 58%;
     --primary-hover: 24 95% 65%;
     --accent-solid: 24 90% 58%;
+    --accent-solid-foreground: 224 71% 4%;
     --secondary: 215 28% 17%;
     --secondary-foreground: 210 20% 98%;
     --muted: 215 28% 17%;
     --muted-foreground: 218 11% 65%;
     --accent: 24 40% 12%;
     --accent-foreground: 24 95% 70%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 20% 98%;
+    /*
+     * A dark red is not a colour you can READ on a dark page: `0 63% 31%`
+     * measured 1.48:1 on `--muted` and 2.04:1 on `--background`, and
+     * `text-destructive` is used four times as often as `bg-destructive`. So
+     * dark mode lifts it, exactly as it lifts `--success`, and the label that
+     * goes on it inverts with it.
+     */
+    --destructive: 0 70% 71%;
+    --destructive-foreground: 224 71% 4%;
     --border: 215 28% 17%;
-    --input: 215 28% 17%;
+    /* Same rule, lifted instead of darkened: 3.08:1 on the dark page. */
+    --input: 215 28% 39%;
     --ring: 24 95% 58%;
     --chart-1: 24 90% 58%;
     --chart-2: 160 60% 45%;
@@ -155,8 +221,8 @@
     --success-foreground: 224 71% 4%;
     --warning: 38 92% 50%;
     --warning-foreground: 224 71% 4%;
-    --info: 217 91% 60%;
-    --info-foreground: 210 20% 98%;
+    --info: 217 91% 64%;
+    --info-foreground: 224 71% 4%;
 
     /* Order status colors - dark mode */
     --status-pending: 38 92% 50%;
@@ -178,8 +244,10 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-ink: hsl(var(--primary-ink));
   --color-primary-hover: hsl(var(--primary-hover));
   --color-accent-solid: hsl(var(--accent-solid));
+  --color-accent-solid-foreground: hsl(var(--accent-solid-foreground));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
@@ -288,30 +356,102 @@
     --foreground: 0 0% 10%;
     --primary: 158 75% 21%;
     --primary-foreground: 0 0% 100%;
+    --primary-ink: 158 75% 21%;
     --primary-hover: 158 73% 15%;
     --ring: 158 75% 21%;
     --accent: 158 45% 96%;
     --accent-foreground: 158 75% 18%;
-    --accent-solid: 25 95% 53%;
+    /* 37%, for the same reason `:root` moved: at 53% a white badge label on
+     * this orange measured 2.78:1. One point deeper than the engine's own
+     * because `--muted` here is the engine's `220 14% 96%` and this hue is a
+     * shade lighter — 38% measured 4.39:1 on it. */
+    --accent-solid: 25 95% 37%;
+    --accent-solid-foreground: 0 0% 100%;
+  }
+
+  /*
+   * The storefront in dark mode — the half of the palette that did not exist.
+   *
+   * THE DEFECT #410 FOUND. `.storefront-theme` sits on a DESCENDANT element
+   * (`components/storefront/storefront-shell.tsx`), so its declarations beat
+   * the `.dark` block on `<html>` for every token it names — a declaration on
+   * the element always beats an inherited one, whatever the layer. It named
+   * nine, all of them light. `--card`, `--muted`, `--secondary` and
+   * `--popover` were left to fall through to `.dark`, which paints them
+   * near-black. So a diner whose phone is set to dark mode — and
+   * `app/providers.tsx` says `defaultTheme="system" enableSystem`, so that is
+   * every such diner, with no toggle to escape it — read `--foreground`
+   * (`0 0% 10%`, near-black) on `--card` (`224 50% 7%`, near-black):
+   * **1.10:1**, measured. Half the storefront was black text on a black card.
+   *
+   * The answer is not to drop dark mode: the markup is already written for it
+   * (`dark:bg-muted`, `dark:text-foreground` appear throughout the storefront
+   * trees), and a diner who chose dark mode chose it. So the storefront gets
+   * the dark counterpart of its own identity — the cream ink and the green,
+   * inverted — rather than half of the engine's.
+   *
+   * Every pair below was solved rather than picked: each ink clears 4.5:1 on
+   * every surface in this block, each label clears 4.5:1 on its own fill, and
+   * `--primary`, `--ring`, `--input` and `--accent-solid` clear 3:1 against
+   * `--background` (WCAG 1.4.11). `--border` deliberately does not: it is a
+   * decorative separator, not a control boundary, which is why `--input`
+   * is a separate and lighter value.
+   */
+  .dark .storefront-theme {
+    --background: 158 24% 7%;
+    --foreground: 51 30% 96%;
+    --card: 158 20% 11%;
+    --card-foreground: 51 30% 96%;
+    --popover: 158 20% 11%;
+    --popover-foreground: 51 30% 96%;
+    --primary: 158 52% 55%;
+    --primary-foreground: 158 45% 8%;
+    --primary-ink: 158 52% 55%;
+    --primary-hover: 158 52% 66%;
+    --ring: 158 52% 55%;
+    --secondary: 158 14% 18%;
+    --secondary-foreground: 51 30% 96%;
+    --muted: 158 14% 18%;
+    --muted-foreground: 155 12% 72%;
+    --accent: 158 28% 15%;
+    --accent-foreground: 158 50% 74%;
+    --accent-solid: 25 90% 62%;
+    --accent-solid-foreground: 158 45% 8%;
+    --border: 158 14% 22%;
+    --input: 158 16% 36%;
+    --destructive: 0 70% 71%;
+    --destructive-foreground: 0 40% 10%;
+    /* The engine's dark `--info` is tuned for a near-black page; on this
+     * greener, lighter `--muted` it measured 4.09:1. */
+    --info: 217 91% 70%;
+    --info-foreground: 158 45% 8%;
+    --success: 142 55% 62%;
+    --success-foreground: 158 45% 8%;
   }
 }
 
 :root {
   --sidebar: hsl(0 0% 99%);
   --sidebar-foreground: hsl(224 71% 4%);
-  --sidebar-primary: hsl(24 95% 53%);
+  --sidebar-primary: hsl(24 95% 37%);
   --sidebar-primary-foreground: hsl(0 0% 100%);
   --sidebar-accent: hsl(24 80% 97%);
   --sidebar-accent-foreground: hsl(224 71% 4%);
   --sidebar-border: hsl(220 13% 93%);
-  --sidebar-ring: hsl(24 95% 53%);
+  --sidebar-ring: hsl(24 95% 37%);
 }
 
 .dark {
   --sidebar: hsl(224 50% 7%);
   --sidebar-foreground: hsl(210 20% 98%);
   --sidebar-primary: hsl(24 95% 58%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
+  /*
+   * Ink, not paper. `--primary-foreground` inverts in dark mode because
+   * `--primary` is lifted to a light orange there; this copy of it was left
+   * white and measured 2.57:1 — the sidebar's own selected item, in the chrome
+   * an owner looks at all day. #410.
+   */
+  --sidebar-primary-foreground: hsl(224 71% 4%);
   --sidebar-accent: hsl(24 40% 12%);
   --sidebar-accent-foreground: hsl(210 20% 98%);
   --sidebar-border: hsl(215 28% 17%);

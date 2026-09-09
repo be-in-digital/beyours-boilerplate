@@ -2,6 +2,7 @@ import "@/lib/cms/init"
 import type { Metadata } from "next"
 import { buildBrandingCss } from "@be-in-digital/ui/branding"
 import { StoreTheme, StorefrontShell } from "@/components/storefront"
+import { STOREFRONT_SCOPES } from "@/components/storefront/store-theme"
 import { TooltipProvider } from "@be-in-digital/ui"
 import { JsonLd } from "@/lib/json-ld"
 import { resolveStorefrontStore } from "@/lib/convex-server"
@@ -70,7 +71,9 @@ export default async function StorefrontLayout({
   return (
     <TooltipProvider>
       <JsonLd data={restaurant} />
-      <StoreTheme initialCss={buildBrandingCss(store?.branding)} />
+      <StoreTheme
+        initialCss={buildBrandingCss(store?.branding, { scopes: STOREFRONT_SCOPES })}
+      />
       <StorefrontShell>{children}</StorefrontShell>
     </TooltipProvider>
   )

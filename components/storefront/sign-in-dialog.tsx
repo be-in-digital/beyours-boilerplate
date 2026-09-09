@@ -64,21 +64,21 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="rounded-[2rem] border-none bg-white p-0 shadow-2xl sm:max-w-md">
+      <DialogContent className="rounded-[2rem] border-none bg-card p-0 shadow-2xl sm:max-w-md">
         <div className="rounded-t-[2rem] bg-primary px-8 pb-6 pt-8">
           <DialogHeader>
-            <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-white">
+            <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-primary-foreground">
               Connexion
             </DialogTitle>
           </DialogHeader>
-          <p className="mt-1 text-sm text-white/70">
+          <p className="mt-1 text-sm text-primary-foreground">
             Connectez-vous pour une commande plus rapide.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 px-8 pb-8 pt-6">
           {error && (
-            <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">
+            <div className="rounded-xl bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
               {error}
             </div>
           )}
@@ -93,7 +93,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="jean@exemple.fr"
-              className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
+              className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
             />
           </div>
 
@@ -108,7 +108,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="Votre mot de passe"
-                className="h-14 rounded-2xl border-transparent bg-muted px-6 pr-14 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
+                className="h-14 rounded-2xl border-transparent bg-muted px-6 pr-14 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
               />
               <button
                 type="button"
@@ -123,7 +123,7 @@ export function SignInDialog({ trigger }: SignInDialogProps) {
           <Button
             type="submit"
             disabled={loading}
-            className="h-14 w-full rounded-2xl bg-primary font-black uppercase tracking-widest text-white shadow-xl shadow-primary/10 transition-all hover:bg-primary-hover"
+            className="h-14 w-full rounded-2xl bg-primary font-black uppercase tracking-widest text-primary-foreground shadow-xl shadow-primary/10 transition-all hover:bg-primary-hover"
           >
             {loading ? (
               <span className="flex items-center gap-2">

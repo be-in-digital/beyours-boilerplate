@@ -50,19 +50,6 @@ export const list = storeQuery({
   handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
-export const getById = storeQuery({
-  permission: "marketing:read",
-  storeIdFrom: emailSubscribersStoreId,
-  args: defs.getById.args,
-  handler: (ctx, args) => defs.getById.handler(ctx, args),
-});
-
-export const getByEmail = storeQuery({
-  permission: "marketing:read",
-  args: defs.getByEmail.args,
-  handler: (ctx, args) => defs.getByEmail.handler(ctx, args),
-});
-
 export const countByStatus = storeQuery({
   permission: "marketing:read",
   args: defs.countByStatus.args,
@@ -91,32 +78,34 @@ export const create = storeMutation({
   },
 });
 
-export const update = storeMutation({
-  permission: "marketing:write",
-  storeIdFrom: emailSubscribersStoreId,
-  args: defs.update.args,
-  handler: (ctx, args) => defs.update.handler(ctx, args),
-});
-
 export const remove = storeMutation({
   permission: "marketing:write",
   storeIdFrom: emailSubscribersStoreId,
   args: defs.remove.args,
-  handler: (ctx, args) => defs.remove.handler(ctx, args),
+  handler: async (ctx, args) => {
+    const result = await defs.remove.handler(ctx, args);
+    // The subscriber's events and automation runs go first — both columns are
+    // REQUIRED — and a long-standing subscriber can carry more of them than one
+    // transaction may touch. The subscriber survives until the pass that
+    // finishes them, so this drains rather than leaving half a person behind.
+    if (!result.complete) {
+      await ctx.scheduler.runAfter(0, internal.emailSubscribers.purgeRemoval, {
+        id: args.id,
+      });
+    }
+    return result;
+  },
 });
 
-export const addTag = storeMutation({
-  permission: "marketing:write",
-  storeIdFrom: emailSubscribersStoreId,
-  args: defs.addTag.args,
-  handler: (ctx, args) => defs.addTag.handler(ctx, args),
-});
-
-export const removeTag = storeMutation({
-  permission: "marketing:write",
-  storeIdFrom: emailSubscribersStoreId,
-  args: defs.removeTag.args,
-  handler: (ctx, args) => defs.removeTag.handler(ctx, args),
+export const purgeRemoval = internalMutation({
+  args: defs.purgeRemoval.args,
+  handler: async (ctx, args) => {
+    const result = await defs.purgeRemoval.handler(ctx, args);
+    if (!result.complete) {
+      await ctx.scheduler.runAfter(0, internal.emailSubscribers.purgeRemoval, args);
+    }
+    return result;
+  },
 });
 
 export const importBatch = storeMutation({
@@ -205,4 +194,16 @@ export const updateMetadataIncremental = internalMutation(defs.updateMetadataInc
 export const getByIdInternal = internalQuery({
   args: defs.getById.args,
   handler: (ctx, args) => defs.getById.handler(ctx, args),
+});
+
+/**
+ * Every subscriber holding an address, for the SES feedback webhook.
+ *
+ * Internal only, and it has to stay that way: it takes an address and no store,
+ * so a public twin would let anyone ask which of an owner's stores a given
+ * person has subscribed to.
+ */
+export const listByEmailInternal = internalQuery({
+  args: defs.listByEmail.args,
+  handler: (ctx, args) => defs.listByEmail.handler(ctx, args),
 });

@@ -26,10 +26,6 @@ import { storeQuery, storeMutation } from "./lib/storeFunctions";
 // @public-by-design: published storefront page content, no auth by design
 export const listPages = query(cmsDefs.listPages)
 
-/** Get page status (public) */
-// @public-by-design: published storefront page content, no auth by design
-export const getPage = query(cmsDefs.getPage)
-
 /** Get published blocks for storefront (public, no auth) */
 // @public-by-design: published storefront page content, no auth by design
 export const getPageBlocks = query(cmsDefs.getPageBlocks)
@@ -46,13 +42,6 @@ export const getPreviewPageBlocks = storeQuery({
   permission: "content:read",
   args: cmsDefs.getPreviewPageBlocks.args,
   handler: (ctx, args) => cmsDefs.getPreviewPageBlocks.handler(ctx, args),
-})
-
-/** Get a single block draft (auth-protected) */
-export const getBlockDraft = storeQuery({
-  permission: "content:read",
-  args: cmsDefs.getBlockDraft.args,
-  handler: (ctx, args) => cmsDefs.getBlockDraft.handler(ctx, args),
 })
 
 // ============================================================================

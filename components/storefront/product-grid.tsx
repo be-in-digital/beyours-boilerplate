@@ -40,7 +40,7 @@ export function ProductGrid({
     return (
       <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-[2.5rem] border border-border bg-white">
+          <div key={i} className="overflow-hidden rounded-[2.5rem] border border-border bg-card">
             <Skeleton className="aspect-[4/3] w-full" />
             <div className="p-8 space-y-3">
               <Skeleton className="h-5 w-3/4" />

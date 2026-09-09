@@ -40,45 +40,6 @@ async function readCredentials() {
 }
 
 /**
- * Build the merchant consent URL. The admin UI redirects the browser here.
- * The redirect URI ({CONVEX_SITE_URL}/connect/uber-eats/callback) MUST be
- * registered in the Uber developer portal for this app.
- */
-// @guarded-inline: checks settings:write by role — no store to scope against
-export const generateAuthorizeUrl = action({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    // Deployment-wide operation with no store to scope against. "Logged in"
-    // included every customer account, so the check is by role.
-    await ctx.runQuery(internal.authHelpers.checkPermission, {
-      permission: "settings:write",
-    });
-
-    const { credentials, siteUrl } = await readCredentials();
-    if (!siteUrl) throw new Error("CONVEX_SITE_URL is not configured");
-
-    const { randomBytes } = await import("crypto");
-    const state = randomBytes(16).toString("hex");
-
-    // Persist the state (single-use, TTL) so the callback can verify it (CSRF).
-    await ctx.runMutation(internal.oauthState.create, { provider: "uberEats", state });
-
-    const { uberEats } = await import("@be-in-digital/integrations");
-    const url = uberEats.buildAuthorizeUrl({
-      clientId: credentials.clientId,
-      redirectUri: `${siteUrl}${REDIRECT_PATH}`,
-      state,
-      sandboxMode: credentials.sandboxMode,
-    });
-
-    return { url, state };
-  },
-});
-
-/**
  * Exchange the authorization code for a user-scoped token, encrypt it, and
  * persist the connection. Called by the callback httpAction via ctx.runAction.
  */
@@ -177,9 +138,51 @@ export const activateAndListStoresCore = internalAction({
   },
 });
 
-/**
- * Public wrapper: enforces admin auth, then runs the validation flow.
- */
+// @kept-callerless: no screen calls this, and removing it broke the product.
+// It is the ONLY writer of a `uberEats` row in `oauthStates`, and
+// `uberEatsOAuthHttp.uberEatsConnectCallback` — a live HTTP route on the public
+// router — validates that row before exchanging the code. With no writer the
+// callback can only ever answer "Invalid or expired OAuth state", so Uber Eats
+// could never be connected at all. `apps/docs/guides/delivery-integrations.md:125`
+// documents this call by name as step 2 of the provisioning flow (#413).
+// @guarded-inline: checks settings:write by role — no store to scope against
+export const generateAuthorizeUrl = action({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    // Deployment-wide operation with no store to scope against. "Logged in"
+    // included every customer account, so the check is by role.
+    await ctx.runQuery(internal.authHelpers.checkPermission, {
+      permission: "settings:write",
+    });
+
+    const { credentials, siteUrl } = await readCredentials();
+    if (!siteUrl) throw new Error("CONVEX_SITE_URL is not configured");
+
+    const { randomBytes } = await import("crypto");
+    const state = randomBytes(16).toString("hex");
+
+    // Persist the state (single-use, TTL) so the callback can verify it (CSRF).
+    await ctx.runMutation(internal.oauthState.create, { provider: "uberEats", state });
+
+    const { uberEats } = await import("@be-in-digital/integrations");
+    const url = uberEats.buildAuthorizeUrl({
+      clientId: credentials.clientId,
+      redirectUri: `${siteUrl}${REDIRECT_PATH}`,
+      state,
+      sandboxMode: credentials.sandboxMode,
+    });
+
+    return { url, state };
+  },
+});
+
+// @kept-callerless: no screen calls this. `tasks/uber-eats-go-live-runbook.md:89`
+// makes it a go-live step — "activateAndListStores against a real prod store →
+// 200" — and it is step 3 of the OAuth provisioning flow the guide documents.
+// It is also the only caller of `activateAndListStoresCore` below (#413).
 // @guarded-inline: checks settings:write by role — no store to scope against
 export const activateAndListStores = action({
   args: {

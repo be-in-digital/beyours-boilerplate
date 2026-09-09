@@ -115,7 +115,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
         } ${
           showTransparent
             ? "bg-transparent border-transparent"
-            : "bg-white/90 backdrop-blur-md shadow-sm border-b border-border"
+            : "bg-card/90 backdrop-blur-md shadow-sm border-b border-border"
         }`}
       >
         <div className="flex items-center justify-between px-6 md:px-12 py-4">
@@ -197,13 +197,13 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                     className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                       showTransparent
                         ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                        : "bg-white border-border shadow-sm text-accent-foreground hover:bg-muted"
+                        : "bg-card border-border shadow-sm text-accent-foreground hover:bg-muted"
                     }`}
                     aria-label={t("accessibility.openBox")}
                   >
                     <ShoppingBag className="h-4 w-4" />
                     {hasMounted && itemCount > 0 && (
-                      <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-solid text-[10px] font-bold text-white">
+                      <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-solid text-[10px] font-bold text-accent-solid-foreground">
                         {itemCount > 99 ? "99+" : itemCount}
                       </span>
                     )}
@@ -227,13 +227,13 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
               className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                 showTransparent
                   ? "bg-white/10 border-white/20 text-white"
-                  : "bg-white border-border shadow-sm text-accent-foreground"
+                  : "bg-card border-border shadow-sm text-accent-foreground"
               }`}
               aria-label={t("accessibility.openBox")}
             >
               <ShoppingBag className="h-4 w-4" />
               {hasMounted && itemCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-solid text-[10px] font-bold text-white">
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-solid text-[10px] font-bold text-accent-solid-foreground">
                   {itemCount > 99 ? "99+" : itemCount}
                 </span>
               )}
@@ -245,7 +245,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
               className={`flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                 showTransparent
                   ? "bg-white/10 border-white/20 text-white"
-                  : "bg-white border-border shadow-sm text-accent-foreground"
+                  : "bg-card border-border shadow-sm text-accent-foreground"
               }`}
               aria-label={
                 isMobileMenuOpen
@@ -275,7 +275,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
           >
             {/* Close button */}
             <div className="flex items-center justify-between px-6 py-4">
-              <span className="font-black text-xl tracking-tighter text-white">
+              <span className="font-black text-xl tracking-tighter text-primary-foreground">
                 {logoUrl ? (
                   <img
                     src={logoUrl}
@@ -289,7 +289,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 border border-white/20 text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 border border-white/20 text-primary-foreground"
                 aria-label={t("accessibility.closeMenu")}
               >
                 <X className="h-4 w-4" />
@@ -310,7 +310,9 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                     <Link
                       href={link.href}
                       className={`block text-4xl font-black uppercase tracking-tight transition-colors ${
-                        isActive ? "text-accent-solid" : "text-white hover:text-white/70"
+                        isActive
+                          ? "text-primary-foreground underline decoration-4 underline-offset-8"
+                          : "text-primary-foreground hover:underline hover:underline-offset-8"
                       }`}
                     >
                       {link.label}
@@ -329,7 +331,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                     href={reservationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block text-4xl font-black uppercase tracking-tight text-white transition-colors hover:text-white/70"
+                    className="block text-4xl font-black uppercase tracking-tight text-primary-foreground transition-colors hover:underline hover:underline-offset-8"
                   >
                     {t("nav.reserve")}
                   </a>

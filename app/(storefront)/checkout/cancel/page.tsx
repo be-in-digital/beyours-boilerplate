@@ -22,7 +22,7 @@ function CheckoutCancelContent() {
   return (
     <div className="min-h-screen bg-muted px-4 pb-20 pt-32">
       <div className="mx-auto max-w-xl text-center">
-        <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+        <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-warning text-warning-foreground">
           <XCircle className="h-12 w-12" />
         </div>
 
@@ -42,7 +42,7 @@ function CheckoutCancelContent() {
 
         <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
           <Link href="/checkout">
-            <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
+            <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary-hover">
               Réessayer le paiement
             </Button>
           </Link>

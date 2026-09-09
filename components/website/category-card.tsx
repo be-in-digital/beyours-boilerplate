@@ -66,7 +66,7 @@ export function CategoryCard({
                 </p>
             </div>
 
-            <div className="absolute bottom-4 right-4 h-8 w-8 rounded-full bg-white dark:bg-muted opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center shadow-lg translate-y-2 group-hover:translate-y-0">
+            <div className="absolute bottom-4 right-4 h-8 w-8 rounded-full bg-card dark:bg-muted opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center shadow-lg translate-y-2 group-hover:translate-y-0">
                 <ChevronRight className="h-4 w-4 text-accent-foreground" />
             </div>
         </motion.div>

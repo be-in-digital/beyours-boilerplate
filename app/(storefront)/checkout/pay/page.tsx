@@ -110,14 +110,14 @@ function CheckoutPayContent() {
     return (
       <div className="min-h-screen bg-muted px-4 pb-20 pt-32">
         <div className="mx-auto max-w-xl text-center">
-          <AlertTriangle className="mx-auto mb-8 h-12 w-12 text-amber-500" />
+          <AlertTriangle className="mx-auto mb-8 h-12 w-12 text-destructive" />
           <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-foreground">
             Paiement indisponible
           </h1>
           <p className="mb-8 text-lg text-muted-foreground">{error}</p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Link href="/checkout">
-              <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
+              <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary-hover">
                 Choisir un autre moyen
               </Button>
             </Link>
@@ -153,7 +153,7 @@ function CheckoutPayContent() {
 
         <div
           id="sumup-card"
-          className="rounded-2xl bg-white p-6 shadow-sm"
+          className="rounded-2xl bg-card p-6 shadow-sm"
           aria-live="polite"
         />
 

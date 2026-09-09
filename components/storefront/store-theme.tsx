@@ -5,6 +5,19 @@ import { buildBrandingCss } from "@be-in-digital/ui/branding"
 import { useStoreId } from "@/lib/hooks/use-store-id"
 
 /**
+ * The element the storefront palette is declared on, and therefore an element
+ * this stylesheet has to reach.
+ *
+ * `globals.css` puts the storefront's own cream-and-green defaults on
+ * `.storefront-theme` — a `<div>` in `storefront-shell.tsx`, not `<html>`. A
+ * custom property declared on an element beats the one it would inherit,
+ * whatever the layer, so tokens written only to `:root` and `.dark` never
+ * reached a diner: measured in Chromium, an establishment that picked
+ * `#d32f2f` got a red admin and a storefront still painted engine green. #410.
+ */
+export const STOREFRONT_SCOPES = [".storefront-theme"]
+
+/**
  * The establishment's own colours, on the pages a diner actually reads.
  *
  * WHAT WAS BROKEN. `/dashboard/design` has always written
@@ -38,7 +51,9 @@ export function StoreTheme({ initialCss = "" }: { initialCss?: string }) {
 
   // `store` is null until the query lands. Falling back to the server's answer
   // rather than to nothing keeps the palette stable across hydration.
-  const css = store ? buildBrandingCss(store.branding) : initialCss
+  const css = store
+    ? buildBrandingCss(store.branding, { scopes: STOREFRONT_SCOPES })
+    : initialCss
   if (!css) return null
 
   return <style data-store-theme="" dangerouslySetInnerHTML={{ __html: css }} />

@@ -90,29 +90,11 @@ export const upsert = storeMutation({
   },
 });
 
-export const updateMenuSyncStatus = storeMutation({
-  permission: "settings:write",
-  args: defs.updateMenuSyncStatus.args,
-  handler: (ctx, args) => defs.updateMenuSyncStatus.handler(ctx, args),
-});
-
 export const remove = storeMutation({
   permission: "settings:write",
   args: defs.remove.args,
   storeIdFrom: storeIdFromDocument("Integration not found"),
   handler: (ctx, args) => defs.remove.handler(ctx, args),
-});
-
-export const toggleAutoAccept = storeMutation({
-  permission: "settings:write",
-  args: defs.toggleAutoAccept.args,
-  handler: (ctx, args) => defs.toggleAutoAccept.handler(ctx, args),
-});
-
-export const updateOrderMode = storeMutation({
-  permission: "settings:write",
-  args: defs.updateOrderMode.args,
-  handler: (ctx, args) => defs.updateOrderMode.handler(ctx, args),
 });
 
 // === Internal Mutations (for webhooks and schedulers) ===

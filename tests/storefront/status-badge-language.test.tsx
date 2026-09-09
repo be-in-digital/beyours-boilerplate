@@ -104,6 +104,31 @@ async function mountStoreSelector(): Promise<HTMLElement> {
   return container
 }
 
+/**
+ * The same status, on the panel in the header — mounted on EVERY storefront
+ * page, unlike the selector page above.
+ *
+ * Radix keeps the popover's contents out of the tree until it is opened, so
+ * the trigger has to be clicked before there is anything to read.
+ */
+async function openHeaderStorePanel(): Promise<void> {
+  const { StoreSelectorDropdown } = await import(
+    "@/components/storefront/store-selector-dropdown"
+  )
+  const container = document.createElement("div")
+  document.body.appendChild(container)
+  const root = createRoot(container)
+  mounted.push({ root, container })
+  await act(async () => {
+    root.render(<StoreSelectorDropdown />)
+  })
+  await act(async () => {
+    container
+      .querySelector("button")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+  })
+}
+
 describe("the store selector's status badge", () => {
   test("reads French on a French storefront, not English", async () => {
     await resetLanguage()
@@ -185,5 +210,68 @@ describe("the store selector's status badge", () => {
     const container = await mountStoreSelector()
 
     expect(container.textContent).toContain("Service en cours")
+  })
+})
+
+/**
+ * The header's store panel, and WCAG 1.4.1.
+ *
+ * WHAT WENT WRONG: this panel is mounted in the storefront header on every
+ * page, and the ONLY thing distinguishing a location that is taking orders
+ * from one that is not was the fill of a 6px dot — `bg-primary` against
+ * `bg-muted-foreground`. No word, no shape, no accessible name: a diner who
+ * cannot separate those two colours picked a restaurant with no way of knowing
+ * it was shut. Its sibling, the full store-selector page above, has printed
+ * the word all along; the two surfaces answer the same question and only one
+ * of them answered it.
+ *
+ * The dot kept its colour and gained the word beside it, from the same
+ * vocabulary and the same `t()` the page uses.
+ */
+describe("the header store panel's status", () => {
+  test("prints the status as a word, not only as a coloured dot", async () => {
+    await resetLanguage()
+
+    await openHeaderStorePanel()
+
+    expect(document.body.textContent).toContain("Pizzeria Napoli")
+    expect(document.body.textContent).toContain("Ouvert")
+    expect(document.body.textContent).toContain("Temporairement indisponible")
+  })
+
+  test("follows the language the diner chose, like the page does", async () => {
+    await resetLanguage()
+    const { useLanguageStore } = await import("@be-in-digital/restaurant")
+
+    act(() => {
+      useLanguageStore.setState({
+        locale: "es",
+        defaultLocale: "fr",
+        availableLanguages: [
+          {
+            code: "es",
+            name: "Espagnol",
+            nativeName: "Español",
+            isDefault: false,
+            isActive: true,
+          },
+        ],
+        staticStrings: new Map([
+          [
+            "es",
+            {
+              "store.openNow": "Abierto",
+              "storefront.storeTempUnavailable": "Temporalmente no disponible",
+            },
+          ],
+        ]),
+        isReady: true,
+      })
+    })
+
+    await openHeaderStorePanel()
+
+    expect(document.body.textContent).toContain("Abierto")
+    expect(document.body.textContent).toContain("Temporalmente no disponible")
   })
 })

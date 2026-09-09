@@ -91,20 +91,20 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           event.preventDefault()
           closeButtonRef.current?.focus()
         }}
-        className="flex w-full flex-col gap-0 overflow-hidden rounded-l-[3rem] border-none bg-white p-0 shadow-xl sm:max-w-md"
+        className="flex w-full flex-col gap-0 overflow-hidden rounded-l-[3rem] border-none bg-card p-0 shadow-xl sm:max-w-md"
       >
         {/* Header — green */}
-        <div className="bg-primary p-8 text-white">
+        <div className="bg-primary p-8 text-primary-foreground">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
                 <ShoppingBag className="h-6 w-6" />
               </div>
               <div>
-                <SheetTitle className="text-2xl font-black uppercase italic tracking-tighter text-white">
+                <SheetTitle className="text-2xl font-black uppercase italic tracking-tighter text-primary-foreground">
                   {t("cart.boxTitleFull")}
                 </SheetTitle>
-                <SheetDescription className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+                <SheetDescription className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
                   {displayCount}{" "}
                   {displayCount > 1
                     ? t("cart.itemsSelected")
@@ -123,17 +123,23 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-[10px] font-bold uppercase tracking-widest text-white/70 hover:bg-white/10 hover:text-white"
+                            className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:bg-white/10"
                           >
                             Tout vider
                           </Button>
                         </AlertDialogTrigger>
                       </TooltipTrigger>
-                      <TooltipContent className="rounded-xl border-none bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-accent-foreground">
+                      <TooltipContent className="rounded-xl border-none bg-card px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-accent-foreground">
                         Vider ma Box
                       </TooltipContent>
                     </Tooltip>
-                    <AlertDialogContent className="rounded-[2rem] border-none p-10">
+                    {/* `bg-background` spelled out, which is what
+                        `AlertDialogContent` already paints: the dialog is
+                        portalled to the body, so it does NOT inherit the
+                        `bg-primary` header this trigger sits in — and a static
+                        reading of the markup cannot know that unless the
+                        surface is named here. */}
+                    <AlertDialogContent className="rounded-[2rem] border-none bg-background p-10">
                       <AlertDialogHeader>
                         <AlertDialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-foreground">
                           Vider votre Box ?
@@ -149,7 +155,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                         </AlertDialogCancel>
                         <AlertDialogAction
                           onClick={clearCart}
-                          className="h-14 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600"
+                          className="h-14 rounded-2xl bg-destructive text-xs font-black uppercase tracking-widest text-destructive-foreground shadow-xl shadow-destructive/20 hover:bg-destructive/90"
                         >
                           Oui, tout vider
                         </AlertDialogAction>
@@ -164,7 +170,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 ref={closeButtonRef}
                 onClick={() => onOpenChange(false)}
                 aria-label="Fermer la Box"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-primary-foreground transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -173,7 +179,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
         </div>
 
         {/* Items — scrollable */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        <div className="flex-1 overflow-y-auto bg-card">
           {items.length === 0 ? (
             <Empty className="h-full p-8">
               <EmptyHeader>
@@ -185,7 +191,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               </EmptyHeader>
               <Button
                 onClick={() => onOpenChange(false)}
-                className="h-12 rounded-xl bg-primary px-8 font-bold text-white hover:bg-primary-hover"
+                className="h-12 rounded-xl bg-primary px-8 font-bold text-primary-foreground hover:bg-primary-hover"
               >
                 {t("cart.browseMenu")}
               </Button>
@@ -240,12 +246,12 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <AlertDialogTrigger asChild>
-                                    <button className="p-1 text-muted-foreground transition-colors hover:text-rose-500">
+                                    <button className="p-1 text-muted-foreground transition-colors hover:text-destructive">
                                       <X className="h-4 w-4" />
                                     </button>
                                   </AlertDialogTrigger>
                                 </TooltipTrigger>
-                                <TooltipContent className="rounded-xl border-none bg-rose-500 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                <TooltipContent className="rounded-xl border-none bg-destructive px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-destructive-foreground">
                                   Retirer de la Box
                                 </TooltipContent>
                               </Tooltip>
@@ -270,7 +276,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                     onClick={() =>
                                       removeItem(item.lineId)
                                     }
-                                    className="h-14 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600"
+                                    className="h-14 rounded-2xl bg-destructive text-xs font-black uppercase tracking-widest text-destructive-foreground shadow-xl shadow-destructive/20 hover:bg-destructive/90"
                                   >
                                     Retirer maintenant
                                   </AlertDialogAction>
@@ -309,13 +315,13 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                     <AlertDialogTrigger asChild>
                                       <button
                                         aria-label={`Retirer ${lineLabel}`}
-                                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white hover:text-rose-500 hover:shadow-sm"
+                                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-card hover:text-destructive hover:shadow-sm"
                                       >
                                         <Minus className="h-3 w-3" />
                                       </button>
                                     </AlertDialogTrigger>
                                   </TooltipTrigger>
-                                  <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                  <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-background">
                                     Retirer
                                   </TooltipContent>
                                 </Tooltip>
@@ -340,7 +346,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                       onClick={() =>
                                         updateQuantity(item.lineId, 0)
                                       }
-                                      className="h-14 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600"
+                                      className="h-14 rounded-2xl bg-destructive text-xs font-black uppercase tracking-widest text-destructive-foreground shadow-xl shadow-destructive/20 hover:bg-destructive/90"
                                     >
                                       Retirer maintenant
                                     </AlertDialogAction>
@@ -358,12 +364,12 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                       )
                                     }
                                     aria-label={`Diminuer la quantité de ${lineLabel}`}
-                                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white hover:text-muted-foreground hover:shadow-sm"
+                                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-card hover:text-muted-foreground hover:shadow-sm"
                                   >
                                     <Minus className="h-3 w-3" />
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-background">
                                   Diminuer
                                 </TooltipContent>
                               </Tooltip>
@@ -383,12 +389,12 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                     )
                                   }
                                   aria-label={`Augmenter la quantité de ${lineLabel}`}
-                                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white hover:text-muted-foreground hover:shadow-sm"
+                                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-card hover:text-muted-foreground hover:shadow-sm"
                                 >
                                   <Plus className="h-3 w-3" />
                                 </button>
                               </TooltipTrigger>
-                              <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                              <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-background">
                                 Augmenter
                               </TooltipContent>
                             </Tooltip>
@@ -430,7 +436,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               className="mt-4 w-full"
               onClick={() => onOpenChange(false)}
             >
-              <Button className="group h-16 w-full rounded-2xl bg-primary text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-primary/10 hover:bg-primary-hover">
+              <Button className="group h-16 w-full rounded-2xl bg-primary text-sm font-black uppercase tracking-widest text-primary-foreground shadow-xl shadow-primary/10 hover:bg-primary-hover">
                 {t("cart.orderNow")}
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>

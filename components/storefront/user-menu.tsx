@@ -47,7 +47,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
         className={`h-10 rounded-full border px-4 font-black uppercase tracking-widest text-[10px] transition-all ${
           variant === "transparent"
             ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-            : "bg-white border-border shadow-sm text-accent-foreground hover:bg-muted"
+            : "bg-card border-border shadow-sm text-accent-foreground hover:bg-muted"
         }`}
       >
         <Link href="/sign-in">
@@ -155,7 +155,7 @@ export function UserMenu({ variant = "solid" }: UserMenuProps) {
 
         <div className="px-1 pb-1">
           <DropdownMenuItem
-            className="cursor-pointer py-3 px-4 rounded-xl text-red-600 hover:bg-red-50 focus:bg-red-50 group transition-colors"
+            className="cursor-pointer py-3 px-4 rounded-xl text-destructive hover:bg-destructive/5 focus:bg-destructive/5 group transition-colors"
             onClick={async () => {
               await authClient.signOut()
               toast.success("Déconnexion réussie")

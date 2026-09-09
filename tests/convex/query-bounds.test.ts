@@ -19,7 +19,7 @@
  */
 
 import { convexTest } from "convex-test"
-import { describe, expect, test, vi } from "vitest"
+import { describe, expect, test } from "vitest"
 import { api, internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
@@ -902,11 +902,20 @@ describe("the scheduled-campaign sweep", () => {
 })
 
 // ===========================================================================
-// The sweep — a coupon that worked can still be deleted
+// The sweep — a coupon that worked is kept, not swept
 // ===========================================================================
 
+/**
+ * REWRITTEN for #412 P3-F4. This case asserted that deleting a coupon with 600
+ * redemptions removed the offer in the first transaction and drained its ledger
+ * afterwards. It was green, and what it was pinning was the defect: the same
+ * delete left every order that coupon had discounted naming a promotion that no
+ * longer resolved, with the discount still on the order and on its invoice.
+ * `promotions.remove` refuses a redeemed coupon now, and the way out —
+ * deactivation — was already on the screen.
+ */
 describe("deleting a promotion that was used all year", () => {
-  test("clears the offer at once and its usage record in batches", async () => {
+  test("refuses, and keeps both the coupon and its usage record", async () => {
     const t = convexTest(schema, modules)
     const storeId = await seedStore(t)
     const owner = await seedOwner(t, [storeId])
@@ -938,24 +947,39 @@ describe("deleting a promotion that was used all year", () => {
       return id
     })
 
-    // Fake timers before the mutation, not after: convex-test only runs a job
-    // whose `runAfter` was queued while they were installed.
-    vi.useFakeTimers()
-    try {
-      // 600 uses against a 512-row budget: one transaction cannot clear them,
-      // and trying was what made a successful coupon undeletable.
-      const result = await owner.mutation(api.promotions.remove, { id: promotionId })
-      expect(result.hasMore).toBe(true)
-      // The offer stops working in that first transaction, whatever is left of
-      // its record.
-      expect(await t.run((ctx) => ctx.db.get(promotionId))).toBeNull()
+    await expect(
+      owner.mutation(api.promotions.remove, { id: promotionId })
+    ).rejects.toThrow(/Désactivez-la/)
 
-      // `purgeUsages` reschedules itself while there is more, so draining once
-      // is not enough: this keeps going until the queue is empty.
-      await t.finishAllScheduledFunctions(vi.runAllTimers)
-    } finally {
-      vi.useRealTimers()
-    }
-    expect(await t.run((ctx) => ctx.db.query("promotionUsages").collect())).toHaveLength(0)
+    // Refused means refused, on both sides of the reference.
+    expect(await t.run((ctx) => ctx.db.get(promotionId))).not.toBeNull()
+    expect(await t.run((ctx) => ctx.db.query("promotionUsages").collect())).toHaveLength(600)
+  })
+
+  test("still deletes a coupon nobody ever redeemed", async () => {
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const owner = await seedOwner(t, [storeId])
+
+    const promotionId = await t.run((ctx) =>
+      ctx.db.insert("promotions", {
+        storeId,
+        name: "Jamais utilisée",
+        triggerMode: "coupon" as const,
+        couponCode: "OOPS",
+        discountType: "percentage" as const,
+        discountValue: 10,
+        scope: "order" as const,
+        startDate: NOW - DAY,
+        endDate: NOW + 30 * DAY,
+        usageCount: 0,
+        isActive: true,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+
+    await owner.mutation(api.promotions.remove, { id: promotionId })
+    expect(await t.run((ctx) => ctx.db.get(promotionId))).toBeNull()
   })
 })

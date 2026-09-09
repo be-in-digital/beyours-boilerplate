@@ -7,6 +7,7 @@ import {
   type IdMap,
 } from "@be-in-digital/convex-functions/backupRemap"
 import {
+  isArchiveRelinkTable,
   isBackupTable,
   isExportedTable,
   redactExportedRow,
@@ -35,6 +36,28 @@ function assertExportable(tableName: string): void {
 function assertImportable(tableName: string): asserts tableName is BackupTable {
   if (!isBackupTable(tableName)) {
     throw new Error(`Table "${tableName}" non autorisée pour l'import`)
+  }
+}
+
+/**
+ * The narrow permission to patch a row a restore never inserted.
+ *
+ * Deliberately not `assertImportable`: `relinkArchiveReferences` touches
+ * export-only tables, and widening the import allow-list to reach them would
+ * hand `importTable` the right to delete and re-insert a numbered fiscal
+ * series. Its own list, its own check, and `ARCHIVE_EDGES` is where the
+ * membership is argued.
+ */
+function assertArchiveRelinkable(tableName: string): void {
+  if (!isArchiveRelinkTable(tableName)) {
+    /* "rattachement des références après restauration" rather than
+       "rattachement d'archive": `check:accents` derives `archive` from the
+       `archivé` entry in its word list and cannot tell the noun from the past
+       participle. The longer wording is also the more accurate one — it names
+       what the pass does rather than which list it is allowed to touch. */
+    throw new Error(
+      `Table "${tableName}" non autorisée pour le rattachement des références après restauration`
+    )
   }
 }
 
@@ -199,6 +222,132 @@ export const remapDeferredReferences = internalMutation({
     }
 
     return { patched }
+  },
+})
+
+/**
+ * Re-point the ARCHIVE at the rows the restore brought back.
+ *
+ * `invoices` is export-only: it is carried in the file and never deleted or
+ * re-inserted, because a numbered fiscal series a restore can rewrite is not a
+ * series (art. 242 nonies A CGI). `orders` and `stores`, which every invoice
+ * points at, ARE deleted and re-inserted — under new ids. So on EVERY restore,
+ * this deployment included, each invoice was left naming an order and a store
+ * that no longer existed.
+ *
+ * `backupTables.ts` claimed the opposite for months — "the invoice rows are
+ * never re-inserted, so their ids never change, so the reference still
+ * resolves" — which is true of the invoice's OWN id and says nothing about the
+ * ids inside it. `backup-coverage.test.ts` skipped the edge on the strength of
+ * that sentence, so nothing ever looked.
+ *
+ * What it cost: `invoices.by_orderId` is the authoritative half of
+ * `assertOrderHasNoInvoice`, the guard that refuses to delete an order that has
+ * been invoiced — and the half that exists for an order invoiced before
+ * `orders.invoiceId` was populated. After a restore it found nothing, so such
+ * an order could be deleted with its invoice standing. `by_storeId_issuedAt` is
+ * how an establishment's invoices are listed, and that list came back empty.
+ *
+ * This is not editing the document. Art. 242 nonies A fixes the number, the
+ * dates, the parties, the lines and the figures; `orderId` and `storeId` are
+ * this deployment's pointers at the sale and the establishment, and re-pointing
+ * them at the rows those came back as is what keeps the archive attached to
+ * anything. `ARCHIVE_EDGES` in `backupTables.ts` declares every edge that
+ * crosses this boundary and what answers it.
+ */
+export const relinkArchiveReferences = internalMutation({
+  args: {
+    tableName: v.string(),
+    idMap: v.record(v.string(), v.string()),
+  },
+  handler: async (ctx, args) => {
+    assertArchiveRelinkable(args.tableName)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = await (ctx.db.query(args.tableName as never) as any).collect()
+    let relinked = 0
+
+    for (const row of rows) {
+      const { data } = splitExportedRow(row)
+      const rewritten = remapIds(data, args.idMap)
+      // Compared rather than patched blindly: an establishment with a year of
+      // trade has a year of invoices, and a restore must not write every one of
+      // them a second time for nothing.
+      if (JSON.stringify(rewritten) === JSON.stringify(data)) continue
+      await ctx.db.patch(row._id, rewritten as never)
+      relinked += 1
+    }
+
+    return { relinked }
+  },
+})
+
+/**
+ * Make a restored order invoiceable again when its invoice is not here.
+ *
+ * The other half of the same break, and the one that only shows on a REBUILT
+ * deployment. `orders.invoiceId` survives the restore verbatim — `remapIds`
+ * rewrites a string only when the map has an entry for it, and the map only
+ * ever holds ids of rows `importTable` inserted, so no invoice id is ever in
+ * it. On the deployment the backup came from that is harmless: the invoices are
+ * still there under the same ids. On a deployment rebuilt from the file they
+ * are not there at all, and `invoiceRefusal` tests that field for TRUTHINESS
+ * rather than resolution:
+ *
+ *     if (order.invoiceId) return "already_issued"
+ *
+ * so the sale could never be invoiced again — not by `orders`' automatic path,
+ * not by the manual button — and the admin's order screen showed no number and
+ * the reason "already issued", for ever.
+ *
+ * Three outcomes per order, in this order:
+ *
+ *  - the id resolves — nothing to do, and this is the common case;
+ *  - it does not, but an invoice stands for this order (found through
+ *    `by_orderId`, which `relinkArchiveReferences` has just re-pointed) — the
+ *    link is restored rather than dropped, because clearing it would let a
+ *    SECOND invoice be issued for a sale that already has one;
+ *  - it does not and none stands — the field is cleared, and the order is
+ *    invoiceable again from this deployment's own series.
+ *
+ * Clearing deletes nothing fiscal. The invoices are in the backup file, and on
+ * a rebuilt deployment that file is the only copy of the old series and must be
+ * kept as such (art. L102 B LPF, six years). `numberSequences` is export-only
+ * too, so the rebuilt deployment starts a fresh series rather than reissuing
+ * numbers that have already been handed out. The count comes back to
+ * `importBackup` and into the message the operator reads, because a restore
+ * that quietly detached an order from its invoice would be the same silence
+ * this whole module exists to end.
+ */
+export const reconcileOrderInvoiceLinks = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const orders = await ctx.db.query("orders").collect()
+    let repointed = 0
+    let cleared = 0
+
+    for (const order of orders) {
+      if (!order.invoiceId) continue
+      if (await ctx.db.get(order.invoiceId)) continue
+
+      const standing = await ctx.db
+        .query("invoices")
+        .withIndex("by_orderId", (q) => q.eq("orderId", order._id))
+        .first()
+
+      if (standing) {
+        await ctx.db.patch(order._id, { invoiceId: standing._id, updatedAt: Date.now() })
+        repointed += 1
+      } else {
+        // `undefined` removes the field, which is what an optional column with
+        // no value means. The order is then refused for the reason that is
+        // actually true of it, if any, rather than for one that never will be.
+        await ctx.db.patch(order._id, { invoiceId: undefined, updatedAt: Date.now() })
+        cleared += 1
+      }
+    }
+
+    return { repointed, cleared }
   },
 })
 

@@ -122,7 +122,7 @@ const quickLinks = [
     icon: Heart,
     label: "Mes favoris",
     description: "Vos plats préférés",
-    color: "bg-red-100 text-red-600",
+    color: "bg-destructive/10 text-destructive",
   },
 ]
 
@@ -424,7 +424,7 @@ export default function AccountPage() {
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
-          <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg">
+          <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg">
             Mon Espace
           </Badge>
 
@@ -435,10 +435,10 @@ export default function AccountPage() {
             </AvatarFallback>
           </Avatar>
 
-          <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-8 italic">
-            Mon <span className="text-accent-foreground not-italic">Compte</span>
+          <h1 className="text-6xl md:text-8xl font-black text-primary-foreground tracking-tighter leading-none mb-8 italic">
+            Mon <span className="text-primary-foreground not-italic">Compte</span>
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto font-medium">
+          <p className="text-xl text-primary-foreground max-w-2xl mx-auto font-medium">
             Bonjour, {user.name ?? user.email}
           </p>
         </div>
@@ -449,7 +449,7 @@ export default function AccountPage() {
         <div className="grid gap-4 md:grid-cols-3 mb-8">
           {quickLinks.map((link) => (
             <Link key={link.href} href={link.href}>
-              <div className="group flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm border border-border hover:shadow-md hover:border-primary/20 transition-all">
+              <div className="group flex items-center gap-4 rounded-2xl bg-card p-5 shadow-sm border border-border hover:shadow-md hover:border-primary/20 transition-all">
                 <div className={`rounded-xl p-3 ${link.color} transition-transform group-hover:scale-110`}>
                   <link.icon className="h-5 w-5" />
                 </div>
@@ -468,25 +468,25 @@ export default function AccountPage() {
         </div>
 
         {/* Profile management tabs */}
-        <div className="rounded-3xl bg-white shadow-sm border border-border overflow-hidden">
+        <div className="rounded-3xl bg-card shadow-sm border border-border overflow-hidden">
           <Tabs defaultValue="general" className="w-full">
             <div className="px-6 pt-6">
               <TabsList className="grid w-full grid-cols-3 bg-muted/80 p-1 rounded-2xl">
                 <TabsTrigger
                   value="general"
-                  className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all font-bold text-xs uppercase"
+                  className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all font-bold text-xs uppercase"
                 >
                   Profil
                 </TabsTrigger>
                 <TabsTrigger
                   value="security"
-                  className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all font-bold text-xs uppercase"
+                  className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all font-bold text-xs uppercase"
                 >
                   Sécurité
                 </TabsTrigger>
                 <TabsTrigger
                   value="prefs"
-                  className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all font-bold text-xs uppercase"
+                  className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all font-bold text-xs uppercase"
                 >
                   Préférences
                 </TabsTrigger>
@@ -551,7 +551,7 @@ export default function AccountPage() {
                         id="name"
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        className="rounded-xl h-12 bg-white border-border focus:border-primary focus:ring-primary/20 font-medium"
+                        className="rounded-xl h-12 bg-card border-border focus:border-primary focus:ring-primary/20 font-medium"
                       />
                     </div>
                     <div className="space-y-1.5 px-1">
@@ -607,7 +607,7 @@ export default function AccountPage() {
                             <select
                               value={phone.label}
                               onChange={(e) => updatePhone(index, "label", e.target.value)}
-                              className="h-10 rounded-lg border border-border bg-white px-3 text-sm font-medium flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                              className="h-10 rounded-lg border border-border bg-card px-3 text-sm font-medium flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                             >
                               {PHONE_LABELS.map((l) => (
                                 <option key={l} value={l}>
@@ -618,7 +618,7 @@ export default function AccountPage() {
                             <button
                               type="button"
                               onClick={() => removePhone(index)}
-                              className="shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                              className="shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-card transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -628,7 +628,7 @@ export default function AccountPage() {
                             <select
                               value={phone.countryCode}
                               onChange={(e) => updatePhone(index, "countryCode", e.target.value)}
-                              className="h-12 rounded-xl border border-border bg-white pl-3 pr-2 text-sm font-medium shrink-0 w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                              className="h-12 rounded-xl border border-border bg-card pl-3 pr-2 text-sm font-medium shrink-0 w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                             >
                               {COUNTRY_CODES.map((c, ci) => (
                                 <option key={`${c.code}-${ci}`} value={c.code}>
@@ -645,7 +645,7 @@ export default function AccountPage() {
                                 value={phone.number}
                                 onChange={(e) => updatePhone(index, "number", e.target.value)}
                                 placeholder="6 12 34 56 78"
-                                className="rounded-xl h-12 bg-white border-border focus:border-primary focus:ring-primary/20 font-medium pl-[4.5rem]"
+                                className="rounded-xl h-12 bg-card border-border focus:border-primary focus:ring-primary/20 font-medium pl-[4.5rem]"
                               />
                             </div>
                           </div>
@@ -665,7 +665,7 @@ export default function AccountPage() {
                         id="language"
                         value={profileLanguage}
                         onChange={(e) => setProfileLanguage(e.target.value)}
-                        className="flex h-12 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                        className="flex h-12 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                       >
                         {LANGUAGES.map((lang) => (
                           <option key={lang.code} value={lang.code}>
@@ -796,7 +796,7 @@ export default function AccountPage() {
           <Button
             variant="ghost"
             onClick={handleSignOut}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 font-black uppercase tracking-widest text-xs rounded-xl px-8 h-12"
+            className="text-destructive hover:bg-destructive/5 font-black uppercase tracking-widest text-xs rounded-xl px-8 h-12"
           >
             <LogOut className="mr-2 h-4 w-4" />
             Se déconnecter

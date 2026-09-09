@@ -113,10 +113,6 @@ export const getTrackingToken = query(defs.getTrackingToken);
 // number only — no customer, no address, no amount.
 export const getPaymentState = query(defs.getPaymentState);
 
-// @public-by-design: a guest reads their own order with the view token issued
-// at checkout. The token is the authorisation.
-export const getByViewToken = query(defs.getByViewToken);
-
 export const MY_ORDERS_LIMIT = 50;
 
 /**

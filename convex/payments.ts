@@ -3,6 +3,7 @@ import { action, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import * as defs from "@be-in-digital/convex-functions/payments";
+import { collectionOnOrder } from "@be-in-digital/convex-functions/paymentLedger";
 import {
   storeQuery,
   storeMutation,
@@ -180,6 +181,23 @@ export const refundPayment = action({
   },
 });
 
+/**
+ * Does this order already hold a collection?
+ *
+ * Internal, and read from the checkout ACTIONS before they open a payment
+ * page. `order.paymentStatus` is not the whole truth: a settlement writes the
+ * payment row and the order status in two transactions, so between them an
+ * order reads `pending` with a `succeeded` row already against it — and a gate
+ * that trusts the status alone sends the diner to pay a second time (#411).
+ */
+export const internalCollectionOnOrder = internalQuery({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    const collected = await collectionOnOrder(ctx, args.orderId);
+    return collected ? { provider: collected.provider } : null;
+  },
+});
+
 // === Internal Mutations (for payment actions and webhooks) ===
 
 /** Create payment record without auth — used by payment verification actions */
@@ -242,6 +260,18 @@ export const internalSettleFromCharge = internalMutation({
  * refundable balance the admin shows matches the money that is actually left.
  */
 export const internalRecordProviderRefund = internalMutation(defs.recordProviderRefund);
+
+/**
+ * Record a collection this deployment refused, where an operator will read it.
+ *
+ * The refusal keeps the ledger honest; the charge still exists at the provider
+ * and the diner is owed it back. This is the only place that fact is written
+ * down — see the package definition (#411).
+ */
+export const internalRecordRefusedCollection = internalMutation(
+  defs.recordRefusedCollection
+);
+
 
 /** Remember the Stripe Checkout Session an order was sent to pay through. */
 export const internalAttachCheckoutSession = internalMutation(defs.attachCheckoutSession);

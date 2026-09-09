@@ -405,16 +405,10 @@ export function CheckoutForm({
               className={`group flex h-24 flex-col items-center justify-center gap-2 rounded-[2rem] border-2 transition-all ${
                 isSelected
                   ? "border-primary bg-primary text-primary-foreground shadow-xl shadow-primary/10"
-                  : "border-border bg-white text-muted-foreground hover:border-border"
+                  : "border-border bg-card text-muted-foreground hover:border-border hover:text-foreground"
               }`}
             >
-              <Icon
-                className={`h-6 w-6 transition-colors ${
-                  isSelected
-                    ? "text-accent-foreground"
-                    : "text-muted-foreground group-hover:text-foreground"
-                }`}
-              />
+              <Icon className="h-6 w-6 transition-colors" />
               <span className="text-[10px] font-black uppercase tracking-widest">
                 {opt.label}
               </span>
@@ -425,7 +419,7 @@ export function CheckoutForm({
 
       {/* Table number — dine-in only */}
       {isDineIn && (
-        <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
+        <div className="overflow-hidden rounded-[2.5rem] border-none bg-card p-2 shadow-xl shadow-black/[0.03]">
           <div className="p-8 space-y-2">
             <Label htmlFor="tableNumber" className="flex items-center gap-2">
               <Utensils className="h-4 w-4" />
@@ -460,7 +454,7 @@ export function CheckoutForm({
       )}
 
       {/* Contact Information */}
-      <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
+      <div className="overflow-hidden rounded-[2.5rem] border-none bg-card p-2 shadow-xl shadow-black/[0.03]">
         <div className="p-8">
           <div className="mb-2 flex items-center gap-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
@@ -487,10 +481,10 @@ export function CheckoutForm({
               id="name"
               {...register("name")}
               placeholder="Jean Dupont"
-              className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
+              className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
             />
             {errors.name && (
-              <p className="ml-1 text-xs font-medium text-rose-500">
+              <p className="ml-1 text-xs font-medium text-destructive">
                 {errors.name.message}
               </p>
             )}
@@ -509,10 +503,10 @@ export function CheckoutForm({
                 type="email"
                 {...register("email")}
                 placeholder="jean.dupont@exemple.fr"
-                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
+                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
               />
               {errors.email && (
-                <p className="ml-1 text-xs font-medium text-rose-500">
+                <p className="ml-1 text-xs font-medium text-destructive">
                   {errors.email.message}
                 </p>
               )}
@@ -529,7 +523,7 @@ export function CheckoutForm({
                 type="tel"
                 {...register("phone")}
                 placeholder="+33 6 00 00 00 00"
-                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-white focus:ring-primary/20"
+                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
               />
             </div>
           </div>
@@ -538,7 +532,7 @@ export function CheckoutForm({
 
       {/* Delivery Address - Conditional */}
       {isDelivery && (
-        <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
+        <div className="overflow-hidden rounded-[2.5rem] border-none bg-card p-2 shadow-xl shadow-black/[0.03]">
           <div className="p-8">
             <div className="mb-2 flex items-center gap-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
@@ -576,7 +570,7 @@ export function CheckoutForm({
                       }`}
                     >
                       {selectedAddressId === addr.id && (
-                        <div className="h-2 w-2 rounded-full bg-white" />
+                        <div className="h-2 w-2 rounded-full bg-card" />
                       )}
                     </div>
                     <div>
@@ -610,7 +604,7 @@ export function CheckoutForm({
                     }`}
                   >
                     {selectedAddressId === "manual" && (
-                      <div className="h-2 w-2 rounded-full bg-white" />
+                      <div className="h-2 w-2 rounded-full bg-card" />
                     )}
                   </div>
                   <span className="font-bold text-muted-foreground">
@@ -636,7 +630,7 @@ export function CheckoutForm({
                       ref={addressInputRef}
                       type="text"
                       placeholder="Ex : 12 rue de la Paix, Paris..."
-                      className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-border bg-muted pl-12 pr-6 text-sm font-medium transition-all placeholder:text-muted-foreground focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-border bg-muted pl-12 pr-6 text-sm font-medium transition-all placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
@@ -703,7 +697,7 @@ export function CheckoutForm({
                         onChange={(e) => setManualAddress((p) => ({ ...p, street: e.target.value }))}
                         placeholder="123 rue de la Paix"
                         readOnly={addressMode === "selected"}
-                        className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                        className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
                       />
                     </div>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -716,7 +710,7 @@ export function CheckoutForm({
                           onChange={(e) => setManualAddress((p) => ({ ...p, city: e.target.value }))}
                           placeholder="Paris"
                           readOnly={addressMode === "selected"}
-                          className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                          className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
                         />
                       </div>
                       <div className="space-y-2">
@@ -728,7 +722,7 @@ export function CheckoutForm({
                           onChange={(e) => setManualAddress((p) => ({ ...p, postalCode: e.target.value }))}
                           placeholder="75001"
                           readOnly={addressMode === "selected"}
-                          className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                          className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
                         />
                       </div>
                     </div>
@@ -740,7 +734,7 @@ export function CheckoutForm({
                         value={manualAddress.country}
                         onChange={(e) => setManualAddress((p) => ({ ...p, country: e.target.value }))}
                         readOnly={addressMode === "selected"}
-                        className="h-14 rounded-2xl border-transparent bg-white px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                        className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
                       />
                     </div>
                   </div>
@@ -752,17 +746,17 @@ export function CheckoutForm({
       )}
 
       {/* Allergies and instructions for the kitchen */}
-      <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
+      <div className="overflow-hidden rounded-[2.5rem] border-none bg-card p-2 shadow-xl shadow-black/[0.03]">
         <div className="p-8">
           <div className="mb-2 flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/5 text-destructive">
               <AlertTriangle className="h-5 w-5" />
             </div>
-            <h2 className="text-2xl font-black uppercase tracking-tighter text-zinc-800">
+            <h2 className="text-2xl font-black uppercase tracking-tighter text-foreground">
               Allergies &amp; instructions
             </h2>
           </div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Une allergie, une intolérance, une préférence&nbsp;? Dites-le à la
             cuisine.
           </p>
@@ -783,18 +777,18 @@ export function CheckoutForm({
             placeholder="Ex : allergie aux arachides, sauce à part, sans oignon…"
             aria-describedby={errors.notes ? "notes-error" : "notes-hint"}
             aria-invalid={errors.notes ? true : undefined}
-            className="min-h-[96px] rounded-2xl border-transparent bg-zinc-50 px-6 py-4 text-sm font-medium transition-all focus:bg-white focus:ring-emerald-500/20"
+            className="min-h-[96px] rounded-2xl border-transparent bg-muted px-6 py-4 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
           />
           {errors.notes ? (
             <p
               id="notes-error"
               role="alert"
-              className="ml-1 text-xs font-medium text-rose-500"
+              className="ml-1 text-xs font-medium text-destructive"
             >
               {errors.notes.message}
             </p>
           ) : (
-            <p id="notes-hint" className="ml-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <p id="notes-hint" className="ml-1 text-xs text-muted-foreground">
               Cette note est imprimée sur le ticket de cuisine. Elle ne remplace
               pas un échange avec le restaurant en cas d&apos;allergie grave.
             </p>
@@ -803,7 +797,7 @@ export function CheckoutForm({
       </div>
 
       {/* Payment section + Submit */}
-      <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
+      <div className="overflow-hidden rounded-[2.5rem] border-none bg-card p-2 shadow-xl shadow-black/[0.03]">
         <div className="p-8">
           <div className="mb-2 flex items-center gap-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
@@ -834,14 +828,14 @@ export function CheckoutForm({
                 disabled={cardUnavailable}
                 className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all ${
                   cardUnavailable
-                    ? "border-border bg-muted opacity-60 cursor-not-allowed"
+                    ? "border-border bg-muted disabled:opacity-60 cursor-not-allowed"
                     : effectivePaymentMethod === "card"
                       ? "border-primary bg-accent/30"
                       : "border-border hover:border-border"
                 }`}
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                  {/* The unavailable tile already carries `opacity-60`, so the
+                  {/* The unavailable tile already carries `disabled:opacity-60`, so the
                       icon needs no second dimming of its own — the ternary that
                       used to be here chose between two greys that #41 maps to
                       the same token. */}
@@ -895,7 +889,7 @@ export function CheckoutForm({
                 disabled={!isAuthenticated}
                 className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all ${
                   !isAuthenticated
-                    ? "border-border bg-muted opacity-60 cursor-not-allowed"
+                    ? "border-border bg-muted disabled:opacity-60 cursor-not-allowed"
                     : effectivePaymentMethod === "cash"
                       ? "border-primary bg-accent/30"
                       : "border-border hover:border-border"
@@ -930,7 +924,7 @@ export function CheckoutForm({
           {noPaymentMethod && (
             <div
               role="alert"
-              className="mt-3 space-y-3 rounded-2xl border-2 border-amber-200 bg-amber-50/60 p-5"
+              className="mt-3 space-y-3 rounded-2xl border-2 border-amber-200 bg-amber-50 p-5"
             >
               <p className="text-sm font-medium text-amber-900">
                 {cashNeedsAccount
@@ -950,7 +944,7 @@ export function CheckoutForm({
           <Button
             type="submit"
             disabled={isSubmitting || !effectivePaymentMethod}
-            className="group h-16 w-full rounded-2xl bg-primary text-lg font-black uppercase tracking-widest text-white shadow-xl shadow-primary/10 transition-all hover:bg-primary-hover"
+            className="group h-16 w-full rounded-2xl bg-primary text-lg font-black uppercase tracking-widest text-primary-foreground shadow-xl shadow-primary/10 transition-all hover:bg-primary-hover"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">

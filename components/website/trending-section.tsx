@@ -96,7 +96,7 @@ export function TrendingSection({ sectionTitle, viewAllLabel }: TrendingSectionP
                     ))}
                 </CarouselContent>
                 <div className="flex justify-center md:justify-end gap-4 mt-8">
-                    <CarouselPrevious className="static translate-y-0 h-12 w-12 rounded-full border border-border flex items-center justify-center hover:bg-primary-hover hover:text-white transition-all bg-card dark:text-foreground" />
+                    <CarouselPrevious className="static translate-y-0 h-12 w-12 rounded-full border border-border flex items-center justify-center hover:bg-primary-hover hover:text-primary-foreground transition-all bg-card dark:text-foreground" />
                     <CarouselNext className="static translate-y-0 h-12 w-12 rounded-full border border-border flex items-center justify-center bg-primary text-primary-foreground hover:scale-105 transition-all" />
                 </div>
             </Carousel>

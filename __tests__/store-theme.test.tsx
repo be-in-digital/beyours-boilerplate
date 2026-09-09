@@ -70,7 +70,14 @@ describe("StoreTheme", () => {
 
     const css = styleOf(await render(<StoreTheme />))
 
-    expect(css).toContain(":root{")
+    // `.storefront-theme` beside `:root`, because that is the element the
+    // storefront palette is declared on and a custom property declared on an
+    // element beats the one it would inherit. Without it these tokens stopped
+    // at `<html>` and the diner's page stayed engine green: measured in
+    // Chromium, `#d32f2f` gave `rgb(211, 49, 49)` in the admin and
+    // `rgb(13, 94, 64)` on the storefront. #410.
+    expect(css).toContain(":root,.storefront-theme{")
+    expect(css).toContain(".dark,.dark .storefront-theme{")
     expect(css).toContain("--primary:0 65% 51%;")
     // The whole point, stated as the assertion it deserves: what the page
     // paints with is no longer the engine's orange.

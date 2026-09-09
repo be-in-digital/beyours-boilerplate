@@ -12,13 +12,6 @@ export const list = storeQuery({
   handler: (ctx, args) => defs.list.handler(ctx, args),
 });
 
-export const getById = storeQuery({
-  permission: "marketing:read",
-  storeIdFrom: emailSegmentsStoreId,
-  args: defs.getById.args,
-  handler: (ctx, args) => defs.getById.handler(ctx, args),
-});
-
 export const countMatchingSubscribers = storeQuery({
   permission: "marketing:read",
   args: defs.countMatchingSubscribers.args,
@@ -52,13 +45,6 @@ export const duplicate = storeMutation({
   storeIdFrom: emailSegmentsStoreId,
   args: defs.duplicate.args,
   handler: (ctx, args) => defs.duplicate.handler(ctx, args),
-});
-
-export const refreshCount = storeMutation({
-  permission: "marketing:write",
-  storeIdFrom: emailSegmentsStoreId,
-  args: defs.refreshCount.args,
-  handler: (ctx, args) => defs.refreshCount.handler(ctx, args),
 });
 
 /**

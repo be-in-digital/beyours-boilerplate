@@ -122,7 +122,7 @@ describe("the Stripe webhook's event coverage", () => {
     expect(body).toContain("externalId: paymentIntent")
   })
 
-  test("a handler that threw answers 500, not 200", () => {
+  test("a handler that FAILED answers 500, not 200", () => {
     // The route returned 200 unconditionally, so a transient failure was
     // recorded as a delivery handled and Stripe never retried it. The 500 has
     // to come from a catch around the routing, and it has to be reached before
@@ -132,6 +132,83 @@ describe("the Stripe webhook's event coverage", () => {
     expect(catchBlock).toMatch(/status:\s*500/)
     expect(catchBlock.indexOf("markProcessed")).toBeGreaterThan(-1)
     expect(body.indexOf("} catch (err)")).toBeLessThan(body.indexOf("markProcessed"))
+  })
+
+  /**
+   * A REFUSAL is not a failure, and this case was the missing half.
+   *
+   * THE BUG (#411, B2-F2). The catch above answered 500 to everything, and a
+   * settlement refusal is permanent — the amount does not match, the order was
+   * already collected by another charge, the reference names a different
+   * order. Retrying delivers the same answer, so Stripe retried for three
+   * days, each attempt re-ran the guard to the same refusal, the delivery
+   * stayed `processed: false` and was re-admitted as `in_flight` every time,
+   * and no operator was told that a diner had been charged twice.
+   *
+   * The previous case, named "a handler that threw answers 500", pinned that
+   * behaviour by name. It is kept — a genuine failure must still be retried —
+   * but it was never the whole rule, and reading it as one is what let this
+   * ship.
+   *
+   * Source-level, like everything else in this file, and for the same reason:
+   * `handleWebhook` is an `httpAction` whose first act is to call a
+   * `"use node"` verifier, so it cannot be driven under `edge-runtime`. The
+   * two halves it wires together ARE proved behaviourally —
+   * `deliberateSettlementRefusal` in
+   * `packages/convex-functions/src/__tests__/paymentSettlement.test.ts`, and
+   * the recording mutation in `payment-dedup.test.ts`. What is proved here is
+   * that the route reaches them.
+   */
+  test("a deliberate refusal answers 2xx instead of looping the retry", () => {
+    const body = exportBody("stripeWebhook", "handleWebhook")
+    const catchBlock = body.slice(body.indexOf("} catch (err)"))
+
+    // The route asks whether this throw was a decision.
+    expect(catchBlock).toContain("deliberateSettlementRefusal")
+
+    // And answers 2xx to it. The refusal branch is the part of the catch above
+    // the unconditional 500, so a 200 has to appear there.
+    const refusalBranch = catchBlock.slice(
+      catchBlock.indexOf("deliberateSettlementRefusal"),
+      catchBlock.indexOf("Processing error")
+    )
+    expect(refusalBranch).toMatch(/status:\s*200/)
+  })
+
+  test("a deliberate refusal is recorded, and the delivery retired", () => {
+    // Answering 2xx and writing nothing would be worse than the retry loop: a
+    // second charge exists at Stripe, the diner is owed it back, and nothing
+    // would ever say so again. Both halves belong in the same branch.
+    const body = exportBody("stripeWebhook", "handleWebhook")
+    const catchBlock = body.slice(body.indexOf("} catch (err)"))
+    const refusalBranch = catchBlock.slice(
+      catchBlock.indexOf("deliberateSettlementRefusal"),
+      catchBlock.indexOf("Processing error")
+    )
+
+    expect(refusalBranch).toContain("internalRecordRefusedCollection")
+    // Retired on purpose: a permanent refusal must not be re-admitted as
+    // `in_flight` on Stripe's next attempt.
+    expect(refusalBranch).toContain("markProcessed")
+  })
+
+  test("the module imports the reader rather than naming it in prose", () => {
+    // The trap this whole file exists for: `stripe.ts` once carried a comment
+    // claiming the settlement guard, in a module that never imported it.
+    expect(code("stripeWebhook")).toMatch(
+      /import\s*\{[^}]*\bdeliberateSettlementRefusal\b[^}]*\}\s*from\s*["'][^"']*paymentSettlement["']/
+    )
+  })
+
+  test("the refusal branch detector is not vacuous", () => {
+    // Guards the guard: the slice the three cases above read must not be
+    // empty, or all of them pass against a route that does none of this.
+    const body = exportBody("stripeWebhook", "handleWebhook")
+    const catchBlock = body.slice(body.indexOf("} catch (err)"))
+    expect(catchBlock.indexOf("deliberateSettlementRefusal")).toBeGreaterThan(-1)
+    expect(catchBlock.indexOf("Processing error")).toBeGreaterThan(
+      catchBlock.indexOf("deliberateSettlementRefusal")
+    )
   })
 
   test("an event we ignore still answers 200", () => {

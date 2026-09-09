@@ -289,7 +289,10 @@ export function CmsMediaLibrary() {
     if (!storeId || !deleteTarget) return
     try {
       await deleteMedia({ storeId, mediaId: deleteTarget._id })
-      toast.success(`"${deleteTarget.filename}" supprimé`)
+      // "retiré de la médiathèque", not "supprimé": that is the whole of what
+      // this page can know. `deleteMedia` schedules the S3 purge and answers
+      // before it runs, so the outcome never reaches the browser.
+      toast.success(`"${deleteTarget.filename}" retiré de la médiathèque`)
       setDeleteTarget(null)
       if (selectedMedia?._id === deleteTarget._id) setSelectedMedia(null)
     } catch (err) {
@@ -690,13 +693,28 @@ export function CmsMediaLibrary() {
         </Dialog>
       )}
 
-      {/* Delete confirm */}
+      {/*
+        Delete confirm. The description says what this dialog can actually
+        know, and no more.
+
+        It is pre-hoc — shown before the delete is attempted — and the S3 purge
+        is scheduled after the mutation returns (`convex/cmsMedia.ts`), so the
+        browser never sees the outcome even in principle. That outcome turns on
+        an IAM policy this page cannot read: on a deployment provisioned before
+        `s3:DeleteObjectVersion`, `purgeS3Objects` writes a delete marker, the
+        object is hidden and every byte of it stays in the bucket until the
+        lifecycle rules collect it. « Définitivement supprimé » was therefore
+        false on that path, and stated as a fact. What is true on both paths is
+        that the file leaves the library and stops being served, and that the
+        storage side finishes within the 30-day NoncurrentVersionExpiration
+        window `setup-aws.sh` installs.
+      */}
       <DeleteConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="Supprimer ce média ?"
-        description={`Le fichier "${deleteTarget?.filename}" sera définitivement supprimé. Cette action est irréversible.`}
+        description={`Le fichier "${deleteTarget?.filename}" sera retiré de la médiathèque et ne sera plus affiché sur le site. Son effacement complet du stockage peut prendre jusqu'à 30 jours. Cette action est irréversible.`}
       />
     </div>
   )

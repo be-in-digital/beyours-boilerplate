@@ -17,6 +17,7 @@ import {
   useStorefrontStoreSelection,
   useCartStore,
   useNearestStore,
+  useStoreStatusLabels,
   type StoreWithDistance,
 } from "@be-in-digital/restaurant"
 import { useQuery } from "convex/react"
@@ -36,7 +37,19 @@ function StoreOption({
   isSelected: boolean
   onSelect: () => void
 }) {
+  // Ouvert / Fermé / Temporairement indisponible, in the language this
+  // storefront is being read in — the same vocabulary and the same hook the
+  // full store-selector page uses, so the two screens cannot drift apart.
+  const statusLabels = useStoreStatusLabels()
   const isOpen = store.status === "open"
+
+  // `store.status` also admits "draft", which the published list never
+  // contains. Read it as closed rather than as `undefined`, exactly as
+  // `StoreStatusBadge` does: it is the reading that does not tell a diner a
+  // place is taking orders.
+  const statusLabel = Object.hasOwn(statusLabels, store.status)
+    ? statusLabels[store.status as keyof typeof statusLabels]
+    : statusLabels.closed
 
   return (
     <button
@@ -44,24 +57,33 @@ function StoreOption({
       onClick={onSelect}
       className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
         isSelected
-          ? "bg-primary/10 border border-primary/20"
+          ? "bg-accent border border-primary/20"
           : "hover:bg-muted border border-transparent"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-foreground truncate">
-              {store.name}
-            </span>
+          <span className="block text-sm font-bold text-foreground truncate">
+            {store.name}
+          </span>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
+            {store.address?.street}, {store.address?.city}
+          </p>
+          {/*
+            The dot used to be the ONLY thing saying whether this location was
+            taking orders — a hue, and nothing else, on the panel a diner picks
+            a restaurant from (WCAG 1.4.1). It kept its colour and gained the
+            word beside it, which is what the full store-selector page has
+            always printed.
+          */}
+          <p className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             <span
+              aria-hidden
               className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
                 isOpen ? "bg-primary" : "bg-muted-foreground"
               }`}
             />
-          </div>
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {store.address?.street}, {store.address?.city}
+            <span className="truncate">{statusLabel}</span>
           </p>
         </div>
         {store.distance != null && (
@@ -119,7 +141,7 @@ export function StoreSelectorDropdown({
                 className={`relative flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
                   isTransparent
                     ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    : "bg-white border-border shadow-sm text-accent-foreground hover:bg-muted"
+                    : "bg-card border-border shadow-sm text-accent-foreground hover:bg-muted"
                 }`}
                 aria-label={tooltipLabel}
               >
@@ -134,7 +156,7 @@ export function StoreSelectorDropdown({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-80 p-2 rounded-2xl border border-border bg-white shadow-xl"
+        className="w-80 p-2 rounded-2xl border border-border bg-card shadow-xl"
       >
         <div className="flex items-center justify-between px-3 pt-2 pb-3">
           <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
@@ -146,7 +168,7 @@ export function StoreSelectorDropdown({
             <button
               type="button"
               onClick={requestLocation}
-              className="flex items-center gap-1 text-[10px] font-bold text-accent-foreground hover:text-accent-foreground/70 uppercase tracking-widest transition-colors"
+              className="flex items-center gap-1 text-[10px] font-bold text-accent-foreground hover:text-primary-hover uppercase tracking-widest transition-colors"
             >
               <Navigation className="h-3 w-3" />
               Localiser

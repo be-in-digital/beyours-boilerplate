@@ -16,6 +16,14 @@ export const create = storeMutation({
   handler: (ctx, args) => defs.create.handler(ctx, args),
 });
 
+// The way out of `remove`'s refusal: a played code is retired, not deleted.
+export const setActive = storeMutation({
+  permission: "games:write",
+  args: defs.setActive.args,
+  storeIdFrom: storeIdFromDocument("QR code not found"),
+  handler: (ctx, args) => defs.setActive.handler(ctx, args),
+});
+
 export const remove = storeMutation({
   permission: "games:write",
   args: defs.remove.args,

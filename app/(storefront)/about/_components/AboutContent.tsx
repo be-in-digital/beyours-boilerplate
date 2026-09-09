@@ -106,13 +106,13 @@ export default function AboutPage() {
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="max-w-4xl mx-auto relative z-10 text-center"
                 >
-                    <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
+                    <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
                         {heroBadge}
                     </Badge>
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
-                        {parseColoredText(heroTitle, "text-accent-foreground italic")}
+                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-primary-foreground leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
+                        {parseColoredText(heroTitle, "text-primary-foreground italic")}
                     </h1>
-                    <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">
+                    <p className="text-lg md:text-xl text-primary-foreground max-w-2xl mx-auto leading-relaxed font-medium">
                         {heroSubtitle}
                     </p>
                 </motion.div>
@@ -236,12 +236,12 @@ export default function AboutPage() {
                                         className="text-center"
                                     >
                                         <div className="h-14 w-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center mx-auto mb-4">
-                                            <Icon className="h-6 w-6 text-accent-foreground" />
+                                            <Icon className="h-6 w-6 text-primary-foreground" />
                                         </div>
-                                        <p className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none mb-2">
+                                        <p className="text-3xl md:text-4xl font-black text-primary-foreground tracking-tighter leading-none mb-2">
                                             {stat.value}
                                         </p>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-accent-foreground/60">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
                                             {stat.label}
                                         </p>
                                     </motion.div>
@@ -260,10 +260,10 @@ export default function AboutPage() {
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/30 rounded-full blur-3xl -ml-32 -mb-32" />
 
                     <div className="relative z-10 max-w-3xl mx-auto">
-                        <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-[0.9] mb-6 italic whitespace-pre-line">
-                            {parseColoredText(ctaTitle, "text-accent-foreground not-italic")}
+                        <h2 className="text-4xl md:text-6xl font-black text-primary-foreground tracking-tighter leading-[0.9] mb-6 italic whitespace-pre-line">
+                            {parseColoredText(ctaTitle, "text-primary-foreground not-italic")}
                         </h2>
-                        <p className="text-lg text-white/90 font-medium mb-10 max-w-xl mx-auto leading-relaxed">
+                        <p className="text-lg text-primary-foreground font-medium mb-10 max-w-xl mx-auto leading-relaxed">
                             {ctaSubtitle}
                         </p>
                         <Link href="/menu">

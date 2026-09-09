@@ -1,10 +1,8 @@
 import { query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/products";
 import { requireStorePermission } from "@be-in-digital/convex-functions/auth";
-import { claimMenuSyncWindow } from "@be-in-digital/convex-functions/rateLimit";
 import { touchesTranslatableText } from "@be-in-digital/convex-functions/autoTranslate";
 import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 import { scheduleMenuSync } from "./lib/menuSync";
@@ -18,12 +16,6 @@ import { scheduleTranslation } from "./autoTranslate";
 export const list = query(defs.list);
 // @public-by-design: the catalogue IS the storefront; prices and availability are public
 export const getById = query(defs.getById);
-// @public-by-design: the catalogue IS the storefront; prices and availability are public
-export const getByCategory = query(defs.getByCategory);
-// @public-by-design: the catalogue IS the storefront; prices and availability are public
-export const getBySlug = query(defs.getBySlug);
-// @public-by-design: the catalogue IS the storefront; prices and availability are public
-export const getFeatured = query(defs.getFeatured);
 // @public-by-design: the catalogue IS the storefront; prices and availability are public
 export const getManualTrending = query(defs.getManualTrending);
 // @public-by-design: the catalogue IS the storefront; prices and availability are public

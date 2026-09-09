@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
   assertSettlesOrder,
+  deliberateSettlementRefusal,
   paymentStatusAfterSettlement,
 } from "@be-in-digital/convex-functions/paymentSettlement";
 
@@ -92,7 +93,6 @@ export const handleWebhook = httpAction(async (ctx, request) => {
         if (!result.orderId || result.paymentStatus !== "paid") break;
 
         const orderId = result.orderId as Id<"orders">;
-        const storeId = result.storeId as Id<"stores"> | null;
 
         const order = await ctx.runQuery(internal.orders.internalGetById, {
           id: orderId,
@@ -125,6 +125,53 @@ export const handleWebhook = httpAction(async (ctx, request) => {
           }
         );
 
+        // The intent is required rather than defaulted to "": an empty
+        // `externalId` deduplicates against nothing AND makes `routeRefund` call
+        // the payment unrefundable, so a charge recorded that way could never be
+        // given back.
+        if (!paymentIntent) {
+          console.error("[Stripe Webhook] checkout.session.completed without a payment intent");
+          return new Response("Missing payment intent", { status: 400 });
+        }
+
+        // THE LEDGER FIRST, THEN THE ORDER — and the order matters.
+        //
+        // These are two mutations and therefore two transactions. Writing the
+        // order status first committed it, and then `settlePayment` could
+        // still refuse: the order was left reading « Payé » with no payment
+        // row against it at all. That was survivable while every refusal
+        // answered 500 — the delivery stayed open and the endpoint showed red
+        // in the Stripe dashboard — and it stopped being survivable the moment
+        // a refusal started answering 200 and retiring the delivery, which
+        // made the state final and silent (#411).
+        //
+        // Settling first is safe in the other direction: `settlePayment`
+        // reads nothing about the order's status, and a settlement that
+        // succeeds is exactly the case in which the status write is wanted.
+        //
+        // One mutation, one transaction. The return page settles this same
+        // charge from a DIFFERENT event; `internalSettle` keys on the payment
+        // intent so whichever arrives second finds the row and writes nothing.
+        await ctx.runMutation(internal.payments.internalSettle, {
+          orderId,
+          // The ORDER's store, never the session metadata's. They are the same
+          // value when `createCheckoutSession` wrote it, and the order is the
+          // one that is authoritative: metadata is a copy, it is not validated
+          // by anything on the way in, and a `v.id("stores")` argument built
+          // from a string that is not one throws a VALIDATOR error — which
+          // happens before the handler runs, so it is a failure rather than a
+          // refusal, and the route answers 500 and Stripe retries a delivery
+          // that can never succeed. It would also be the only way for a
+          // provider payload to name which establishment gets the money.
+          storeId: order.storeId,
+          // The order total, not the provider's number: after the assert they are
+          // equal by construction. Matches stripe.ts, sumup.ts and paypal.ts.
+          amount: order.total,
+          currency: (result.currency as string) ?? "EUR",
+          provider: "stripe",
+          externalId: paymentIntent,
+        });
+
         // What this settlement should do to the ORDER — which is not always
         // "mark it paid". `refund_pending` (paid, then cancelled, money owed
         // back) is not "paid", so the old `if (order.paymentStatus !== "paid")`
@@ -138,30 +185,6 @@ export const handleWebhook = httpAction(async (ctx, request) => {
             paymentStatus: nextPaymentStatus,
           });
         }
-
-        // One mutation, one transaction. The return page settles this same
-        // charge from a DIFFERENT event; `internalSettle` keys on the payment
-        // intent so whichever arrives second finds the row and writes nothing.
-        //
-        // The intent is required rather than defaulted to "": an empty
-        // `externalId` deduplicates against nothing AND makes `routeRefund` call
-        // the payment unrefundable, so a charge recorded that way could never be
-        // given back.
-        if (!paymentIntent) {
-          console.error("[Stripe Webhook] checkout.session.completed without a payment intent");
-          return new Response("Missing payment intent", { status: 400 });
-        }
-
-        await ctx.runMutation(internal.payments.internalSettle, {
-          orderId,
-          storeId: storeId ?? order.storeId,
-          // The order total, not the provider's number: after the assert they are
-          // equal by construction. Matches stripe.ts, sumup.ts and paypal.ts.
-          amount: order.total,
-          currency: (result.currency as string) ?? "EUR",
-          provider: "stripe",
-          externalId: paymentIntent,
-        });
         break;
       }
 
@@ -243,10 +266,56 @@ export const handleWebhook = httpAction(async (ctx, request) => {
         console.log(`[Stripe Webhook] Unhandled event type: ${eventType}`);
     }
   } catch (err) {
-    // 500, not 200. The delivery stays unprocessed, so Stripe's retry is let
-    // through rather than mistaken for a duplicate and dropped. Answering 200
-    // here — which is what this route did unconditionally — turns a transient
-    // failure into a permanently lost event.
+    // A refusal is not a failure, and the two need opposite answers.
+    //
+    // A settlement this backend REFUSED — the amount does not match, the order
+    // was already collected by another charge (#411), the reference names a
+    // different order — is a decision, and it is permanent. Retrying delivers
+    // the same answer. Answering 500 to it bought three days of Stripe retries,
+    // each one re-running the guard to the same refusal, while the delivery
+    // stayed `processed: false` and every attempt was re-admitted as
+    // `in_flight`. Nobody was told: the only trace was a `console.error` in one
+    // client's Convex dashboard.
+    //
+    // So: record it where an operator reads it, mark the delivery done, and
+    // answer 2xx. The money HAS moved — a provider does not report a charge it
+    // did not take — so the audit entry is what says a refund is owed.
+    const refusal = deliberateSettlementRefusal(err);
+    if (refusal) {
+      console.error(
+        `[Stripe Webhook] refused ${eventType} (${refusal.code}): ${refusal.message}`
+      );
+      await ctx.runMutation(internal.payments.internalRecordRefusedCollection, {
+        provider: "stripe",
+        code: refusal.code,
+        message: refusal.message,
+        eventType,
+        ...(paymentIntent ? { externalId: paymentIntent } : {}),
+        ...(result.orderId ? { orderId: result.orderId as Id<"orders"> } : {}),
+        ...(result.storeId ? { storeId: result.storeId as Id<"stores"> } : {}),
+      });
+      // Reported as well as recorded: an audit row is read when somebody looks,
+      // and a diner charged twice should not have to wait for that.
+      await captureBackendError(ctx, {
+        error: err,
+        source: "stripeWebhook",
+        tags: { eventType, refusal: refusal.code },
+      });
+      await ctx.runMutation(internal.paymentEvents.markProcessed, {
+        provider: "stripe",
+        eventId,
+      });
+      return new Response(
+        JSON.stringify({ received: true, refused: refusal.code }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Everything else: 500, not 200. The delivery stays unprocessed, so
+    // Stripe's retry is let through rather than mistaken for a duplicate and
+    // dropped. Answering 200 here — which is what this route did
+    // unconditionally — turns a transient failure into a permanently lost
+    // event.
     console.error(`[Stripe Webhook] Error processing ${eventType}:`, err);
     await captureBackendError(ctx, {
       error: err,

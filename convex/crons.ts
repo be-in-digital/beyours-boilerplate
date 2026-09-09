@@ -145,4 +145,23 @@ crons.interval(
   {},
 );
 
+// Ask Stripe whether this deployment's key still works, and record the answer.
+// The checkout's card tile is armed from that verdict, so a key revoked or
+// rolled takes the tile down rather than sending every diner into the redacted
+// error #374 removed (#411).
+//
+// HOURLY, and that is about RECOVERY rather than detection. Detection is
+// cheap: the first checkout attempt after a key goes bad reports it for free.
+// Recovery is not — once the verdict disarms the tile no diner can reach the
+// checkout, so the checkout cannot be what discovers the key has been put
+// right, and this is the only writer left. Nightly meant an operator who fixed
+// a key at 09:00 had no card payments until the next small hours. One Stripe
+// call an hour is nothing; a day without cards is not.
+crons.interval(
+  "verify the Stripe key",
+  { hours: 1 },
+  internal.stripe.verifyStripeKey,
+  {},
+);
+
 export default crons;

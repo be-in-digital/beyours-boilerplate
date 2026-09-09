@@ -287,10 +287,10 @@ export function BlogAutoConfigForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Downgrade warning banner */}
       {coerced && (
-        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/30">
-          <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 p-4">
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-medium text-amber-800 dark:text-amber-200">
+            <p className="font-medium text-warning">
               Certains réglages ont été ajustés
             </p>
             <p className="text-amber-700 dark:text-amber-300 mt-0.5">

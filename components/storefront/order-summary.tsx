@@ -90,7 +90,7 @@ export function OrderSummary({
   }
 
   return (
-    <div className="overflow-hidden rounded-[2.5rem] border-none bg-white p-2 shadow-xl shadow-black/[0.03]">
+    <div className="overflow-hidden rounded-[2.5rem] border-none bg-card p-2 shadow-xl shadow-black/[0.03]">
       {/* Header */}
       <div className="p-8 pb-0">
         <h2 className="text-2xl font-black uppercase italic tracking-tighter text-foreground">
@@ -135,7 +135,7 @@ export function OrderSummary({
                     </div>
                   )}
                   {/* Quantity badge */}
-                  <div className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-lg bg-primary text-[10px] font-black text-white">
+                  <div className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-lg bg-primary text-[10px] font-black text-primary-foreground">
                     {item.quantity}
                   </div>
                 </div>
@@ -220,13 +220,13 @@ export function OrderSummary({
                   onChange={(e) => setPromoInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
                   placeholder="Entrez votre code"
-                  className="h-12 flex-1 rounded-xl border-border bg-muted px-4 text-sm font-bold uppercase tracking-widest transition-all focus:bg-white focus:ring-primary/20"
+                  className="h-12 flex-1 rounded-xl border-border bg-muted px-4 text-sm font-bold uppercase tracking-widest transition-all focus:bg-card focus:ring-primary/20"
                 />
                 <button
                   type="button"
                   onClick={handleApplyPromo}
                   disabled={!promoInput.trim() || promoLoading}
-                  className="flex h-12 items-center justify-center rounded-xl bg-primary px-5 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-12 items-center justify-center rounded-xl bg-primary px-5 text-[10px] font-black uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {promoLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -236,7 +236,7 @@ export function OrderSummary({
                 </button>
               </div>
               {promoError && (
-                <p className="mt-2 text-xs font-medium text-rose-500">
+                <p className="mt-2 text-xs font-medium text-destructive">
                   {promoError}
                 </p>
               )}

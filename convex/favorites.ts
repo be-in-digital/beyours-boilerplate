@@ -38,17 +38,3 @@ export const toggleFavorite = mutation({
     });
   },
 });
-
-/**
- * Clear all favorites for the authenticated user
- */
-// @guarded-inline: derives the user from the session; never takes a userId
-export const clearAll = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    return defs.clearAll.handler(ctx, { userId: identity.subject });
-  },
-});

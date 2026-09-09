@@ -107,18 +107,18 @@ export default function AccountOrdersContent() {
         <div className="max-w-7xl mx-auto relative z-10 text-center">
           <Link
             href="/account"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors font-medium"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-primary-foreground transition-colors hover:underline hover:underline-offset-4 font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
             Mon compte
           </Link>
-          <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg block mx-auto w-fit">
+          <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg block mx-auto w-fit">
             Historique
           </Badge>
-          <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none mb-8 italic">
-            Mes <span className="text-accent-foreground not-italic">Commandes</span>
+          <h1 className="text-6xl md:text-8xl font-black text-primary-foreground tracking-tighter leading-none mb-8 italic">
+            Mes <span className="text-primary-foreground not-italic">Commandes</span>
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto font-medium">
+          <p className="text-xl text-primary-foreground max-w-2xl mx-auto font-medium">
             Suivez et gérez vos commandes récentes
           </p>
         </div>
@@ -134,7 +134,7 @@ export default function AccountOrdersContent() {
 
         {/* Empty */}
         {orders && orders.length === 0 && (
-          <Empty className="rounded-3xl bg-white shadow-sm border border-border p-12">
+          <Empty className="rounded-3xl bg-card shadow-sm border border-border p-12">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <Package className="h-5 w-5" />
@@ -145,7 +145,7 @@ export default function AccountOrdersContent() {
               </EmptyDescription>
             </EmptyHeader>
             <Link href="/menu">
-              <button className="rounded-xl bg-primary px-8 py-3 font-black uppercase tracking-widest text-white text-xs hover:bg-primary-hover transition-colors">
+              <button className="rounded-xl bg-primary px-8 py-3 font-black uppercase tracking-widest text-primary-foreground text-xs hover:bg-primary-hover transition-colors">
                 Voir le menu
               </button>
             </Link>
@@ -168,9 +168,9 @@ export default function AccountOrdersContent() {
                   key={order._id}
                   href={`/order/${order._id}${order.viewToken ? `?token=${order.viewToken}` : ""}`}
                 >
-                  <div className="group rounded-2xl bg-white border border-border p-4 hover:border-primary/20 hover:bg-accent/30 transition-all flex items-center justify-between shadow-sm">
+                  <div className="group rounded-2xl bg-card border border-border p-4 hover:border-primary/20 hover:bg-accent/30 transition-all flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-white group-hover:text-accent-foreground transition-colors">
+                      <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-card group-hover:text-accent-foreground transition-colors">
                         <ShoppingBag className="h-6 w-6" />
                       </div>
                       <div>

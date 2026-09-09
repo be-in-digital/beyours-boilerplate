@@ -22,16 +22,6 @@ async function requirePaymentsRead(ctx: Parameters<typeof getAuthUser>[0]) {
 
 // === Queries ===
 
-/** Get a single connection by provider (tokens stripped). */
-// @guarded-inline: deployment-level, guarded by payments:read in the handler
-export const getByProvider = authedQuery({
-  args: defs.getByProvider.args,
-  handler: async (ctx, args) => {
-    await requirePaymentsRead(ctx);
-    return defs.getByProvider.handler(ctx, args);
-  },
-});
-
 /** Internal: get full record WITH encrypted tokens — for payment actions only */
 export const internalGetByProvider = internalQuery({
   args: {

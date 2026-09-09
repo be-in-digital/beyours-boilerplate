@@ -85,20 +85,20 @@ export default function CartContent() {
         <div className="bg-primary pb-24 pt-32 text-center md:rounded-b-[6rem] md:pb-32">
           <div className="flex justify-center">
             <div className="flex h-20 w-20 items-center justify-center rounded-[1.5rem] bg-white/20 backdrop-blur-md">
-              <ShoppingBag className="h-10 w-10 text-white" />
+              <ShoppingBag className="h-10 w-10 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="mt-6 text-4xl font-black uppercase italic tracking-tighter text-white md:text-6xl">
+          <h1 className="mt-6 text-4xl font-black uppercase italic tracking-tighter text-primary-foreground md:text-6xl">
             Votre Box
           </h1>
-          <p className="mt-3 text-sm font-medium text-white/60">
+          <p className="mt-3 text-sm font-medium text-primary-foreground">
             Votre Box est vide. Parcourez notre menu pour ajouter vos plats
             préférés.
           </p>
           <Link href="/menu" className="mt-8 inline-block">
             <Button
               size="lg"
-              className="h-14 rounded-2xl bg-white px-8 text-xs font-black uppercase tracking-widest text-accent-foreground shadow-xl shadow-black/10 hover:bg-muted"
+              className="h-14 rounded-2xl bg-card px-8 text-xs font-black uppercase tracking-widest text-accent-foreground shadow-xl shadow-black/10 hover:bg-muted"
             >
               Parcourir le menu
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -116,12 +116,12 @@ export default function CartContent() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
-              <ShoppingBag className="h-7 w-7 text-white" />
+              <ShoppingBag className="h-7 w-7 text-primary-foreground" />
             </div>
-            <h1 className="mt-4 text-4xl font-black uppercase italic tracking-tighter text-white md:text-6xl">
+            <h1 className="mt-4 text-4xl font-black uppercase italic tracking-tighter text-primary-foreground md:text-6xl">
               Votre Box
             </h1>
-            <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-white/60">
+            <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
               {itemCount}{" "}
               {itemCount > 1
                 ? "articles sélectionnés"
@@ -137,7 +137,7 @@ export default function CartContent() {
           {/* Items list */}
           <div className="lg:col-span-2">
             {/* Clear cart bar */}
-            <div className="mb-6 flex items-center justify-between rounded-[2rem] border border-border bg-white p-5 shadow-sm">
+            <div className="mb-6 flex items-center justify-between rounded-[2rem] border border-border bg-card p-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <Link
                   href="/menu"
@@ -155,7 +155,7 @@ export default function CartContent() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:bg-rose-50 hover:text-rose-500"
+                    className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:bg-destructive/5 hover:text-destructive"
                   >
                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                     Tout vider
@@ -177,7 +177,7 @@ export default function CartContent() {
                     </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={clearCart}
-                      className="h-14 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600"
+                      className="h-14 rounded-2xl bg-destructive text-xs font-black uppercase tracking-widest text-destructive-foreground shadow-xl shadow-destructive/20 hover:bg-destructive/90"
                     >
                       Oui, tout vider
                     </AlertDialogAction>
@@ -206,7 +206,7 @@ export default function CartContent() {
                     <div
                       key={item.lineId}
                       data-line-id={item.lineId}
-                      className="group flex gap-4 rounded-[2rem] border border-border bg-white p-5 shadow-sm transition-shadow hover:shadow-lg hover:shadow-muted/50 md:gap-6 md:p-6"
+                      className="group flex gap-4 rounded-[2rem] border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-lg hover:shadow-muted/50 md:gap-6 md:p-6"
                     >
                       {/* Image */}
                       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-border bg-muted md:h-28 md:w-28">
@@ -238,12 +238,12 @@ export default function CartContent() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <AlertDialogTrigger asChild>
-                                    <button className="p-1 text-muted-foreground transition-colors hover:text-rose-500">
+                                    <button className="p-1 text-muted-foreground transition-colors hover:text-destructive">
                                       <X className="h-4 w-4" />
                                     </button>
                                   </AlertDialogTrigger>
                                 </TooltipTrigger>
-                                <TooltipContent className="rounded-xl border-none bg-rose-500 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                <TooltipContent className="rounded-xl border-none bg-destructive px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-destructive-foreground">
                                   Retirer de la Box
                                 </TooltipContent>
                               </Tooltip>
@@ -268,7 +268,7 @@ export default function CartContent() {
                                     onClick={() =>
                                       removeItem(item.lineId)
                                     }
-                                    className="h-14 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600"
+                                    className="h-14 rounded-2xl bg-destructive text-xs font-black uppercase tracking-widest text-destructive-foreground shadow-xl shadow-destructive/20 hover:bg-destructive/90"
                                   >
                                     Retirer maintenant
                                   </AlertDialogAction>
@@ -307,13 +307,13 @@ export default function CartContent() {
                                     <AlertDialogTrigger asChild>
                                       <button
                                         aria-label={`Retirer ${lineLabel}`}
-                                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white hover:text-rose-500 hover:shadow-sm"
+                                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-card hover:text-destructive hover:shadow-sm"
                                       >
                                         <Minus className="h-3 w-3" />
                                       </button>
                                     </AlertDialogTrigger>
                                   </TooltipTrigger>
-                                  <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                  <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-background">
                                     Retirer
                                   </TooltipContent>
                                 </Tooltip>
@@ -338,7 +338,7 @@ export default function CartContent() {
                                       onClick={() =>
                                         updateQuantity(item.lineId, 0)
                                       }
-                                      className="h-14 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600"
+                                      className="h-14 rounded-2xl bg-destructive text-xs font-black uppercase tracking-widest text-destructive-foreground shadow-xl shadow-destructive/20 hover:bg-destructive/90"
                                     >
                                       Retirer maintenant
                                     </AlertDialogAction>
@@ -356,12 +356,12 @@ export default function CartContent() {
                                       )
                                     }
                                     aria-label={`Diminuer la quantité de ${lineLabel}`}
-                                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white hover:text-muted-foreground hover:shadow-sm"
+                                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-card hover:text-muted-foreground hover:shadow-sm"
                                   >
                                     <Minus className="h-3 w-3" />
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                                <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-background">
                                   Diminuer
                                 </TooltipContent>
                               </Tooltip>
@@ -381,12 +381,12 @@ export default function CartContent() {
                                     )
                                   }
                                   aria-label={`Augmenter la quantité de ${lineLabel}`}
-                                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-white hover:text-muted-foreground hover:shadow-sm"
+                                  className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-card hover:text-muted-foreground hover:shadow-sm"
                                 >
                                   <Plus className="h-3 w-3" />
                                 </button>
                               </TooltipTrigger>
-                              <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+                              <TooltipContent className="rounded-xl border-none bg-muted-foreground px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-background">
                                 Augmenter
                               </TooltipContent>
                             </Tooltip>
@@ -407,7 +407,7 @@ export default function CartContent() {
 
           {/* Summary sidebar */}
           <div className="lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-[2rem] border border-border bg-white p-8 shadow-sm">
+            <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
               {/* Header */}
               <div className="mb-6 flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
@@ -471,7 +471,7 @@ export default function CartContent() {
 
               {/* Checkout button */}
               <Button
-                className="group mt-6 h-16 w-full rounded-2xl bg-primary text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-primary/10 hover:bg-primary-hover"
+                className="group mt-6 h-16 w-full rounded-2xl bg-primary text-sm font-black uppercase tracking-widest text-primary-foreground shadow-xl shadow-primary/10 hover:bg-primary-hover"
                 size="lg"
                 onClick={() => router.push("/checkout")}
                 disabled={!isOpen}

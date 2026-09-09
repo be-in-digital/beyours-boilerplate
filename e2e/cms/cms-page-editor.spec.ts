@@ -156,9 +156,11 @@ test.describe("CMS Page Editor", () => {
 
       // Should show some save indicator (checkmark or "Enregistré")
       const savedIndicator = page.getByText(/enregistré|sauvegardé/i)
-      const checkIcon = page.locator(
-        ".text-green-600, .text-emerald-500, [data-save-status]",
-      )
+      // Addressed by a data attribute, not by a colour class. The two palette
+      // classes this used to name are exactly what #410 routes through the
+      // token layer, and a selector written against a palette is one that rots
+      // silently the next time the palette moves.
+      const checkIcon = page.locator("[data-save-status='saved']")
 
       const hasSavedText = await savedIndicator
         .isVisible({ timeout: 5_000 })

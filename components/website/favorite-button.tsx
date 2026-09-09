@@ -46,7 +46,7 @@ export function FavoriteButton({ itemId, itemTitle, className }: FavoriteButtonP
 
         if (!isFav) {
             toast.success(`${itemTitle} ajouté aux favoris !`, {
-                icon: <Heart className="h-4 w-4 fill-rose-500 text-rose-500" />,
+                icon: <Heart className="h-4 w-4 fill-destructive text-destructive" />,
             });
         }
     };
@@ -59,8 +59,8 @@ export function FavoriteButton({ itemId, itemTitle, className }: FavoriteButtonP
                     className={cn(
                         "h-10 w-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all shadow-sm border-2",
                         isFav
-                            ? "bg-rose-500 border-rose-500 text-white"
-                            : "bg-white/30 border-white/60 text-white hover:bg-white hover:text-rose-500",
+                            ? "bg-destructive border-destructive text-destructive-foreground"
+                            : "bg-white/30 border-white/60 text-white hover:bg-card hover:text-destructive",
                         className
                     )}
                 >

@@ -18,6 +18,8 @@
  * puts bytes in the bucket.
  */
 
+import { readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import { convexTest } from "convex-test"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { internal } from "../../convex/_generated/api"
@@ -99,6 +101,109 @@ async function seedStore(t: ReturnType<typeof convexTest>) {
     })
   )
 }
+
+/**
+ * The rehearsal runbook, read rather than remembered.
+ *
+ * Both apps resolve to the same file — it documents the drill, not either
+ * app — and that is deliberate: a runbook whose commands nothing checks is a
+ * runbook that quietly stops being true, and this one did. Its first inspection
+ * command was `jq '{createdAt, deployedAppVersion, backupFormatVersion,
+ * tableRowCounts}' backup.json`, against an object whose root is
+ * `{ manifest, data }`. It returned four nulls, and `"tableRowCounts": null` is
+ * what a good backup and a truncated one produce identically — while the step's
+ * own prose makes that field the go/no-go gate. The very next line already
+ * carried the `.manifest` prefix, which is why a read-through missed it.
+ */
+const RUNBOOK = readFileSync(
+  fileURLToPath(
+    new URL("../../../docs/deployment/backup-restore-rehearsal.md", import.meta.url),
+  ),
+  "utf8",
+)
+
+/**
+ * Every manifest field the runbook tells an operator to read.
+ *
+ * Two `jq` shapes are recognised, because both are natural to write and both
+ * appear: `.manifest.field`, and `.manifest | {a, b, c}`.
+ */
+function runbookManifestFields(): string[] {
+  // `manifest.field` with or without the leading dot: the jq lines carry one,
+  // the prose around them does not.
+  const direct = [...RUNBOOK.matchAll(/\bmanifest\.([A-Za-z_]\w*)/g)].map(
+    (match) => match[1] as string,
+  )
+  const projected = [...RUNBOOK.matchAll(/\.manifest\s*\|\s*\{([^}]*)\}/g)].flatMap((match) =>
+    (match[1] as string).split(",").map((field) => field.trim()).filter(Boolean),
+  )
+  return [...new Set([...direct, ...projected])]
+}
+
+/**
+ * The commands, without the prose.
+ *
+ * Step 1 quotes the broken `jq '{createdAt, …}'` in its own explanation of why
+ * it was broken, and a guard that cannot tell a command from a description of
+ * one would refuse the fix it is there to protect.
+ */
+function runbookCommands(): string[] {
+  return [...RUNBOOK.matchAll(/```bash\n([\s\S]*?)```/g)].flatMap((block) =>
+    (block[1] as string).split("\n").map((line) => line.trim()).filter(Boolean),
+  )
+}
+
+describe("the rehearsal runbook describes the file this writes", () => {
+  test("every manifest field it names is one the manifest actually has", async () => {
+    const t = convexTest(schema, modules)
+    await seedSettings(t)
+    await seedStore(t)
+
+    const payload = await t.action(internal.system.buildBackup, { performedBy: "cron" })
+    const built = Object.keys(payload.manifest as Record<string, unknown>)
+
+    const named = runbookManifestFields()
+    // A guard over an empty set passes for the wrong reason.
+    expect(named.length).toBeGreaterThan(4)
+
+    const unknown = named.filter((field) => !built.includes(field))
+    expect(
+      unknown,
+      `backup-restore-rehearsal.md names manifest fields that do not exist: ${unknown.join(", ")}`,
+    ).toEqual([])
+  })
+
+  test("it does not tell an operator to read a manifest field off the root", async () => {
+    /* The exact defect. `jq '{createdAt, …}' backup.json` reads the ROOT, which
+       has only `manifest` and `data`, so every field comes back null — and a
+       null row count looks the same whether the export was whole or stopped
+       halfway. */
+    const t = convexTest(schema, modules)
+    await seedSettings(t)
+    await seedStore(t)
+    const payload = await t.action(internal.system.buildBackup, { performedBy: "cron" })
+
+    const root = Object.keys(payload as Record<string, unknown>).sort()
+    expect(root).toEqual(["data", "manifest"])
+
+    const manifestFields = new Set(Object.keys(payload.manifest as Record<string, unknown>))
+    for (const command of runbookCommands()) {
+      const quoted = command.match(/jq\s+'([^']*)'/)
+      if (!quoted) continue
+      const body = quoted[1] as string
+      // Every projection must be piped from `.manifest`, never taken from the
+      // root — `jq '{createdAt, …}'` is the shape that returned four nulls.
+      const projection = (body as string).match(/^\s*\{([^}]*)\}\s*$/)
+      if (!projection) continue
+      const fields = (projection[1] as string).split(",").map((f) => f.trim())
+      const manifestOnes = fields.filter((f) => manifestFields.has(f))
+      expect(
+        manifestOnes,
+        `jq '${body}' reads the root, but ${manifestOnes.join(", ")} live under .manifest`,
+      ).toEqual([])
+    }
+  })
+})
 
 describe("the nightly backup", () => {
   test("builds an export with no user identity at all", async () => {

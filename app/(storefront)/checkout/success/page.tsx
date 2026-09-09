@@ -216,7 +216,7 @@ function CheckoutSuccessContent() {
   if (outcome.state === "failed") {
     return (
       <Shell tone="danger">
-        <AlertTriangle className="mx-auto mb-8 h-12 w-12 text-red-500" />
+        <AlertTriangle className="mx-auto mb-8 h-12 w-12 text-destructive" />
         <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-foreground">
           Confirmation impossible
         </h1>
@@ -233,7 +233,7 @@ function CheckoutSuccessContent() {
   if (outcome.state === "refund_pending") {
     return (
       <Shell>
-        <Loader2 className="mx-auto mb-8 h-12 w-12 text-amber-500" />
+        <Loader2 className="mx-auto mb-8 h-12 w-12 text-accent-solid" />
         <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-foreground">
           Commande annulée
         </h1>
@@ -251,7 +251,7 @@ function CheckoutSuccessContent() {
     const statusLabel = CUSTOMER_PAYMENT_STATUS_LABELS[outcome.label]
     return (
       <Shell>
-        <Loader2 className="mx-auto mb-8 h-12 w-12 text-amber-500" />
+        <Loader2 className="mx-auto mb-8 h-12 w-12 text-accent-solid" />
         <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tighter text-foreground">
           Paiement en attente
         </h1>
@@ -275,7 +275,7 @@ function CheckoutSuccessContent() {
 
   return (
     <Shell>
-      <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-success/10 text-success">
+      <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-success text-success-foreground">
         <CheckCircle2 className="h-12 w-12" />
       </div>
       <h1 className="mb-4 text-4xl font-black uppercase italic tracking-tighter text-foreground">
@@ -305,7 +305,7 @@ function CheckoutSuccessContent() {
       <div className="flex flex-col justify-center gap-4 sm:flex-row">
         {trackHref && (
           <Link href={trackHref}>
-            <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
+            <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary-hover">
               Suivre ma commande
             </Button>
           </Link>
@@ -316,7 +316,7 @@ function CheckoutSuccessContent() {
             className={
               trackHref
                 ? "h-14 rounded-2xl border-border px-8 font-black uppercase tracking-widest transition-all"
-                : "h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover"
+                : "h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary-hover"
             }
           >
             Retour au menu
@@ -351,7 +351,7 @@ function Actions({
     <div className="flex flex-col justify-center gap-4 sm:flex-row">
       {href && (
         <Link href={href}>
-          <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-white transition-all hover:bg-primary-hover">
+          <Button className="h-14 rounded-2xl bg-primary px-8 font-black uppercase tracking-widest text-primary-foreground transition-all hover:bg-primary-hover">
             Voir la commande
           </Button>
         </Link>
@@ -378,7 +378,7 @@ function Shell({
   return (
     <div
       className={`min-h-screen px-4 pb-20 pt-32 ${
-        tone === "danger" ? "bg-red-50/40" : "bg-muted"
+        tone === "danger" ? "bg-destructive/5" : "bg-muted"
       }`}
     >
       <div className="mx-auto max-w-xl text-center">{children}</div>

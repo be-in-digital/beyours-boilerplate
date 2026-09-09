@@ -713,6 +713,27 @@ describe("deleteMedia purges S3", () => {
  * permanently deleted, the offboarding runbook ticked an erasure box, and an
  * RGPD erasure request was answered falsely. Issue #331.
  */
+/**
+ * The reports `captureBackendError` left on the scheduler.
+ *
+ * It schedules `internal.errorReporting.reportError` rather than awaiting the
+ * Sentry POST, so the durable record is observable here as a queued job — read
+ * before `afterEach` cancels it.
+ */
+async function scheduledErrorReports(t: ReturnType<typeof convexTest>) {
+  return t.run(async (ctx) => {
+    const jobs = await ctx.db.system.query("_scheduled_functions").collect()
+    return jobs
+      .filter((job) => job.name === "errorReporting:reportError")
+      .map((job) => job.args[0] as {
+        source: string
+        message: string
+        tags?: Record<string, string>
+        extra?: Record<string, string | number | boolean | null>
+      })
+  })
+}
+
 describe("purgeS3Objects on a versioned bucket", () => {
   test("deletes every version and every delete marker, by id", async () => {
     const t = newHarness()
@@ -825,5 +846,71 @@ describe("purgeS3Objects on a versioned bucket", () => {
     expect(deletedVersions()).toEqual(["cms/abc/source.png@current"])
     expect(errors.mock.calls.flat().join(" ")).toContain("s3:DeleteObjectVersion")
     errors.mockRestore()
+  })
+
+  /**
+   * ...and it has to reach somewhere that outlives the log window.
+   *
+   * The test above pins a `console.error`, which is where the fallback was
+   * reported and the only place it was reported. A Convex log line lives in one
+   * client's dashboard and expires; #368 is this repository's own ruling that
+   * such a line is not an adequate record of a failure with legal weight, and
+   * "the files a restaurant was told were permanently deleted are still in the
+   * bucket" is exactly that kind of failure.
+   *
+   * Nobody downstream can find out any other way. `deleteMedia` schedules this
+   * action and answers the browser before it runs, so the counts below reach no
+   * caller, and the confirmation dialog is written accordingly. The tracker is
+   * the only durable record there is.
+   */
+  test("reports the marker-only fallback to the error tracker, not only to the log", async () => {
+    const t = newHarness()
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {})
+    send.mockImplementation(async (cmd: { _cmd?: string }) => {
+      if (cmd._cmd === "versions") throw new Error("AccessDenied")
+      return {}
+    })
+
+    const result = await t.action(internal.cmsMediaDelete.purgeS3Objects, {
+      s3Keys: ["cms/abc/source.png"],
+    })
+
+    const reports = await scheduledErrorReports(t)
+    errors.mockRestore()
+
+    expect(result.deleteMarkersOnly).toBe(1)
+
+    // Both halves of the fallback are reported: the refused listing, with the
+    // AWS error that caused it, and the run-level summary that says how many
+    // objects were left hidden rather than erased.
+    expect(reports.map((report) => report.tags?.step).sort()).toEqual([
+      "delete-marker-only",
+      "list-versions-refused",
+    ])
+    for (const report of reports) {
+      expect(report.source).toBe("cmsMediaDelete.purgeS3Objects")
+    }
+
+    const refusal = reports.find((r) => r.tags?.step === "list-versions-refused")
+    expect(refusal?.message).toContain("AccessDenied")
+    expect(refusal?.extra?.key).toBe("cms/abc/source.png")
+
+    const summary = reports.find((r) => r.tags?.step === "delete-marker-only")
+    expect(summary?.message).toContain("s3:DeleteObjectVersion")
+    expect(summary?.extra?.deleteMarkersOnly).toBe(1)
+  })
+
+  test("says nothing to the tracker when every version was purged", async () => {
+    // A report on a successful purge would train an operator to ignore the
+    // ones that matter.
+    const t = newHarness()
+    stubVersions({ "cms/abc/source.png": { versions: ["v1"], markers: [] } })
+
+    const result = await t.action(internal.cmsMediaDelete.purgeS3Objects, {
+      s3Keys: ["cms/abc/source.png"],
+    })
+
+    expect(result).toMatchObject({ purged: 1, deleteMarkersOnly: 0 })
+    expect(await scheduledErrorReports(t)).toEqual([])
   })
 })

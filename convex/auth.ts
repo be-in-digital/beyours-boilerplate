@@ -157,7 +157,13 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   });
 };
 
-// Query to get the currently authenticated user
+// Client API for AuthBoundary component
+export const { getAuthUser } = authComponent.clientApi();
+
+// @kept-callerless: no screen calls this — the apps read the session through
+// `authClient.useSession()`. `tasks/convex-account-cutover-runbook.md:39` uses
+// `auth:getCurrentUser` as the smoke test that a cut-over deployment answers at
+// all, which is the first check run against a fresh Convex account (#413).
 // @guarded-inline: returns the caller's own session user
 export const getCurrentUser = query({
   args: {},
@@ -165,6 +171,3 @@ export const getCurrentUser = query({
     return authComponent.safeGetAuthUser(ctx);
   },
 });
-
-// Client API for AuthBoundary component
-export const { getAuthUser } = authComponent.clientApi();
