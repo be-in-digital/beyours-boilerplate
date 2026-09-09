@@ -190,3 +190,94 @@ describe("settlement binding", () => {
     }
   })
 })
+
+/**
+ * WHERE the settlement sits relative to the order write.
+ *
+ * Returns the character offsets of the first call that RECORDS THE MONEY and
+ * the first that MARKS THE ORDER PAID, so a test can assert which comes first.
+ */
+function settlementOffsets(module: string, name: string): { settles: number; marksPaid: number } {
+  const body = exportBody(module, name)
+  return {
+    settles: body.search(/\binternalSettle\b|\bsettleOrRecordRefusal\s*\(/),
+    marksPaid: body.search(/\binternalUpdatePaymentStatus\b/),
+  }
+}
+
+describe("the ledger is written before the order says « Payé »", () => {
+  /**
+   * WHY ORDER MATTERS HERE, and why asserting it needs its own test.
+   *
+   * `stripeWebhook.ts` has carried the rule and the reason since #411 — "THE
+   * LEDGER FIRST, THEN THE ORDER" — and it was the ONLY one of the six
+   * settlement paths that obeyed it. The other five wrote `paymentStatus:
+   * "paid"` first and recorded the money second, and #438 added a sixth in that
+   * shape. A comment-stripped offset scan of all six:
+   *
+   *   stripe.ts :: verifyCheckoutSession        marks paid 446, settles 461
+   *   stripe.ts :: reconcilePendingCheckouts               622          628
+   *   sumup.ts :: verifyCheckout                          246          258
+   *   paypal.ts :: capturePayPalOrder                     299          311
+   *   stripeWebhook.ts :: handleWebhook                   164          136   <- the only OK
+   *   payments.ts :: settleFromChargeEvent                685          691
+   *
+   * These are separate transactions. The order write COMMITS, and the
+   * settlement can still refuse afterwards — an amount that no longer binds, an
+   * order already collected by another charge (#378, #411). What is left is an
+   * order reading « Payé » with no payment row behind it. Probed on the bench:
+   * 2 400 c taken, 1 200 c on the ledger, `FA-2026-000001` minted against it,
+   * the diner's confirmation planned, and zero `payment_collection_refused`
+   * rows to tell anybody.
+   *
+   * The suite was 25/25 green through all of it. It asserted the import, the
+   * call site, the guard consultation and the absence of a `"paid"` literal —
+   * everything about the settlement except WHEN it happens. That is the gap
+   * this closes.
+   */
+  // A plain loop rather than `test.each`: the `$module.$fn` interpolation the
+  // suite above uses renders as "undefined" here, so five identical names go up
+  // and the one that failed cannot be told from the four that did not.
+  for (const { module, fn } of SETTLEMENT_ENTRY_POINTS) {
+    test(`${module}.${fn} records the payment before it marks the order paid`, () => {
+      const { settles, marksPaid } = settlementOffsets(module, fn)
+      // A path that does not do both is not this test's business; the test
+      // below is what holds every entry point to doing them at all.
+      if (settles === -1 || marksPaid === -1) return
+      expect(
+        settles,
+        `${module}.${fn}: the order is marked paid at ${marksPaid} and the money ` +
+          `recorded at ${settles} — a refusal in between leaves an order reading ` +
+          `« Payé » with nothing on the ledger behind it`
+      ).toBeLessThan(marksPaid)
+    })
+  }
+
+  test("every entry point does both, so the skip above is never the whole test", () => {
+    // The guard above returns early when a path lacks one of the two calls,
+    // which would make it vacuous for a path that quietly stopped settling.
+    for (const { module, fn } of SETTLEMENT_ENTRY_POINTS) {
+      const { settles, marksPaid } = settlementOffsets(module, fn)
+      expect(settles, `${module}.${fn} records no payment`).toBeGreaterThan(-1)
+      expect(marksPaid, `${module}.${fn} marks no order paid`).toBeGreaterThan(-1)
+    }
+  })
+
+  test("a refused settlement on a return page is written down", () => {
+    // The three return pages are the paths that fire FIRST — a diner's browser
+    // arrives seconds after paying, well before the webhook — and they recorded
+    // NOTHING when a settlement was refused. The webhook and the reconciliation
+    // sweep both do (#411, #438). `settleOrRecordRefusal` is what makes the
+    // return pages match; asserting the call site is what stops the next edit
+    // reaching for the bare mutation again.
+    for (const { module, fn } of [
+      { module: "stripe", fn: "verifyCheckoutSession" },
+      { module: "sumup", fn: "verifyCheckout" },
+      { module: "paypal", fn: "capturePayPalOrder" },
+    ]) {
+      expect(exportBody(module, fn), `${module}.${fn}`).toMatch(
+        /settleOrRecordRefusal\s*\(/
+      )
+    }
+  })
+})

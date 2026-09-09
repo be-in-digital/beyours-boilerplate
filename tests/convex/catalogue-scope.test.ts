@@ -5,7 +5,9 @@
  * The catalogue belongs to one establishment at a time.
  *
  * Every id in this domain is public — the catalogue *is* the storefront, and
- * `products.list` and `categories.list` are open by design. The writes were
+ * `products.list` and `categories.list` are open by design. Open, not
+ * unfiltered: since #443 they answer with what is ON SALE, and the drafts moved
+ * to the store-scoped `listAll` (see draft-catalogue-is-private.test.ts). The writes were
  * scoped to the store named in the arguments and then followed a reference out
  * of it: propagation patched twins in restaurants the caller does not
  * administer, a platform mapping was found by product alone and overwritten,

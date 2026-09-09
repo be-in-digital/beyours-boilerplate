@@ -74,11 +74,26 @@ templates/<slug>/
   delivered site had form fields whose edge was not there: 1.09:1 against a 3:1
   requirement, at the worst.
 
-  What makes the claim true now is `tests/a11y/template-contrast.test.ts`,
-  which loads each template over `app/globals.css` in the real cascade and
-  measures all 51 in the four scopes a site renders under. Run it with
+  What measures it is `tests/a11y/template-contrast.test.ts`, which loads each
+  template over `app/globals.css` in the real cascade and checks all 51 in the
+  four scopes a site renders under. Run it with
   `pnpm --filter @beyours/themes test`. Do not restore an unmeasured claim
   here: if that guard is ever removed, delete this sentence with it.
+
+  **And read the first sentence of this bullet as what it is.** "Every palette
+  passes WCAG 2.1 AA" is still wider than what is measured. The guard checks a
+  FIXED MATRIX OF TOKEN PAIRS — the label-on-fill list, the semantic inks over
+  the three surfaces, and the five non-text tokens — in four scopes. It does
+  not sweep the markup per template, so a pair a template's own palette
+  produces in a class combination outside that matrix is not measured, and is
+  not covered by the sentence above. The guard's own docblock says so; this
+  bullet used to imply otherwise.
+
+  That gap was a cost decision, and it has become cheaper: `scanContrast` now
+  takes the `overlays` argument `loadTokens` always had, so the markup sweep
+  can be run per template rather than only against the engine palette. What it
+  would cost is CI time — re-parsing every `.tsx` once per template — and what
+  it would find is unknown until somebody runs it. Nobody has.
 - **Semantic tokens untouched**: `--success`, `--warning`, `--info`,
   `--destructive` and `--status-*` stay the engine's. They carry functional
   meaning (kitchen, till, orders) and are not part of the identity.

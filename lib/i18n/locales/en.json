@@ -204,5 +204,13 @@
   "accessibility.removeItem": "Remove item",
   "accessibility.productImage": "Product image",
   "accessibility.skipToContent": "Skip to main content",
-  "accessibility.openBox": "Open the Box"
+  "accessibility.openBox": "Open the Box",
+  "product.viewDetails": "View {name}",
+  "product.addNamedToCart": "Add {name} to the basket",
+  "product.addToFavorites": "Add {name} to favourites",
+  "product.removeFromFavorites": "Remove {name} from favourites",
+  "store.choose": "Choose {name}",
+  "accessibility.cartStatus": "Box: {count} items, total {total}",
+  "accessibility.cartEmptied": "Your Box is empty",
+  "accessibility.openBoxWithCount": "Open the Box, {count} items"
 }

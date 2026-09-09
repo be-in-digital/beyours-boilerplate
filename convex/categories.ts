@@ -2,7 +2,7 @@ import { query, mutation } from "./_generated/server";
 import * as defs from "@be-in-digital/convex-functions/categories";
 import { requireStorePermission } from "@be-in-digital/convex-functions/auth";
 import { touchesTranslatableText } from "@be-in-digital/convex-functions/autoTranslate";
-import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 import { scheduleTranslation } from "./autoTranslate";
 
 // === Queries (public for storefront) ===
@@ -13,6 +13,14 @@ import { scheduleTranslation } from "./autoTranslate";
 export const list = query(defs.list);
 // @public-by-design: storefront category menu, rendered for anonymous visitors
 export const listActiveWithCounts = query(defs.listActiveWithCounts);
+
+// The same catalogue with the switched-off sections in it, for the screens
+// that manage them and for the platform importers that match against them.
+export const listAll = storeQuery({
+  permission: "products:read",
+  args: defs.listAll.args,
+  handler: (ctx, args) => defs.listAll.handler(ctx, args),
+});
 
 // === Mutations (with authorization) ===
 
@@ -58,9 +66,17 @@ export const reorder = mutation({
         throw new Error("All categories must belong to the same store");
       }
     }
-    if (storeId) {
-      await requireStorePermission(ctx, storeId, "products:write");
+    // Unconditional, which it was not: the permission check sat inside
+    // `if (storeId)`, and `storeId` stays null when `args.ids` is empty — so a
+    // caller sending `{ ids: [] }` reached `defs.reorder.handler` having been
+    // authorised by nothing. Reordering nothing is harmless in itself; a guard
+    // with a caller-controlled off switch is not, and it is the same shape as
+    // the `validateIntegration` bypass found beside it (#445). An empty
+    // reorder is now refused rather than silently unguarded.
+    if (!storeId) {
+      throw new Error("No categories to reorder");
     }
+    await requireStorePermission(ctx, storeId, "products:write");
     return defs.reorder.handler(ctx, args);
   },
 });

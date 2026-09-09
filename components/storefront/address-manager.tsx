@@ -218,6 +218,7 @@ export function AddressManager() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-destructive hover:text-destructive"
+                    aria-label={`Supprimer l'adresse ${addr.street}`}
                     onClick={() => handleRemove(addr.id)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -261,29 +262,34 @@ export function AddressManager() {
           <div className="space-y-4 px-8 pb-8">
             {/* Label */}
             <div className="space-y-2">
-              <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+              <Label htmlFor="address-label" className="ml-1 text-[10px] font-black uppercase tracking-widest">
                 Nom (optionnel)
               </Label>
               <Input
+                id="address-label"
                 value={addressLabel}
                 onChange={(e) => setAddressLabel(e.target.value)}
                 placeholder="ex: Maison, Bureau"
-                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
+                className="h-14 rounded-2xl border-input bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus-visible:ring-ring"
               />
             </div>
 
             {/* Search with Google Places */}
             <div className="space-y-2">
-              <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+              <Label
+                htmlFor="address-manager-search"
+                className="ml-1 text-[10px] font-black uppercase tracking-widest"
+              >
                 Rechercher une adresse
               </Label>
               <div className="relative">
                 <MapPin className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-accent-foreground" />
                 <input
+                  id="address-manager-search"
                   ref={addressInputRef}
                   type="text"
                   placeholder="Ex : 12 rue de la Paix, Paris..."
-                  className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-border bg-muted pl-12 pr-6 text-sm font-medium transition-all placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-border bg-muted pl-12 pr-6 text-sm font-medium transition-all placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus-visible:ring-ring"
                 />
               </div>
             </div>
@@ -342,52 +348,56 @@ export function AddressManager() {
                 )}
 
                 <div className="space-y-2">
-                  <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+                  <Label htmlFor="address-street" className="ml-1 text-[10px] font-black uppercase tracking-widest">
                     Adresse *
                   </Label>
                   <Input
+                    id="address-street"
                     value={manualAddress.street}
                     onChange={(e) => editLocationField("street", e.target.value)}
                     placeholder="123 rue de la Paix"
                     readOnly={addressMode === "selected"}
-                    className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                    className="h-14 rounded-2xl border-input bg-card px-6 text-sm font-medium transition-all focus-visible:ring-ring"
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+                    <Label htmlFor="address-city" className="ml-1 text-[10px] font-black uppercase tracking-widest">
                       Ville *
                     </Label>
                     <Input
+                      id="address-city"
                       value={manualAddress.city}
                       onChange={(e) => editLocationField("city", e.target.value)}
                       placeholder="Paris"
                       readOnly={addressMode === "selected"}
-                      className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                      className="h-14 rounded-2xl border-input bg-card px-6 text-sm font-medium transition-all focus-visible:ring-ring"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+                    <Label htmlFor="address-postal-code" className="ml-1 text-[10px] font-black uppercase tracking-widest">
                       Code postal *
                     </Label>
                     <Input
+                      id="address-postal-code"
                       value={manualAddress.postalCode}
                       onChange={(e) => editLocationField("postalCode", e.target.value)}
                       placeholder="75001"
                       readOnly={addressMode === "selected"}
-                      className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                      className="h-14 rounded-2xl border-input bg-card px-6 text-sm font-medium transition-all focus-visible:ring-ring"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+                  <Label htmlFor="address-country" className="ml-1 text-[10px] font-black uppercase tracking-widest">
                     Pays
                   </Label>
                   <Input
+                    id="address-country"
                     value={manualAddress.country}
                     onChange={(e) => setManualAddress((p) => ({ ...p, country: e.target.value }))}
                     readOnly={addressMode === "selected"}
-                    className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                    className="h-14 rounded-2xl border-input bg-card px-6 text-sm font-medium transition-all focus-visible:ring-ring"
                   />
                 </div>
               </div>

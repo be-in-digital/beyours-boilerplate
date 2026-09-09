@@ -28,7 +28,7 @@
 import { convexTest } from "convex-test"
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest"
 import { _resetEnvCache } from "@be-in-digital/core/env"
-import { api } from "../../convex/_generated/api"
+import { api, internal } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import { mapDeliverooStatus } from "../../convex/deliverooWebhook"
 import schema from "../../convex/schema"
@@ -275,6 +275,147 @@ describe("a signed Deliveroo order.new", () => {
 
     expect(await t.run((ctx) => ctx.db.query("orders").collect())).toHaveLength(1)
     expect(await t.run((ctx) => ctx.db.query("kitchenTickets").collect())).toHaveLength(1)
+  })
+})
+
+// ===========================================================================
+// A Deliveroo order whose slip never made it to the pass
+// ===========================================================================
+
+describe("a Deliveroo order that reached the kitchen nowhere", () => {
+  /**
+   * THE SHAPE OF THE DEFECT. The ticket was created inside a `try` whose
+   * `catch` was a bare `console.error`, in an 854-line file with zero
+   * `captureBackendError` calls — while its Uber Eats twin had three, one of
+   * them on exactly this step. So a ticket that failed to be created left the
+   * order in the database, a 200 going back to Deliveroo, and no slip on the
+   * pass: no screen, no printer, and the accept button in `TicketCard`
+   * unreachable because it acts on a ticket.
+   *
+   * And no retry could repair it. The duplicate short-circuit — `if (!created)
+   * return` — sat BEFORE the ticket block, so the one event that could have
+   * fixed this returned without reaching it. None of the eleven crons looked
+   * for a ticketless order either.
+   *
+   * `tasks/sales-readiness-backlog.md` marks P0-10 "Deliveroo orders never
+   * reach the kitchen — RESOLVED". It was resolved for the path that was
+   * measured; the same outcome was reachable by this one.
+   */
+  test("gets its slip when Deliveroo redelivers", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    const payload = newOrderPayload({ id: "gb:deliveroo:order:LOSTTICKET" })
+    expect((await postSigned(t, payload)).status).toBe(200)
+
+    // The state the bare `catch` used to leave behind: the order exists, the
+    // ticket does not. Deleting the ticket reproduces it exactly.
+    await t.run(async (ctx) => {
+      for (const ticket of await ctx.db.query("kitchenTickets").collect()) {
+        await ctx.db.delete(ticket._id)
+      }
+    })
+    expect(await t.run((ctx) => ctx.db.query("kitchenTickets").collect())).toHaveLength(0)
+
+    // Deliveroo retries. This used to return at the duplicate check.
+    expect((await postSigned(t, payload)).status).toBe(200)
+
+    const tickets = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(tickets).toHaveLength(1)
+    expect(tickets[0]!.source).toBe("deliveroo")
+    // Still one order: repairing the slip must not duplicate the order.
+    expect(await t.run((ctx) => ctx.db.query("orders").collect())).toHaveLength(1)
+  })
+
+  test("is given one by the sweep when no redelivery ever comes", async () => {
+    // The backstop, for a platform that retries once and gives up. Every
+    // fifteen minutes from `crons.ts`.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    expect(
+      (await postSigned(t, newOrderPayload({ id: "gb:deliveroo:order:NORETRY" }))).status
+    ).toBe(200)
+    await t.run(async (ctx) => {
+      for (const ticket of await ctx.db.query("kitchenTickets").collect()) {
+        await ctx.db.delete(ticket._id)
+      }
+    })
+
+    const result = await t.mutation(
+      internal.orders.sweepTicketlessPlatformOrders,
+      {}
+    )
+
+    expect(result.repaired).toBe(1)
+    expect(result.failed).toBe(0)
+    const tickets = await t.run((ctx) => ctx.db.query("kitchenTickets").collect())
+    expect(tickets).toHaveLength(1)
+    expect(tickets[0]!.source).toBe("deliveroo")
+  })
+
+  test("the sweep leaves an order that already has its slip alone", async () => {
+    // Otherwise the backstop becomes the defect: a second slip for a dish the
+    // kitchen is already cooking.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await seedIntegration(t, storeId)
+
+    expect(
+      (await postSigned(t, newOrderPayload({ id: "gb:deliveroo:order:HASTICKET" }))).status
+    ).toBe(200)
+
+    const result = await t.mutation(
+      internal.orders.sweepTicketlessPlatformOrders,
+      {}
+    )
+
+    expect(result.repaired).toBe(0)
+    expect(await t.run((ctx) => ctx.db.query("kitchenTickets").collect())).toHaveLength(1)
+  })
+
+  test("the sweep does not put a website order on the pass", async () => {
+    // A `website` order gets its ticket from the settlement path and a `pos`
+    // one from the counter. Giving either a slip from here would put UNPAID
+    // orders in front of the kitchen.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    await t.run((ctx) =>
+      ctx.db.insert("orders", {
+        storeId,
+        orderNumber: "WEB-1",
+        status: "pending" as const,
+        paymentStatus: "pending" as const,
+        paymentMethod: "card" as const,
+        type: "delivery" as const,
+        source: "website" as const,
+        customerInfo: { name: "Client web" },
+        items: [
+          {
+            productName: "Margherita",
+            quantity: 1,
+            unitPrice: 1200,
+            selectedOptions: [],
+            subtotal: 1200,
+          },
+        ],
+        subtotal: 1200,
+        taxAmount: 0,
+        total: 1200,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+
+    const result = await t.mutation(
+      internal.orders.sweepTicketlessPlatformOrders,
+      {}
+    )
+
+    expect(result.repaired).toBe(0)
+    expect(await t.run((ctx) => ctx.db.query("kitchenTickets").collect())).toHaveLength(0)
   })
 })
 

@@ -37,6 +37,16 @@ type StoreFixture = {
   phone?: string
   email?: string
   hours: { day: number; open: string; close: string; isClosed: boolean }[]
+  /**
+   * Whether this establishment follows the deployment-wide week.
+   *
+   * Optional here because it is optional in the schema, and ABSENT is the
+   * interesting case: it is what every store nobody has saved since the column
+   * landed carries, and it means "follow the global week" everywhere in the
+   * product. An explicit `false` is the opt-out an owner writes by turning the
+   * « horaires globaux » switch off.
+   */
+  useGlobalHours?: boolean
   status: string
 }
 
@@ -67,14 +77,35 @@ const LE_COMPTOIR: StoreFixture = {
 /** What the mocked Convex query answers with. `undefined` is "still loading". */
 let store: StoreFixture | null | undefined = LE_COMPTOIR
 
+/**
+ * The deployment-wide settings row, which this page now reads too.
+ *
+ * It has to, and the reason is the defect it closes: the page called
+ * `resolveStoreHours(store)` with no second argument, so an establishment
+ * following the deployment-wide week PUBLISHED its own stale one — on the page
+ * a diner opens to find out when to turn up, while the order path enforced the
+ * other. `null` here is a deployment whose settings have never been saved, in
+ * which case the store's own week governs and these fixtures read as before.
+ */
+let globalSettings: { hours?: StoreFixture["hours"] } | null = null
+
+/**
+ * Dispatched on the query, not a single answer for all of them.
+ *
+ * `useQuery: () => store` handed the store fixture to EVERY query in the page,
+ * which was fine while there was one and is not fine now: the settings row and
+ * the store are different documents and the page resolves the week from both.
+ */
 vi.mock("convex/react", () => ({
-  useQuery: () => store,
+  useQuery: (query: string) =>
+    query === "globalSettings:get" ? globalSettings : store,
   useMutation: () => async () => undefined,
 }))
 
 vi.mock("@/convex/_generated/api", () => ({
   api: {
     stores: { getById: "stores:getById" },
+    globalSettings: { get: "globalSettings:get" },
     contactMessages: { create: "contactMessages:create" },
   },
 }))
@@ -140,6 +171,55 @@ describe("the contact page", () => {
     expect(text).toContain("11h30 - 23h30")
     expect(text).toContain("Dim")
     expect(text).toContain("Fermé")
+  })
+
+  it("publishes the GLOBAL week when the establishment follows it", async () => {
+    /**
+     * THE DEFECT THIS CLOSES. The page called `resolveStoreHours(store)` with
+     * no second argument, so the deployment-wide week could not reach it: an
+     * establishment following the global hours PUBLISHED its own stale ones,
+     * on the page a diner opens precisely to find out when to turn up, while
+     * the order path enforced the other. Two answers to one question, and the
+     * one a person reads was the wrong one.
+     *
+     * The flag is set EXPLICITLY here. `FOLLOWS_GLOBAL_HOURS_BY_DEFAULT` is
+     * `false` (#446), so an unwritten flag means "keep your own week" — this
+     * page's bug is about the establishments that genuinely do follow the
+     * global one, and those say so.
+     */
+    store = { ...LE_COMPTOIR, useGlobalHours: true }
+    globalSettings = {
+      hours: [
+        { day: 1, open: "07:00", close: "09:00", isClosed: false },
+        { day: 2, open: "07:00", close: "09:00", isClosed: false },
+        { day: 3, open: "07:00", close: "09:00", isClosed: false },
+        { day: 4, open: "07:00", close: "09:00", isClosed: false },
+        { day: 5, open: "07:00", close: "09:00", isClosed: false },
+        { day: 6, open: "07:00", close: "09:00", isClosed: false },
+        { day: 0, open: "07:00", close: "09:00", isClosed: false },
+      ],
+    }
+
+    const text = asText(await renderContactPage())
+
+    expect(text).toContain("07h00 - 09h00")
+    // And not the establishment's own, which is what it used to print.
+    expect(text).not.toContain("11h30 - 22h00")
+  })
+
+  it("keeps the establishment's own week when it has opted out", async () => {
+    // The other direction, so the fix above cannot be read as "global always
+    // wins". An explicit `false` is what an owner writes by turning the
+    // « horaires globaux » switch off.
+    globalSettings = {
+      hours: [{ day: 1, open: "07:00", close: "09:00", isClosed: false }],
+    }
+    store = { ...LE_COMPTOIR, useGlobalHours: false }
+
+    const text = asText(await renderContactPage())
+
+    expect(text).toContain("11h30 - 22h00")
+    expect(text).not.toContain("07h00 - 09h00")
   })
 
   it("shows the real phone number and email", async () => {

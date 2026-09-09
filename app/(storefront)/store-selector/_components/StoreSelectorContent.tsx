@@ -72,10 +72,32 @@ export default function StoreSelectorContent() {
       {stores && stores.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {stores.map((store: StoreDoc) => (
+            /*
+              A `<div onClick>` reported `tabIndex: -1` and `role: null` on the
+              bench, so choosing a restaurant — the first step of ordering
+              anything — could not be done from a keyboard.
+
+              Unlike the dish card, this one contains no other control, so it
+              can simply BE the button: `role`, `tabIndex`, and Enter/Space,
+              which is what a real `<button>` gives for free and what a `div`
+              has to be told. The accessible name is the restaurant's own,
+              because "button" repeated across a grid of them says nothing.
+            */
             <Card
               key={store._id}
-              className="cursor-pointer rounded-2xl transition-shadow hover:shadow-md"
+              role="button"
+              tabIndex={0}
+              aria-label={`Choisir ${store.name}`}
+              className="cursor-pointer rounded-2xl transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               onClick={() => handleSelect(store)}
+              onKeyDown={(event) => {
+                // Space scrolls the page by default, which is why it is
+                // prevented rather than merely handled.
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault()
+                  handleSelect(store)
+                }
+              }}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">

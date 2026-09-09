@@ -34,6 +34,16 @@ interface OrderSummaryProps {
   onApplyPromo?: (code: string) => void
   onRemovePromo?: () => void
   deliveryFee?: number | null // number = calculated, null = can't calculate yet, undefined = not delivery
+  /**
+   * True when the fee cannot be worked out at all — an address carrying no
+   * coordinates, or a quote that failed.
+   *
+   * Without it `deliveryFee: null` has two meanings and this row printed the
+   * optimistic one for both: "Calculée à la validation", beside an error
+   * saying the address has to be re-entered, on an order that validation was
+   * going to refuse.
+   */
+  deliveryFeeUnavailable?: boolean
   hasDeliveryAddress?: boolean
   /**
    * Applicable tax rate as a percentage, resolved the same way the server does.
@@ -51,6 +61,7 @@ export function OrderSummary({
   onApplyPromo,
   onRemovePromo,
   deliveryFee,
+  deliveryFeeUnavailable,
   hasDeliveryAddress,
   taxRatePercent = 0,
 }: OrderSummaryProps) {
@@ -142,9 +153,9 @@ export function OrderSummary({
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <h4 className="truncate text-sm font-black uppercase tracking-tight text-foreground">
+                  <h3 className="truncate text-sm font-black uppercase tracking-tight text-foreground">
                     {item.name}
-                  </h4>
+                  </h3>
                   {item.options.length > 0 && (
                     <p className="mt-0.5 truncate text-[10px] font-black uppercase text-accent-foreground">
                       +{" "}
@@ -199,6 +210,7 @@ export function OrderSummary({
               </div>
               <button
                 type="button"
+                aria-label="Retirer le code promo"
                 onClick={onRemovePromo}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-muted-foreground"
               >
@@ -220,7 +232,7 @@ export function OrderSummary({
                   onChange={(e) => setPromoInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
                   placeholder="Entrez votre code"
-                  className="h-12 flex-1 rounded-xl border-border bg-muted px-4 text-sm font-bold uppercase tracking-widest transition-all focus:bg-card focus:ring-primary/20"
+                  className="h-12 flex-1 rounded-xl border-border bg-muted px-4 text-sm font-bold uppercase tracking-widest transition-all focus:bg-card focus-visible:ring-ring"
                 />
                 <button
                   type="button"
@@ -273,6 +285,8 @@ export function OrderSummary({
               </span>
             ) : !hasDeliveryAddress ? (
               <span className="text-muted-foreground">Renseignez votre adresse</span>
+            ) : deliveryFeeUnavailable && typeof deliveryFee !== "number" ? (
+              <span className="text-destructive">À préciser</span>
             ) : typeof deliveryFee === "number" && deliveryFee === 0 ? (
               <span className="font-black text-accent-foreground">OFFERTE</span>
             ) : typeof deliveryFee === "number" && deliveryFee > 0 ? (

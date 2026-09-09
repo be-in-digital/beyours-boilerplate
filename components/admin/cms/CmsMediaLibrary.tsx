@@ -456,7 +456,7 @@ export function CmsMediaLibrary() {
                     ) : item.mimeType === "application/pdf" && item.status === "ready" ? (
                       <div className="flex flex-col items-center justify-center gap-1">
                         <FileText className="h-8 w-8 text-red-500" />
-                        <span className="text-[10px] font-bold text-red-500 uppercase">PDF</span>
+                        <span className="text-[10px] font-bold text-destructive uppercase">PDF</span>
                       </div>
                     ) : (
                       <Icon className="h-8 w-8 text-muted-foreground" />
@@ -666,7 +666,7 @@ export function CmsMediaLibrary() {
                       }}
                     >
                       {copied ? (
-                        <CheckCheck className="h-3.5 w-3.5 text-green-500" />
+                        <CheckCheck className="h-3.5 w-3.5 text-success" />
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}

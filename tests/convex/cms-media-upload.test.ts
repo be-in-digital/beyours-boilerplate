@@ -416,6 +416,61 @@ describe("confirmUpload and the SVG branch", () => {
     expect(deletedKeys()).toContain(`cms/${mediaId}/source.svg`)
   })
 
+  test("purges the refused SVG's versions, not just a delete marker over it", async () => {
+    /* The bucket `setup-aws.sh` builds has versioning ON, and there a
+       `DeleteObject` with no `VersionId` deletes nothing: it writes a delete
+       marker and keeps every prior version, still billed and still readable by
+       anyone who can name a version id. This branch shipped its own bare
+       `DeleteObjectCommand` — the very defect #331 removed from
+       `cmsMediaDelete.ts` — so the one object on this path we have decided is
+       hostile kept its bytes for the thirty days of the lifecycle rule. */
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const admin = await seedAdmin(t, storeId)
+
+    const mediaId = await seedMediaRow(t, storeId, {
+      filename: "logo.svg",
+      mimeType: "image/svg+xml",
+      size: HOSTILE_SVG.length,
+    })
+    const key = `cms/${mediaId}/source.svg`
+
+    // HEAD and GET as the SVG branch needs them; the version listing as a
+    // versioned bucket answers it.
+    send.mockImplementation(
+      async (cmd: { _cmd?: string; input?: { Prefix?: string } }) => {
+        if (cmd._cmd === "get") {
+          return { Body: { transformToString: async () => HOSTILE_SVG } }
+        }
+        if (cmd._cmd === "versions") {
+          return {
+            Versions:
+              cmd.input?.Prefix === key
+                ? [
+                    { Key: key, VersionId: "v2" },
+                    { Key: key, VersionId: "v1" },
+                  ]
+                : [],
+            DeleteMarkers: [],
+            IsTruncated: false,
+          }
+        }
+        return {}
+      }
+    )
+
+    const result = await admin.action(api.cmsMediaConfirmUpload.confirmUpload, {
+      mediaId,
+    })
+
+    expect(result.status).toBe("failed")
+    expect(deletedVersions()).toEqual([
+      `${key}@v2`,
+      `${key}@v1`,
+      `${key}@current`,
+    ])
+  })
+
   test("publishes an SVG that carries no active content", async () => {
     const t = newHarness()
     const storeId = await seedStore(t)

@@ -38,8 +38,11 @@ export function TrendingProductsPicker() {
     api.stores.getById,
     storeId ? { id: storeId } : "skip"
   )
+  // `listAll`, not `list`: this is the admin choosing which dishes to feature,
+  // so it has to see the ones not currently on sale. `list` is now the diner's
+  // view and stops at `isActive` (#443).
   const allProducts = useQuery(
-    api.products.list,
+    api.products.listAll,
     storeId ? { storeId } : "skip"
   )
   const manualTrending = useQuery(
@@ -171,7 +174,7 @@ export function TrendingProductsPicker() {
           {isManual ? (
             <Hand className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <Sparkles className="h-4 w-4 text-amber-500" />
+            <Sparkles className="h-4 w-4 text-warning" />
           )}
           <div>
             <p className="text-sm font-medium">
@@ -203,7 +206,7 @@ export function TrendingProductsPicker() {
             </div>
           ) : manualTrending.length === 0 ? (
             <div className="rounded-lg border border-dashed py-6 text-center">
-              <TrendingUp className="mx-auto h-8 w-8 text-muted-foreground/50" />
+              <TrendingUp className="mx-auto h-8 w-8 text-muted-foreground" />
               <p className="mt-2 text-sm text-muted-foreground">
                 Aucun produit tendance sélectionné
               </p>
@@ -267,7 +270,7 @@ export function TrendingProductsPicker() {
                             key={id}
                             className="flex items-center gap-2 rounded-md border bg-muted/30 px-2 py-1.5"
                           >
-                            <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                            <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <span className="text-xs font-bold text-muted-foreground w-4 text-center">
                               {index + 1}
                             </span>
@@ -387,7 +390,7 @@ export function TrendingProductsPicker() {
       {/* Automatic mode: info */}
       {!isManual && (
         <div className="rounded-lg border border-dashed bg-muted/20 py-4 px-4 text-center">
-          <Sparkles className="mx-auto h-6 w-6 text-amber-500/60" />
+          <Sparkles className="mx-auto h-6 w-6 text-warning" />
           <p className="mt-2 text-sm text-muted-foreground">
             Les produits les plus vendus des 30 derniers jours seront affichés automatiquement.
           </p>

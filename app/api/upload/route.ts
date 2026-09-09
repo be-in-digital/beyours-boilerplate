@@ -16,6 +16,7 @@ import {
   requiresEditorialPermission,
   UNAUTHENTICATED_ERROR,
 } from "@/lib/services/upload-authorization"
+import { getExtensionFromMimeType } from "@be-in-digital/cms"
 import { sanitizeSvg } from "@be-in-digital/cms/sanitize"
 import { isInlineSafeContentType } from "@/lib/services/file-serving"
 
@@ -34,15 +35,6 @@ const VALID_FOLDERS = new Set<S3Folder>([
 ])
 
 const SVG_CONTENT_TYPE = "image/svg+xml"
-
-const MIME_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/jpg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/svg+xml": "svg",
-  "application/pdf": "pdf",
-}
 
 function getS3Client() {
   return new S3Client({
@@ -154,8 +146,16 @@ export async function POST(request: Request) {
       )
     }
 
-    // Generate unique key
-    const ext = MIME_TO_EXT[contentType] || "bin"
+    // Generate unique key.
+    //
+    // From `@be-in-digital/cms`, which calls itself the single source of truth
+    // and is what the presigned Convex flow uses. This route kept a private
+    // copy holding six of its twelve entries, so every type the shared list
+    // knows and the copy did not was stored as `.bin`: an mp4 or a webm — both
+    // admitted by `ALLOWED_MIME_TYPES.cms`, both offered by the media library's
+    // own picker — and every Office document. Two maps, one of them wrong, and
+    // the wrong one is the one an upload actually went through.
+    const ext = getExtensionFromMimeType(contentType)
     const key = `${folder}/${crypto.randomUUID()}.${ext}`
 
     // Upload to S3 server-side

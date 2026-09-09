@@ -164,3 +164,52 @@ describe.each([
     expect(html).not.toContain("Réessayer")
   })
 })
+
+/**
+ * A 404 has to look like this restaurant's site, in French.
+ *
+ * There was no `not-found.tsx` anywhere in any of the three applications, so
+ * every unmatched address — a stale link, a QR code printed with an old path,
+ * an article `blog/[slug]/page.tsx` deliberately answers `notFound()` for —
+ * rendered Next's built-in default: a black page reading "404 — This page
+ * could not be found." in English, with no header, no footer and no way back.
+ *
+ * A `not-found.tsx` is a plain render, so unlike a boundary it takes no props
+ * and there is no error to classify. What is asserted is what was missing:
+ * that the file exists in each place a visitor can reach one, that it is in
+ * French, and that it offers somewhere to go.
+ */
+const NOT_FOUND_PAGES = [
+  { file: "not-found.tsx", path: "../app/not-found", wayOut: "/" },
+  {
+    file: "(storefront)/not-found.tsx",
+    path: "../app/(storefront)/not-found",
+    wayOut: "/menu",
+  },
+  {
+    file: "(admin)/not-found.tsx",
+    path: "../app/(admin)/not-found",
+    wayOut: "/dashboard",
+  },
+] as const
+
+describe("a 404 is the establishment's own page", () => {
+  it.each(NOT_FOUND_PAGES)("$file exists", ({ file }) => {
+    expect(existsSync(join(APP_ROOT, file))).toBe(true)
+  })
+
+  it.each(NOT_FOUND_PAGES)("$file renders French and a way out", async ({
+    path,
+    wayOut,
+  }) => {
+    const { default: NotFound } = (await import(path)) as {
+      default: () => React.ReactElement
+    }
+    const html = decode(renderToStaticMarkup(<NotFound />))
+
+    expect(html).toContain("Cette page n'existe pas")
+    // The English default this replaces.
+    expect(html).not.toContain("This page could not be found")
+    expect(html).toContain(`href="${wayOut}"`)
+  })
+})

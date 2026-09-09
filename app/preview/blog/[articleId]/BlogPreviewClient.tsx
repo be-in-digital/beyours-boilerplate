@@ -78,7 +78,7 @@ export function BlogPreviewClient({ articleId }: BlogPreviewClientProps) {
       <article className="mx-auto max-w-3xl px-4 py-10 space-y-8">
         {/* Category */}
         {categoryName && (
-          <p className="text-sm font-medium text-primary uppercase tracking-wider">
+          <p className="text-sm font-medium text-primary-ink uppercase tracking-wider">
             {categoryName}
           </p>
         )}

@@ -71,6 +71,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
     label: t(link.labelKey),
   }))
   const itemCount = useCartStore((s) => s.getItemCount())
+
   const reservationUrl = useReservationUrl()
   const cms = useCmsPage("storefront-layout")
   const logoUrl = cms.block("branding").field("logo").mediaUrl
@@ -84,6 +85,24 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
     () => true,
     () => false,
   )
+
+  /*
+    The badge is a `<span>` holding a number, which a screen reader announces
+    on neither focus nor change — so the cart button said "Ouvrir la Box" to a
+    blind diner with four dishes in it exactly as it did to one with none. The
+    count belongs in the button's own name, which is read every time the button
+    is reached.
+
+    `hasMounted` gates it for the same reason it gates the badge: the cart is
+    rehydrated from `localStorage` after hydration, and a label built from a
+    count the server did not have is a mismatch React will complain about.
+    Announcing a CHANGE is `CartAnnouncer`'s job; this is what the control is
+    called.
+  */
+  const cartLabel =
+    hasMounted && itemCount > 0
+      ? t("accessibility.openBoxWithCount", { count: itemCount })
+      : t("accessibility.openBox")
 
   const isHomePage = pathname === "/"
 
@@ -199,7 +218,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                         ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
                         : "bg-card border-border shadow-sm text-accent-foreground hover:bg-muted"
                     }`}
-                    aria-label={t("accessibility.openBox")}
+                    aria-label={cartLabel}
                   >
                     <ShoppingBag className="h-4 w-4" />
                     {hasMounted && itemCount > 0 && (
@@ -229,7 +248,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
                   ? "bg-white/10 border-white/20 text-white"
                   : "bg-card border-border shadow-sm text-accent-foreground"
               }`}
-              aria-label={t("accessibility.openBox")}
+              aria-label={cartLabel}
             >
               <ShoppingBag className="h-4 w-4" />
               {hasMounted && itemCount > 0 && (

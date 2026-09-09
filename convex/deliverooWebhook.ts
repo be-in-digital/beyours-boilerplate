@@ -2,11 +2,15 @@
 
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
+import { captureBackendError } from "./errorReporting";
 import type { ActionCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { toKitchenTicketItemsFromPlatform } from "@be-in-digital/convex-functions/orders";
-import { resolveStoreIntegration } from "@be-in-digital/convex-functions/platformWebhook";
+import {
+  resolveMenuStoreIntegration,
+  resolveStoreIntegration,
+} from "@be-in-digital/convex-functions/platformWebhook";
 
 // ============================================================================
 // Types
@@ -412,13 +416,6 @@ async function handleNewOrder(
     `Created order ${internalOrderId} from Deliveroo ${order.id} (${fulfillmentType}, asap=${order.asap})`
   );
 
-  // Duplicate webhook (Deliveroo retry): the order already exists and was
-  // already accepted/rejected on first delivery — do not re-accept.
-  if (!created) {
-    console.log(`Duplicate Deliveroo order.new for ${order.id} — skipping re-accept`);
-    return { success: true, internalOrderId, duplicate: true };
-  }
-
   // Create kitchen ticket for KDS.
   //
   // Without this a Deliveroo order existed in the database and nowhere else:
@@ -428,27 +425,68 @@ async function handleNewOrder(
   // `source: "deliveroo"`. It sits before the credentials check on purpose —
   // the kitchen must be told about the order whether or not we can talk back
   // to Deliveroo.
-  try {
-    const trackingToken = `dl-${order.id.slice(-8)}-${Date.now().toString(36)}`;
+  //
+  // BEFORE THE DUPLICATE SHORT-CIRCUIT, and that ordering is the fix. This
+  // block used to sit after a `if (!created) return`, so a redelivery — the one
+  // event that could repair a ticket whose first creation failed — returned
+  // without ever reaching it. `tasks/sales-readiness-backlog.md` records P0-10
+  // as RESOLVED, and the same outcome was reachable by this other path: an
+  // order in the database, a 200 back to Deliveroo, no slip on the pass, and
+  // nothing that would ever retry. None of the 12 crons reconciles a ticketless
+  // order either.
+  //
+  // Asking first rather than creating unconditionally: the redelivery must
+  // repair a MISSING ticket without adding a second one to an order the kitchen
+  // is already cooking.
+  const hasTicket: boolean = await ctx.runQuery(
+    internal.kitchenTickets.internalHasTicketForOrder,
+    { orderId: internalOrderId as Id<"orders"> }
+  );
 
-    await ctx.runMutation(internal.kitchenTickets.internalCreate, {
-      storeId,
-      orderId: internalOrderId as Id<"orders">,
-      orderNumber,
-      orderType,
-      // One mapping, in the package, tested across the seam. Hand-rolling it
-      // is what dropped the allergy note on the Uber path.
-      items: toKitchenTicketItemsFromPlatform(items),
-      priority: "normal" as const,
-      source: "deliveroo" as const,
-      trackingToken,
-      customerName,
-      customerPhone: order.customer?.phone_number ?? order.customer?.phone,
-      deliveryNotes: order.notes,
-    });
-    console.log(`Created kitchen ticket for Deliveroo order ${orderNumber}`);
-  } catch (error) {
-    console.error(`Failed to create kitchen ticket:`, error);
+  if (!hasTicket) {
+    try {
+      const trackingToken = `dl-${order.id.slice(-8)}-${Date.now().toString(36)}`;
+
+      await ctx.runMutation(internal.kitchenTickets.internalCreate, {
+        storeId,
+        orderId: internalOrderId as Id<"orders">,
+        orderNumber,
+        orderType,
+        // One mapping, in the package, tested across the seam. Hand-rolling it
+        // is what dropped the allergy note on the Uber path.
+        items: toKitchenTicketItemsFromPlatform(items),
+        priority: "normal" as const,
+        source: "deliveroo" as const,
+        trackingToken,
+        customerName,
+        customerPhone: order.customer?.phone_number ?? order.customer?.phone,
+        deliveryNotes: order.notes,
+      });
+      console.log(`Created kitchen ticket for Deliveroo order ${orderNumber}`);
+    } catch (error) {
+      // REPORTED, not just logged. This was a bare `console.error` in an 854-line
+      // file with zero `captureBackendError` calls, while its Uber Eats twin had
+      // three — so the one failure that silently costs a restaurant a meal was
+      // visible only to whoever thought to open that client's Convex logs. The
+      // handler still answers 200: Deliveroo's retry is now able to repair this,
+      // which it was not before, and a 5xx would re-run the whole accept flow.
+      console.error(`Failed to create kitchen ticket:`, error);
+      await captureBackendError(ctx, {
+        error,
+        source: "deliverooWebhook",
+        tags: { step: "kitchen-ticket" },
+        extra: { externalOrderId: order.id, orderNumber },
+      });
+    }
+  }
+
+  // Duplicate webhook (Deliveroo retry): the order already exists and was
+  // already accepted/rejected on first delivery — do not re-accept. The ticket
+  // above has been repaired if it was missing, which is the whole reason this
+  // return now comes second.
+  if (!created) {
+    console.log(`Duplicate Deliveroo order.new for ${order.id} — skipping re-accept`);
+    return { success: true, internalOrderId, duplicate: true };
   }
 
   if (!credentials) {
@@ -765,21 +803,20 @@ export const processMenuWebhook = internalAction({
         { platform: "deliveroo" }
       )) as StoreIntegrationRecord[];
 
-      // Menu webhooks may include site_id, brand_id, or both
-      let integration = args.siteId
-        ? allIntegrations.find((i) => i.platformStoreId === args.siteId)
-        : undefined;
+      // Menu webhooks may include site_id, brand_id, or both — and the same
+      // refusal policy the order path uses applies to both. A site id that
+      // names nothing used to fall through to the brand, which matches every
+      // location of the chain, so the sync status landed on whichever sibling
+      // sorted first.
+      const resolution = resolveMenuStoreIntegration(
+        allIntegrations,
+        args.siteId,
+        args.brandId
+      );
 
-      // Fallback: match by brandId if siteId not provided or not found
-      if (!integration && args.brandId) {
-        integration = allIntegrations.find(
-          (i) => i.brandId === args.brandId
-        );
-      }
-
-      if (!integration) {
+      if (!resolution.ok) {
         console.error(
-          `No Deliveroo integration found for siteId: ${args.siteId}, brandId: ${args.brandId}`
+          `No Deliveroo integration for siteId "${args.siteId}", brandId "${args.brandId}" (${resolution.reason})`
         );
         return {
           success: false,
@@ -788,7 +825,7 @@ export const processMenuWebhook = internalAction({
         };
       }
 
-      const storeId = integration.storeId;
+      const storeId = resolution.integration.storeId;
 
       if (args.event === "menu.upload_completed") {
         await ctx.runMutation(

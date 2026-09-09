@@ -42,6 +42,70 @@ const Fh = (c) => `hsl(${F(c)})`;
 const mix = (a, b, t) => ({ h: a.h + (b.h - a.h) * t, s: a.s + (b.s - a.s) * t, l: a.l + (b.l - a.l) * t });
 const clampL = (c, lo, hi) => ({ h: c.h, s: c.s, l: Math.max(lo, Math.min(hi, c.l)) });
 
+/* ── Contrast ──
+ *
+ * WHY THE GENERATOR MEASURES ITS OWN OUTPUT NOW. #436 fixed the catalogue by
+ * hand — 51 `theme.css` files, `--input` lifted off `--border`, `--muted`
+ * separated from `--muted-foreground` — and did NOT touch this script. So this
+ * script went on emitting the pre-#436 arithmetic, and `node
+ * scripts/gen-templates.mjs` silently reverted the whole fix: measured on the
+ * tree at `b9e20ea`, a regeneration rewrote 164 lines across 45 templates,
+ * putting `--input` back onto `--border` in all of them. That is the defect
+ * `globals.css` describes as "the product was, to a low-vision user, a
+ * rectangle that was not there", restored by running a maintenance command.
+ *
+ * Derived rather than transcribed, for that reason: a constant copied out of a
+ * fixed file drifts the moment the file is fixed again. A rule that walks until
+ * it MEASURES a pass cannot.
+ */
+const srgb = (v) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : (((v / 255) + 0.055) / 1.055) ** 2.4);
+function rgbOf({ h, s, l }) {
+  const S = s / 100, L = l / 100;
+  const c = (1 - Math.abs(2 * L - 1)) * S, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = L - c / 2;
+  const [r, g, b] =
+    h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] :
+    h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+}
+const luminance = (c) => { const [r, g, b] = rgbOf(c); return 0.2126 * srgb(r) + 0.7152 * srgb(g) + 0.0722 * srgb(b); };
+const ratio = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+
+/**
+ * Walk `colour`'s lightness away from `dark ? white : black` until it clears
+ * `floor` against every ground in `grounds`.
+ *
+ * Half a point at a time, hue and saturation untouched: the template's identity
+ * is its hue, and the only thing a contrast failure ever needs is lightness.
+ * Returns the input unchanged when it already passes, so a sound palette is
+ * emitted exactly as it was derived.
+ */
+function readable(colour, grounds, floor, dark) {
+  // Measured on the value that will actually be WRITTEN, not on the one being
+  // considered: `F()` rounds to whole degrees and percents, so a candidate that
+  // clears the floor at 51.5% can be emitted as 52% and land back under it.
+  // Rounding first is what makes the emitted stylesheet the thing that passed.
+  const round = (c) => ({ h: Math.round(c.h), s: Math.round(c.s), l: Math.round(c.l) });
+  const rounded = grounds.map(round);
+  const step = dark ? 1 : -1;
+  let l = Math.round(colour.l);
+  for (let i = 0; i <= 200; i++) {
+    const candidate = { h: Math.round(colour.h), s: Math.round(colour.s), l };
+    if (rounded.every((g) => ratio(candidate, g) >= floor)) return candidate;
+    l += step;
+    if (l < 0 || l > 100) break;
+  }
+  return { h: Math.round(colour.h), s: Math.round(colour.s), l: Math.max(0, Math.min(100, l)) };
+}
+
+/**
+ * A margin over the WCAG floor, not the floor itself.
+ *
+ * A value that measures exactly 4.500 passes today and fails on the next
+ * rounding change anywhere in the chain. Half a tenth costs nothing visible.
+ */
+const TEXT = 4.6;   // WCAG 2.1 AA, normal text
+const NON_TEXT = 3.1; // WCAG 2.1 1.4.11, a control boundary
+
 function derive(C) {
   const bg = P(C.bg), fg = P(C.fg), p = P(C.p), a = P(C.a), af = P(C.af), pf = P(C.pf);
   const dark = bg.l < 50;
@@ -54,7 +118,47 @@ function derive(C) {
     clampL({ h: (p.h + 45) % 360, s: 70, l: 0 }, dark ? 55 : 48, dark ? 62 : 54),
     clampL({ h: (p.h + 200) % 360, s: 45, l: 0 }, dark ? 55 : 45, dark ? 60 : 50),
     clampL({ h: (p.h + 300) % 360, s: 50, l: 0 }, dark ? 58 : 50, dark ? 64 : 56)];
-  return { bg, fg, p, pf, a, af, card, sec, mutedFg, border, dark, chart };
+  /*
+   * `--input` is the BOUNDARY OF EVERY FORM FIELD, and WCAG 1.4.11 asks 3:1 of
+   * it because a user has to find the field. It used to be emitted as
+   * `--border` — a decorative separator, which 1.4.11 does not reach — and 51
+   * templates shipped fields whose edge measured 1.09–1.21:1.
+   */
+  const input = readable(border, [bg], NON_TEXT, dark);
+
+  /*
+   * `--muted-foreground` is the quietest ink in the product and the most
+   * written: 952 places, on four different surfaces. `mix(fg, bg, 0.34)` puts
+   * it a third of the way to the page, which lands between 3.05:1 and 3.26:1 on
+   * a warm template — well under AA for body text. #436 corrected it by hand in
+   * 32 places and this script reverted all 32 the next time it ran.
+   *
+   * Corrected FIRST, because `--muted` is then separated from whatever this
+   * settles on; doing it the other way round chases its own tail.
+   */
+  const mutedInk = readable(mutedFg, [bg, card, sec, a], TEXT, dark);
+
+  /*
+   * `--muted` is emitted as `--secondary`, and `--muted-foreground` is written
+   * on it. Separated here until the pair clears AA rather than left to chance.
+   */
+  const muted = readable(sec, [mutedInk], TEXT, !dark);
+
+  /*
+   * `--primary-ink`: the brand colour a WORD is written in, as opposed to the
+   * one a BUTTON is filled with. `globals.css` has carried this split since
+   * #410 — "text-primary-ink, never text-primary, for a word" — and NO template
+   * declared it, so all 51 fell back to the engine's orange while overriding
+   * `--primary` to their own hue. Any markup still writing `text-primary` then
+   * met the template's FILL colour: 20 of the 51 failed AA that way, worst
+   * 3.02:1 on `asiatique-dragon`.
+   *
+   * Derived from this template's own primary so the brand survives, walked
+   * until it can be read on every surface a word lands on.
+   */
+  const primaryInk = readable(p, [bg, card, muted, a], TEXT, dark);
+
+  return { bg, fg, p, pf, a, af, card, sec, mutedFg: mutedInk, border, input, muted, primaryInk, dark, chart };
 }
 const tokenBlock = (sel, C) => {
   const d = derive(C);
@@ -67,14 +171,15 @@ const tokenBlock = (sel, C) => {
   --popover-foreground: ${F(d.fg)};
   --primary: ${F(d.p)};
   --primary-foreground: ${F(d.pf)};
+  --primary-ink: ${F(d.primaryInk)};
   --secondary: ${F(d.sec)};
   --secondary-foreground: ${F(d.fg)};
-  --muted: ${F(d.sec)};
+  --muted: ${F(d.muted)};
   --muted-foreground: ${F(d.mutedFg)};
   --accent: ${F(d.a)};
   --accent-foreground: ${F(d.af)};
   --border: ${F(d.border)};
-  --input: ${F(d.border)};
+  --input: ${F(d.input)};
   --ring: ${F(d.p)};
   --chart-1: ${F(d.chart[0])};
   --chart-2: ${F(d.chart[1])};

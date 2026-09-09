@@ -376,3 +376,15 @@ export const releaseConfirmationClaim = internalMutation({
   args: { orderId: v.id("orders") },
   handler: (ctx, args) => releaseOrderConfirmationClaim(ctx, args.orderId),
 });
+
+/**
+ * Give a slip to a platform order that reached the kitchen nowhere.
+ *
+ * Scheduled from `crons.ts`; internal because a sweep runs with no identity.
+ * The webhooks repair this on a platform redelivery, which is the fast path;
+ * this is the backstop for a retry that never comes. Definition and reasoning
+ * live in `@be-in-digital/convex-functions/orders`.
+ */
+export const sweepTicketlessPlatformOrders = internalMutation(
+  defs.sweepTicketlessPlatformOrders
+);

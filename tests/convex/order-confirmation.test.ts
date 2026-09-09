@@ -593,6 +593,171 @@ describe("what the confirmation says", () => {
   })
 })
 
+/**
+ * The timing row, which had never printed for any order.
+ *
+ * These go through `api.orders.create` rather than `seedOrder`, and that is the
+ * whole point: every other test in this file inserts an order document
+ * directly, so they exercise the RENDERER and can say nothing about whether an
+ * order the checkout builds carries the field the renderer reads.
+ * `packages/core`'s unit tests had the same shape — they call `timingLine`
+ * with an `estimatedPrepTime` they supply themselves — and all of them were
+ * green while `orders.create` wrote the computed prep time onto the kitchen
+ * ticket and not onto the order, so « Prête dans environ … » was never once
+ * sent to a diner (#413).
+ */
+describe("what the confirmation says about timing", () => {
+  /** A dish with a preparation time, in its own category. */
+  async function seedDish(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    dish: { name: string; price: number; preparationTime?: number }
+  ) {
+    return t.run(async (ctx) => {
+      const categoryId = await ctx.db.insert("categories", {
+        storeId,
+        name: "Pizzas",
+        slug: `pizzas-${dish.name.toLowerCase()}`,
+        sortOrder: 0,
+        isActive: true,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+      return ctx.db.insert("products", {
+        storeId,
+        categoryId,
+        name: dish.name,
+        slug: dish.name.toLowerCase(),
+        price: dish.price,
+        taxRate: 10,
+        preparationTime: dish.preparationTime,
+        images: [],
+        options: [],
+        allergens: [],
+        tags: [],
+        isActive: true,
+        isFeatured: false,
+        sortOrder: 0,
+        source: "manual",
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    })
+  }
+
+  /** The checkout mutation, with one line per dish. */
+  function checkout(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    lines: Array<{ productId: Id<"products">; name: string; price: number }>
+  ) {
+    return t.mutation(api.orders.create, {
+      storeId,
+      customerInfo: { name: "Camille", email: "camille@example.com" },
+      items: lines.map((line) => ({
+        productId: line.productId,
+        productName: line.name,
+        quantity: 1,
+        unitPrice: line.price,
+        selectedOptions: [],
+        subtotal: line.price,
+      })),
+      type: "pickup" as const,
+    })
+  }
+
+  test("tells the diner how long their food will take", async () => {
+    const t = newHarness()
+    await seedGlobalSettings(t)
+    const storeId = await seedStore(t)
+    const productId = await seedDish(t, storeId, {
+      name: "Margherita",
+      price: 1_200,
+      preparationTime: 15,
+    })
+
+    const orderId = (await checkout(t, storeId, [
+      { productId, name: "Margherita", price: 1_200 },
+    ])) as Id<"orders">
+
+    await settleAndDeliver(t, () => payByCard(t, orderId))
+
+    for (const body of bodies(onlyEmail())) {
+      expect(body).toContain("Prête dans environ 15 minutes")
+    }
+  })
+
+  test("quotes the longest dish, because a kitchen cooks in parallel", async () => {
+    const t = newHarness()
+    await seedGlobalSettings(t)
+    const storeId = await seedStore(t)
+    const quick = await seedDish(t, storeId, {
+      name: "Tiramisu",
+      price: 490,
+      preparationTime: 5,
+    })
+    const slow = await seedDish(t, storeId, {
+      name: "Margherita",
+      price: 1_200,
+      preparationTime: 20,
+    })
+
+    const orderId = (await checkout(t, storeId, [
+      { productId: quick, name: "Tiramisu", price: 490 },
+      { productId: slow, name: "Margherita", price: 1_200 },
+    ])) as Id<"orders">
+
+    await settleAndDeliver(t, () => payByCard(t, orderId))
+
+    for (const body of bodies(onlyEmail())) {
+      // 20, not 25: the same rule `summariseOrderLines` applies to a slip.
+      expect(body).toContain("Prête dans environ 20 minutes")
+      expect(body).not.toContain("25 minutes")
+    }
+  })
+
+  test("stores the figure on the order, not only on the kitchen ticket", async () => {
+    // The seam itself. The ticket is a different document, created later and
+    // per station, and it is where the prep time used to go and stop.
+    const t = newHarness()
+    await seedGlobalSettings(t)
+    const storeId = await seedStore(t)
+    const productId = await seedDish(t, storeId, {
+      name: "Margherita",
+      price: 1_200,
+      preparationTime: 15,
+    })
+
+    const orderId = (await checkout(t, storeId, [
+      { productId, name: "Margherita", price: 1_200 },
+    ])) as Id<"orders">
+
+    const order = await t.run((ctx) => ctx.db.get(orderId as Id<"orders">))
+    expect(order?.estimatedPrepTime).toBe(15)
+  })
+
+  test("says nothing at all when no dish declares a preparation time", async () => {
+    // No row is honest; « Prête dans environ 0 minutes » is not.
+    const t = newHarness()
+    await seedGlobalSettings(t)
+    const storeId = await seedStore(t)
+    const productId = await seedDish(t, storeId, {
+      name: "Margherita",
+      price: 1_200,
+    })
+
+    const orderId = (await checkout(t, storeId, [
+      { productId, name: "Margherita", price: 1_200 },
+    ])) as Id<"orders">
+
+    await settleAndDeliver(t, () => payByCard(t, orderId))
+
+    for (const body of bodies(onlyEmail())) {
+      expect(body).not.toMatch(/Prête dans environ/i)
+    }
+  })
+})
+
 describe("who the confirmation comes from", () => {
   test("the establishment's own address when it has configured one", async () => {
     const t = newHarness()

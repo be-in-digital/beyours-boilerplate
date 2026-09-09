@@ -7,8 +7,21 @@
  *
  * The available tokens are those of app/globals.css (HSL without hsl()):
  *   --primary, --secondary, --accent, --background, --foreground, --card,
- *   --muted, --border, --ring, --radius, --success, --warning, --info,
+ *   --muted, --border, --input, --ring, --radius, --success, --warning, --info,
  *   --status-pending … --status-cancelled, --chart-1 … --chart-5
+ *
+ * Two of those are easy to get wrong, so they are called out:
+ *
+ *   --primary-ink  the brand colour a WORD is written in, as opposed to
+ *                  --primary, which a BUTTON is filled with. Override --primary
+ *                  and you must override this too, or every word in
+ *                  `text-primary-ink` keeps the engine's orange. It has to
+ *                  clear 4.5:1 on --background, --card, --muted and --accent.
+ *   --input        the BOUNDARY of a form field, and not the same thing as
+ *                  --border, which is a decorative separator. WCAG 1.4.11 asks
+ *                  3:1 of it against --background, because a user has to find
+ *                  the field. Setting it equal to --border is the mistake that
+ *                  once shipped in all 51 templates.
  *
  * Example — moving the default orange accent to a brick red:
  *

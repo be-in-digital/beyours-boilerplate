@@ -88,7 +88,7 @@ export const importFromStore = action({
       );
 
       // 5. Load existing categories and mappings
-      const existingCategories = await ctx.runQuery(api.categories.list, {
+      const existingCategories = await ctx.runQuery(api.categories.listAll, {
         storeId: args.storeId,
       }) as CategoryRecord[];
 

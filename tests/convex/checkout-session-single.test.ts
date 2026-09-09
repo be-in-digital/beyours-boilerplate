@@ -62,7 +62,7 @@ const stripeFake = vi.hoisted(() => ({
   createErrorType: null as string | null,
   /** When set, `sessions.retrieve` throws — a Stripe read failure. */
   retrieveFails: false,
-  /** How many times the nightly probe asked Stripe anything. */
+  /** How many times the hourly probe asked Stripe anything. */
   balanceReads: 0,
   /** When set, `balance.retrieve` throws a Stripe error of this `type`. */
   balanceErrorType: null as string | null,
@@ -595,7 +595,7 @@ describe("a key Stripe refuses", () => {
     expect((await t.query(api.paymentAvailability.get)).card).toBe(true)
   })
 
-  test("the nightly check asks Stripe on its own", async () => {
+  test("the hourly check asks Stripe on its own", async () => {
     // Left to the checkout alone, the first diner of the day is the one who
     // finds out. `verifyStripeKey` runs on the scheduler so the tile is
     // already down when the restaurant opens.
@@ -607,7 +607,7 @@ describe("a key Stripe refuses", () => {
     expect(stripeFake.balanceReads).toBe(1)
   })
 
-  test("the nightly check disarms the tile before any diner sees it", async () => {
+  test("the hourly check disarms the tile before any diner sees it", async () => {
     const t = newHarness()
     await seedSettings(t)
     stripeFake.balanceErrorType = "StripeAuthenticationError"
@@ -620,7 +620,7 @@ describe("a key Stripe refuses", () => {
     expect((await t.query(api.paymentAvailability.get)).card).toBe(false)
   })
 
-  test("the nightly check leaves the last verdict standing on an outage", async () => {
+  test("the hourly check leaves the last verdict standing on an outage", async () => {
     // A Stripe outage is not a verdict about our key, and overwriting one with
     // a guess would take card payments away from a working establishment for
     // as long as the outage lasted.

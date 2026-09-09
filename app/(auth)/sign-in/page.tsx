@@ -114,7 +114,7 @@ function SignInForm() {
                   <Input
                     id="email"
                     type="email"
-                    className="h-16 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10 focus:border-primary/20"
+                    className="h-16 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus-visible:ring-ring focus:border-primary/20"
                     placeholder="jean@exemple.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -144,7 +144,7 @@ function SignInForm() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    className="h-16 pl-12 pr-12 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10 focus:border-primary/20"
+                    className="h-16 pl-12 pr-12 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus-visible:ring-ring focus:border-primary/20"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -152,8 +152,9 @@ function SignInForm() {
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-card-foreground transition-colors"
+                    className="absolute right-3.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-card-foreground transition-colors"
                     tabIndex={-1}
                   >
                     {showPassword ? (

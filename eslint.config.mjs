@@ -34,13 +34,18 @@ const eslintConfig = defineConfig([
   },
   {
     // The authorisation seam only applies where a Convex function becomes
-    // publicly callable: the app's own `convex/` wrappers. `lib/` holds the
-    // seam itself and `_generated/` is machine-written.
+    // publicly callable: the app's own `convex/` wrappers. `_generated/` is
+    // machine-written and ignored globally above.
     //
     // This is the same rule `apps/reference` runs, imported from the package
     // that owns the seam. A client site is cloned from HERE, so the guard has
     // to travel with the template, not stay behind in the test bench.
-    files: ["convex/*.ts"],
+    // `convex/**/*.ts`, not `convex/*.ts`. One level left `convex/lib/` and
+    // `convex/migrations/` unlinted — no builder call lives there today, which
+    // is exactly why the hole was invisible: the glob was not proved by
+    // anything, so the first file added under a subdirectory would have
+    // inherited no guard at all.
+    files: ["convex/**/*.ts"],
     plugins: { convex: convexAuth },
     rules: {
       "convex/no-unguarded-convex-function": "error",

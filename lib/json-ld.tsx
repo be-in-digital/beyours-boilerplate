@@ -413,23 +413,42 @@ export function buildBreadcrumbSchema(
 // ---------------------------------------------------------------------------
 
 /**
- * Renders a JSON-LD script tag for embedding in a page.
+ * JSON, serialised so it cannot end the `<script>` element it sits in.
  *
- * SECURITY NOTE: JSON.stringify does NOT escape the </script> sequence.
- * We sanitize the output to prevent XSS via script tag breakout.
+ * WHY NOT A REGULAR EXPRESSION FOR `</script>`. That is what this did, and it
+ * matched the literal string only. An HTML parser ends a script element at
+ * `</script` followed by whitespace, `/` or `>` — so `</script >`,
+ * `</script/>` and `</script\n>` all walked straight through a
+ * `.replace(/<\/script>/gi, …)` and closed the tag. Everything after them was
+ * parsed as markup. The fields reaching this function are an establishment's
+ * own copy: the article title, the dish name, the address.
+ *
+ * ESCAPING `<` INSTEAD closes the whole class rather than the spelling that was
+ * noticed. No `</script` variant can survive an escaped `<`, and neither can
+ * `<!--`, which starts a comment the script parser also honours. `>` and `&`
+ * go with it so that `-->` and entity tricks cannot reconstitute either.
+ *
+ * `\u003c` is a JSON string escape, so `JSON.parse` — and every consumer of
+ * `application/ld+json`, Google's included — reads back the original
+ * character. The document is not altered; only its spelling on the wire is.
+ */
+export function serializeJsonLd(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+}
+
+/**
+ * Renders a JSON-LD script tag for embedding in a page.
  */
 export function JsonLd({ data }: { data: JsonLdDocument | undefined }) {
   if (!data) return null
 
-  const jsonString = JSON.stringify(pruneUndefined(data)).replace(
-    /<\/script>/gi,
-    "<\\/script>",
-  )
-
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: jsonString }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(pruneUndefined(data)) }}
     />
   )
 }

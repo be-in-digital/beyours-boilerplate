@@ -206,7 +206,7 @@ function SignUpForm() {
                   <Input
                     id="name"
                     type="text"
-                    className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10"
+                    className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus-visible:ring-ring"
                     placeholder="Jean Dupont"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -228,7 +228,7 @@ function SignUpForm() {
                   <Input
                     id="email"
                     type="email"
-                    className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus:ring-primary/10"
+                    className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted focus:bg-card transition-all text-card-foreground font-bold placeholder:text-muted-foreground focus:ring-4 focus-visible:ring-ring"
                     placeholder="jean@exemple.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -260,8 +260,9 @@ function SignUpForm() {
                     />
                     <button
                       type="button"
+                      aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-card-foreground transition-colors"
+                      className="absolute right-3 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-card-foreground transition-colors"
                       tabIndex={-1}
                     >
                       {showPassword ? (

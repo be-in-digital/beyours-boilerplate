@@ -60,6 +60,35 @@ import { formatFailures, loadTokens, scanContrast } from "@be-in-digital/ui/cont
  * literal hex were this scope's own values. The admin, the kitchen display and
  * the engine packages are outside.
  */
+/**
+ * The two surfaces a shell paints, taken from the shell rather than typed out.
+ *
+ * A hex copied into a test is a hex that goes stale silently, in the direction
+ * of passing: repaint the game arena and this file would keep measuring
+ * against the old colour and keep saying everything is fine. So each is read
+ * from the source that declares it, and the read failing is the test failing.
+ */
+function declaredSurface(file: string, pattern: RegExp): string {
+  const source = readFileSync(join(process.cwd(), file), "utf8")
+  const match = pattern.exec(source)
+  if (!match?.[1]) {
+    throw new Error(`no surface colour found in ${file} — the shell was repainted or moved`)
+  }
+  return match[1]
+}
+
+/** `bg-[#120d1a]` on the wrapper every QR-game screen renders inside. */
+const GAME_ARENA = declaredSurface(
+  "node_modules/@be-in-digital/admin/src/game/game-shell.tsx",
+  /className="[^"]*\bbg-\[(#[0-9a-fA-F]{3,8})\]/
+)
+
+/** `background: #0f172a` on `.display-root`, the kitchen screen's own sheet. */
+const KITCHEN_DISPLAY = declaredSurface(
+  "app/display/[storeId]/display.css",
+  /\.display-root\s*\{[^}]*background:\s*(#[0-9a-fA-F]{3,8})/
+)
+
 const REGIONS = [
   // The trees a scope wraps come first: a file is measured once, under the
   // scope of whichever region claims it. `(auth)` is in this list because its
@@ -70,14 +99,79 @@ const REGIONS = [
   { dir: "components/storefront", scope: ".storefront-theme" },
   { dir: "components/website", scope: ".storefront-theme" },
   { dir: "app/(auth)", scope: ".storefront-theme" },
-  // Then everything else this app renders — the admin, the kitchen display,
-  // the QR game, the CMS preview, the error boundaries.
-  { dir: "app", scope: "" },
-  { dir: "components", scope: "" },
-  { dir: "lib", scope: "" },
+  // The two trees whose background is painted by a shell in another file, and
+  // which were therefore measured by NOTHING: every pair in them came back
+  // `surfaceKnown: false` and was dropped. Naming the surface is a claim about
+  // what the shell paints, and each is checked against its source below.
+  //
+  //   the QR game — `bg-[#120d1a]` on the wrapper in
+  //   `@be-in-digital/admin/src/game/game-shell.tsx`, opaque, covering all
+  //   eleven screens under `game/`;
+  //   the kitchen display — `background: #0f172a` on `.display-root`, in
+  //   `app/display/[storeId]/display.css`, which no `.tsx` mentions at all.
+  //
+  // They come before the general `app`/`components` entries for the same
+  // reason the scoped trees do: first region to claim a file wins it.
+  { dir: "node_modules/@be-in-digital/admin/src/game", scope: "", surface: GAME_ARENA },
+  { dir: "app/display", scope: "", surface: KITCHEN_DISPLAY },
+  // One FILE, not a directory: `block-preview.tsx` draws an EMAIL, and an
+  // email lands on its own white ground whatever the admin's colour scheme is
+  // — so it paints `bg-white` itself and every colour inside it is chosen for
+  // that. The sweep cannot see the connection, because the blocks come back
+  // from a closure rather than nested under the element that paints them; its
+  // neighbours in the same directory are ordinary admin chrome on
+  // `--background`, so the declaration has to be this narrow.
+  {
+    dir: "node_modules/@be-in-digital/admin/src/pages/email/templates/block-preview.tsx",
+    scope: "",
+    surface: "#ffffff",
+  },
+  // Then everything else this app renders — the admin, the CMS preview, the
+  // error boundaries.
+  //
+  // `surface: "background"` is the same kind of claim as the two literals
+  // above, made about a token rather than a hex because the admin has two
+  // colour schemes: `SidebarInset` in `@be-in-digital/ui/src/components/
+  // Sidebar.tsx` paints `bg-background`, `app/(admin)/layout.tsx` renders every
+  // page inside it, and nothing between them paints anything else. Without it
+  // these trees produced a `<page>` surface flagged `surfaceKnown: false` and
+  // dropped — 95 pairs, which is most of what this sweep finds, thrown away for
+  // want of the sentence above.
+  //
+  // A component sitting on a `--card` rather than the page is measured against
+  // the page here, which is the conservative direction on the pairs that
+  // matter: an ink that fails on `--background` fails on `--card` and `--muted`
+  // too, both being within a few points of it in each scheme.
+  { dir: "app", scope: "", surface: "background" },
+  { dir: "components", scope: "", surface: "background" },
+  { dir: "lib", scope: "", surface: "background" },
   // And the two engine packages, which render inside the admin.
-  { dir: "node_modules/@be-in-digital/ui/src", scope: "" },
-  { dir: "node_modules/@be-in-digital/admin/src", scope: "" },
+  { dir: "node_modules/@be-in-digital/ui/src", scope: "", surface: "background" },
+  { dir: "node_modules/@be-in-digital/admin/src", scope: "", surface: "background" },
+]
+
+/**
+ * Files whose surface genuinely cannot be read from any source.
+ *
+ * Not a suppression list — an inventory, asserted to be exactly this. The
+ * storefront header is `bg-white/10` over the HERO IMAGE in its transparent
+ * state, and no static reading can say what colour a photograph is; its two
+ * dropdowns and the user menu render inside that same bar and inherit the
+ * problem, and the favourite button sits on a product photo.
+ *
+ * Everything NOT on this list must resolve. That is the half that was missing:
+ * the sweep used to drop every unresolved pair with `filter(surfaceKnown)`, so
+ * a new component whose surface it could not read joined 150 others in silence
+ * — the guarded count was 0 of 150. Now an unreadable surface in a new file
+ * fails, and the fix is either to paint the surface in the same tree or to add
+ * the file here with the reason.
+ */
+const SURFACE_PAINTED_ELSEWHERE = [
+  "components/storefront/storefront-header.tsx",
+  "components/storefront/user-menu.tsx",
+  "components/storefront/language-selector-dropdown.tsx",
+  "components/storefront/store-selector-dropdown.tsx",
+  "components/website/favorite-button.tsx",
 ]
 
 /**
@@ -96,16 +190,62 @@ describe("WCAG 2.1 AA contrast", () => {
   })
 
   /**
-   * Pairs whose surface is painted by a component in ANOTHER file — the
-   * storefront header over the hero image, a game screen inside its shell —
-   * are excluded, not waved through: no static reading can say what colour an
-   * image is. They are reported by `surfaceKnown: false` and are for a person
-   * to check.
+   * Pairs whose surface no source can establish.
+   *
+   * This used to be `failures.filter(surfaceKnown)` and nothing else, which
+   * made the exclusion unbounded: measured at `b9e20ea`, 150 failures were
+   * reported and 150 were dropped — the guarded count was ZERO. Fifty-one of
+   * them were the game screens on an opaque `#120d1a` and four the kitchen
+   * display on `#0f172a`, both painted by a shell in another file and both now
+   * declared in `REGIONS`; the rest were real, and among them
+   * `inventory-page.tsx:303` at 1.109:1 and `status-badges.tsx:37` at 1.945:1.
+   *
+   * What is left is text over a photograph, which is not knowable and is not
+   * pretended to be. It is pinned to a list of files instead of a boolean, so
+   * a NEW unresolved surface fails rather than joining a silent pile.
    */
+  const unresolved = failures.filter((failure) => !failure.surfaceKnown)
   const measured = failures.filter((failure) => failure.surfaceKnown)
 
   it("has no rendered pair below the floor, in either colour scheme", () => {
     expect(formatFailures(measured)).toBe("No pair below the WCAG 2.1 AA floor.")
+  }, SWEEP_BUDGET_MS)
+
+  it("resolves the surface of nearly every pair it measures", () => {
+    /* The number that made the sweep look green while it was guarding
+       nothing. At `b9e20ea` the failure list was 150 long and every single
+       entry was dropped for an unresolved surface — the guarded count was 0.
+
+       Counted over every pair the sweep RESOLVES rather than over the
+       failures, because the failures are meant to be zero and a proportion of
+       zero says nothing. `minimumRatio: 21` reports them all: nothing clears
+       21:1 but black on white. */
+    const everything = scanContrast({
+      appDir: process.cwd(),
+      scopes: [".storefront-theme"],
+      regions: REGIONS,
+      minimumRatio: 21,
+    })
+    const unknown = everything.filter((pair) => !pair.surfaceKnown)
+
+    expect(everything.length).toBeGreaterThan(500)
+    // 5.8% when this was written, all of it the storefront header and what
+    // renders inside it. The bound is loose enough not to go red on one new
+    // dropdown in that bar and tight enough that a return to dropping
+    // everything cannot pass.
+    expect(unknown.length / everything.length).toBeLessThan(0.08)
+  }, SWEEP_BUDGET_MS)
+
+  it("cannot read the surface of exactly the files that have none", () => {
+    /* The whole point of the change. An unresolvable surface is a real
+       category — `bg-white/10` over a hero PHOTOGRAPH has no colour a parser
+       can name — but it has to be a NAMED category. A file that lands here
+       without being on the list is either composed onto something the sweep
+       should have been told about (add it to `REGIONS`) or painting itself
+       from a shell that could paint it in the same tree. */
+    const seen = [...new Set(unresolved.map((failure) => failure.file))].sort()
+
+    expect(seen).toEqual([...SURFACE_PAINTED_ELSEWHERE].sort())
   }, SWEEP_BUDGET_MS)
 
   it("is actually looking at something", () => {
@@ -123,6 +263,40 @@ describe("WCAG 2.1 AA contrast", () => {
       minimumRatio: 21,
     })
     expect(seen.length).toBeGreaterThan(500)
+  }, SWEEP_BUDGET_MS)
+
+  it("resolves inline style pairs, not only className strings", () => {
+    /**
+     * THE INSTRUMENT GAP THIS GUARDS. `scanContrast` once read `className` and
+     * nothing else, so an element that set its ink or its surface inline was
+     * invisible to it. Demonstrated rather than argued: painting the onboarding
+     * tour's badge `--primary` on `--primary` produced a pair measuring EXACTLY
+     * 1.000:1 with every guard green.
+     *
+     * #446 closed it in the scanner — `style={{ … }}` is now read and merged
+     * into the class reading, and a finding is named `style:color:…` rather
+     * than after a class that does not exist. This counts what that resolves
+     * out of the real tree, because a reader that silently stops reporting no
+     * failures, which is the same green as a sound product.
+     *
+     * STILL NOT READ, and stated so nobody assumes otherwise: a `styles={{ … }}`
+     * MAP handed to a third-party component — the shape the tour itself uses.
+     * That needs the scanner to report several independent surfaces for one
+     * element, which its current model does not express.
+     */
+    const resolved = scanContrast({
+      appDir: process.cwd(),
+      scopes: [".storefront-theme"],
+      regions: REGIONS,
+      // Nothing clears 21:1 but black on white, so this reports every pair the
+      // scanner actually resolved rather than only the failing ones.
+      minimumRatio: 21,
+    }).filter(
+      (failure) =>
+        failure.foreground.startsWith("style:") || failure.background.startsWith("style:")
+    )
+
+    expect(resolved.length).toBeGreaterThan(0)
   }, SWEEP_BUDGET_MS)
 })
 
@@ -239,18 +413,38 @@ describe("the token matrix itself", () => {
    * the two have not drifted apart again. Reach for a `/NN` on a focus ring and
    * the arithmetic above stops describing the product.
    *
-   * SCOPE, STATED. This holds the DESIGN SYSTEM — the primitives every admin
-   * and storefront screen composes from. It does not reach the bespoke
-   * `<input className="… focus:ring-primary/20">` written by hand in the
-   * storefront checkout, the auth pages and the affiliate portal: 91 of those
-   * exist, most pair the faded ring with a border or background change that
-   * has to be judged one at a time, and sweeping them blind would be a visual
-   * change nobody measured. They are a separate population and a separate job.
+   * SCOPE, AND WHY IT IS NOW THE WHOLE PRODUCT. This used to hold the DESIGN
+   * SYSTEM only, and said so: the bespoke `<input className="…
+   * focus:ring-primary/20">` written by hand in the checkout, the auth pages
+   * and the affiliate portal were called "a separate population and a separate
+   * job". They were 88 of them, and they measured 1.10–1.70:1 — worse than the
+   * primitives this test was written to fix, on every field a diner types a
+   * card into:
+   *
+   *   1.318:1  admin, light      ring-primary/20 on bg-muted
+   *   1.149:1  admin, light      ring-primary/10 on bg-background
+   *   1.505:1  storefront, dark  ring-primary/20 on bg-card
+   *   1.696:1  apps/site, light  ring-primary/40 on --background
+   *
+   * And the guard could not see any of them, because its regex named ONE token
+   * literal — `ring-ring/(\d+)`. Swapping `focus-visible:ring-ring` for
+   * `focus-visible:ring-primary/20` on `Button.tsx` took the indicator to
+   * 1.318:1 and this file stayed green. The pattern below now matches a faded
+   * ring in ANY token, which is the property that was actually being asserted.
+   *
+   * `ring-destructive/NN` is the one exclusion, and it is the same one the
+   * original carried: `aria-invalid:ring-destructive/20` is emphasis layered
+   * over a full-opacity `border-destructive`, not the thing that says where the
+   * keyboard is.
    */
   it("renders the focus ring at the opacity measured above", () => {
     const roots = [
       "node_modules/@be-in-digital/ui/src/components",
       "node_modules/@be-in-digital/admin/src",
+      // The app's own trees. The primitives were never where the worst of it
+      // was — these hand-written fields were.
+      "app",
+      "components",
     ]
     const faded: string[] = []
     const walk = (dir: string): void => {
@@ -268,11 +462,14 @@ describe("the token matrix itself", () => {
           readFileSync(path, "utf8")
             .split("\n")
             .forEach((line, index) => {
-              // The focus states only. `aria-invalid:ring-destructive/20` is
-              // emphasis layered over a full-opacity `border-destructive`, not
-              // the thing that says where the keyboard is.
-              const match = line.match(/(?:focus-visible|focus)\]?:ring-ring\/(\d+)/)
-              if (match) faded.push(`${path}:${index + 1} — ring-ring/${match[1]}`)
+              // The focus states only, and ANY token rather than one literal.
+              // `aria-invalid:ring-destructive/20` is emphasis layered over a
+              // full-opacity `border-destructive`, not the thing that says
+              // where the keyboard is, so it stays out.
+              const match = line.match(
+                /(?:focus-visible|focus)\]?:ring-(?!destructive\/)([a-z-]+)\/(\d+)/
+              )
+              if (match) faded.push(`${path}:${index + 1} — ring-${match[1]}/${match[2]}`)
             })
         }
       }

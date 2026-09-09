@@ -508,6 +508,7 @@ export default function AccountPage() {
                       </Avatar>
                       <button
                         type="button"
+                        aria-label="Changer la photo de profil"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploadingAvatar}
                         className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg hover:bg-primary-hover transition-colors disabled:opacity-50"
@@ -551,7 +552,7 @@ export default function AccountPage() {
                         id="name"
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        className="rounded-xl h-12 bg-card border-border focus:border-primary focus:ring-primary/20 font-medium"
+                        className="rounded-xl h-12 bg-card border-border focus:border-primary focus-visible:ring-ring font-medium"
                       />
                     </div>
                     <div className="space-y-1.5 px-1">
@@ -607,7 +608,7 @@ export default function AccountPage() {
                             <select
                               value={phone.label}
                               onChange={(e) => updatePhone(index, "label", e.target.value)}
-                              className="h-10 rounded-lg border border-border bg-card px-3 text-sm font-medium flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                              className="h-10 rounded-lg border border-border bg-card px-3 text-sm font-medium flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary"
                             >
                               {PHONE_LABELS.map((l) => (
                                 <option key={l} value={l}>
@@ -617,6 +618,7 @@ export default function AccountPage() {
                             </select>
                             <button
                               type="button"
+                              aria-label="Supprimer ce numéro de téléphone"
                               onClick={() => removePhone(index)}
                               className="shrink-0 h-10 w-10 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-card transition-colors"
                             >
@@ -628,7 +630,7 @@ export default function AccountPage() {
                             <select
                               value={phone.countryCode}
                               onChange={(e) => updatePhone(index, "countryCode", e.target.value)}
-                              className="h-12 rounded-xl border border-border bg-card pl-3 pr-2 text-sm font-medium shrink-0 w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                              className="h-12 rounded-xl border border-border bg-card pl-3 pr-2 text-sm font-medium shrink-0 w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary"
                             >
                               {COUNTRY_CODES.map((c, ci) => (
                                 <option key={`${c.code}-${ci}`} value={c.code}>
@@ -642,10 +644,11 @@ export default function AccountPage() {
                               </span>
                               <Input
                                 type="tel"
+                                aria-label={`Numéro de téléphone ${index + 1}`}
                                 value={phone.number}
                                 onChange={(e) => updatePhone(index, "number", e.target.value)}
                                 placeholder="6 12 34 56 78"
-                                className="rounded-xl h-12 bg-card border-border focus:border-primary focus:ring-primary/20 font-medium pl-[4.5rem]"
+                                className="rounded-xl h-12 bg-card border-border focus:border-primary focus-visible:ring-ring font-medium pl-[4.5rem]"
                               />
                             </div>
                           </div>
@@ -665,7 +668,7 @@ export default function AccountPage() {
                         id="language"
                         value={profileLanguage}
                         onChange={(e) => setProfileLanguage(e.target.value)}
-                        className="flex h-12 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                        className="flex h-12 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary"
                       >
                         {LANGUAGES.map((lang) => (
                           <option key={lang.code} value={lang.code}>
@@ -761,7 +764,10 @@ export default function AccountPage() {
                 <div className="space-y-5 px-1 pt-2">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                      <Label className="text-sm font-black text-foreground tracking-tight">
+                      <Label
+                        htmlFor="pref-email-notifications"
+                        className="text-sm font-black text-foreground tracking-tight"
+                      >
                         Notifications email
                       </Label>
                       <p className="text-xs font-medium text-muted-foreground pr-8">
@@ -769,6 +775,7 @@ export default function AccountPage() {
                       </p>
                     </div>
                     <Switch
+                      id="pref-email-notifications"
                       checked={emailNotifs}
                       onCheckedChange={setEmailNotifs}
                       className="data-[state=checked]:bg-primary"

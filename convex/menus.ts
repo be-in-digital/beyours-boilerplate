@@ -1,15 +1,24 @@
-import { query, internalMutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/menus";
 import { touchesTranslatableText } from "@be-in-digital/convex-functions/autoTranslate";
-import { storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
+import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 import { scheduleMenuSync } from "./lib/menuSync";
 import { scheduleTranslation } from "./autoTranslate";
 
 // === Queries (public for storefront) ===
 
-// @public-by-design: menus are the published storefront offering.
-export const list = query(defs.list);
+// Was `query(defs.list)`, marked "@public-by-design: menus are the published
+// storefront offering". Nothing on the storefront has ever rendered a menu —
+// the admin's menus tab was its only caller in the whole repository — so what
+// that registration actually published was an anonymous read of every menu a
+// store has, drafts included. It is guarded now, not filtered: a filtered
+// public query with no public caller is surface bought for nothing.
+export const list = storeQuery({
+  permission: "products:read",
+  args: defs.list.args,
+  handler: (ctx, args) => defs.list.handler(ctx, args),
+});
 // === Mutations (with menu sync trigger) ===
 
 /**

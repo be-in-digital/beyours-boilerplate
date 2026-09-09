@@ -1,6 +1,24 @@
 import { test, expect } from "@playwright/test"
 import { collectConsoleErrors } from "../helpers/console.helpers"
 
+/**
+ * WHY THE PASSWORD FIELD IS SELECTED EXACTLY.
+ *
+ * `getByLabel("Mot de passe")` matches accessible names by CASE-INSENSITIVE
+ * SUBSTRING, and the reveal toggle beside the field is named « Afficher le mot
+ * de passe » / « Masquer le mot de passe ». Both contain the search string, so
+ * the bare selector resolves to two elements and Playwright fails the whole
+ * spec on strict mode.
+ *
+ * It was unambiguous before only because that toggle had NO accessible name at
+ * all — an icon-only button reaching a screen reader as "button". This suite
+ * was therefore depending on an accessibility defect to disambiguate its own
+ * selector, and it went red the moment the defect was fixed.
+ *
+ * `exact: true` says what the selector always meant: the field labelled exactly
+ * « Mot de passe », not everything mentioning one. It TIGHTENS the assertion —
+ * nothing here is skipped, relaxed or waived.
+ */
 test.describe("Sign Up Page", () => {
   test.describe("Page Structure", () => {
     test("should display the sign-up heading", async ({ page }) => {
@@ -26,7 +44,7 @@ test.describe("Sign Up Page", () => {
       await expect(emailInput).toHaveAttribute("type", "email")
       await expect(emailInput).toHaveAttribute("placeholder", "jean@exemple.com")
 
-      const passwordInput = page.getByLabel("Mot de passe")
+      const passwordInput = page.getByLabel("Mot de passe", { exact: true })
       await expect(passwordInput).toBeVisible()
       await expect(passwordInput).toHaveAttribute("type", "password")
       await expect(passwordInput).toHaveAttribute(
@@ -76,11 +94,11 @@ test.describe("Sign Up Page", () => {
 
       await page.getByLabel("Nom").fill("Test User")
       await page.getByLabel("Email").fill("test@example.com")
-      await page.getByLabel("Mot de passe").fill("password123")
+      await page.getByLabel("Mot de passe", { exact: true }).fill("password123")
 
       // The password field mirrors Better Auth's minPasswordLength=12, so
       // "password123" (11 chars) should be invalid
-      const passwordInput = page.getByLabel("Mot de passe")
+      const passwordInput = page.getByLabel("Mot de passe", { exact: true })
       await expect(passwordInput).toHaveAttribute("minlength", "12")
 
       // Verify the value is shorter than the minimum
@@ -105,7 +123,7 @@ test.describe("Sign Up Page", () => {
       // Use the existing test user email to trigger duplicate error
       await page.getByLabel("Nom").fill("Duplicate User")
       await page.getByLabel("Email").fill("test.owner@beindigital.fr")
-      await page.getByLabel("Mot de passe").fill("password1234")
+      await page.getByLabel("Mot de passe", { exact: true }).fill("password1234")
       await page.getByLabel("Confirmer").fill("password1234")
 
       await page.getByRole("button", { name: "Créer mon compte" }).click()
@@ -130,7 +148,7 @@ test.describe("Sign Up Page", () => {
       const uniqueEmail = `signup-test-${Date.now()}@example.com`
       await page.getByLabel("Nom").fill("Test User")
       await page.getByLabel("Email").fill(uniqueEmail)
-      await page.getByLabel("Mot de passe").fill("password1234")
+      await page.getByLabel("Mot de passe", { exact: true }).fill("password1234")
       await page.getByLabel("Confirmer").fill("password1234")
 
       await page.getByRole("button", { name: "Créer mon compte" }).click()

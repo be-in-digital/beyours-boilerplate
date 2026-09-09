@@ -150,9 +150,14 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     // espaces de travail se disputent les ports. Un site client n'a aucune
     // raison d'accepter une origine de développement : il tourne sur son
     // domaine. Élargir cette liste ici, c'est l'élargir chez le restaurateur.
-    trustedOrigins: process.env.SITE_URL
-      ? [process.env.SITE_URL, "http://localhost:3000"]
-      : ["http://localhost:3000"],
+    //
+    // Ce commentaire disait déjà cela pendant que la ligne en dessous ajoutait
+    // `http://localhost:3000` à *tous* les déploiements, production comprise.
+    // Le littéral est parti. `SITE_URL` est obligatoire — `siteRequiredShape`
+    // le refuse au démarrage s'il manque — donc un poste de développement
+    // n'a rien perdu : il pose `SITE_URL=http://localhost:3000` comme il pose
+    // déjà les neuf autres variables du bloc requis.
+    trustedOrigins: process.env.SITE_URL ? [process.env.SITE_URL] : [],
     plugins: [convex({ authConfig })],
   });
 };

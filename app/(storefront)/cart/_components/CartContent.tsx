@@ -188,6 +188,11 @@ export default function CartContent() {
 
             {/* Items */}
             <div className="space-y-4">
+              {/* The page h1 is the cart title and each line is an h3, so
+                  without this the outline jumps h1 -> h3. It is a real section
+                  heading, not a spacer: it names the list a screen reader is
+                  about to walk. `sr-only` keeps it off the visual design. */}
+              <h2 className="sr-only">Articles dans votre panier</h2>
               <TooltipProvider delayDuration={300}>
                 {items.map((item) => {
                   const optionsTotal = item.options.reduce(
@@ -229,16 +234,20 @@ export default function CartContent() {
                       <div className="flex flex-1 flex-col justify-between py-0.5">
                         <div>
                           <div className="flex items-start justify-between">
-                            <h4 className="text-sm font-black uppercase leading-tight tracking-tight text-foreground md:text-base">
+                            <h3 className="text-sm font-black uppercase leading-tight tracking-tight text-foreground md:text-base">
                               {item.name}
-                            </h4>
+                            </h3>
 
                             {/* Remove item */}
                             <AlertDialog>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <AlertDialogTrigger asChild>
-                                    <button className="p-1 text-muted-foreground transition-colors hover:text-destructive">
+                                    <button
+                                      type="button"
+                                      aria-label={`Retirer ${item.name} de la Box`}
+                                      className="p-1 text-muted-foreground transition-colors hover:text-destructive"
+                                    >
                                       <X className="h-4 w-4" />
                                     </button>
                                   </AlertDialogTrigger>

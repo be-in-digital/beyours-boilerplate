@@ -1,4 +1,4 @@
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import * as defs from "@be-in-digital/convex-functions/storeIntegrations";
@@ -18,6 +18,15 @@ export const internalGetByStorePlatform = internalQuery({
 });
 
 // === Queries (auth-protected where applicable) ===
+
+// @public-by-design: a diner needs to know whether this restaurant is also on
+// Uber Eats or Deliveroo, and the answer is two strings the owner typed. The
+// platform ids, the sync status and everything else on the row stay behind
+// `settings:read` in `listByStore` below.
+export const publicLinks = query({
+  args: defs.publicLinks.args,
+  handler: (ctx, args) => defs.publicLinks.handler(ctx, args),
+});
 
 export const listByStore = storeQuery({
   permission: "settings:read",

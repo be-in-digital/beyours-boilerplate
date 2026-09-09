@@ -164,4 +164,24 @@ crons.interval(
   {},
 );
 
+// A platform order whose kitchen ticket was never created has no slip on the
+// pass: no screen, no printer, and the accept button unreachable because it
+// acts on a ticket. The food is never cooked and nobody is told.
+//
+// The Uber Eats and Deliveroo webhooks now repair this themselves when the
+// platform redelivers, which is the fast path and usually enough. This is the
+// backstop for when it is not — a platform that retries once and gives up, a
+// failure that outlives the retry window — and until it existed, NONE of the
+// eleven other jobs looked for a ticketless order at all.
+//
+// Every fifteen minutes, because the unit of harm is one service. Hourly would
+// mean an order taken at 19:05 waiting until 20:00 for a slip, which for a
+// dinner service is the same as never.
+crons.interval(
+  "give ticketless platform orders a slip",
+  { minutes: 15 },
+  internal.orders.sweepTicketlessPlatformOrders,
+  {},
+);
+
 export default crons;

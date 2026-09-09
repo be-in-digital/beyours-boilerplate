@@ -23,7 +23,6 @@ import {
   HeadObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
-  DeleteObjectCommand,
 } from "@aws-sdk/client-s3"
 import {
   getExtensionFromMimeType,
@@ -181,10 +180,24 @@ export const confirmUpload = action({
       if (report.active) {
         // Refused means gone: leaving the object in the bucket leaves a live
         // URL, since the key is derivable from the mediaId alone.
+        //
+        // Through `purgeS3Objects`, not a bare `DeleteObjectCommand`. The
+        // bucket `setup-aws.sh` builds has versioning ON, and there a
+        // `DeleteObject` with no `VersionId` deletes nothing — it writes a
+        // delete marker over the key and keeps every prior version, still
+        // billed and still readable by anyone who can name a version id. This
+        // path was written after #331 fixed exactly that in
+        // `cmsMediaDelete.ts` and reintroduced it here, so a refused SVG —
+        // the one object on this path we have decided is hostile — kept its
+        // bytes for the thirty days of the lifecycle rule.
+        //
+        // Awaited rather than scheduled: the media row is about to be marked
+        // failed and the caller told the file was refused, and that sentence
+        // should not run ahead of the bytes going.
         try {
-          await client.send(
-            new DeleteObjectCommand({ Bucket: bucketName, Key: s3Key }),
-          )
+          await ctx.runAction(internal.cmsMediaDelete.purgeS3Objects, {
+            s3Keys: [s3Key],
+          })
         } catch (error) {
           console.error(
             `[confirmUpload] Could not remove refused SVG ${s3Key}:`,

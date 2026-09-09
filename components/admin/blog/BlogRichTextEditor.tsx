@@ -86,7 +86,7 @@ export function BlogRichTextEditor({
       }),
       Link.configure({
         openOnClick: false,
-        HTMLAttributes: { class: "underline text-primary" },
+        HTMLAttributes: { class: "underline text-primary-ink" },
       }),
       Placeholder.configure({ placeholder }),
       Image.configure({

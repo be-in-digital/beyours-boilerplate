@@ -3,7 +3,7 @@
 /**
  * Every scheduled job this deployment registers, pinned.
  *
- * WHY THIS EXISTS. Eleven jobs are registered in `convex/crons.ts` and four had
+ * WHY THIS EXISTS. Twelve jobs are registered in `convex/crons.ts` and four had
  * a guard: the retention sweep (`packages/admin/.../privacy-surface.test.ts`),
  * the two blog crons (`__tests__/blog-storefront-wiring.test.ts`) and the Stripe
  * reconciler (`stripe-event-coverage.test.ts`). The other seven — stale
@@ -92,6 +92,15 @@ const EXPECTED: Record<string, Registration> = {
   "verify the Stripe key": {
     name: "stripe:verifyStripeKey",
     schedule: { type: "interval", hours: 1 },
+  },
+  // The twelfth. A platform order whose kitchen ticket was never created has no
+  // slip on the pass, and until this job existed nothing anywhere looked for
+  // one — the food was simply never cooked. Fifteen minutes because the unit of
+  // harm is one service: an order taken at 19:05 that waits until 20:00 for a
+  // slip has, for a dinner service, waited for ever.
+  "give ticketless platform orders a slip": {
+    name: "orders:sweepTicketlessPlatformOrders",
+    schedule: { type: "interval", minutes: 15 },
   },
 }
 

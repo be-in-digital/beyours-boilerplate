@@ -204,5 +204,13 @@
   "accessibility.removeItem": "Retirer l'article",
   "accessibility.productImage": "Image du produit",
   "accessibility.skipToContent": "Aller au contenu principal",
-  "accessibility.openBox": "Ouvrir la Box"
+  "accessibility.openBox": "Ouvrir la Box",
+  "product.viewDetails": "Voir {name}",
+  "product.addNamedToCart": "Ajouter {name} au panier",
+  "product.addToFavorites": "Ajouter {name} aux favoris",
+  "product.removeFromFavorites": "Retirer {name} des favoris",
+  "store.choose": "Choisir {name}",
+  "accessibility.cartStatus": "Box : {count} articles, total {total}",
+  "accessibility.cartEmptied": "Votre Box est vide",
+  "accessibility.openBoxWithCount": "Ouvrir la Box, {count} articles"
 }

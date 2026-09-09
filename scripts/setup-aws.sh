@@ -102,6 +102,23 @@ log_section() { echo -e "\n${BLUE}═══════════════�
 
 log_section "Preflight Checks"
 
+# Say the legacy default out loud. The header comment above has always
+# described it, and a comment is read by whoever edits the script rather than
+# by whoever runs it: an operator who omits SITE_SLUG gets the fleet-wide IAM
+# user and the shared bucket with no signal at all, which is how existing
+# deployments came to hold credentials to other clients' data (#199,
+# apps/docs/deployment/aws-ownership.md). It is still allowed — those resources
+# exist and a legacy site has to be able to re-run this — so it warns rather
+# than refusing.
+if [ -z "$SITE_SLUG" ]; then
+  log_warn "No SITE_SLUG: provisioning into the SHARED fleet account."
+  log_warn "  bucket   $BUCKET_NAME"
+  log_warn "  IAM user $IAM_USER"
+  log_warn "  These are the fleet-wide resources every legacy site already uses,"
+  log_warn "  so the credentials this writes can read every other client's media."
+  log_warn "  A new client wants its own: SITE_SLUG=<slug> DOMAIN=<domain> $0"
+fi
+
 if ! command -v aws &>/dev/null; then
   log_error "AWS CLI not found. Install with: brew install awscli"
   exit 1
@@ -290,7 +307,14 @@ log_success "CORS configured (PUT only)"
 # ceiling. Issue #331.
 #
 # The app now purges versions itself: convex/cmsMediaDelete.ts, which is the
-# only media-deletion path the delivered app runs. (packages/core's
+# only media-deletion path the delivered app runs — and that is true because it
+# is enforced rather than observed. convex/cmsMediaConfirmUpload.ts deletes
+# too, when it reads an uploaded SVG back and refuses it for active content,
+# and it shipped its own bare DeleteObjectCommand: a marker over the key, every
+# version retained, for the one object on that path we have decided is hostile.
+# It now calls purgeS3Objects like everything else, and
+# tests/convex/cms-media-upload.test.ts asserts the version ids go with it.
+# (packages/core's
 # S3Service.delete does the same for a consumer of that package, and only when
 # the injected S3Operations adapter implements listObjectVersions and
 # deleteObjectVersion — they are optional on the interface. Nothing in apps/*
@@ -571,6 +595,65 @@ for NOTIFICATION_TYPE in Bounce Complaint Delivery; do
 done
 log_success "Bounce, Complaint and Delivery notifications publish to the topic, with original headers"
 
+# ── Tell the deployment which topic it is expected to trust ──────────────────
+#
+# BEFORE subscribing, and that order is the whole point of this block.
+#
+# `sesWebhookVerify` refuses to confirm a subscription whose topic is not named
+# in `SES_SNS_TOPIC_ARN` (`mayConfirmSubscription` returns false on an empty
+# list, deliberately: confirming is what turns "a stranger pointed their topic
+# at us" into "a stranger can publish to us"). Nothing set that variable —
+# not this script, not `env:sync`, not `setup-convex-env.sh` — so a client
+# provisioned exactly as instructed got:
+#
+#   `aws sns subscribe` → SNS POSTs a SubscriptionConfirmation → the deployment
+#   refuses it → the subscription stays PendingConfirmation → SNS gives up →
+#   no bounce or complaint ever arrives.
+#
+# Which is #428's original silence moved one step down the chain, and the
+# script's own success line told the operator the opposite ("the deployment
+# confirms it on the first POST"). The documentation had it right and the
+# script is what an operator follows.
+#
+# Written to the Convex env file — the verifier reads it from the CONVEX
+# deployment, not from Next.js — and pushed straight onto the deployment when
+# the CLI can reach one, so a re-run of this script is not needed.
+CONVEX_ENV_FILE="${CONVEX_ENV_FILE:-.env.convex}"
+
+if grep -qE '^SES_SNS_TOPIC_ARN=' "$CONVEX_ENV_FILE" 2>/dev/null; then
+  # Rewrite in place rather than appending a second line: `setup-convex-env.sh`
+  # takes the LAST occurrence, so an append would work by luck and read as a
+  # duplicate to anyone opening the file.
+  tmp_env=$(mktemp)
+  grep -vE '^SES_SNS_TOPIC_ARN=' "$CONVEX_ENV_FILE" > "$tmp_env" || true
+  printf 'SES_SNS_TOPIC_ARN=%s
+' "$SNS_TOPIC_ARN" >> "$tmp_env"
+  mv "$tmp_env" "$CONVEX_ENV_FILE"
+  log_success "SES_SNS_TOPIC_ARN updated in $CONVEX_ENV_FILE"
+else
+  printf 'SES_SNS_TOPIC_ARN=%s
+' "$SNS_TOPIC_ARN" >> "$CONVEX_ENV_FILE"
+  log_success "SES_SNS_TOPIC_ARN written to $CONVEX_ENV_FILE"
+fi
+
+# Push it now if a deployment is reachable. `|| true` because this script is
+# routinely run before `convex dev` has ever created one, and a missing
+# deployment must not fail the AWS provisioning that already succeeded — the
+# file above is the durable record either way.
+if command -v pnpx >/dev/null 2>&1 && [ -n "${CONVEX_DEPLOYMENT:-}" ]; then
+  if pnpx convex env set SES_SNS_TOPIC_ARN "$SNS_TOPIC_ARN" >/dev/null 2>&1; then
+    log_success "SES_SNS_TOPIC_ARN set on the Convex deployment"
+  else
+    log_warn "Could not reach the Convex deployment to set SES_SNS_TOPIC_ARN."
+    log_warn "Run this before the subscription is confirmed:"
+    log_warn "  pnpx convex env set SES_SNS_TOPIC_ARN $SNS_TOPIC_ARN"
+  fi
+else
+  log_warn "No Convex deployment in this shell, so SES_SNS_TOPIC_ARN is only in $CONVEX_ENV_FILE."
+  log_warn "Push it before the subscription below can be confirmed:"
+  log_warn "  pnpm env:sync   # or: pnpx convex env set SES_SNS_TOPIC_ARN $SNS_TOPIC_ARN"
+fi
+
 if [ -n "$SES_WEBHOOK_URL" ]; then
   # Only subscribe once. Re-subscribing the same endpoint leaves a second
   # PendingConfirmation subscription behind for ever, and every notification is
@@ -593,9 +676,47 @@ if [ -n "$SES_WEBHOOK_URL" ]; then
     # a deployed backend confirms without anyone doing anything. A backend that
     # is not up yet leaves the subscription PendingConfirmation, and SNS does
     # not retry indefinitely — re-run this script once it is.
-    log_success "Subscription requested (the deployment confirms it on the first POST)"
+    # Conditional on the variable actually having reached the deployment. The
+    # unconditional version of this line was false whenever it had not, which
+    # is the case it most needed to warn about.
+    log_success "Subscription requested"
+    log_info "The deployment confirms it on the first POST — provided SES_SNS_TOPIC_ARN"
+    log_info "is set there. If the warning above says it is not, set it and re-run:"
+    log_info "  aws sns subscribe --topic-arn $SNS_TOPIC_ARN --protocol https \\"
+    log_info "    --region $REGION --notification-endpoint $SES_WEBHOOK_URL"
   else
     log_success "Already subscribed: $SES_WEBHOOK_URL"
+  fi
+
+  # WITHOUT THIS THE SUBSCRIPTION CAN NEVER CONFIRM.
+  #
+  # `handleSesWebhook` verifies Amazon's signature, which proves Amazon sent
+  # the message and NOT that our topic did — so it refuses any notification
+  # whose TopicArn is not named by `SES_SNS_TOPIC_ARN`. That includes the
+  # SubscriptionConfirmation SNS posts seconds after the `subscribe` above.
+  # The script created the topic, subscribed the endpoint, and never told the
+  # backend which topic to accept, so the confirmation was refused, SNS gave
+  # up retrying, and the subscription sat PendingConfirmation for ever. Every
+  # bounce and complaint published to the topic and reached nobody.
+  #
+  # It goes on the CONVEX deployment, not in `.env.local`: the verifier runs
+  # there. It is written to $ENV_FILE too, further down, so `pnpm env:sync`
+  # and `setup-convex-env.sh` carry it on any later run.
+  if command -v pnpx >/dev/null 2>&1 || command -v npx >/dev/null 2>&1; then
+    CONVEX_RUNNER=$(command -v pnpx || command -v npx)
+    log_info "Naming the topic on the Convex deployment (SES_SNS_TOPIC_ARN)..."
+    if "$CONVEX_RUNNER" convex env set SES_SNS_TOPIC_ARN "$SNS_TOPIC_ARN" >/dev/null 2>&1; then
+      log_success "SES_SNS_TOPIC_ARN set — the deployment will accept the confirmation"
+    else
+      log_warn "Could not set SES_SNS_TOPIC_ARN on the Convex deployment."
+      log_warn "Until it is set, /webhooks/ses refuses EVERY notification from"
+      log_warn "this topic, the subscription stays PendingConfirmation, and"
+      log_warn "bounces reach nobody. Run this from the app directory:"
+      log_warn "  npx convex env set SES_SNS_TOPIC_ARN $SNS_TOPIC_ARN"
+    fi
+  else
+    log_warn "No npx/pnpx on PATH, so SES_SNS_TOPIC_ARN was not set on Convex."
+    log_warn "  npx convex env set SES_SNS_TOPIC_ARN $SNS_TOPIC_ARN"
   fi
 else
   log_warn "CONVEX_SITE_URL is unknown, so nothing is subscribed to the topic."
@@ -741,15 +862,18 @@ fi
 
 log_section "Step 4: Update .env.local"
 
+# Hoisted out of the branch below: the SES topic is written to the env file
+# whether or not new credentials were minted, and BSD sed needs the empty
+# backup suffix that GNU sed refuses. A `${SED_I:-sed -i}` fallback would have
+# been wrong on macOS exactly when no key was generated.
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  SED_I="sed -i ''"
+else
+  SED_I="sed -i"
+fi
+
 if [ -n "${NEW_ACCESS_KEY:-}" ]; then
   log_info "Updating $ENV_FILE with new credentials..."
-
-  # Use sed to update existing values or append new ones
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    SED_I="sed -i ''"
-  else
-    SED_I="sed -i"
-  fi
 
   # Update AWS credentials
   $SED_I "s|^AWS_REGION=.*|AWS_REGION=$REGION|" "$ENV_FILE"
@@ -769,6 +893,21 @@ if [ -n "${NEW_ACCESS_KEY:-}" ]; then
 else
   log_warn "No new keys generated, .env.local not updated"
   log_info "Manually update .env.local with your existing credentials"
+fi
+
+# The feedback topic, recorded whether or not new keys were minted: a re-run
+# that generates no credentials still has a topic, and this is the value the
+# SES webhook verifier checks a notification's TopicArn against.
+if [ -n "${SNS_TOPIC_ARN:-}" ] && [ -f "$ENV_FILE" ]; then
+  if grep -q '^SES_SNS_TOPIC_ARN=' "$ENV_FILE"; then
+    $SED_I "s|^SES_SNS_TOPIC_ARN=.*|SES_SNS_TOPIC_ARN=$SNS_TOPIC_ARN|" "$ENV_FILE"
+  else
+    echo "" >> "$ENV_FILE"
+    echo "# Which SNS topic /webhooks/ses accepts. Must also be set on the" >> "$ENV_FILE"
+    echo "# Convex deployment — that is where the verifier runs." >> "$ENV_FILE"
+    echo "SES_SNS_TOPIC_ARN=$SNS_TOPIC_ARN" >> "$ENV_FILE"
+  fi
+  log_success "SES_SNS_TOPIC_ARN recorded in $ENV_FILE"
 fi
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -792,6 +931,7 @@ echo "  From: $FROM_EMAIL"
 echo "  Config Set: $SES_CONFIG_SET"
 echo "  Region: $REGION"
 echo "  Feedback topic: ${SNS_TOPIC_ARN:-none}"
+echo "  Topic named to the backend: SES_SNS_TOPIC_ARN=${SNS_TOPIC_ARN:-unset}"
 if [ -n "${SES_WEBHOOK_URL:-}" ]; then
   echo "  Bounces & complaints: $SES_WEBHOOK_URL"
 else

@@ -23,6 +23,22 @@ export const internalGetOrder = internalQuery({
   },
 });
 
+/**
+ * Does this order already have a slip on the pass?
+ *
+ * Read from the platform webhooks before they create one. A Deliveroo or Uber
+ * retry re-delivers an order we already hold, and that redelivery is the only
+ * chance to repair a ticket whose first creation failed — so the duplicate path
+ * has to be able to ask.
+ */
+export const internalHasTicketForOrder = internalQuery({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    const tickets = await defs.getByOrder.handler(ctx, args);
+    return tickets.length > 0;
+  },
+});
+
 // === INTERNAL MUTATIONS (no auth, called from webhooks/internal actions) ===
 
 export const internalCreate = internalMutation(defs.create);

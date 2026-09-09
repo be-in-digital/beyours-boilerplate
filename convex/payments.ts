@@ -136,12 +136,32 @@ export const refundPayment = action({
 
     if (route.kind === "api") {
       try {
+        // ONE KEY PER RESERVED REFUND, so a retry cannot send the money twice.
+        //
+        // `internalReserveRefund` serialises against a CONCURRENT second
+        // refund — the second caller reads the first's committed amount and is
+        // refused. It does nothing about the SAME refund being sent twice,
+        // which is the ordinary shape of a failure here: the provider takes the
+        // request, the response is lost to a timeout or a dropped connection,
+        // and the operator presses the button again. `internalReleaseRefund`
+        // then gives the amount back precisely so they can, and the second
+        // attempt is a second real refund at the provider.
+        //
+        // `reservation.index` is the refund's ordinal on this payment, so the
+        // key is stable across retries of one refund and different for the next
+        // partial refund of the same payment — which is exactly the property
+        // required. There was ONE idempotency key in the whole engine before
+        // this (`uberDirect.ts:317`), while `apps/site` used the pattern
+        // correctly for its own Stripe calls.
+        const idempotencyKey = `refund-${args.id}-${reservation.index}`;
+
         const result: { refundId: string } =
           route.provider === "stripe"
             ? await ctx.runAction(internal.stripe.internalRefund, {
                 externalId: route.externalId,
                 amount: plan.amount,
                 reason: args.reason,
+                idempotencyKey,
               })
             : route.provider === "sumup"
               ? await ctx.runAction(internal.sumup.internalRefund, {
@@ -152,6 +172,7 @@ export const refundPayment = action({
                   captureId: route.externalId,
                   amount: plan.amount,
                   currency: payment.currency ?? "EUR",
+                  idempotencyKey,
                 });
 
         externalRefundId = result.refundId;

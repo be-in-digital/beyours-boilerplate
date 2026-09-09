@@ -237,16 +237,20 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                       <div className="flex flex-1 flex-col justify-between py-1">
                         <div>
                           <div className="flex items-start justify-between">
-                            <h4 className="mb-1 text-sm font-black uppercase leading-tight tracking-tight text-foreground">
+                            <h3 className="mb-1 text-sm font-black uppercase leading-tight tracking-tight text-foreground">
                               {item.name}
-                            </h4>
+                            </h3>
 
                             {/* Remove item */}
                             <AlertDialog>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <AlertDialogTrigger asChild>
-                                    <button className="p-1 text-muted-foreground transition-colors hover:text-destructive">
+                                    <button
+                            type="button"
+                            aria-label={`Retirer ${item.name} de la Box`}
+                            className="p-1 text-muted-foreground transition-colors hover:text-destructive"
+                          >
                                       <X className="h-4 w-4" />
                                     </button>
                                   </AlertDialogTrigger>

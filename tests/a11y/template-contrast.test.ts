@@ -25,21 +25,34 @@
  * WCAG AA". Nothing measured it. This is what makes that sentence true, and it
  * is why the sentence now points here.
  *
- * WHAT IT DOES NOT DO. This is the token matrix, not the markup sweep. Running
- * `scanContrast` 51 times would re-parse every `.tsx` in the app once per
- * template, which is minutes of CI for a set of files that do not change
- * between templates — only the token VALUES do. So the markup is swept once,
- * under the default palette, by `contrast.test.ts`; the values every client
- * actually receives are swept here. A pair that fails only for a class
- * combination unique to one template would fall between the two, and that gap
- * is deliberate rather than unnoticed.
+ * WHAT IT DID NOT DO, AND NOW DOES. This file used to be the token matrix
+ * ONLY, and said so: running `scanContrast` 51 times "would re-parse every
+ * `.tsx` in the app once per template, which is minutes of CI", so the markup
+ * was swept once under the default palette and "a pair that fails only for a
+ * class combination unique to one template would fall between the two".
+ *
+ * That gap was the whole product. Measured with the argument wired through:
+ * 49 of the 51 templates rendered at least one pair below AA, 272 pairs in
+ * all, and the two guards were green for every one of them —
+ * `pnpm template:apply asiatique-dragon` produced a site with 12 failing
+ * pairs and a passing suite. The token matrix could not see them because a
+ * failing pair is a COMBINATION (`text-primary` on `bg-muted`) that only the
+ * markup names; the markup sweep could not see them because it read
+ * `globals.css` and no template.
+ *
+ * The cost was also wrong. Measured: 28 seconds for all 51, not minutes — the
+ * TypeScript parse dominates and it is the same parse each time.
+ *
+ * The two halves are still both here and both needed: the matrix catches a
+ * token pair nothing happens to render TODAY, the sweep catches a combination
+ * no matrix enumerates.
  */
 
 import { readdirSync, existsSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { AA_LARGE, AA_TEXT, contrast, type Rgb } from "@be-in-digital/ui/contrast"
-import { loadTokens } from "@be-in-digital/ui/contrast-scan"
+import { formatFailures, loadTokens, scanContrast } from "@be-in-digital/ui/contrast-scan"
 
 /** The four token scopes a delivered site renders under. */
 const SCOPES = [
@@ -181,4 +194,108 @@ describe("every shipped template palette", () => {
       engineOnly.get(":root")?.get("primary")
     )
   })
+})
+
+/**
+ * The token scope each tree renders under — the same list `contrast.test.ts`
+ * uses, because it is the same application. Kept as its own copy for the same
+ * reason `LABEL_ON_FILL` is: a shared constant that one caller quietly narrows
+ * is how a guard stops guarding without anything going red.
+ */
+const REGIONS = [
+  { dir: "app/(storefront)", scope: ".storefront-theme" },
+  { dir: "components/storefront", scope: ".storefront-theme" },
+  { dir: "components/website", scope: ".storefront-theme" },
+  { dir: "app/(auth)", scope: ".storefront-theme" },
+  { dir: "app", scope: "" },
+  { dir: "components", scope: "" },
+  { dir: "lib", scope: "" },
+  { dir: "node_modules/@be-in-digital/ui/src", scope: "" },
+  { dir: "node_modules/@be-in-digital/admin/src", scope: "" },
+]
+
+/** 28 seconds measured for all 51; the ceiling is a stall detector. */
+const CATALOGUE_BUDGET_MS = 300_000
+
+const sweep = (overlays: string[]) =>
+  scanContrast({
+    appDir: process.cwd(),
+    scopes: [".storefront-theme"],
+    regions: REGIONS,
+    overlays,
+  })
+
+/**
+ * Hand the event loop back between templates.
+ *
+ * WHY A SWEEP HAS TO YIELD. 51 `scanContrast` calls in one test body is 29
+ * seconds of uninterrupted synchronous work on a warm laptop and upwards of
+ * three minutes on a CI runner. Vitest's worker talks to the main process over
+ * an RPC to report progress, and a body that never yields never lets that call
+ * be serviced — so the run ends
+ *
+ *     Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ *
+ * with EVERY test passing and the job red. Measured: 1711 passed, 1 unhandled
+ * error, exit 1, on a runner where the same suite takes 6.8x its local time.
+ *
+ * A macrotask between templates costs nothing measurable and is the whole fix:
+ * the worker gets to answer, and the sweep still runs to completion. Do not
+ * collapse this back into a synchronous `flatMap` — it reads tidier and it is
+ * how the job goes red without a single failing assertion.
+ */
+const yieldToLoop = () => new Promise<void>((resolve) => setImmediate(resolve))
+
+describe("every shipped template, as the app actually renders it", () => {
+  it("has no rendered pair below the floor, under any of the 51 palettes", async () => {
+    const below: string[] = []
+    for (const slug of TEMPLATES) {
+      // `surfaceKnown: false` is excluded here for the same reason it is in
+      // `contrast.test.ts`: no static reading can say what colour an image is.
+      below.push(
+        ...sweep([join("templates", slug, "theme.css")])
+          .filter((failure) => failure.surfaceKnown)
+          .map((failure) => `${slug} — ${failure.file}:${failure.line} ` +
+            `${failure.ratio.toFixed(3)}:1 (needs ${failure.floor}) ` +
+            `${failure.foreground} on ${failure.background} [${failure.scope || "admin"}/${failure.mode}]`)
+      )
+      await yieldToLoop()
+    }
+    expect(below).toEqual([])
+  }, CATALOGUE_BUDGET_MS)
+
+  it("and under site/theme.css, which is the file layout.tsx imports", () => {
+    // In THIS repository `site/theme.css` is comment-only, so this measures the
+    // engine default — which is exactly the palette no client runs, and is why
+    // the assertion above exists. In a cloned client repository it is the only
+    // one of the two that matters: it measures that client's own colours.
+    expect(existsSync("site/theme.css")).toBe(true)
+    expect(formatFailures(sweep(["site/theme.css"]).filter((f) => f.surfaceKnown)))
+      .toBe("No pair below the WCAG 2.1 AA floor.")
+  }, CATALOGUE_BUDGET_MS)
+
+  it("is actually resolving a template's tokens, not re-reading the default", () => {
+    // The overlay is the whole point. If `scanContrast` ever stops applying it,
+    // every assertion above silently measures `globals.css` 51 times and
+    // passes — which is precisely the state this file was in before.
+    // `asiatique-bambou` ships a green `--primary` where the engine ships
+    // orange, so a sweep that resolved the template cannot report the same
+    // pairs as one that did not.
+    const seen = (overlays: string[]) =>
+      new Set(
+        scanContrast({
+          appDir: process.cwd(),
+          scopes: [".storefront-theme"],
+          regions: REGIONS,
+          overlays,
+          // Nothing clears 21:1 but black on white, so this reports every pair
+          // the scanner resolved, with the colour it resolved it to.
+          minimumRatio: 21,
+        }).map((f) => `${f.file}:${f.line}|${f.foregroundHex}|${f.backgroundHex}`)
+      )
+    const withTemplate = seen([join("templates", "asiatique-bambou", "theme.css")])
+    const engineOnly = seen([])
+    expect(engineOnly.size).toBeGreaterThan(500)
+    expect(withTemplate).not.toEqual(engineOnly)
+  }, CATALOGUE_BUDGET_MS)
 })

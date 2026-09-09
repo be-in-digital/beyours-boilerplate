@@ -270,7 +270,7 @@ export function CmsMediaPicker({
                 <button
                   type="button"
                   onClick={handleCancelUpload}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="inline-flex size-6 items-center justify-center text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -336,7 +336,7 @@ export function CmsMediaPicker({
                         ) : item.mimeType === "application/pdf" ? (
                           <div className="flex flex-col items-center justify-center gap-0.5">
                             <FileText className="h-6 w-6 text-red-500" />
-                            <span className="text-[9px] font-bold text-red-500 uppercase">PDF</span>
+                            <span className="text-[9px] font-bold text-destructive uppercase">PDF</span>
                           </div>
                         ) : (
                           <Icon className="h-6 w-6 text-muted-foreground" />

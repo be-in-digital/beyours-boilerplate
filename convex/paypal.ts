@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { settleOrRecordRefusal } from "./settlementReturn";
 import type { Id } from "./_generated/dataModel";
 import {
   assertSettlesOrder,
@@ -11,6 +12,7 @@ import {
   readPayPalCapture,
 } from "@be-in-digital/convex-functions/paymentSettlement";
 import { OrderAlreadyPaidError } from "@be-in-digital/convex-functions/refusal";
+import { assertCardChargeable } from "@be-in-digital/convex-functions/cardChargeFloor";
 
 // ---------------------------------------------------------------------------
 // PayPal helpers
@@ -112,6 +114,17 @@ export const createPayPalOrder = action({
     ) {
       throw new OrderAlreadyPaidError();
     }
+
+    // A total no card provider will take. Stripe's EUR floor is 0,50 € and the
+    // session create is what would otherwise discover that — as a plain SDK
+    // error, redacted to "Server Error" behind the checkout's retry toast, on
+    // an order that can never be paid however many times the diner tries. A
+    // 100 % coupon is the ordinary way to reach it.
+    //
+    // `"EUR"` rather than `globalSettings.currency` on purpose: EUR is what
+    // this request actually sends below, so the floor has to be the one that
+    // applies to it.
+    assertCardChargeable({ amountMinor: order.total, currency: "EUR" });
 
     const env = getPayPalEnv();
     const accessToken = await getAccessToken(env);
@@ -281,6 +294,37 @@ export const capturePayPalOrder = action({
         }
       );
 
+      // THE LEDGER FIRST, THEN THE ORDER — the same order `stripeWebhook.ts`
+      // states, and the reason is the same on a return page.
+      //
+      // These are two mutations and therefore two transactions. Marking the
+      // order paid first COMMITS that, and the settlement can still refuse
+      // afterwards. The order was then left reading « Payé » with no payment
+      // row against it: the money is not on the ledger, the invoice is minted
+      // against a total nothing backs, and the diner's confirmation is on its
+      // way. Probed: 2 400 c taken, 1 200 c recorded, `FA-2026-000001` issued.
+      //
+      // Settling first is safe in the other direction: the settlement reads
+      // nothing about the order's status, and one that succeeds is exactly the
+      // case in which the status write is wanted.
+      //
+      // One mutation, one transaction: keyed on the capture id, so a second
+      // capture attempt for the same PayPal order returns the row that already
+      // exists instead of writing another refundable one.
+      //
+      // Unconditional now: the row records that the money moved, which stays
+      // true whether the order ends up paid or awaiting a refund.
+      await settleOrRecordRefusal(ctx, {
+        orderId: args.orderId,
+        storeId: order.storeId as Id<"stores">,
+        amount: order.total,
+        currency: "EUR",
+        provider: "paypal",
+        // The CAPTURE id, not the order id: PayPal refunds are issued against a
+        // capture. Storing the order id here would have made every refund
+        // attempt fail at the provider.
+        externalId: captured.captureId ?? args.paypalOrderId,
+      });
       // What this settlement should do to the ORDER — which is not always
       // "mark it paid". `refund_pending` (paid, then cancelled, money owed
       // back) is not "paid", so the old `if (order.paymentStatus !== "paid")`
@@ -294,24 +338,6 @@ export const capturePayPalOrder = action({
           paymentStatus: nextPaymentStatus,
         });
       }
-
-      // One mutation, one transaction: keyed on the capture id, so a second
-      // capture attempt for the same PayPal order returns the row that already
-      // exists instead of writing another refundable one.
-      //
-      // Unconditional now: the row records that the money moved, which stays
-      // true whether the order ends up paid or awaiting a refund.
-      await ctx.runMutation(internal.payments.internalSettle, {
-        orderId: args.orderId,
-        storeId: order.storeId as Id<"stores">,
-        amount: order.total,
-        currency: "EUR",
-        provider: "paypal",
-        // The CAPTURE id, not the order id: PayPal refunds are issued against a
-        // capture. Storing the order id here would have made every refund
-        // attempt fail at the provider.
-        externalId: captured.captureId ?? args.paypalOrderId,
-      });
 
       return {
         status: "paid" as const,
@@ -343,6 +369,8 @@ export const internalRefund = internalAction({
     /** Amount in cents. */
     amount: v.number(),
     currency: v.string(),
+    /** See `payments.refundPayment`; PayPal spells it `PayPal-Request-Id`. */
+    idempotencyKey: v.optional(v.string()),
   },
   handler: async (_ctx, args): Promise<{ refundId: string }> => {
     const env = getPayPalEnv();
@@ -355,6 +383,11 @@ export const internalRefund = internalAction({
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
+          // PayPal's idempotency header. A replayed request returns the
+          // original refund instead of issuing a second one.
+          ...(args.idempotencyKey
+            ? { "PayPal-Request-Id": args.idempotencyKey }
+            : {}),
         },
         body: JSON.stringify({
           amount: {

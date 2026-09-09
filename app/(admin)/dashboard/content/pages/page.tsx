@@ -252,7 +252,14 @@ export default function CmsPagesListPage() {
               <span
                 className={`inline-flex items-center justify-center rounded-full px-1.5 min-w-[18px] text-[10px] font-semibold ${
                   isActive
-                    ? "bg-primary-foreground text-primary-ink"
+                    // The INVERSE of the chip this badge sits in, so the fill
+                    // token is the right one here and the ink token is not:
+                    // `--primary-foreground` is whatever reads on `--primary`,
+                    // and the token matrix already asserts that pair clears AA.
+                    // `text-primary-ink` broke it — a template is free to make
+                    // `--primary-foreground` near-black (asiatique-dragon does),
+                    // and a mid-tone brand ink on near-black measured 2.964:1.
+                    ? "bg-primary-foreground text-primary"
                     : "bg-background text-muted-foreground"
                 }`}
               >

@@ -347,7 +347,7 @@ export function CmsPageEditor({ pageSlug }: CmsPageEditorProps) {
           {saveStatus === "saved" && (
             <span
               data-save-status="saved"
-              className="flex items-center gap-1 text-xs text-green-600"
+              className="flex items-center gap-1 text-xs text-success"
             >
               <CheckCircle2 className="h-3 w-3" />
               Sauvegardé

@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { settleOrRecordRefusal } from "./settlementReturn";
 import type { Id } from "./_generated/dataModel";
 import {
   assertSettlesOrder,
@@ -13,6 +14,7 @@ import {
   CardPaymentUnavailableError,
   OrderAlreadyPaidError,
 } from "@be-in-digital/convex-functions/refusal";
+import { assertCardChargeable } from "@be-in-digital/convex-functions/cardChargeFloor";
 
 // ---------------------------------------------------------------------------
 // Inline AES-256-GCM decryption (same pattern as oauthConnect.ts)
@@ -98,6 +100,17 @@ export const createCheckout = action({
     ) {
       throw new OrderAlreadyPaidError();
     }
+
+    // A total no card provider will take. Stripe's EUR floor is 0,50 € and the
+    // session create is what would otherwise discover that — as a plain SDK
+    // error, redacted to "Server Error" behind the checkout's retry toast, on
+    // an order that can never be paid however many times the diner tries. A
+    // 100 % coupon is the ordinary way to reach it.
+    //
+    // `"EUR"` rather than `globalSettings.currency` on purpose: EUR is what
+    // this request actually sends below, so the floor has to be the one that
+    // applies to it.
+    assertCardChargeable({ amountMinor: order.total, currency: "EUR" });
 
     // The diner-facing path says WHY a card cannot be taken instead of letting
     // `getSumUpAccessToken`'s plain `Error` reach the browser as a redacted
@@ -231,6 +244,34 @@ export const verifyCheckout = action({
         }
       );
 
+      // THE LEDGER FIRST, THEN THE ORDER — the same order `stripeWebhook.ts`
+      // states, and the reason is the same on a return page.
+      //
+      // These are two mutations and therefore two transactions. Marking the
+      // order paid first COMMITS that, and the settlement can still refuse
+      // afterwards. The order was then left reading « Payé » with no payment
+      // row against it: the money is not on the ledger, the invoice is minted
+      // against a total nothing backs, and the diner's confirmation is on its
+      // way. Probed: 2 400 c taken, 1 200 c recorded, `FA-2026-000001` issued.
+      //
+      // Settling first is safe in the other direction: the settlement reads
+      // nothing about the order's status, and one that succeeds is exactly the
+      // case in which the status write is wanted.
+      //
+      // One mutation, one transaction: keyed on the SumUp transaction id, so a
+      // second verification of the same checkout returns the row that already
+      // exists instead of writing another refundable one.
+      //
+      // Unconditional now: the row records that the money moved, which stays
+      // true whether the order ends up paid or awaiting a refund.
+      await settleOrRecordRefusal(ctx, {
+        orderId: args.orderId,
+        storeId: order.storeId as Id<"stores">,
+        amount: order.total,
+        currency: "EUR",
+        provider: "sumup",
+        externalId: checkout.transaction_id ?? checkout.id,
+      });
       // What this settlement should do to the ORDER — which is not always
       // "mark it paid". `refund_pending` (paid, then cancelled, money owed
       // back) is not "paid", so the old `if (order.paymentStatus !== "paid")`
@@ -244,21 +285,6 @@ export const verifyCheckout = action({
           paymentStatus: nextPaymentStatus,
         });
       }
-
-      // One mutation, one transaction: keyed on the SumUp transaction id, so a
-      // second verification of the same checkout returns the row that already
-      // exists instead of writing another refundable one.
-      //
-      // Unconditional now: the row records that the money moved, which stays
-      // true whether the order ends up paid or awaiting a refund.
-      await ctx.runMutation(internal.payments.internalSettle, {
-        orderId: args.orderId,
-        storeId: order.storeId as Id<"stores">,
-        amount: order.total,
-        currency: "EUR",
-        provider: "sumup",
-        externalId: checkout.transaction_id ?? checkout.id,
-      });
 
       return {
         status: "paid" as const,
@@ -292,6 +318,16 @@ export const internalRefund = internalAction({
     amount: v.number(),
   },
   handler: async (ctx, args): Promise<{ refundId: string }> => {
+    // NO IDEMPOTENCY KEY, and that is SumUp's limitation rather than an
+    // oversight. Stripe takes one in its request options and PayPal takes a
+    // `PayPal-Request-Id` header; SumUp's `POST /v0.1/me/refund/{txid}`
+    // documents neither, and inventing a header it does not read would be worse
+    // than nothing — it would look like the same protection the other two have.
+    //
+    // What stands between a lost response and a double refund here is the
+    // reservation in `payments.refundPayment`: the amount is committed before
+    // the call, and released only when the provider REFUSES. A timeout is not a
+    // refusal, so the release does not run and the balance stays committed.
     const { accessToken } = await getSumUpAccessToken(ctx);
 
     const response = await fetch(

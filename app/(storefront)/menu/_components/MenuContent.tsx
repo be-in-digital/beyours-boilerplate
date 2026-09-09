@@ -35,6 +35,46 @@ import { ProductDetailClient } from "@/components/storefront/product-detail-clie
 import { MenuPagination } from "@/components/storefront/menu-pagination"
 import { toast } from "sonner"
 
+/**
+ * How each delivery platform is presented, when this establishment is on it.
+ *
+ * The copy and the brand colours only; the LINK comes from the store's own
+ * integration row. Keeping them apart is the point — a tile that can render
+ * without a URL is how the two marketplace home pages ended up hard-coded on
+ * every menu page in the product.
+ */
+const DELIVERY_PLATFORMS = {
+  uberEats: {
+    name: "Uber Eats",
+    headline: "Livraison rapide",
+    blurb: "Recevez vos plats préférés directement chez vous",
+  },
+  deliveroo: {
+    name: "Deliveroo",
+    headline: "À votre porte",
+    blurb: "Commandez et faites-vous livrer en quelques minutes",
+  },
+} as const
+
+/**
+ * The platforms' own brand colours, spelled where the scanner can read them.
+ *
+ * Deliberately NOT a field on `DELIVERY_PLATFORMS` above, and this is the one
+ * place in this file where a lint-shaped concern decides the shape of the
+ * code. `tests/a11y/contrast.test.ts` resolves a foreground against the
+ * nearest surface painted in the SAME tree: a `bg-` class reached through a
+ * variable is invisible to it, so the black tile copy read as black on the
+ * page background — 1.14:1, a failure the rendered pixels never produce
+ * (black on #06C167 measures about 11:1).
+ *
+ * A ternary in the class list is a shape the scanner does resolve — it reads
+ * each branch as its own state — so the colours stay data-driven for a reader
+ * and stay measurable for the guard. Brand hexes rather than tokens because
+ * they are Uber Eats' and Deliveroo's identity, not this establishment's
+ * palette; the design system has no opinion about them and must not repaint
+ * them.
+ */
+
 const ITEMS_PER_PAGE = 12
 
 function MenuContent() {
@@ -42,6 +82,14 @@ function MenuContent() {
   const searchParams = useSearchParams()
   const { storeId } = useStoreId()
   const { isOpen, timeZone } = useStoreStatus(storeId)
+
+  // The platforms this establishment is actually listed on, with its own page
+  // on each. Empty — and the whole section absent — until an owner fills them
+  // in on the store's integration card.
+  const deliveryLinks = useQuery(
+    api.storeIntegrations.publicLinks,
+    storeId ? { storeId: storeId as Id<"stores"> } : "skip"
+  )
 
   const addItem = useCartStore((s) => s.addItem)
   const cartStoreId = useCartStore((s) => s.storeId)
@@ -210,6 +258,7 @@ function MenuContent() {
               </div>
               <input
                 type="text"
+                aria-label="Rechercher un plat"
                 placeholder="Rechercher un plat..."
                 className="flex-1 h-14 bg-transparent border-none outline-none text-lg font-bold placeholder:text-muted-foreground text-foreground"
                 value={search}
@@ -218,6 +267,8 @@ function MenuContent() {
               />
               {search && (
                 <button
+                  type="button"
+                  aria-label="Effacer la recherche"
                   onClick={() => {
                     setSearch("")
                     updateSearchParams("q", null)
@@ -272,10 +323,31 @@ function MenuContent() {
           <div>
             <h2 className="text-2xl font-black tracking-tighter text-foreground uppercase">
               Affichage : <span className="text-accent-foreground">{activeCategoryName}</span>
-              <span className="ml-2 text-muted-foreground">
+              {/* `aria-hidden` because the sentence below says the same thing
+                  properly. A bare "(7)" read out after a heading is not an
+                  answer to "how many dishes match what I just typed". */}
+              <span aria-hidden="true" className="ml-2 text-muted-foreground">
                 ({filteredProducts?.length ?? 0})
               </span>
             </h2>
+            {/*
+              How many dishes the search, the category chips and the
+              availability filter just left.
+
+              The number is rendered in the heading above and a heading is not
+              a live region: a diner using a screen reader typed into the
+              search box and heard nothing at all, on the one control whose
+              entire purpose is to change this count. Polite and atomic, so the
+              whole sentence is read once the typing stops rather than a digit
+              at a time.
+            */}
+            <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+              {filteredProducts === undefined
+                ? ""
+                : `${filteredProducts.length} ${
+                    filteredProducts.length === 1 ? "plat" : "plats"
+                  } — ${activeCategoryName}`}
+            </p>
           </div>
 
           <div className="flex items-center gap-4">
@@ -351,7 +423,21 @@ function MenuContent() {
         />
       </section>
 
-      {/* ─── DELIVERY APPS SECTION ─── */}
+      {/* ─── DELIVERY APPS SECTION ───
+          Rendered ONLY for the platforms this establishment is actually
+          listed on, and linked to its OWN page there.
+
+          It used to be two tiles hard-coded to `https://www.ubereats.com` and
+          `https://www.deliveroo.com` — the marketplaces' home pages, not this
+          restaurant — shown unconditionally under « Commandez aussi sur vos
+          apps » with a COMMANDER button, whether or not the store had either
+          integration. A restaurant's own site was routing its own customers
+          into a marketplace to be shown the competition, and paying commission
+          on anything they ordered there.
+
+          `storeIntegrations.publicLinks` answers with the enabled integrations
+          that carry a URL the owner typed; nothing else can produce a tile. */}
+      {deliveryLinks && deliveryLinks.length > 0 && (
       <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto mb-24">
         <div className="text-center mb-16">
           <Badge className="bg-primary/10 text-accent-foreground border-primary/20 px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px]">
@@ -363,46 +449,36 @@ function MenuContent() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <a
-            href="https://www.ubereats.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group relative overflow-hidden rounded-[3rem] p-12 flex flex-col items-center text-center transition-all shadow-2xl shadow-primary/10 bg-[#06C167] hover:-translate-y-2 duration-300"
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-150 transition-transform duration-700" />
-            <div className="h-24 w-full relative mb-8 flex items-center justify-center">
-              <div className="text-black text-4xl font-black tracking-tighter uppercase italic">Uber Eats</div>
-            </div>
-            <h3 className="text-2xl font-black text-black mb-4">Livraison rapide</h3>
-            <p className="text-black font-medium mb-8 max-w-xs">
-              Recevez vos plats préférés directement chez vous
-            </p>
-            <Button className="h-14 px-8 rounded-2xl bg-card border-none font-black uppercase tracking-widest text-xs shadow-xl group-hover:px-10 transition-all text-foreground">
-              Commander <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </a>
-
-          <a
-            href="https://www.deliveroo.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group relative overflow-hidden rounded-[3rem] p-12 flex flex-col items-center text-center transition-all shadow-2xl shadow-primary/10 bg-[#00CCBC] hover:-translate-y-2 duration-300"
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-150 transition-transform duration-700" />
-            <div className="h-24 w-full relative mb-8 flex items-center justify-center">
-              <div className="text-black text-4xl font-black tracking-tighter uppercase italic">Deliveroo</div>
-            </div>
-            <h3 className="text-2xl font-black text-black mb-4">À votre porte</h3>
-            <p className="text-black font-medium mb-8 max-w-xs">
-              Commandez et faites-vous livrer en quelques minutes
-            </p>
-            <Button className="h-14 px-8 rounded-2xl bg-card border-none font-black uppercase tracking-widest text-xs shadow-xl group-hover:px-10 transition-all text-foreground">
-              Commander <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </a>
+        <div className={`grid grid-cols-1 gap-8 ${deliveryLinks.length > 1 ? "md:grid-cols-2" : "max-w-2xl mx-auto"}`}>
+          {deliveryLinks.map((link) => {
+            const platform = DELIVERY_PLATFORMS[link.platform]
+            return (
+              <a
+                key={link.platform}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group relative overflow-hidden rounded-[3rem] p-12 flex flex-col items-center text-center transition-all shadow-2xl shadow-primary/10 ${
+                  link.platform === "uberEats" ? "bg-[#06C167]" : "bg-[#00CCBC]"
+                } hover:-translate-y-2 duration-300`}
+              >
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-150 transition-transform duration-700" />
+                <div className="h-24 w-full relative mb-8 flex items-center justify-center">
+                  <div className="text-black text-4xl font-black tracking-tighter uppercase italic">
+                    {platform.name}
+                  </div>
+                </div>
+                <h3 className="text-2xl font-black text-black mb-4">{platform.headline}</h3>
+                <p className="text-black font-medium mb-8 max-w-xs">{platform.blurb}</p>
+                <Button className="h-14 px-8 rounded-2xl bg-card border-none font-black uppercase tracking-widest text-xs shadow-xl group-hover:px-10 transition-all text-foreground">
+                  Commander <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </a>
+            )
+          })}
         </div>
       </section>
+      )}
 
       {/* ─── CTA SECTION ─── */}
       <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto mb-24">

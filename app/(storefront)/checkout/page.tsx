@@ -20,7 +20,10 @@ import { useCartStore, formatPrice,
   clearCheckoutAttempt,
   useCartHydrated,
 } from "@be-in-digital/restaurant"
-import { resolveTaxRatePercent } from "@be-in-digital/convex-functions/orderTotals"
+import {
+  computeOrderTotals,
+  resolveTaxRatePercent,
+} from "@be-in-digital/convex-functions/orderTotals"
 import { effectiveDeliveryFeeMode } from "@be-in-digital/convex-functions/deliveryQuote"
 import {
   resolvePromotionDiscount,
@@ -39,6 +42,16 @@ import { CheckoutForm } from "@/components/storefront/checkout-form"
 import { OrderSummary } from "@/components/storefront/order-summary"
 import { SignInDialog } from "@/components/storefront/sign-in-dialog"
 import { toast } from "sonner"
+
+/**
+ * What the customer is asked to do about an address we cannot price.
+ *
+ * Declared once because it is said in two places — beside the delivery line as
+ * soon as we know, and again in the toast if they submit anyway — and two
+ * wordings for one problem read as two problems.
+ */
+const ADDRESS_NEEDS_REENTRY =
+  "Merci de resaisir votre adresse dans le champ de recherche : nous en avons besoin pour calculer les frais de livraison."
 
 interface AppliedPromo {
   id: string
@@ -274,7 +287,20 @@ export default function CheckoutPage() {
     if (!needsQuote || uberQuote) return
     const lat = deliveryCoords?.latitude
     const lng = deliveryCoords?.longitude
-    if (lat === undefined || lng === undefined) return
+    if (lat === undefined || lng === undefined) {
+      // An address with no coordinates — saved before quoting existed, or
+      // typed over the autocomplete instead of chosen from it. This used to
+      // return silently: no quote arrived, so the summary fell through to its
+      // last branch and read "Calculée à la validation", and at validation the
+      // order was refused with "merci de resaisir votre adresse". The customer
+      // was told to carry on and then stopped, having filled in the whole form.
+      //
+      // Only once an address has actually been entered: before that the
+      // summary already says "Renseignez votre adresse", and an error over an
+      // empty field is noise.
+      if (deliveryCoords !== null) setQuoteError(ADDRESS_NEEDS_REENTRY)
+      return
+    }
 
     let cancelled = false
     getDeliveryQuote({
@@ -398,6 +424,40 @@ export default function CheckoutPage() {
 
   const cardProvider = globalSettings?.payments?.cardProvider ?? "stripe"
 
+  /**
+   * What this basket owes right now, in cents — or `undefined` while it cannot
+   * be known.
+   *
+   * The payment tiles need it: a card provider has a floor (0,50 € at Stripe,
+   * in EUR) and a 100 % coupon takes an order below it, to zero. Offering a
+   * card for either produced an order no retry could ever settle.
+   *
+   * Computed with the same pure function the summary and the SERVER bill with,
+   * from the same inputs, so the figure the tiles reason about is the figure
+   * the diner is reading beside them. `null` from `estimatedDeliveryFee` means
+   * the quote has not landed, and a total without it is not the total.
+   */
+  const amountDue = (() => {
+    if (estimatedDeliveryFee === null) return undefined
+    return computeOrderTotals({
+      subtotal: getSubtotal(),
+      taxRatePercent: resolveTaxRatePercent({
+        globalTaxRate: globalSettings?.taxRate,
+      }),
+      lines: items.map((item) => ({
+        subtotal:
+          (item.price + item.options.reduce((sum, o) => sum + o.priceModifier, 0)) *
+          item.quantity,
+        taxRatePercent: item.taxRate ?? resolveTaxRatePercent({
+          globalTaxRate: globalSettings?.taxRate,
+        }),
+      })),
+      deliveryFee: estimatedDeliveryFee ?? 0,
+      discount:
+        appliedPromo?.discountAmount ?? automaticOffer?.discountAmount ?? 0,
+    }).total
+  })()
+
   const handleSubmit = async (data: {
     name: string
     email?: string
@@ -445,9 +505,8 @@ export default function CheckoutPage() {
       })
 
       if (decision.kind === "address-incomplete") {
-        toast.error(
-          "Merci de resaisir votre adresse dans le champ de recherche : nous en avons besoin pour calculer les frais de livraison."
-        )
+        toast.error(ADDRESS_NEEDS_REENTRY)
+        setQuoteError(ADDRESS_NEEDS_REENTRY)
         setIsSubmitting(false)
         return
       }
@@ -638,6 +697,7 @@ export default function CheckoutPage() {
               isSubmitting={isSubmitting}
               addresses={addresses}
               isAuthenticated={!!session?.user}
+              amountDue={amountDue}
               user={session?.user ? {
                 name: session.user.name ?? undefined,
                 email: session.user.email ?? undefined,
@@ -662,6 +722,7 @@ export default function CheckoutPage() {
                 onApplyPromo={handleApplyPromo}
                 onRemovePromo={handleRemovePromo}
                 deliveryFee={estimatedDeliveryFee}
+                deliveryFeeUnavailable={quoteError !== null}
                 hasDeliveryAddress={hasDeliveryAddress}
                 taxRatePercent={resolveTaxRatePercent({
                   globalTaxRate: globalSettings?.taxRate,

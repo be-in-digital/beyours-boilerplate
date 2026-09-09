@@ -14,14 +14,15 @@
   --popover-foreground: 220 15% 10%;
   --primary: 220 15% 14%;
   --primary-foreground: 30 20% 97%;
+  --primary-ink: 220 15% 14%;
   --secondary: 41 12% 91%;
   --secondary-foreground: 220 15% 10%;
-  --muted: 41 12% 95%;
-  --muted-foreground: 155 14% 39%;
+  --muted: 41 12% 91%;
+  --muted-foreground: 155 14% 37%;
   --accent: 30 20% 90%;
   --accent-foreground: 220 12% 24%;
   --border: 53 12% 86%;
-  --input: 53 12% 51.5%;
+  --input: 53 12% 50%;
   --ring: 220 15% 14%;
   --chart-1: 220 15% 14%;
   --chart-2: 10 55% 40%;
@@ -39,6 +40,7 @@
   --popover-foreground: 30 15% 93%;
   --primary: 36 45% 62%;
   --primary-foreground: 222 25% 7%;
+  --primary-ink: 36 45% 62%;
   --secondary: 205 18% 14%;
   --secondary-foreground: 30 15% 93%;
   --muted: 205 18% 14%;
@@ -46,7 +48,7 @@
   --accent: 220 14% 13%;
   --accent-foreground: 36 40% 76%;
   --border: 197 18% 17%;
-  --input: 197 18% 36%;
+  --input: 197 18% 37%;
   --ring: 36 45% 62%;
   --chart-1: 36 45% 62%;
   --chart-2: 186 55% 52%;

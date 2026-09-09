@@ -103,14 +103,30 @@ export function StorefrontProductCard({
         </div>
 
         {/* Favorite top-right */}
+        {/*
+          Named, and its state announced. An icon-only control with no text and
+          no `aria-label` reaches a screen reader as "button" and nothing else —
+          there were two of these per dish, so a five-dish menu had ten unnamed
+          buttons and a fifty-dish carte a hundred. `aria-pressed` is what says
+          whether this heart is already filled, which the colour alone says only
+          to someone who can see it.
+        */}
         <button
+          type="button"
+          aria-label={
+            favorited
+              ? t("product.removeFromFavorites", { name: product.name })
+              : t("product.addToFavorites", { name: product.name })
+          }
+          aria-pressed={favorited}
           onClick={(e) => {
             e.stopPropagation()
             onToggleFavorite()
           }}
-          className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur-sm transition-all hover:bg-card hover:scale-110"
+          className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-card/90 shadow-sm backdrop-blur-sm transition-all hover:bg-card hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <Heart
+            aria-hidden="true"
             className={`h-4 w-4 transition-colors ${
               favorited
                 ? "fill-destructive text-destructive"
@@ -127,8 +143,40 @@ export function StorefrontProductCard({
 
       {/* Content */}
       <div className="p-8 flex flex-col flex-1">
-        <h3 className="text-lg font-black tracking-tighter text-foreground leading-tight mb-3 group-hover:text-accent-foreground transition-colors uppercase line-clamp-1">
-          {product.name}
+        {/*
+          THE DISH'S NAME IS THE CONTROL, and that is what makes the card
+          reachable from a keyboard at all.
+
+          The card is a `<div onClick>`. Measured live on the bench it reported
+          `tabIndex: -1` and `role: null`, so a keyboard user could not open a
+          dish — which on this storefront means they could not choose a required
+          option, and therefore could not order half the menu.
+
+          The obvious repair — `role="button" tabIndex={0}` on the card — is
+          invalid here: this card already contains two buttons (favourite, add
+          to basket), and a button inside a button is not a thing a browser or a
+          screen reader can represent. Promoting the TITLE instead gives a
+          keyboard user three ordinary stops in reading order and leaves the
+          card's own click handler for pointer users, where it was never a
+          problem.
+        */}
+        <h3 className="mb-3 leading-tight">
+          {onClick ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onClick()
+              }}
+              className="text-left text-lg font-black uppercase tracking-tighter text-foreground line-clamp-1 transition-colors group-hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+            >
+              {product.name}
+            </button>
+          ) : (
+            <span className="line-clamp-1 text-lg font-black uppercase tracking-tighter text-foreground transition-colors group-hover:text-accent-foreground">
+              {product.name}
+            </span>
+          )}
         </h3>
 
         {product.description && (
@@ -149,16 +197,24 @@ export function StorefrontProductCard({
 
           {canAdd && onAddToCart ? (
             <button
+              type="button"
+              aria-label={t("product.addNamedToCart", { name: product.name })}
               onClick={(e) => {
                 e.stopPropagation()
                 onAddToCart()
               }}
-              className="h-12 w-12 rounded-2xl bg-primary text-primary-foreground hover:bg-primary-hover shadow-lg shadow-primary/10 hover:scale-110 transition-all flex items-center justify-center"
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/10 transition-all hover:scale-110 hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             >
-              <Plus className="h-6 w-6" />
+              <Plus className="h-6 w-6" aria-hidden="true" />
             </button>
           ) : (
-            <div className="h-12 w-12 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center">
+            // Decoration, not a control: it cannot be pressed and the badge
+            // above already says why. Announcing a greyed plus as "button"
+            // offers a screen-reader user something that does not exist.
+            <div
+              aria-hidden="true"
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
+            >
               <Plus className="h-6 w-6" />
             </div>
           )}

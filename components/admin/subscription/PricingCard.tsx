@@ -78,7 +78,7 @@ export function PricingCard({
           </span>
         </div>
         {billing === "annual" && (
-          <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+          <p className="text-xs text-success mt-1">
             {plan.annualSavingLabel}
           </p>
         )}
@@ -90,7 +90,7 @@ export function PricingCard({
           {plan.features.map((feature) => (
             <li key={feature.label} className="flex items-center gap-2 text-sm">
               {feature.included ? (
-                <Check className="h-4 w-4 text-green-500 shrink-0" />
+                <Check className="h-4 w-4 text-success shrink-0" />
               ) : (
                 <X className="h-4 w-4 text-muted-foreground shrink-0" />
               )}

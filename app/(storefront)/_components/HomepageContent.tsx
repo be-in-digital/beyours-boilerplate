@@ -60,6 +60,14 @@ export default function LandingPage() {
     // from the image optimizer on every homepage without a hero upload. An
     // absent image is drawn as the empty frame it is.
     const heroImage = hero.field("image").mediaUrl
+    // The CMS media field carries an `altText` the owner fills in (the admin
+    // even offers to generate one), and this page ignored it in favour of the
+    // literal "Hero" — one English word, identical on every storefront, saying
+    // nothing about the dish in the picture. Read what they wrote. With
+    // nothing written the image is marked decorative rather than mislabelled:
+    // the h1 beside it already carries the meaning, and inventing a
+    // description of an establishment's own photograph is not ours to do.
+    const heroImageAlt = hero.field("image").altText ?? ""
     const heroCtaLabel = hero.field("ctaLabel").text ?? "Voir le Menu"
     const fb1Title = hero.field("floatingBadge1Title").text ?? "Top Rated"
     const fb1Subtitle = hero.field("floatingBadge1Subtitle").text ?? "Gourmet Choice"
@@ -93,6 +101,7 @@ export default function LandingPage() {
     const ctaTitle = cta.field("title").text ?? "Prêt à {commander} ?"
     const ctaSubtitle = cta.field("subtitle").text ?? "Découvrez notre menu complet et commandez vos plats préférés en quelques clics."
     const ctaButtonText = cta.field("buttonText").text ?? "Explorer le Menu"
+    const ctaBgImageAlt = cta.field("backgroundImage").altText ?? ""
     const ctaBgImage = cta.field("backgroundImage").mediaUrl ?? "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop"
 
 
@@ -148,17 +157,35 @@ export default function LandingPage() {
                             {heroImage && (
                                 <Image
                                     src={heroImage}
-                                    alt="Hero"
+                                    alt={heroImageAlt}
                                     fill
                                     className="object-contain drop-shadow-[0_45px_45px_rgba(0,0,0,0.6)] z-20 scale-125"
                                     priority
                                 />
                             )}
 
-                            {/* Floating badge 1 */}
+                            {/* Floating badge 1.
+
+                                It floated forever. WCAG 2.2.2 (Pause, Stop,
+                                Hide, Level A) covers moving content that
+                                starts on its own, runs for more than five
+                                seconds and sits beside other content, and it
+                                wants a way to stop it. There is no pause
+                                control on a restaurant hero and adding one
+                                would be chrome nobody wants, so the motion
+                                settles instead: one four-second float and the
+                                badge comes to rest, which is inside the five
+                                seconds the criterion allows and removes the
+                                obligation rather than papering over it.
+
+                                `prefers-reduced-motion` is a different
+                                promise, kept separately by `MotionConfig` in
+                                `app/providers.tsx` — that one suppresses the
+                                float altogether. This one is for everybody
+                                else. */}
                             <motion.div
                                 animate={{ y: [0, -20, 0] }}
-                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                transition={{ duration: 4, ease: "easeInOut" }}
                                 className="absolute top-10 -left-10 z-30 bg-white/20 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl"
                             >
                                 <div className="flex items-center gap-3">
@@ -176,10 +203,13 @@ export default function LandingPage() {
                                 </div>
                             </motion.div>
 
-                            {/* Floating badge 2 */}
+                            {/* Floating badge 2 — see badge 1. Four seconds
+                                here too: it was five, and "more than five
+                                seconds" is the line the criterion draws, so
+                                sitting exactly on it is not a place to be. */}
                             <motion.div
                                 animate={{ y: [0, 20, 0] }}
-                                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                                transition={{ duration: 4, ease: "easeInOut", delay: 1 }}
                                 className="absolute bottom-1/4 -right-10 z-30 bg-white/20 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl"
                             >
                                 <div className="flex items-center gap-3">
@@ -275,13 +305,13 @@ export default function LandingPage() {
                                 >
                                     <Image
                                         src={ctaBgImage}
-                                        alt="Healthy Gourmet Food"
+                                        alt={ctaBgImageAlt}
                                         fill
                                         className="object-cover group-hover:scale-110 transition-all duration-1000"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-primary-hover/80 via-transparent to-transparent" />
 
-                                    <button className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-primary-foreground border border-white/30 hover:bg-card hover:text-accent-foreground transition-all shadow-2xl group/play">
+                                    <button type="button" aria-label="Lire la vidéo de présentation" className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-primary-foreground border border-white/30 hover:bg-card hover:text-accent-foreground transition-all shadow-2xl group/play">
                                         <Play className="h-10 w-10 fill-current translate-x-1 group-hover/play:scale-110 transition-transform" />
                                         <div className="absolute inset-0 rounded-full bg-card animate-ping opacity-20 group-hover:opacity-0" />
                                     </button>

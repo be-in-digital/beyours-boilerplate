@@ -79,13 +79,19 @@ const UNSUBSCRIBED = htmlPage(
 export const handleUnsubscribe = httpAction(async (_ctx, request) => {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
+  // Which campaign's mail carried this link, so the POST can charge the
+  // unsubscribe to it. Absent for an automation's mail, for a link sent before
+  // campaigns stamped one, and for the preferences page — all of which must
+  // still unsubscribe.
+  const campaignId = url.searchParams.get("c");
 
   if (!id) return new Response(INVALID_LINK, { status: 400, headers: HTML });
 
-  // The id is echoed into a hidden field, so it goes through `esc` — it is
-  // attacker-controlled text on its way into HTML.
+  // Both values are echoed into hidden fields, so both go through `esc` — they
+  // are attacker-controlled text on their way into HTML.
   const confirm = `<form method="POST" action="/email/unsubscribe">
       <input type="hidden" name="id" value="${esc(id)}" />
+      ${campaignId ? `<input type="hidden" name="c" value="${esc(campaignId)}" />` : ""}
       <button type="submit">Confirmer le désabonnement</button>
     </form>`;
 
@@ -112,13 +118,18 @@ export const handleUnsubscribe = httpAction(async (_ctx, request) => {
 export const handleUnsubscribePost = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
   let id = url.searchParams.get("id");
+  let campaignId = url.searchParams.get("c");
 
-  // The button posts a form body; one-click keeps the id in the query string.
+  // The button posts a form body; one-click keeps both in the query string.
   if (!id) {
     try {
       const form = await request.formData();
       const field = form.get("id");
       if (typeof field === "string") id = field;
+      const campaignField = form.get("c");
+      if (typeof campaignField === "string" && campaignField) {
+        campaignId = campaignField;
+      }
     } catch {
       // No form body — the query string was the only source, and it was empty.
     }
@@ -129,6 +140,14 @@ export const handleUnsubscribePost = httpAction(async (ctx, request) => {
   try {
     await ctx.runMutation(internal.emailSubscribers.unsubscribe, {
       id: id as Id<"emailSubscribers">,
+      // Charged to the campaign that sent the link — which is what makes
+      // « Désabonnements » on the campaign report a real figure rather than a
+      // count of SES spam complaints. The mutation refuses a campaign that
+      // does not belong to this subscriber's store: the value arrives in a URL
+      // the recipient holds.
+      ...(campaignId
+        ? { campaignId: campaignId as Id<"emailCampaigns"> }
+        : {}),
     });
   } catch (error) {
     // Reported as success on purpose, but only for the recipient's benefit:
@@ -271,13 +290,50 @@ export const handleSesWebhook = httpAction(async (ctx, request) => {
   });
   if (!verdict.valid) {
     console.error("Rejected SES webhook:", verdict.reason);
-    return new Response("Unauthorized", { status: 403 });
+    // A SubscriptionConfirmation this deployment will not accept is answered
+    // 200, not 403, and the reason is the same one the refusal below gives:
+    // SNS retries a non-2xx, and there is nothing here to retry. The topic is
+    // not on the list and re-sending will not put it there — an operator has
+    // to set `SES_SNS_TOPIC_ARN` (the log line above names the ARN to paste)
+    // or confirm from the AWS console. Refusing is still refusing: nothing is
+    // fetched and no subscription is created.
+    //
+    // A NOTIFICATION gets the 403. Those are worth retrying — the variable may
+    // be set in the meantime — and an unauthenticated caller is owed the
+    // status code that says so.
+    const isConfirmation = snsMessage.Type === "SubscriptionConfirmation";
+    return new Response(isConfirmation ? "OK" : "Unauthorized", {
+      status: isConfirmation ? 200 : 403,
+    });
   }
 
   // Handle subscription confirmation (first-time setup)
+  //
+  // THE STEP THAT MADE A FORGED TOPIC SELF-SERVICE. This fetched any
+  // `SubscribeURL` on an `sns.*.amazonaws.com` host, and that host check is
+  // satisfied by every SNS topic in every AWS account — including one an
+  // attacker owns. They pointed their own topic at this endpoint and the
+  // endpoint confirmed the subscription for them; from then on their messages
+  // carried a genuine Amazon signature, and the handler below marks
+  // subscribers bounced and complained from ids in the message body.
+  //
+  // `mayConfirm` comes from `sesWebhookVerify`, which decides it against
+  // `SES_SNS_TOPIC_ARN` AFTER the signature has made `TopicArn` trustworthy. A
+  // deployment that has not been told its topic confirms nothing and logs what
+  // to set — the subscription is also confirmable from the AWS console, which
+  // is where an operator doing it deliberately would be.
   if (snsMessage.Type === "SubscriptionConfirmation") {
+    if (!verdict.mayConfirm) {
+      console.error(
+        "[SES] refusing to confirm an SNS subscription for an unconfigured topic:",
+        snsMessage.TopicArn,
+        "— set SES_SNS_TOPIC_ARN on this deployment to allow it."
+      );
+      return new Response("OK", { status: 200 });
+    }
     if (snsMessage.SubscribeURL) {
-      // Validate SubscribeURL to prevent SSRF
+      // Still checked, and still for SSRF: `SubscribeURL` is a field in the
+      // body, and a signed message is not thereby a safe URL to fetch.
       try {
         const subUrl = new URL(snsMessage.SubscribeURL);
         if (
@@ -465,6 +521,12 @@ export const handleSesWebhook = httpAction(async (ctx, request) => {
             type: "complained",
             occurredAt: now,
           });
+          // A spam report also removes the recipient from the list, so it is
+          // counted here — but it was for a long time the ONLY writer of this
+          // field, which made « Désabonnements » on the campaign report a
+          // count of complaints wearing the wrong label. The unsubscribe link
+          // now carries its campaign and charges itself; see
+          // `emailSubscribers.unsubscribe`.
           if (typedCampaignId) {
             await ctx.runMutation(internal.emailCampaigns.incrementStats, {
               id: typedCampaignId,

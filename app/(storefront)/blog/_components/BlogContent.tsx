@@ -253,6 +253,7 @@ export default function BlogPage() {
                             <input
                                 type="email"
                                 required
+                                aria-label="Votre adresse email"
                                 value={newsletterEmail}
                                 onChange={(e) => setNewsletterEmail(e.target.value)}
                                 placeholder="Votre email..."

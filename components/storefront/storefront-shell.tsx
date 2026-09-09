@@ -1,5 +1,6 @@
 "use client"
 
+import { CartAnnouncer } from "./cart-announcer"
 import { StorefrontHeader } from "./storefront-header"
 import { StorefrontFooter } from "./storefront-footer"
 import { StoreClosedBanner } from "./store-closed-banner"
@@ -33,6 +34,14 @@ export function StorefrontShell({ children }: StorefrontShellProps) {
     <div className="storefront-theme flex min-h-screen flex-col bg-background text-foreground">
       <StorefrontI18nProvider />
       <DynamicFavicon />
+      {/*
+        Here rather than in the cart sheet, and for a reason that is not
+        tidiness: a live region has to be in the document before its contents
+        change, and the sheet is a dialog that unmounts when closed. Every
+        mutation made from a product card — which is most of them — would
+        happen while a region inside the sheet did not exist.
+      */}
+      <CartAnnouncer />
       {showBanner && <StoreClosedBanner nextOpenTime={nextOpenTime} />}
       <StorefrontHeader hasBanner={showBanner} />
       <main className="flex-1">{children}</main>

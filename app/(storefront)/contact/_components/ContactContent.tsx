@@ -34,6 +34,12 @@ export default function ContactPage() {
         storeId ? { id: storeId as Id<"stores"> } : "skip"
     )
 
+    // The week this page PUBLISHES has to be the week the order path ENFORCES.
+    // It called `resolveStoreHours(store)` with no second argument, so a
+    // location following the deployment-wide week printed its own stale one —
+    // and the contact page is where a diner goes to find out when to turn up.
+    const globalSettings = useQuery(api.globalSettings.get)
+
     const hero = block("hero")
     const form = block("form")
     const info = block("info")
@@ -60,7 +66,7 @@ export default function ContactPage() {
     // sent to the wrong door.
     const isLoadingStore = store === undefined
     const addressLines = store ? formatStoreAddressLines(store.address) : []
-    const hoursRows = store ? formatWeeklyHours(resolveStoreHours(store)) : []
+    const hoursRows = store ? formatWeeklyHours(resolveStoreHours(store, globalSettings)) : []
 
     const [submitted, setSubmitted] = useState(false)
     const [sending, setSending] = useState(false)

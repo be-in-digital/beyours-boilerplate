@@ -800,7 +800,7 @@ export const analyze = action({
     )
 
     // Step 4: Load store categories and map
-    const categories = (await ctx.runQuery(api.categories.list, {
+    const categories = (await ctx.runQuery(api.categories.listAll, {
       storeId: args.storeId,
     }).catch(() => [])) as CategoryDoc[]
 

@@ -176,6 +176,13 @@ export function ProductDetailClient({
         {/* Favorite */}
         <div className="absolute top-6 right-6 z-10">
           <button
+            type="button"
+            aria-label={
+              isFavorite(product._id, storeId)
+                ? `Retirer ${product.name} des favoris`
+                : `Ajouter ${product.name} aux favoris`
+            }
+            aria-pressed={isFavorite(product._id, storeId)}
             onClick={() => toggleFavorite(product._id, storeId)}
             className="flex h-12 w-12 items-center justify-center rounded-full bg-card/90 shadow-md backdrop-blur-sm transition-all hover:bg-card hover:scale-110"
           >
@@ -389,6 +396,8 @@ export function ProductDetailClient({
             {/* Quantity */}
             <div className="flex items-center bg-muted rounded-2xl p-2 border border-border h-16">
               <button
+                type="button"
+                aria-label="Diminuer la quantité"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
                 className="h-12 w-12 rounded-xl text-muted-foreground hover:text-accent-foreground hover:bg-card transition-all flex items-center justify-center disabled:opacity-30"
@@ -399,6 +408,8 @@ export function ProductDetailClient({
                 {quantity}
               </div>
               <button
+                type="button"
+                aria-label="Augmenter la quantité"
                 onClick={() => setQuantity(quantity + 1)}
                 className="h-12 w-12 rounded-xl text-muted-foreground hover:text-accent-foreground hover:bg-card transition-all flex items-center justify-center"
               >

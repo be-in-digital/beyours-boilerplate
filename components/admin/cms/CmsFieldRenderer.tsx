@@ -149,7 +149,7 @@ export function CmsFieldRenderer({
             </Badge>
           )}
           {isCleared && (
-            <Badge variant="outline" className="text-[10px] text-orange-600">
+            <Badge variant="outline" className="text-[10px] text-warning">
               Réinitialisé
             </Badge>
           )}
@@ -240,7 +240,7 @@ export function CmsFieldRenderer({
               <button
                 type="button"
                 onClick={handleMediaClear}
-                className="absolute top-1.5 right-1.5 rounded-full bg-destructive/90 p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1.5 right-1.5 inline-flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -337,7 +337,7 @@ export function CmsFieldRenderer({
               <button
                 type="button"
                 onClick={handleMediaClear}
-                className="absolute top-1.5 right-1.5 rounded-full bg-destructive/90 p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1.5 right-1.5 inline-flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <X className="h-3.5 w-3.5" />
               </button>

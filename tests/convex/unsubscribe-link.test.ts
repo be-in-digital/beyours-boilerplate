@@ -217,3 +217,164 @@ describe("POST /email/unsubscribe", () => {
     expect(response.status).toBe(200)
   })
 })
+
+/**
+ * « Désabonnements » on the campaign report has to be desabonnements.
+ *
+ * `campaign.stats.unsubscribed` had exactly one writer: the SES *Complaint*
+ * branch of the webhook. A real unsubscribe — the link in the mail, the RFC
+ * 8058 one-click a mail provider sends — patched the subscriber and recorded
+ * nothing anywhere. So a campaign that cost a restaurant forty subscribers
+ * reported zero, and the one number that tells an owner a campaign was badly
+ * received could not move.
+ *
+ * The attribution has to come from the link, because that is all an unsubscribe
+ * carries: the mail is long gone by the time it is clicked.
+ */
+describe("an unsubscribe is charged to the campaign that prompted it", () => {
+  async function seedCampaign(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">
+  ) {
+    const templateId = await t.run((ctx) =>
+      ctx.db.insert("emailTemplates", {
+        storeId,
+        name: "Newsletter",
+        subject: "Notre nouvelle carte",
+        category: "marketing" as const,
+        blocks: [],
+        isDefault: false,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+    return t.run((ctx) =>
+      ctx.db.insert("emailCampaigns", {
+        storeId,
+        name: "Menu de printemps",
+        subject: "Notre nouvelle carte",
+        templateId,
+        status: "sent" as const,
+        abTestEnabled: false,
+        stats: {
+          sent: 40,
+          delivered: 40,
+          opened: 0,
+          clicked: 0,
+          bounced: 0,
+          unsubscribed: 0,
+          converted: 0,
+          revenue: 0,
+        },
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+    )
+  }
+
+  function statsOf(t: ReturnType<typeof convexTest>, id: Id<"emailCampaigns">) {
+    return t.run(async (ctx) => (await ctx.db.get(id))?.stats)
+  }
+
+  function eventsFor(
+    t: ReturnType<typeof convexTest>,
+    subscriberId: Id<"emailSubscribers">
+  ) {
+    return t.run(async (ctx) =>
+      ctx.db
+        .query("emailEvents")
+        .withIndex("by_subscriberId", (q) => q.eq("subscriberId", subscriberId))
+        .collect()
+    )
+  }
+
+  test("the counter moves, and an event is recorded", async () => {
+    const t = newHarness()
+    const { storeId, id } = await seedSubscriber(t, "yanis@resto.example")
+    const campaignId = await seedCampaign(t, storeId)
+
+    await t.fetch(`/email/unsubscribe?id=${id}&c=${campaignId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "List-Unsubscribe=One-Click",
+    })
+
+    expect(await statusOf(t, id)).toBe("unsubscribed")
+    expect((await statsOf(t, campaignId))?.unsubscribed).toBe(1)
+
+    const events = await eventsFor(t, id)
+    expect(events).toHaveLength(1)
+    expect(events[0]?.type).toBe("unsubscribed")
+    expect(events[0]?.campaignId).toBe(campaignId)
+  })
+
+  test("one person leaving is counted once, however many times the link is hit", async () => {
+    // Mail clients pre-fetch, providers retry their one-click POST, and people
+    // click twice. A counter that moves on each of those is not a count of
+    // people.
+    const t = newHarness()
+    const { storeId, id } = await seedSubscriber(t, "yanis@resto.example")
+    const campaignId = await seedCampaign(t, storeId)
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await t.fetch(`/email/unsubscribe?id=${id}&c=${campaignId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "List-Unsubscribe=One-Click",
+      })
+    }
+
+    expect((await statsOf(t, campaignId))?.unsubscribed).toBe(1)
+    expect(await eventsFor(t, id)).toHaveLength(1)
+  })
+
+  test("it still unsubscribes when no campaign is named", async () => {
+    // An automation's mail, a link sent before campaigns stamped one, the
+    // preferences page. The removal is the recipient's right; the accounting
+    // is ours.
+    const t = newHarness()
+    const { id } = await seedSubscriber(t, "yanis@resto.example")
+
+    await t.fetch("/email/unsubscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ id }).toString(),
+    })
+
+    expect(await statusOf(t, id)).toBe("unsubscribed")
+    const events = await eventsFor(t, id)
+    expect(events).toHaveLength(1)
+    expect(events[0]?.campaignId).toBeUndefined()
+  })
+
+  test("a campaign belonging to another store is not charged", async () => {
+    // The id arrives in a URL the recipient holds, so it is not a value to
+    // trust with a write.
+    const t = newHarness()
+    const { id } = await seedSubscriber(t, "yanis@resto.example")
+    const { storeId: otherStoreId } = await seedSubscriber(t, "autre@resto.example")
+    const foreignCampaign = await seedCampaign(t, otherStoreId)
+
+    await t.fetch(`/email/unsubscribe?id=${id}&c=${foreignCampaign}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "List-Unsubscribe=One-Click",
+    })
+
+    expect(await statusOf(t, id)).toBe("unsubscribed")
+    expect((await statsOf(t, foreignCampaign))?.unsubscribed).toBe(0)
+  })
+
+  test("the confirmation page carries the campaign through to the POST", async () => {
+    const t = newHarness()
+    const { storeId, id } = await seedSubscriber(t, "yanis@resto.example")
+    const campaignId = await seedCampaign(t, storeId)
+
+    const body = await (
+      await t.fetch(`/email/unsubscribe?id=${id}&c=${campaignId}`)
+    ).text()
+
+    expect(body).toContain(`name="c"`)
+    expect(body).toContain(campaignId)
+  })
+})

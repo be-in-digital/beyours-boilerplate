@@ -1026,3 +1026,170 @@ describe("every writer asks the ledger, not only the provider paths", () => {
     ).toHaveLength(1)
   })
 })
+
+// ============================================================================
+// A settlement landing on a row that is still a placeholder
+// ============================================================================
+
+/**
+ * A `pending` row is not a settlement, and treating it as one hid the charge.
+ *
+ * `settlePayment` recognised "a row for this charge on this order exists" and
+ * returned it untouched. `settleByExternalReference` — the handler behind
+ * `payment_intent.succeeded` — then marked the ORDER paid off the back of it.
+ * The result was an order reading « Payé » over a `pending` payment row, which
+ * is the worst of both: `planRefund` accepts only `succeeded` and
+ * `partially_refunded`, so the charge could never be given back through the
+ * product; and `collectionOnOrder` counts the same two, so the order read as
+ * holding no money and a second collection was still allowed on it.
+ */
+describe("a settlement promotes the placeholder it lands on", () => {
+  test("a pending row for the same charge is promoted, not left behind", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-P2-S1")
+
+    // What `payments.create` writes: the charge is known, nothing has been
+    // heard from the provider yet.
+    const rowId = await t.mutation(internal.payments.internalCreate, {
+      storeId,
+      orderId,
+      amount: CHARGE,
+      currency: "EUR",
+      provider: "stripe" as const,
+      externalId: INTENT,
+    })
+
+    const settled = await t.mutation(
+      internal.payments.internalSettle,
+      settlement(storeId, orderId)
+    )
+
+    // The same row, not a second one.
+    expect(settled.paymentId).toBe(rowId)
+    expect(settled.created).toBe(true)
+
+    const rows = await paymentsFor(t, orderId)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].status).toBe("succeeded")
+  })
+
+  test("the promoted row is refundable, which the pending one was not", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-P2-S2")
+
+    await t.mutation(internal.payments.internalCreate, {
+      storeId,
+      orderId,
+      amount: CHARGE,
+      currency: "EUR",
+      provider: "stripe" as const,
+      externalId: INTENT,
+    })
+    await t.mutation(internal.payments.internalSettle, settlement(storeId, orderId))
+
+    const [row] = await paymentsFor(t, orderId)
+    // The check that was permanently failing: money taken and no way to give
+    // it back through the product.
+    expect(() =>
+      planRefund({
+        payment: {
+          provider: row.provider,
+          status: row.status,
+          amount: row.amount,
+          refundedAmount: row.refundedAmount,
+          externalId: row.externalId,
+        },
+        amount: row.amount,
+      })
+    ).not.toThrow()
+  })
+
+  test("the promoted row closes the order to a second collection", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-P2-S3")
+
+    await t.mutation(internal.payments.internalCreate, {
+      storeId,
+      orderId,
+      amount: CHARGE,
+      currency: "EUR",
+      provider: "stripe" as const,
+      externalId: INTENT,
+    })
+    await t.mutation(internal.payments.internalSettle, settlement(storeId, orderId))
+
+    // Cash at the counter on an order a card has now really collected.
+    await expect(
+      t.run((ctx) => markCashPaid.handler(ctx, { orderId }))
+    ).rejects.toThrow(/déjà été encaissée/)
+  })
+
+  test("the settlement's provider wins, so the refund goes where the money is", async () => {
+    // A placeholder naming the wrong provider is worse than no row: a refund
+    // is issued against whatever that field says.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-P2-S4")
+
+    await t.mutation(internal.payments.internalCreate, {
+      storeId,
+      orderId,
+      amount: 1,
+      currency: "usd",
+      provider: "cash" as const,
+      externalId: INTENT,
+    })
+    await t.mutation(internal.payments.internalSettle, settlement(storeId, orderId))
+
+    const [row] = await paymentsFor(t, orderId)
+    expect(row.provider).toBe("stripe")
+    expect(row.amount).toBe(CHARGE)
+    expect(row.currency).toBe("EUR")
+  })
+
+  test("a charge already on the ledger is still recognised and not rewritten", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-P2-S5")
+
+    const first = await t.mutation(
+      internal.payments.internalSettle,
+      settlement(storeId, orderId)
+    )
+    const second = await t.mutation(
+      internal.payments.internalSettle,
+      settlement(storeId, orderId)
+    )
+
+    expect(second.paymentId).toBe(first.paymentId)
+    expect(second.created).toBe(false)
+    expect(await paymentsFor(t, orderId)).toHaveLength(1)
+  })
+
+  test("a refunded charge is not resurrected by a replayed event", async () => {
+    // The money went back. A provider event arriving afterwards must not put
+    // the row back to `succeeded` and make it refundable a second time.
+    const t = newHarness()
+    const storeId = await seedStore(t)
+    const orderId = await seedOrder(t, storeId, "A-P2-S6")
+
+    await t.mutation(internal.payments.internalSettle, settlement(storeId, orderId))
+    const [settled] = await paymentsFor(t, orderId)
+    await t.run((ctx) =>
+      ctx.db.patch(settled._id, { status: "refunded", refundedAmount: CHARGE })
+    )
+
+    const replay = await t.mutation(
+      internal.payments.internalSettle,
+      settlement(storeId, orderId)
+    )
+    expect(replay.created).toBe(false)
+
+    const rows = await paymentsFor(t, orderId)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].status).toBe("refunded")
+  })
+})

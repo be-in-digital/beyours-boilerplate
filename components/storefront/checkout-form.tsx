@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, type ReactNode } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -28,6 +28,9 @@ import {
   Textarea,
 } from "@be-in-digital/ui"
 import {
+  formatPrice,
+  isPaymentMethodSelectable,
+  nothingIsDue,
   resolvePaymentMethod,
   useCartStore,
   type OrderType,
@@ -42,9 +45,13 @@ import {
 // accepts more than `orders.create` stores turns a diner's allergy warning
 // into a refused order at the moment of payment.
 import { FIELD_LIMITS } from "@be-in-digital/convex-functions/rateLimit"
+// The floor the three card money paths enforce, read from the same module
+// they enforce it with, so the tile and the refusal cannot drift apart.
+import { cardMinimumFor } from "@be-in-digital/convex-functions/cardChargeFloor"
 import { useGooglePlacesAutocomplete } from "@/hooks/useGooglePlacesAutocomplete"
 import type { AddressValue } from "@/lib/address"
 import type { SavedAddress } from "@/lib/stores/addresses-store"
+import { toast } from "sonner"
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""
 
@@ -103,6 +110,15 @@ interface CheckoutFormProps {
   isSubmitting: boolean
   addresses: SavedAddress[]
   isAuthenticated: boolean
+  /**
+   * What the basket currently owes, in cents, as the summary prices it.
+   *
+   * Needed because a payment tile is not only a question of configuration: a
+   * card provider has a floor (0,50 € at Stripe, in EUR) and a 100 % coupon
+   * takes an order below it, to zero. `undefined` while the basket is still
+   * being priced.
+   */
+  amountDue?: number
   user?: UserInfo
   /**
    * Reports the delivery address as it changes. Coordinates are included when
@@ -152,6 +168,7 @@ export function CheckoutForm({
   isSubmitting,
   addresses,
   isAuthenticated,
+  amountDue,
   user,
   onAddressChange,
   services,
@@ -171,6 +188,56 @@ export function CheckoutForm({
 
   const [tableNumber, setTableNumber] = useState("")
   const [tableNumberError, setTableNumberError] = useState<string | null>(null)
+
+  // Which of the three required address fields are empty, and where to put the
+  // cursor when they are. The submit handler used to `return` bare on this
+  // condition: no toast, no error text, no focus move, and no error element on
+  // any of the fields — the diner pressed « Payer par carte » and NOTHING
+  // happened, with no way to find out why. WCAG 3.3.1 is Level A, and this is
+  // the money path.
+  const [addressErrors, setAddressErrors] = useState<{
+    street?: string
+    city?: string
+    postalCode?: string
+  }>({})
+  // Three separate refs rather than one object holding them. The object form
+  // reads fine and `react-hooks/refs` refuses it: reaching into it for a `ref=`
+  // prop is an access during render as far as the rule can tell, and it cannot
+  // distinguish that from a real one. Named individually, each `ref=` is a
+  // plain identifier.
+  const streetRef = useRef<HTMLInputElement>(null)
+  const cityRef = useRef<HTMLInputElement>(null)
+  const postalCodeRef = useRef<HTMLInputElement>(null)
+
+  /**
+   * Which field to put the cursor in, and which attempt asked for it.
+   *
+   * The submit handler used to focus the field itself. That reads a ref inside
+   * a function handed to `handleSubmit` during render, which `react-hooks/refs`
+   * refuses — it cannot see that the function is only ever CALLED on submit.
+   * Naming the target as state and moving the focus into an effect is the
+   * honest fix rather than a suppression: a ref is read where React says refs
+   * are read, after the render that produced the error message.
+   *
+   * `attempt` is what makes a SECOND submission with the same empty field move
+   * the cursor again — without it the state would be unchanged and the effect
+   * would not re-run.
+   */
+  const [focusRequest, setFocusRequest] = useState<{
+    field: "street" | "city" | "postalCode"
+    attempt: number
+  } | null>(null)
+
+  useEffect(() => {
+    if (!focusRequest) return
+    const target =
+      focusRequest.field === "street"
+        ? streetRef
+        : focusRequest.field === "city"
+          ? cityRef
+          : postalCodeRef
+    target.current?.focus()
+  }, [focusRequest])
 
   const globalSettings = useQuery(api.globalSettings.get)
   const payments = globalSettings?.payments
@@ -220,6 +287,7 @@ export function CheckoutForm({
   // disables submit instead of sending a doomed attempt. One rule for the
   // default and every fallback; the old inline "reset to card" resolved to a
   // tile no card provider could honour (#374).
+  const cardMinimum = cardMinimumFor(globalSettings?.currency)
   const paymentContext: PaymentMethodContext = {
     cardAvailable: cardAvailability?.card,
     cardOffered,
@@ -227,12 +295,29 @@ export function CheckoutForm({
     cashEnabled: payments?.cash === true,
     isDelivery,
     isAuthenticated,
+    amountDue,
+    cardMinimum,
   }
+  // Nothing to pay at all — a 100 % coupon. Not a payment method question:
+  // there is no charge to route anywhere, so the tiles say so rather than
+  // offering a card the provider would refuse and PayPal an order of zero.
+  const nothingDue = nothingIsDue(paymentContext)
+  // Something IS owed and no card provider will take that little.
+  const belowCardFloor =
+    !nothingDue && amountDue !== undefined && amountDue < cardMinimum
   const effectivePaymentMethod: PaymentMethod | null = resolvePaymentMethod(
     paymentMethod,
     paymentContext
   )
-  const cardUnavailable = cardAvailability?.card === false
+  // Three reasons a rendered card tile cannot be chosen, and the diner is owed
+  // a different sentence for each: the deployment cannot charge one, the order
+  // is under the provider's floor, or there is nothing to charge.
+  const cardUnavailable = !isPaymentMethodSelectable("card", paymentContext)
+  const cardUnavailableReason = nothingDue
+    ? "Rien à payer sur cette commande"
+    : belowCardFloor
+      ? `Minimum ${formatPrice(cardMinimum, globalSettings?.currency)} par carte`
+      : "Indisponible pour le moment"
   // The one blocked state that has a way out the diner can take right now:
   // cash is offered on this order type and only an account is missing.
   const cashNeedsAccount =
@@ -323,9 +408,34 @@ export function CheckoutForm({
           }
         }
       } else {
-        if (!manualAddress.street.trim() || !manualAddress.city.trim() || !manualAddress.postalCode.trim()) {
+        // Name every empty field, not just the first: a diner who fixes one
+        // and presses again should not discover the next one at the same cost.
+        const missing: typeof addressErrors = {}
+        if (!manualAddress.street.trim()) missing.street = "Indiquez votre adresse"
+        if (!manualAddress.city.trim()) missing.city = "Indiquez votre ville"
+        if (!manualAddress.postalCode.trim()) {
+          missing.postalCode = "Indiquez votre code postal"
+        }
+
+        if (missing.street || missing.city || missing.postalCode) {
+          setAddressErrors(missing)
+          toast.error("Complétez votre adresse de livraison")
+          // The first empty one, in reading order. `aria-invalid` and the
+          // `role="alert"` paragraph carry the reason; the focus move is what
+          // stops a screen-reader user hunting the form for it.
+          const first = (["street", "city", "postalCode"] as const).find(
+            (field) => missing[field]
+          )
+          if (first) {
+            setFocusRequest((previous) => ({
+              field: first,
+              attempt: (previous?.attempt ?? 0) + 1,
+            }))
+          }
           return
         }
+        setAddressErrors({})
+
         deliveryAddress = {
           street: manualAddress.street,
           city: manualAddress.city,
@@ -481,7 +591,7 @@ export function CheckoutForm({
               id="name"
               {...register("name")}
               placeholder="Jean Dupont"
-              className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
+              className="h-14 rounded-2xl border-input bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus-visible:ring-ring"
             />
             {errors.name && (
               <p className="ml-1 text-xs font-medium text-destructive">
@@ -503,7 +613,7 @@ export function CheckoutForm({
                 type="email"
                 {...register("email")}
                 placeholder="jean.dupont@exemple.fr"
-                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
+                className="h-14 rounded-2xl border-input bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus-visible:ring-ring"
               />
               {errors.email && (
                 <p className="ml-1 text-xs font-medium text-destructive">
@@ -523,7 +633,7 @@ export function CheckoutForm({
                 type="tel"
                 {...register("phone")}
                 placeholder="+33 6 00 00 00 00"
-                className="h-14 rounded-2xl border-transparent bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
+                className="h-14 rounded-2xl border-input bg-muted px-6 text-sm font-medium transition-all focus:bg-card focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -621,16 +731,20 @@ export function CheckoutForm({
 
                 {/* Search with Google Places */}
                 <div className="space-y-2">
-                  <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+                  <Label
+                    htmlFor="address-search"
+                    className="ml-1 text-[10px] font-black uppercase tracking-widest"
+                  >
                     Rechercher une adresse
                   </Label>
                   <div className="relative">
                     <MapPin className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-accent-foreground" />
                     <input
+                      id="address-search"
                       ref={addressInputRef}
                       type="text"
                       placeholder="Ex : 12 rue de la Paix, Paris..."
-                      className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-border bg-muted pl-12 pr-6 text-sm font-medium transition-all placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="storefront-pac-input h-14 w-full rounded-2xl border-2 border-input bg-muted pl-12 pr-6 text-sm font-medium transition-all placeholder:text-muted-foreground focus:border-primary focus:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     />
                   </div>
                 </div>
@@ -689,52 +803,127 @@ export function CheckoutForm({
                     )}
 
                     <div className="space-y-2">
-                      <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+                      <Label
+                        htmlFor="delivery-street"
+                        className="ml-1 text-[10px] font-black uppercase tracking-widest"
+                      >
                         Adresse *
                       </Label>
                       <Input
+                        id="delivery-street"
+                        ref={streetRef}
                         value={manualAddress.street}
-                        onChange={(e) => setManualAddress((p) => ({ ...p, street: e.target.value }))}
+                        onChange={(e) => {
+                          setManualAddress((p) => ({ ...p, street: e.target.value }))
+                          if (addressErrors.street) {
+                            setAddressErrors((p) => ({ ...p, street: undefined }))
+                          }
+                        }}
                         placeholder="123 rue de la Paix"
                         readOnly={addressMode === "selected"}
-                        className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                        aria-invalid={addressErrors.street ? true : undefined}
+                        aria-describedby={
+                          addressErrors.street ? "delivery-street-error" : undefined
+                        }
+                        className="h-14 rounded-2xl bg-card px-6 text-sm font-medium transition-all"
                       />
+                      {addressErrors.street && (
+                        <p
+                          id="delivery-street-error"
+                          role="alert"
+                          className="ml-1 text-xs font-medium text-destructive"
+                        >
+                          {addressErrors.street}
+                        </p>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+                        <Label
+                          htmlFor="delivery-city"
+                          className="ml-1 text-[10px] font-black uppercase tracking-widest"
+                        >
                           Ville *
                         </Label>
                         <Input
+                          id="delivery-city"
+                          ref={cityRef}
                           value={manualAddress.city}
-                          onChange={(e) => setManualAddress((p) => ({ ...p, city: e.target.value }))}
+                          onChange={(e) => {
+                            setManualAddress((p) => ({ ...p, city: e.target.value }))
+                            if (addressErrors.city) {
+                              setAddressErrors((p) => ({ ...p, city: undefined }))
+                            }
+                          }}
                           placeholder="Paris"
                           readOnly={addressMode === "selected"}
-                          className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                          aria-invalid={addressErrors.city ? true : undefined}
+                          aria-describedby={
+                            addressErrors.city ? "delivery-city-error" : undefined
+                          }
+                          className="h-14 rounded-2xl bg-card px-6 text-sm font-medium transition-all"
                         />
+                        {addressErrors.city && (
+                          <p
+                            id="delivery-city-error"
+                            role="alert"
+                            className="ml-1 text-xs font-medium text-destructive"
+                          >
+                            {addressErrors.city}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
-                        <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+                        <Label
+                          htmlFor="delivery-postal-code"
+                          className="ml-1 text-[10px] font-black uppercase tracking-widest"
+                        >
                           Code postal *
                         </Label>
                         <Input
+                          id="delivery-postal-code"
+                          ref={postalCodeRef}
                           value={manualAddress.postalCode}
-                          onChange={(e) => setManualAddress((p) => ({ ...p, postalCode: e.target.value }))}
+                          onChange={(e) => {
+                            setManualAddress((p) => ({ ...p, postalCode: e.target.value }))
+                            if (addressErrors.postalCode) {
+                              setAddressErrors((p) => ({ ...p, postalCode: undefined }))
+                            }
+                          }}
                           placeholder="75001"
                           readOnly={addressMode === "selected"}
-                          className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                          aria-invalid={addressErrors.postalCode ? true : undefined}
+                          aria-describedby={
+                            addressErrors.postalCode
+                              ? "delivery-postal-code-error"
+                              : undefined
+                          }
+                          className="h-14 rounded-2xl bg-card px-6 text-sm font-medium transition-all"
                         />
+                        {addressErrors.postalCode && (
+                          <p
+                            id="delivery-postal-code-error"
+                            role="alert"
+                            className="ml-1 text-xs font-medium text-destructive"
+                          >
+                            {addressErrors.postalCode}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="ml-1 text-[10px] font-black uppercase tracking-widest">
+                      <Label
+                        htmlFor="delivery-country"
+                        className="ml-1 text-[10px] font-black uppercase tracking-widest"
+                      >
                         Pays
                       </Label>
                       <Input
+                        id="delivery-country"
                         value={manualAddress.country}
                         onChange={(e) => setManualAddress((p) => ({ ...p, country: e.target.value }))}
                         readOnly={addressMode === "selected"}
-                        className="h-14 rounded-2xl border-transparent bg-card px-6 text-sm font-medium transition-all focus:ring-primary/20"
+                        className="h-14 rounded-2xl bg-card px-6 text-sm font-medium transition-all"
                       />
                     </div>
                   </div>
@@ -777,7 +966,7 @@ export function CheckoutForm({
             placeholder="Ex : allergie aux arachides, sauce à part, sans oignon…"
             aria-describedby={errors.notes ? "notes-error" : "notes-hint"}
             aria-invalid={errors.notes ? true : undefined}
-            className="min-h-[96px] rounded-2xl border-transparent bg-muted px-6 py-4 text-sm font-medium transition-all focus:bg-card focus:ring-primary/20"
+            className="min-h-[96px] rounded-2xl border-input bg-muted px-6 py-4 text-sm font-medium transition-all focus:bg-card focus-visible:ring-ring"
           />
           {errors.notes ? (
             <p
@@ -845,7 +1034,7 @@ export function CheckoutForm({
                   <p className={`font-bold ${cardUnavailable ? "text-muted-foreground" : "text-foreground"}`}>Carte bancaire</p>
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                     {cardUnavailable
-                      ? "Indisponible pour le moment"
+                      ? cardUnavailableReason
                       : payments?.cardProvider === "sumup" ? "SumUp" : "Visa, Master, Amex"}
                   </p>
                 </div>
@@ -855,8 +1044,9 @@ export function CheckoutForm({
               </button>
             )}
 
-            {/* PayPal — if enabled */}
-            {payments?.paypal && (
+            {/* PayPal — if enabled, and only for an amount it can take. Under a
+                provider floor, and at zero, there is no PayPal order to open. */}
+            {payments?.paypal && isPaymentMethodSelectable("paypal", paymentContext) && (
               <button
                 type="button"
                 onClick={() => setPaymentMethod("paypal")}
@@ -881,30 +1071,43 @@ export function CheckoutForm({
               </button>
             )}
 
-            {/* Cash — if enabled AND order is not delivery */}
-            {payments?.cash && !isDelivery && (
+            {/* Cash — if enabled AND order is not delivery.
+                An order that owes nothing is the fourth state, and it is not a
+                payment: the cash branch is simply the one that places the
+                order without calling a provider, so it is offered whatever the
+                cash settings say. Its own gates are about who may hand over
+                money and where, and nobody is handing over any. */}
+            {(nothingDue || (payments?.cash && !isDelivery)) && (
               <button
                 type="button"
-                onClick={() => isAuthenticated && setPaymentMethod("cash")}
-                disabled={!isAuthenticated}
+                onClick={() =>
+                  (isAuthenticated || nothingDue) && setPaymentMethod("cash")
+                }
+                disabled={!isAuthenticated && !nothingDue}
                 className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all ${
-                  !isAuthenticated
+                  !isAuthenticated && !nothingDue
                     ? "border-border bg-muted disabled:opacity-60 cursor-not-allowed"
                     : effectivePaymentMethod === "cash"
                       ? "border-primary bg-accent/30"
                       : "border-border hover:border-border"
                 }`}
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${isAuthenticated ? "bg-accent" : "bg-muted"}`}>
-                  <Banknote className={`h-6 w-6 ${isAuthenticated ? "text-accent-foreground" : "text-muted-foreground"}`} />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${isAuthenticated || nothingDue ? "bg-accent" : "bg-muted"}`}>
+                  <Banknote className={`h-6 w-6 ${isAuthenticated || nothingDue ? "text-accent-foreground" : "text-muted-foreground"}`} />
                 </div>
                 <div>
-                  <p className={`font-bold ${isAuthenticated ? "text-foreground" : "text-muted-foreground"}`}>Espèces</p>
+                  <p className={`font-bold ${isAuthenticated || nothingDue ? "text-foreground" : "text-muted-foreground"}`}>
+                    {nothingDue ? "Rien à payer" : "Espèces"}
+                  </p>
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    {isAuthenticated ? "Paiement au retrait" : "Connectez-vous pour payer en espèces"}
+                    {nothingDue
+                      ? "Cette commande est offerte"
+                      : isAuthenticated
+                        ? "Paiement au retrait"
+                        : "Connectez-vous pour payer en espèces"}
                   </p>
                 </div>
-                {effectivePaymentMethod === "cash" && isAuthenticated && (
+                {effectivePaymentMethod === "cash" && (isAuthenticated || nothingDue) && (
                   <CheckCircle2 className="ml-auto h-5 w-5 text-success" />
                 )}
               </button>

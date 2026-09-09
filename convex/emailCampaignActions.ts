@@ -301,7 +301,15 @@ export const sendBatch = internalAction({
         // random would let a retry send arm B to someone who already had arm A.
         const delivery = subjectFor(campaign, subscriber._id, args.campaignId);
 
-        const unsubscribeUrl = `${siteUrl}/email/unsubscribe?id=${subscriber._id}`;
+        // `c=` is what makes « Désabonnements » on the campaign report a real
+        // figure. An unsubscribe arrives as a click on a link, long after the
+        // mail was sent, and carries no other clue about which campaign
+        // prompted it — so the campaign stamps itself into the link it sends.
+        // Without it the counter's only writer was the SES *Complaint* branch,
+        // and a campaign that lost forty subscribers reported none.
+        const unsubscribeUrl =
+          `${siteUrl}/email/unsubscribe?id=${subscriber._id}` +
+          `&c=${args.campaignId}`;
 
         const branding = {
           ...config.branding,

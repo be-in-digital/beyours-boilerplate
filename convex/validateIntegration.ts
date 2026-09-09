@@ -52,14 +52,21 @@ export const validate = action({
     // C-01: Authentication check
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
+      return { valid: false, error: "Non authentifié" };
+    }
 
     // Deployment-wide operation with no store to scope against. "Logged in"
     // included every customer account, so the check is by role.
+    //
+    // This call used to sit INSIDE the `if (!identity)` block above, which is
+    // the exact inverse of what it is for: the only callers it ran for were
+    // the ones already being turned away, and every authenticated account —
+    // including a diner's — reached the platform credentials unchecked. The
+    // `@guarded-inline` marker on this action was true of the text and false
+    // of the control flow.
     await ctx.runQuery(internal.authHelpers.checkPermission, {
       permission: "settings:read",
     });
-      return { valid: false, error: "Non authentifié" };
-    }
 
     // -----------------------------------------------------------------------
     // Uber Direct: validate OAuth credentials by requesting a token

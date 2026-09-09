@@ -6,6 +6,24 @@ import {
   requireSeedPassword,
 } from "../helpers/credentials.helpers"
 
+/**
+ * WHY THE PASSWORD FIELD IS SELECTED EXACTLY.
+ *
+ * `getByLabel("Mot de passe")` matches accessible names by CASE-INSENSITIVE
+ * SUBSTRING, and the reveal toggle beside the field is named « Afficher le mot
+ * de passe » / « Masquer le mot de passe ». Both contain the search string, so
+ * the bare selector resolves to two elements and Playwright fails the whole
+ * spec on strict mode.
+ *
+ * It was unambiguous before only because that toggle had NO accessible name at
+ * all — an icon-only button reaching a screen reader as "button". This suite
+ * was therefore depending on an accessibility defect to disambiguate its own
+ * selector, and it went red the moment the defect was fixed.
+ *
+ * `exact: true` says what the selector always meant: the field labelled exactly
+ * « Mot de passe », not everything mentioning one. It TIGHTENS the assertion —
+ * nothing here is skipped, relaxed or waived.
+ */
 test.describe("Sign In Page", () => {
   test.describe("Page Structure", () => {
     test("should display the sign-in heading", async ({ page }) => {
@@ -26,7 +44,7 @@ test.describe("Sign In Page", () => {
       await expect(emailInput).toHaveAttribute("type", "email")
       await expect(emailInput).toHaveAttribute("placeholder", "jean@exemple.com")
 
-      const passwordInput = page.getByLabel("Mot de passe")
+      const passwordInput = page.getByLabel("Mot de passe", { exact: true })
       await expect(passwordInput).toBeVisible()
       await expect(passwordInput).toHaveAttribute("type", "password")
       await expect(passwordInput).toHaveAttribute("placeholder", "••••••••")
@@ -94,7 +112,7 @@ test.describe("Sign In Page", () => {
       await page.goto("/sign-in", { waitUntil: "domcontentloaded" })
 
       await page.getByLabel("Email").fill("invalid-email")
-      await page.getByLabel("Mot de passe").fill("password123")
+      await page.getByLabel("Mot de passe", { exact: true }).fill("password123")
       await page.getByRole("button", { name: "Se connecter" }).click()
 
       const emailInput = page.getByLabel("Email")
@@ -122,7 +140,7 @@ test.describe("Sign In Page", () => {
       ).toBeVisible({ timeout: 30_000 })
 
       await page.getByLabel("Email").fill(SEED_EMAIL)
-      await page.getByLabel("Mot de passe").fill(SEED_PASSWORD)
+      await page.getByLabel("Mot de passe", { exact: true }).fill(SEED_PASSWORD)
 
       await page.getByRole("button", { name: "Se connecter" }).click()
 
@@ -145,7 +163,7 @@ test.describe("Sign In Page", () => {
       ).toBeVisible({ timeout: 30_000 })
 
       await page.getByLabel("Email").fill("wrong@example.com")
-      await page.getByLabel("Mot de passe").fill("wrongpassword")
+      await page.getByLabel("Mot de passe", { exact: true }).fill("wrongpassword")
 
       await page.getByRole("button", { name: "Se connecter" }).click()
 
@@ -184,7 +202,7 @@ test.describe("Sign In Page", () => {
       })
 
       await page.getByLabel("Email").fill(SEED_EMAIL)
-      await page.getByLabel("Mot de passe").fill(SEED_PASSWORD)
+      await page.getByLabel("Mot de passe", { exact: true }).fill(SEED_PASSWORD)
 
       await page.getByRole("button", { name: "Se connecter" }).click()
 
@@ -204,7 +222,7 @@ test.describe("Sign In Page", () => {
       ).toBeVisible({ timeout: 30_000 })
 
       await page.getByLabel("Email").fill(SEED_EMAIL)
-      await page.getByLabel("Mot de passe").fill(SEED_PASSWORD)
+      await page.getByLabel("Mot de passe", { exact: true }).fill(SEED_PASSWORD)
 
       await page.getByRole("button", { name: "Se connecter" }).click()
 

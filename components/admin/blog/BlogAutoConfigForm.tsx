@@ -293,7 +293,7 @@ export function BlogAutoConfigForm({
             <p className="font-medium text-warning">
               Certains réglages ont été ajustés
             </p>
-            <p className="text-amber-700 dark:text-amber-300 mt-0.5">
+            <p className="text-warning mt-0.5">
               Suite au changement de plan, certaines valeurs ont été
               automatiquement corrigées. Enregistrez pour appliquer.
             </p>
@@ -378,7 +378,7 @@ export function BlogAutoConfigForm({
                   <button
                     type="button"
                     onClick={() => removeTheme(idx)}
-                    className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                    className="ml-1 inline-flex size-6 items-center justify-center rounded-full hover:bg-muted"
                   >
                     <X className="h-3 w-3" />
                   </button>
