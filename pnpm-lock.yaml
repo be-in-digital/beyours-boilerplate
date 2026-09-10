@@ -44,7 +44,7 @@ importers:
         version: 3.1079.0
       '@be-in-digital/admin':
         specifier: ^15.0.1
-        version: 15.0.1(2d3b1711bb29698d0c5069c9f3517e42)
+        version: 15.0.1(fba1ea1dfbb093f5148a0cc455a7be24)
       '@be-in-digital/cms':
         specifier: ^3.1.0
         version: 3.1.0(@noble/hashes@2.2.0)
@@ -67,8 +67,8 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1(@types/react@19.2.14)(convex@1.44.0(react@19.2.4))(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
       '@be-in-digital/ui':
-        specifier: ^4.3.1
-        version: 4.3.1(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)
+        specifier: ^4.3.2
+        version: 4.3.2(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)
       '@convex-dev/better-auth':
         specifier: ^0.12.5
         version: 0.12.5(@standard-schema/spec@1.1.0)(better-auth@1.6.17(@opentelemetry/api@1.9.1)(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@20.19.43)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@3.2.7))(convex@1.44.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -522,8 +522,8 @@ packages:
     peerDependencies:
       react: 19.2.4
 
-  '@be-in-digital/ui@4.3.1':
-    resolution: {integrity: sha512-DTdgAh5e5b9uGN1CWEa2Ru4drOZfz+7186u2w1O43p1IfXYJd2lU4MfBZoP2nfNyNfLfAQp/sUtVOpUV+jilug==, tarball: https://npm.pkg.github.com/download/@be-in-digital/ui/4.3.1/f86292d8b684e96e2ea99c39daf82b95832ed688}
+  '@be-in-digital/ui@4.3.2':
+    resolution: {integrity: sha512-teMXlIJ35/s+OgNTzHEnjCLS2ybwYTlTgN58BJoR+GlY98Wi7Nn6uJMcny9dSCsIvilR6okR/5YvNdBSd2aqFQ==, tarball: https://npm.pkg.github.com/download/@be-in-digital/ui/4.3.2/40b86759edd88849a4824c4f1f06247f826b9151}
     peerDependencies:
       '@hookform/resolvers': ^3.0.0
       react: 19.2.4
@@ -5962,14 +5962,14 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@be-in-digital/admin@15.0.1(2d3b1711bb29698d0c5069c9f3517e42)':
+  '@be-in-digital/admin@15.0.1(fba1ea1dfbb093f5148a0cc455a7be24)':
     dependencies:
       '@be-in-digital/convex-functions': 7.0.1(@noble/hashes@2.2.0)(convex@1.44.0(react@19.2.4))
       '@be-in-digital/convex-schema': 6.2.0(convex@1.44.0(react@19.2.4))
       '@be-in-digital/core': 4.1.0
       '@be-in-digital/marketing': 3.0.0
       '@be-in-digital/restaurant': 4.1.1(@types/react@19.2.14)(convex@1.44.0(react@19.2.4))(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
-      '@be-in-digital/ui': 4.3.1(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)
+      '@be-in-digital/ui': 4.3.2(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)
       '@hookform/resolvers': 5.4.0(react-hook-form@7.80.0(react@19.2.4))
       '@reactour/tour': 3.8.0(react@19.2.4)
       '@types/qrcode': 1.5.6
@@ -6043,7 +6043,7 @@ snapshots:
       - immer
       - use-sync-external-store
 
-  '@be-in-digital/ui@4.3.1(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)':
+  '@be-in-digital/ui@4.3.2(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@be-in-digital/core': 4.1.0
       '@hookform/resolvers': 5.4.0(react-hook-form@7.80.0(react@19.2.4))
