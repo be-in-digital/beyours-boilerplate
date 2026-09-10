@@ -93,6 +93,7 @@ import type * as prizeRedemptions from "../prizeRedemptions.js";
 import type * as prizes from "../prizes.js";
 import type * as products from "../products.js";
 import type * as promotions from "../promotions.js";
+import type * as rateLimits from "../rateLimits.js";
 import type * as requiredActions from "../requiredActions.js";
 import type * as seed from "../seed.js";
 import type * as seedFixture from "../seedFixture.js";
@@ -218,6 +219,7 @@ declare const fullApi: ApiFromModules<{
   prizes: typeof prizes;
   products: typeof products;
   promotions: typeof promotions;
+  rateLimits: typeof rateLimits;
   requiredActions: typeof requiredActions;
   seed: typeof seed;
   seedFixture: typeof seedFixture;

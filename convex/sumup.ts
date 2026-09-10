@@ -77,6 +77,17 @@ export const createCheckout = action({
     redirectUrl: v.string(),
   },
   handler: async (ctx, args) => {
+    // BEFORE the provider is called. This action is reachable with no session
+    // at all — it has to be, a diner pays before they have an account — and it
+    // creates a real object at a third party the restaurant is billed by or
+    // quota'd by. Every public-by-design MUTATION was bounded; the actions were
+    // not, because an action has no `ctx.db` and the limiter reads one, so it
+    // goes through `rateLimits.consume` (#430.5).
+    await ctx.runMutation(internal.rateLimits.consume, {
+      name: "paymentSessionPerOrder",
+      subject: args.orderId,
+    });
+
     const order = await ctx.runQuery(internal.orders.internalGetById, {
       id: args.orderId,
     });
@@ -178,6 +189,14 @@ export const verifyCheckout = action({
     viewToken?: string;
     email?: string;
   }> => {
+    // Same bound as opening the session: this asks the provider about a
+    // checkout, and a loop on one order is a loop against their API. Per order
+    // because that is what the caller supplies (#430.5).
+    await ctx.runMutation(internal.rateLimits.consume, {
+      name: "paymentSessionPerOrder",
+      subject: args.orderId,
+    });
+
     const { accessToken } = await getSumUpAccessToken(ctx);
 
     const response = await fetch(

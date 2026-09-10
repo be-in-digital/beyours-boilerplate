@@ -138,6 +138,16 @@ export const getDeliveryQuote = action({
     dropoffAddress: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // BEFORE anything is asked of Uber. This action is anonymous by design —
+    // a diner has to see the delivery fee before they have an account — and
+    // Uber both charges for a quote and caps how many an account may ask for.
+    // Unbounded, a script burns the restaurant's quota until real deliveries
+    // stop being quotable, at no cost to whoever runs it (#430.5).
+    await ctx.runMutation(internal.rateLimits.consume, {
+      name: "deliveryQuotePerStore",
+      subject: args.storeId,
+    });
+
     // 1. Fetch store to verify pickup coordinates exist
     // Note: defs.getById uses the arg key "id", so we map storeId → id here
     const store = await ctx.runQuery(api.stores.getById, { id: args.storeId });

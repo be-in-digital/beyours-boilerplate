@@ -180,6 +180,17 @@ export const createCheckoutSession = action({
     cancelUrl: v.string(),
   },
   handler: async (ctx, args): Promise<{ sessionUrl: string; sessionId: string }> => {
+    // BEFORE the provider is called. This action is reachable with no session
+    // at all — it has to be, a diner pays before they have an account — and it
+    // creates a real object at a third party the restaurant is billed by or
+    // quota'd by. Every public-by-design MUTATION was bounded; the actions were
+    // not, because an action has no `ctx.db` and the limiter reads one, so it
+    // goes through `rateLimits.consume` (#430.5).
+    await ctx.runMutation(internal.rateLimits.consume, {
+      name: "paymentSessionPerOrder",
+      subject: args.orderId,
+    });
+
     // First, before the SDK is even loaded: a connection state this file cannot
     // honour must stop the charge, not shape it. To the diner both refusals
     // below are one fact — this deployment cannot take a card — and a plain
@@ -484,6 +495,19 @@ export const verifyCheckoutSession = action({
     email?: string;
     error?: string;
   }> => {
+    // Bounded on the session id, which is what this action is given.
+    //
+    // Stated plainly rather than overclaimed: this stops a LOOP on one session
+    // id. It does not stop a caller inventing ids, and nothing here can —
+    // there is no order and no store to key on until Stripe answers. What
+    // makes that acceptable is that an invented id is refused by Stripe on the
+    // spot and creates nothing; what was worth bounding is the real id, which
+    // a return page can otherwise be made to replay without limit (#430.5).
+    await ctx.runMutation(internal.rateLimits.consume, {
+      name: "paymentSessionPerOrder",
+      subject: args.sessionId,
+    });
+
     const Stripe = (await import("stripe")).default;
     const { getSiteEnv } = await import("@be-in-digital/core/env");
     const site = getSiteEnv();
