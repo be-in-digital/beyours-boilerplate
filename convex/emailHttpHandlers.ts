@@ -1,4 +1,5 @@
 import { httpAction } from "./_generated/server";
+import type { ActionCtx } from "./_generated/server";
 import { captureBackendError } from "./errorReporting";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -263,6 +264,79 @@ function getMailHeader(
   return headers?.find((h) => h.name === name)?.value;
 }
 
+/**
+ * Record one feedback event against one subscriber.
+ *
+ * WHY THIS IS A FUNCTION. There are two feedback transports now — Amazon SNS
+ * for an SES deployment and Svix for a Resend one — and they carry the same six
+ * facts under different names. Written twice they would drift, and the half
+ * that drifts is the one nobody runs: a client on Resend is by definition a
+ * client whose SES request was refused, so a bug here reaches the deployment
+ * that has no second path to fall back on. One function, two callers, and the
+ * SES suite proves it for both.
+ *
+ * `bounced` and `complained` also suppress the address; `delivered`, `opened`,
+ * `clicked` and `sent` are statistics and only move counters.
+ */
+async function recordFeedbackEvent(
+  ctx: ActionCtx,
+  event: {
+    type: "sent" | "delivered" | "opened" | "clicked" | "bounced" | "complained";
+    storeId: Id<"stores">;
+    subscriberId: Id<"emailSubscribers">;
+    campaignId?: Id<"emailCampaigns">;
+    occurredAt: number;
+    /** Only read for `bounced`; normalised by the caller. */
+    bounceType?: "Permanent" | "Transient" | "Undetermined";
+    metadata?: { userAgent?: string; linkUrl?: string };
+  }
+): Promise<void> {
+  if (event.type === "bounced") {
+    await ctx.runMutation(internal.emailSubscribers.markBounced, {
+      id: event.subscriberId,
+      bounceType: event.bounceType,
+    });
+  } else if (event.type === "complained") {
+    await ctx.runMutation(internal.emailSubscribers.markComplained, {
+      id: event.subscriberId,
+    });
+  }
+
+  await ctx.runMutation(internal.emailEvents.create, {
+    storeId: event.storeId,
+    campaignId: event.campaignId,
+    subscriberId: event.subscriberId,
+    type: event.type,
+    metadata: event.metadata,
+    occurredAt: event.occurredAt,
+  });
+
+  if (!event.campaignId) return;
+
+  // A spam report also removes the recipient from the list, so it is counted
+  // as an unsubscribe — but it was for a long time the ONLY writer of that
+  // field, which made « Désabonnements » on the campaign report a count of
+  // complaints wearing the wrong label. The unsubscribe link now carries its
+  // campaign and charges itself; see `emailSubscribers.unsubscribe`.
+  //
+  // `sent` is not counted here: the sender increments it when it hands the
+  // message over, and counting the provider's echo of the same message would
+  // double every campaign's « Envoyés ».
+  const field =
+    event.type === "complained"
+      ? "unsubscribed"
+      : event.type === "sent"
+        ? null
+        : event.type;
+  if (!field) return;
+
+  await ctx.runMutation(internal.emailCampaigns.incrementStats, {
+    id: event.campaignId,
+    field,
+  });
+}
+
+
 // @guarded-inline: verifies Amazon's RSA signature over the raw body before
 // reading a single field out of it
 export const handleSesWebhook = httpAction(async (ctx, request) => {
@@ -480,118 +554,72 @@ export const handleSesWebhook = httpAction(async (ctx, request) => {
       subscriberId: typedSubscriberId,
     } of targets) {
       switch (notification.notificationType) {
-        case "Bounce": {
-          // The classification is the whole point of reading this branch.
-          // Without it every dead mailbox was mailed three times, and it is the
-          // bounce ratio — not the number of distinct bad addresses — that AWS
-          // suspends an account over. The body is signed, so this is trustworthy
-          // by the time execution reaches here.
-          await ctx.runMutation(internal.emailSubscribers.markBounced, {
-            id: typedSubscriberId,
+        case "Bounce":
+          await recordFeedbackEvent(ctx, {
+            type: "bounced",
+            storeId: typedStoreId,
+            subscriberId: typedSubscriberId,
+            campaignId: typedCampaignId,
+            occurredAt: now,
+            // The classification is the whole point of reading this branch.
+            // Without it every dead mailbox was mailed three times, and it is
+            // the bounce ratio — not the number of distinct bad addresses —
+            // that AWS suspends an account over. The body is signed, so this is
+            // trustworthy by the time execution reaches here.
+            //
             // Normalised rather than forwarded raw: `markBounced`'s validator is
-            // a closed union, and this whole switch sits inside a catch that
+            // a closed union, and this whole dispatch sits inside a catch that
             // only logs — so an unrecognised value would fail validation, be
             // swallowed, and lose the bounce entirely.
             bounceType: normalizeBounceType(notification.bounce?.bounceType),
           });
-          await ctx.runMutation(internal.emailEvents.create, {
-            storeId: typedStoreId,
-            campaignId: typedCampaignId,
-            subscriberId: typedSubscriberId,
-            type: "bounced",
-            occurredAt: now,
-          });
-          if (typedCampaignId) {
-            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-              id: typedCampaignId,
-              field: "bounced",
-            });
-          }
           break;
-        }
 
-        case "Complaint": {
-          await ctx.runMutation(internal.emailSubscribers.markComplained, {
-            id: typedSubscriberId,
-          });
-          await ctx.runMutation(internal.emailEvents.create, {
-            storeId: typedStoreId,
-            campaignId: typedCampaignId,
-            subscriberId: typedSubscriberId,
+        case "Complaint":
+          await recordFeedbackEvent(ctx, {
             type: "complained",
+            storeId: typedStoreId,
+            subscriberId: typedSubscriberId,
+            campaignId: typedCampaignId,
             occurredAt: now,
           });
-          // A spam report also removes the recipient from the list, so it is
-          // counted here — but it was for a long time the ONLY writer of this
-          // field, which made « Désabonnements » on the campaign report a
-          // count of complaints wearing the wrong label. The unsubscribe link
-          // now carries its campaign and charges itself; see
-          // `emailSubscribers.unsubscribe`.
-          if (typedCampaignId) {
-            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-              id: typedCampaignId,
-              field: "unsubscribed",
-            });
-          }
           break;
-        }
 
-        case "Delivery": {
-          await ctx.runMutation(internal.emailEvents.create, {
-            storeId: typedStoreId,
-            campaignId: typedCampaignId,
-            subscriberId: typedSubscriberId,
+        case "Delivery":
+          await recordFeedbackEvent(ctx, {
             type: "delivered",
+            storeId: typedStoreId,
+            subscriberId: typedSubscriberId,
+            campaignId: typedCampaignId,
             occurredAt: now,
           });
-          if (typedCampaignId) {
-            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-              id: typedCampaignId,
-              field: "delivered",
-            });
-          }
           break;
-        }
 
-        case "Open": {
-          await ctx.runMutation(internal.emailEvents.create, {
-            storeId: typedStoreId,
-            campaignId: typedCampaignId,
-            subscriberId: typedSubscriberId,
+        case "Open":
+          await recordFeedbackEvent(ctx, {
             type: "opened",
+            storeId: typedStoreId,
+            subscriberId: typedSubscriberId,
+            campaignId: typedCampaignId,
+            occurredAt: now,
             metadata: notification.open?.userAgent
               ? { userAgent: notification.open.userAgent }
               : undefined,
-            occurredAt: now,
           });
-          if (typedCampaignId) {
-            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-              id: typedCampaignId,
-              field: "opened",
-            });
-          }
           break;
-        }
 
-        case "Click": {
-          await ctx.runMutation(internal.emailEvents.create, {
-            storeId: typedStoreId,
-            campaignId: typedCampaignId,
-            subscriberId: typedSubscriberId,
+        case "Click":
+          await recordFeedbackEvent(ctx, {
             type: "clicked",
+            storeId: typedStoreId,
+            subscriberId: typedSubscriberId,
+            campaignId: typedCampaignId,
+            occurredAt: now,
             metadata: notification.click?.link
               ? { linkUrl: notification.click.link }
               : undefined,
-            occurredAt: now,
           });
-          if (typedCampaignId) {
-            await ctx.runMutation(internal.emailCampaigns.incrementStats, {
-              id: typedCampaignId,
-              field: "clicked",
-            });
-          }
           break;
-        }
       }
     }
   } catch (error) {
@@ -599,6 +627,323 @@ export const handleSesWebhook = httpAction(async (ctx, request) => {
     await captureBackendError(ctx, {
       error,
       source: "emailHttpHandlers.handleSesWebhook",
+    });
+  }
+
+  return new Response("OK", { status: 200 });
+});
+
+// ─── POST /webhooks/resend ──────────────────────────────────────────────────
+//
+// The feedback path for a deployment running `EMAIL_PROVIDER=resend`.
+//
+// WHY IT EXISTS. Resend is the escape hatch for a client whose AWS SES
+// production-access request was refused — every client owns its own AWS
+// account, files its own request, and approval is not guaranteed; one has been
+// refused. That client shipped with `/webhooks/ses` as the only feedback
+// endpoint in the whole app, and SNS never calls it, so nothing suppressed a
+// dead address and nothing recorded a spam report. The list grew, the bounce
+// rate climbed, and the first symptom available to anyone was the sending
+// domain being throttled.
+//
+// Resend signs with Svix: HMAC-SHA256 over `<svix-id>.<svix-timestamp>.<body>`.
+// Symmetric, so unlike the SNS path this needs no Node runtime — `crypto.subtle`
+// is in the Convex V8 runtime and `deliverooWebhookHandler.ts` already uses it.
+//
+// Correlation uses the same three headers the SES path reads, which the Resend
+// transport carries (`packages/core/src/email/providers.ts`), and falls back to
+// the recipient address for a bounce or a complaint for the same reason: those
+// two suppress whatever campaign carried them.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ResendWebhookPayload {
+  type?: string;
+  created_at?: string;
+  data?: {
+    email_id?: string;
+    to?: string[] | string;
+    from?: string;
+    subject?: string;
+    headers?: Array<{ name: string; value: string }> | Record<string, string>;
+    bounce?: { type?: string; subType?: string; message?: string };
+    click?: { link?: string; userAgent?: string };
+    open?: { userAgent?: string };
+  };
+}
+
+/**
+ * One named header out of whichever shape Resend sent.
+ *
+ * Resend echoes the headers a message was sent with, and has used both an array
+ * of `{name, value}` and a flat object over the life of the API. Reading only
+ * one shape is how a correlation quietly stops working after a provider-side
+ * change — and it fails INVISIBLY here, because the fallback below still finds
+ * the subscriber by address and the campaign attribution is simply lost.
+ *
+ * Header names are matched case-insensitively: HTTP header names are, and a
+ * provider that lower-cases them on the way out is within its rights.
+ */
+type ResendHeaders =
+  | Array<{ name?: string; value?: string }>
+  | Record<string, string>
+  | undefined;
+
+function getResendHeader(
+  headers: ResendHeaders,
+  name: string
+): string | undefined {
+  if (!headers) return undefined;
+  const wanted = name.toLowerCase();
+  if (Array.isArray(headers)) {
+    return headers.find((h) => h?.name?.toLowerCase() === wanted)?.value;
+  }
+  if (typeof headers === "object") {
+    for (const [key, value] of Object.entries(headers)) {
+      if (key.toLowerCase() === wanted && typeof value === "string") return value;
+    }
+  }
+  return undefined;
+}
+
+/** Base64 to bytes, for the HMAC key and for the signature being compared. */
+function base64ToBytes(value: string): Uint8Array {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+/**
+ * Is this POST really from Resend?
+ *
+ * Everything the handler does afterwards — `markBounced`, `markComplained`,
+ * the campaign counters — acts on ids and addresses taken out of this body,
+ * so this function is the whole authorisation. An `httpAction` has no session
+ * to check; the HMAC over the raw body IS the caller's identity.
+ *
+ * Separated from the handler so it runs on the path EVERY caller takes and its
+ * verdict is read on that same path. A check reached only from inside a branch
+ * is the `validateIntegration` defect (#441), where the permission call sat in
+ * `if (!identity) {…}` and every signed-in account skipped it.
+ */
+async function verifyResendSignature(
+  request: Request,
+  rawBody: string
+): Promise<{ valid: boolean; status: number; reason: string }> {
+  const {
+    RESEND_WEBHOOK_SECRET_ENV,
+    buildSvixSignedPayload,
+    isFreshTimestamp,
+    parseSignatureHeader,
+    parseWebhookSecret,
+    readSvixHeaders,
+    timingSafeEqual,
+  } = await import("@be-in-digital/convex-functions/resendSignature");
+
+  const secret = parseWebhookSecret(process.env[RESEND_WEBHOOK_SECRET_ENV]);
+  if (!secret) {
+    // FAILS CLOSED, and says what to set. The alternative — processing an
+    // unverified body — is the exact defect `/webhooks/ses` shipped with.
+    //
+    // 401, not 200: Svix retries a non-2xx for a day, so an operator who sets
+    // the secret in that window gets the backlog rather than a silent hole.
+    console.error(
+      `[Resend] refusing a webhook: ${RESEND_WEBHOOK_SECRET_ENV} is not set on this` +
+        " deployment. Copy the signing secret from the Resend dashboard" +
+        " (Webhooks → your endpoint) and run:" +
+        ` npx convex env set ${RESEND_WEBHOOK_SECRET_ENV} whsec_...`
+    );
+    return { valid: false, status: 401, reason: "secret_not_configured" };
+  }
+
+  const svix = readSvixHeaders(request.headers);
+  if (!svix) {
+    return { valid: false, status: 400, reason: "missing_signature_headers" };
+  }
+
+  if (!isFreshTimestamp(svix.timestamp, Date.now())) {
+    // The signature covers the timestamp, so this is what stops a captured
+    // delivery being replayed for ever. 400 rather than 401: the message may
+    // well have been genuine when it was signed.
+    console.error("[Resend] rejected a webhook outside the replay window");
+    return { valid: false, status: 400, reason: "stale_signature" };
+  }
+
+  const candidates = parseSignatureHeader(svix.signature);
+  if (candidates.length === 0) {
+    return { valid: false, status: 400, reason: "unsupported_signature_version" };
+  }
+
+  let expected: string;
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      base64ToBytes(secret) as unknown as ArrayBuffer,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signed = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      new TextEncoder().encode(
+        buildSvixSignedPayload(svix.id, svix.timestamp, rawBody)
+      ) as unknown as ArrayBuffer
+    );
+    expected = bytesToBase64(new Uint8Array(signed));
+  } catch (error) {
+    // A secret that is not base64 lands here. It is a misconfiguration, not an
+    // attack, and it must not be reported as a valid signature.
+    console.error("[Resend] could not compute the expected signature:", error);
+    return { valid: false, status: 401, reason: "unusable_secret" };
+  }
+
+  // Svix signs one delivery with both secrets while a secret is being rotated,
+  // so ANY candidate matching is a pass. Every candidate is compared, in
+  // constant time, with no early exit on the first match.
+  let matched = false;
+  for (const candidate of candidates) {
+    if (timingSafeEqual(candidate, expected)) matched = true;
+  }
+  if (!matched) {
+    console.error("[Resend] rejected a webhook: signature mismatch");
+    return { valid: false, status: 401, reason: "signature_mismatch" };
+  }
+
+  return { valid: true, status: 200, reason: "ok" };
+}
+
+// @guarded-inline: `verifyResendSignature` runs on the path every caller takes
+// and its verdict is read on that same path — the HMAC over the raw body is
+// the only identity an httpAction has, and an unset secret refuses rather than
+// falling open
+export const handleResendWebhook = httpAction(async (ctx, request) => {
+  const rawBody = await request.text();
+
+  const verdict = await verifyResendSignature(request, rawBody);
+  if (!verdict.valid) {
+    return new Response(verdict.status === 401 ? "Unauthorized" : verdict.reason, {
+      status: verdict.status,
+    });
+  }
+
+  const { recordedEventFor, suppressesRecipient } = await import(
+    "@be-in-digital/convex-functions/resendSignature"
+  );
+
+  let payload: ResendWebhookPayload;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return new Response("Invalid JSON", { status: 400 });
+  }
+
+  const recorded = recordedEventFor(payload.type);
+  if (!recorded) {
+    // `email.delivery_delayed` and anything Resend adds later. Answered 200 so
+    // it is not retried: there is nothing here to retry, the event simply is
+    // not one this product records.
+    return new Response("OK", { status: 200 });
+  }
+
+  const headers = payload.data?.headers;
+  const campaignId = getResendHeader(headers, "X-Campaign-Id");
+  const subscriberId = getResendHeader(headers, "X-Subscriber-Id");
+  const storeId = getResendHeader(headers, "X-Store-Id");
+
+  const now = Date.now();
+  const typedCampaignId = campaignId
+    ? (campaignId as Id<"emailCampaigns">)
+    : undefined;
+
+  const targets: Array<{
+    storeId: Id<"stores">;
+    subscriberId: Id<"emailSubscribers">;
+  }> = [];
+
+  if (storeId && subscriberId) {
+    targets.push({
+      storeId: storeId as Id<"stores">,
+      subscriberId: subscriberId as Id<"emailSubscribers">,
+    });
+  } else if (suppressesRecipient(payload.type)) {
+    // Same rule as the SES path, and the same reason: a hard bounce says the
+    // mailbox does not exist and a complaint says this person reported us.
+    // Neither depends on knowing which campaign carried the message, and both
+    // must suppress or the account's own reputation pays for it. Deliveries,
+    // opens and clicks do NOT fall back — attributing one to a store that did
+    // not send the message would corrupt the figure rather than complete it.
+    const to = payload.data?.to;
+    const addresses = new Set(
+      (Array.isArray(to) ? to : to ? [to] : [])
+        .filter((address): address is string => typeof address === "string")
+        .map((address) => address.toLowerCase())
+    );
+    for (const address of addresses) {
+      const matches = await ctx.runQuery(
+        internal.emailSubscribers.listByEmailInternal,
+        { email: address }
+      );
+      for (const subscriber of matches) {
+        targets.push({
+          storeId: subscriber.storeId,
+          subscriberId: subscriber._id,
+        });
+      }
+    }
+  }
+
+  if (targets.length === 0) {
+    // A bounce or a complaint reaching here is a misconfiguration rather than a
+    // stray, so it is reported instead of dropped — a silent 200 is exactly how
+    // the SES hole stayed invisible.
+    if (suppressesRecipient(payload.type)) {
+      await captureBackendError(ctx, {
+        error: new Error(
+          `Resend ${payload.type} matched no subscriber` +
+            (headers
+              ? ""
+              : " and carried no original headers — the send did not set" +
+                " X-Store-Id / X-Subscriber-Id")
+        ),
+        source: "emailHttpHandlers.handleResendWebhook",
+      });
+    }
+    return new Response("OK", { status: 200 });
+  }
+
+  try {
+    for (const { storeId: typedStoreId, subscriberId: typedSubscriberId } of targets) {
+      await recordFeedbackEvent(ctx, {
+        type: recorded,
+        storeId: typedStoreId,
+        subscriberId: typedSubscriberId,
+        campaignId: typedCampaignId,
+        occurredAt: now,
+        // Resend classifies a bounce the way SES does, so the same normaliser
+        // applies. `email.failed` carries none, which suppresses only on the
+        // third strike — the cautious reading, and the one `markBounced`
+        // already implements for a bounce with no classification.
+        bounceType: normalizeBounceType(payload.data?.bounce?.type),
+        metadata:
+          recorded === "clicked" && payload.data?.click?.link
+            ? { linkUrl: payload.data.click.link }
+            : recorded === "opened" && payload.data?.open?.userAgent
+              ? { userAgent: payload.data.open.userAgent }
+              : undefined,
+      });
+    }
+  } catch (error) {
+    console.error("Resend webhook processing error:", error);
+    await captureBackendError(ctx, {
+      error,
+      source: "emailHttpHandlers.handleResendWebhook",
     });
   }
 

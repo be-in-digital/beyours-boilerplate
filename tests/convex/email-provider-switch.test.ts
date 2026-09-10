@@ -16,6 +16,8 @@
  * deployment changes where its mail goes, with no code edit anywhere.
  */
 
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { convexTest } from "convex-test"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { api, internal } from "../../convex/_generated/api"
@@ -256,5 +258,35 @@ describe("where a deployment's email actually goes", () => {
         JSON.stringify(m).includes("beindigital.fr")
       )
     ).toBe(false)
+  })
+})
+
+/**
+ * Every transport a deployment may be switched to has a feedback path.
+ *
+ * WHAT WAS BROKEN (#444). `EMAIL_PROVIDER=resend` shipped with no feedback
+ * route at all: `/webhooks/ses` was the only one in the app and SNS never
+ * calls it on a Resend deployment. Nothing suppressed a dead address, nothing
+ * recorded a spam report, and the first symptom anybody got was the sending
+ * domain being throttled.
+ *
+ * This reads `http.ts` rather than a list, so the next provider added to
+ * `EMAIL_PROVIDERS` fails here until it has somewhere for its bounces to land.
+ * A provider is not "supported" while a client running it cannot be told that
+ * a mailbox is dead.
+ */
+describe("every provider has somewhere for its bounces to land", () => {
+  test("each EMAIL_PROVIDERS value has a webhook route in http.ts", async () => {
+    const { EMAIL_PROVIDERS } = await import("@be-in-digital/core/email")
+    const source = readFileSync(
+      join(__dirname, "..", "..", "convex", "http.ts"),
+      "utf8"
+    )
+
+    const missing = EMAIL_PROVIDERS.filter(
+      (provider) => !source.includes(`path: "/webhooks/${provider}"`)
+    )
+
+    expect(missing).toEqual([])
   })
 })
