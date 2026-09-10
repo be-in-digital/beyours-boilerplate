@@ -37,9 +37,23 @@ import { describe, expect, it } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
 
-const APP = path.join(__dirname, "../..")
-const REPO = path.join(APP, "../..")
+import { APP_ROOT, engineSourceRoots, monorepoPath } from "../lib/repo-layout"
+
+const APP = APP_ROOT
 const CONVEX = path.join(APP, "convex")
+
+/**
+ * The engine, wherever this checkout keeps it.
+ *
+ * This used to be `path.join(APP, "../..", "packages")`, which is a path only
+ * the monorepo has. This file SHIPS — the mirror copies every tracked file
+ * under `apps/themes` onto the boilerplate a client clones — and `walk()`
+ * returns an empty list for a root that is not there rather than raising, so on
+ * a client site the scan quietly lost every caller that lives in the engine and
+ * reported 79 public functions as unreached. See `tests/lib/repo-layout.ts` for
+ * the measurement; the two layouts leave the same ten unreferenced.
+ */
+const ENGINE = engineSourceRoots()
 
 /** Builders that register a function on the PUBLIC router. */
 const PUBLIC_BUILDERS = [
@@ -100,12 +114,29 @@ const SKIP_DIRS = new Set([
   ".git",
 ])
 
-function walk(dir: string, out: string[] = []): string[] {
+/**
+ * Every file under `dir`, minus the directories `skip` names.
+ *
+ * `skip` is per-root because the engine roots need `dist/` and the application
+ * roots must not have it — see ENGINE_SKIP.
+ *
+ * No symlink handling, and that is measured rather than assumed. Under pnpm
+ * every engine package IS a link (`node_modules/@be-in-digital/admin` ->
+ * `.pnpm/…`), and `readdirSync` resolves a link it is handed as the root, so a
+ * root arrives here already followed. Below the root there is nothing to
+ * follow: an engine package holds real directories, and its own
+ * `node_modules/` — the one place links reappear — is in SKIP_DIRS. Checked on
+ * a tarball install of all nine packages: zero nested symlinks. The trap that
+ * would matter is `entry.isDirectory()`, which is FALSE for a link to a
+ * directory; it is avoided by resolving each package to its own root rather
+ * than walking the scope directory that holds the nine links.
+ */
+function walk(dir: string, out: string[] = [], skip: Set<string> = SKIP_DIRS): string[] {
   if (!fs.existsSync(dir)) return out
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (SKIP_DIRS.has(entry.name)) continue
+    if (skip.has(entry.name)) continue
     const p = path.join(dir, entry.name)
-    if (entry.isDirectory()) walk(p, out)
+    if (entry.isDirectory()) walk(p, out, skip)
     else out.push(p)
   }
   return out
@@ -127,17 +158,43 @@ function publicRegistrations(): Array<{ key: string; kind: string }> {
   return regs
 }
 
+/** A directory to scan, and what to leave out while scanning it. */
+type ScanRoot = { dir: string; skip: Set<string> }
+
+/**
+ * `dist/` is skipped in a monorepo checkout and scanned in an installed engine.
+ *
+ * Not a workaround: they are different artefacts. Under `packages/` it is
+ * build output regenerated from the `src` beside it, so it can only repeat
+ * references already seen — or, when stale, assert callers that no longer
+ * exist. Under `node_modules/` it is half of what the engine actually ships:
+ * `cms`, `integrations`, `marketing` and `restaurant` publish `dist` and no
+ * source at all. `engineSourceRoots()` decides which of the two this is.
+ */
+const ENGINE_SKIP = ENGINE.includesBuildOutput
+  ? new Set([...SKIP_DIRS].filter((name) => name !== "dist"))
+  : SKIP_DIRS
+
+const ENGINE_ROOTS: ScanRoot[] = ENGINE.sources.map((dir) => ({ dir, skip: ENGINE_SKIP }))
+
+const appRoot = (rel: string): ScanRoot => ({ dir: path.join(APP, rel), skip: SKIP_DIRS })
+
+/** The agency's own ops scripts, at the monorepo root. `null` in a client site. */
+const OPS_SCRIPTS = monorepoPath("scripts")
+
 /** Everywhere a Convex function can be named from. */
-const CALLER_ROOTS = [
-  path.join(APP, "app"),
-  path.join(APP, "components"),
-  path.join(APP, "lib"),
-  path.join(APP, "tests"),
-  path.join(APP, "e2e"),
-  path.join(APP, "scripts"),
-  CONVEX,
-  path.join(REPO, "packages"),
-  path.join(REPO, "scripts"),
+const CALLER_ROOTS: ScanRoot[] = [
+  appRoot("app"),
+  appRoot("components"),
+  appRoot("lib"),
+  appRoot("tests"),
+  appRoot("e2e"),
+  // A client's own `scripts/` — the template ships one. The monorepo root's is
+  // separate and comes next; there is nothing above a client site to read.
+  appRoot("scripts"),
+  { dir: CONVEX, skip: SKIP_DIRS },
+  ...ENGINE_ROOTS,
+  ...(OPS_SCRIPTS === null ? [] : [{ dir: OPS_SCRIPTS, skip: SKIP_DIRS }]),
 ]
 
 /**
@@ -147,18 +204,18 @@ const CALLER_ROOTS = [
  * `scripts/`. A function reached only from those is reached by the team, not by
  * the product, and that is exactly what the kept-callerless list records.
  */
-const PRODUCT_ROOTS = [
-  path.join(APP, "app"),
-  path.join(APP, "components"),
-  path.join(APP, "lib"),
-  CONVEX,
-  path.join(REPO, "packages"),
+const PRODUCT_ROOTS: ScanRoot[] = [
+  appRoot("app"),
+  appRoot("components"),
+  appRoot("lib"),
+  { dir: CONVEX, skip: SKIP_DIRS },
+  ...ENGINE_ROOTS,
 ]
 
-function referencedKeys(roots: string[] = CALLER_ROOTS): Set<string> {
+function referencedKeys(roots: ScanRoot[] = CALLER_ROOTS): Set<string> {
   let haystack = ""
   for (const root of roots) {
-    for (const f of walk(root)) {
+    for (const f of walk(root.dir, [], root.skip)) {
       if (/\.(ts|tsx|mts|mjs|js|jsx)$/.test(f)) haystack += "\n" + fs.readFileSync(f, "utf8")
     }
   }
@@ -187,6 +244,38 @@ describe("the public Convex surface", () => {
     expect(registrations.length).toBeGreaterThan(200)
     expect(registrations.some((r) => r.kind === "storeMutation")).toBe(true)
     expect(registrations.some((r) => r.kind === "query")).toBe(true)
+  })
+
+  /**
+   * The mirror of the test above, for the other half of the comparison.
+   *
+   * WHAT WAS BROKEN. `walk()` returns an empty list for a root that does not
+   * exist, which is right — `e2e/` is legitimately absent from some checkouts —
+   * and catastrophic for a root that is load-bearing. On a delivered client
+   * site the engine root was `<app>/../../packages`, a path no client has, so
+   * the scan lost every caller living in the engine and the test below reported
+   * 79 public functions as unreached by anything. It failed, which was lucky:
+   * the same silence in the other direction (an allowlist quietly covering the
+   * loss) is a green suite guarding nothing.
+   *
+   * So the roots are asserted rather than assumed, and asserted by what they
+   * CONTRIBUTE rather than by existing. A directory that is present and yields
+   * nothing — a renamed scope, a `readdir` that stops descending symlinks, an
+   * engine published without the sources — is the same defect as an absent one
+   * and reads identically here.
+   */
+  it("can see the engine — a caller root that yields nothing is a lost root", () => {
+    expect(ENGINE.sources.length).toBeGreaterThan(0)
+    for (const dir of ENGINE.sources) expect(fs.existsSync(dir)).toBe(true)
+
+    // Callers the engine supplies and the application does not. 269 in this
+    // monorepo and 262 through a tarball install at `a7862e90`; the floor is
+    // set well below both because the number moves with every screen, and
+    // what this is protecting against is 0.
+    const fromApp = referencedKeys(CALLER_ROOTS.filter((r) => !ENGINE_ROOTS.includes(r)))
+    const fromEngine = referencedKeys(ENGINE_ROOTS)
+    const engineOnly = [...fromEngine].filter((key) => !fromApp.has(key))
+    expect(engineOnly.length).toBeGreaterThan(100)
   })
 
   it("has a caller for every public function", () => {

@@ -48,7 +48,7 @@
  * no matrix enumerates.
  */
 
-import { readdirSync, existsSync } from "node:fs"
+import { readdirSync, existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { AA_LARGE, AA_TEXT, contrast, type Rgb } from "@be-in-digital/ui/contrast"
@@ -197,21 +197,78 @@ describe("every shipped template palette", () => {
 })
 
 /**
+ * A surface a shell paints, read from the shell rather than typed out.
+ *
+ * Same function and same reasoning as `contrast.test.ts`: a hex copied into a
+ * test goes stale silently, in the direction of passing.
+ */
+function declaredSurface(file: string, pattern: RegExp): string {
+  const source = readFileSync(join(process.cwd(), file), "utf8")
+  const match = pattern.exec(source)
+  if (!match?.[1]) {
+    throw new Error(`no surface colour found in ${file} — the shell was repainted or moved`)
+  }
+  return match[1]
+}
+
+/** `bg-[#120d1a]` on the wrapper every QR-game screen renders inside. */
+const GAME_ARENA = declaredSurface(
+  "node_modules/@be-in-digital/admin/src/game/game-shell.tsx",
+  /className="[^"]*\bbg-\[(#[0-9a-fA-F]{3,8})\]/
+)
+
+/** `background: #0f172a` on `.display-root`, the kitchen screen's own sheet. */
+const KITCHEN_DISPLAY = declaredSurface(
+  "app/display/[storeId]/display.css",
+  /\.display-root\s*\{[^}]*background:\s*(#[0-9a-fA-F]{3,8})/
+)
+
+/**
  * The token scope each tree renders under — the same list `contrast.test.ts`
  * uses, because it is the same application. Kept as its own copy for the same
  * reason `LABEL_ON_FILL` is: a shared constant that one caller quietly narrows
  * is how a guard stops guarding without anything going red.
+ *
+ * IT HAD DRIFTED, AND THE DRIFT WAS THE WHOLE DEFECT. Not one entry here
+ * declared a `surface`, while the sibling declared seven — so every file whose
+ * background is painted by a shell in another file came back
+ * `surfaceKnown: false` and `filter(f => f.surfaceKnown)` threw it away.
+ * Measured on `asiatique-dragon`: this list resolved 1251 of 2116 pairs and
+ * guarded 0 of 72 failures; the sibling's resolved 1994 of 2116 and guarded 3
+ * of 15. A sweep of all 51 palettes that discards 40.9% of what it measures is
+ * not a sweep.
+ *
+ * The three entries with a specific surface have to come BEFORE the general
+ * `app`/`components` ones, and that ordering is not cosmetic either: first
+ * region to claim a file wins it, so without them the eleven QR-game screens
+ * and the kitchen display — both designed for a near-black ground — are
+ * measured against a near-white page. Copying only the five
+ * `surface: "background"` lines produced 2946 failures, almost all of them that
+ * mistake.
  */
 const REGIONS = [
+  // The trees a scope wraps come first: a file is measured once, under the
+  // scope of whichever region claims it.
   { dir: "app/(storefront)", scope: ".storefront-theme" },
   { dir: "components/storefront", scope: ".storefront-theme" },
   { dir: "components/website", scope: ".storefront-theme" },
   { dir: "app/(auth)", scope: ".storefront-theme" },
-  { dir: "app", scope: "" },
-  { dir: "components", scope: "" },
-  { dir: "lib", scope: "" },
-  { dir: "node_modules/@be-in-digital/ui/src", scope: "" },
-  { dir: "node_modules/@be-in-digital/admin/src", scope: "" },
+  // The two trees whose background is painted by a shell in another file.
+  { dir: "node_modules/@be-in-digital/admin/src/game", scope: "", surface: GAME_ARENA },
+  { dir: "app/display", scope: "", surface: KITCHEN_DISPLAY },
+  // One FILE: `block-preview.tsx` draws an EMAIL, which lands on its own white
+  // ground whatever the admin's colour scheme is.
+  {
+    dir: "node_modules/@be-in-digital/admin/src/pages/email/templates/block-preview.tsx",
+    scope: "",
+    surface: "#ffffff",
+  },
+  // Then everything else this app renders, on the admin page background.
+  { dir: "app", scope: "", surface: "background" },
+  { dir: "components", scope: "", surface: "background" },
+  { dir: "lib", scope: "", surface: "background" },
+  { dir: "node_modules/@be-in-digital/ui/src", scope: "", surface: "background" },
+  { dir: "node_modules/@be-in-digital/admin/src", scope: "", surface: "background" },
 ]
 
 /** 28 seconds measured for all 51; the ceiling is a stall detector. */

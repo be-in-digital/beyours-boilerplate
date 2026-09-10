@@ -126,9 +126,9 @@
      * 47% clears both (4.60:1 and 6.29:1).
      */
     /*
-     * 42%, and it has to satisfy two independent measurements — take the
+     * 41%, and it has to satisfy three independent measurements — take the
      * darker, because a tint of the ink under the ink is the surface least
-     * forgiving of it and both of these are that shape.
+     * forgiving of it and all three are that shape.
      *
      * #447 measured the engine's own light admin: `bg-destructive/10
      * text-destructive` at 47% gives 4.18:1, and 44% clears it.
@@ -137,13 +137,23 @@
      * fixed ink meets a shifted surface: `bg-destructive/5` composited over
      * fast-food-grill77 measured 4.176:1, and 42% is what clears all 51.
      *
-     * 42% is the darker, so it clears the admin chip too. Every other pairing
-     * improves with it: a white label on the fill goes from 5.4:1 to 6.2:1,
-     * and the fill's own separation from the page rises with it. Do not
-     * lighten this back to 44% — that is the admin-only answer, and it puts
-     * the templates back under AA.
+     * 42% WAS the darker, and it was measured against `bg-destructive/5`. The
+     * sweep it was measured with could not see `bg-destructive/10`: not one
+     * region in `template-contrast.test.ts` declared a `surface`, so every pair
+     * on a shell-painted background came back `surfaceKnown: false` and was
+     * discarded — 40.9% of what it measured. With the surfaces declared,
+     * `text-destructive on bg-destructive/10` over food-truck-braisenroute
+     * (`--background: 30 15% 94%`, a warm off-white rather than the engine's
+     * `0 0% 99%`) measures 4.495:1 against a floor of 4.5 — short by 0.005, on
+     * two admin screens.
+     *
+     * 41% clears all 51 palettes on both tints. Every other pairing improves
+     * with it, as it did at 42%: a white label on the fill gains again, and so
+     * does the fill's separation from the page. Do not lighten this — 44% is
+     * the admin-only answer, 42% is the answer of a sweep that was dropping
+     * two pairs in five, and both put templates back under AA.
      */
-    --destructive: 0 84% 42%;
+    --destructive: 0 84% 41%;
     --destructive-foreground: 0 0% 100%;
     --border: 220 13% 93%;
     /*

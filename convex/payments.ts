@@ -16,6 +16,7 @@ import {
   routeRefund,
   type PaymentForRefund,
 } from "@be-in-digital/convex-functions/refundPolicy";
+import { mayReleaseRefundReservation } from "./lib/refundOutcome";
 
 const paymentsStoreId = storeIdFromDocument("Payment not found");
 const payments_getByOrderStoreId = storeIdFromField("orderId", "Order not found");
@@ -177,12 +178,27 @@ export const refundPayment = action({
 
         externalRefundId = result.refundId;
       } catch (error) {
-        // The provider refused: give the amount back, or the restaurant could
-        // never retry — the balance would claim the money was already returned.
-        await ctx.runMutation(internal.payments.internalReleaseRefund, {
-          id: args.id,
-          index: reservation.index,
-        });
+        // Give the amount back ONLY when a retry cannot pay twice.
+        //
+        // The release exists so the restaurant is not left with a balance
+        // claiming money was returned when it was not. It was unconditional,
+        // and for SumUp that is the double-refund itself: no idempotency key
+        // exists there, so releasing after a LOST RESPONSE hands the operator a
+        // retry that sends a second real refund. Measured shape: a 48 € refund
+        // times out, the balance is returned, the operator presses the button
+        // again, 96 € leaves the account.
+        //
+        // Stripe and PayPal carry `idempotencyKey` above, so their retry
+        // reaches the same key and returns the original refund rather than
+        // making another — releasing on any failure is correct for them and
+        // stays that way. `mayReleaseRefundReservation` is that distinction,
+        // and it defaults to NOT releasing for anything else.
+        if (mayReleaseRefundReservation(route.provider, error)) {
+          await ctx.runMutation(internal.payments.internalReleaseRefund, {
+            id: args.id,
+            index: reservation.index,
+          });
+        }
         throw error;
       }
     }

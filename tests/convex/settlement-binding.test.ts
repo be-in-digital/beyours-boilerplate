@@ -27,49 +27,79 @@ import { describe, expect, test } from "vitest"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
+import { enginePackageFile } from "../lib/repo-layout"
+
 const CONVEX_DIR = join(__dirname, "../../convex")
 
 const GUARD = "assertSettlesOrder"
 /** The shared decision about what a settlement writes to `order.paymentStatus`. */
 const ORDER_GUARD = "paymentStatusAfterSettlement"
 
+/**
+ * A settlement path, and where its source lives.
+ *
+ * `engine` names the package for a path that lives in `@be-in-digital/*` rather
+ * than in this app's `convex/`. That is not a detail: the sixth path is in the
+ * engine, `code()` read only `CONVEX_DIR`, and so the whole of this file — 32
+ * assertions — was green while that path carried the exact defect the file
+ * exists to prevent. Measured: swapping its two calls so the order is marked
+ * paid before the money is recorded left the suite 32/32.
+ */
+type EntryPoint = { module: string; fn: string; engine?: string }
+
+/** Where a path's source is, in this checkout. Throws rather than reading nothing. */
+function sourcePath(entry: EntryPoint): string {
+  if (!entry.engine) return join(CONVEX_DIR, `${entry.module}.ts`)
+  const file = enginePackageFile(entry.engine, `src/${entry.module}.ts`)
+  if (file === null) {
+    throw new Error(
+      `settlement guard: @be-in-digital/${entry.engine}/src/${entry.module}.ts is not in this ` +
+        `checkout, so ${entry.module}.${entry.fn} would be checked against nothing`
+    )
+  }
+  return file
+}
+
 /** Source with comments removed, so a claim about the guard cannot pass for it. */
-function code(module: string): string {
-  return readFileSync(join(CONVEX_DIR, `${module}.ts`), "utf8")
+function code(entry: EntryPoint): string {
+  return readFileSync(sourcePath(entry), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/\/\/[^\n]*/g, "")
 }
 
 /** Whether the module imports a named export from the settlement package. */
-function importsFromSettlement(module: string, name: string): boolean {
+function importsFromSettlement(entry: EntryPoint, name: string): boolean {
   return new RegExp(
     `import\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from\\s*["'][^"']*paymentSettlement["']`
-  ).test(code(module))
+  ).test(code(entry))
 }
 
 /** Whether the module imports the settlement guard. */
-function importsGuard(module: string): boolean {
-  return importsFromSettlement(module, GUARD)
+function importsGuard(entry: EntryPoint): boolean {
+  return importsFromSettlement(entry, GUARD)
 }
 
 /** The body of one named export, up to the next top-level export. */
-function exportBody(module: string, name: string): string {
-  const source = code(module)
-  const start = source.indexOf(`export const ${name} =`)
+function exportBody(entry: EntryPoint): string {
+  const source = code(entry)
+  const start = source.indexOf(`export const ${entry.fn} =`)
   if (start === -1) return ""
   const next = source.indexOf("\nexport const ", start + 1)
   return source.slice(start, next === -1 ? source.length : next)
 }
 
 /** Whether that export's own body calls the guard. */
-function callsGuard(module: string, name: string): boolean {
-  return new RegExp(`\\b${GUARD}\\s*\\(`).test(exportBody(module, name))
+function callsGuard(entry: EntryPoint): boolean {
+  return new RegExp(`\\b${GUARD}\\s*\\(`).test(exportBody(entry))
 }
 
 /** Whether that export asks the shared decision what to write to the order. */
-function consultsOrderGuard(module: string, name: string): boolean {
-  return new RegExp(`\\b${ORDER_GUARD}\\s*\\(`).test(exportBody(module, name))
+function consultsOrderGuard(entry: EntryPoint): boolean {
+  return new RegExp(`\\b${ORDER_GUARD}\\s*\\(`).test(exportBody(entry))
 }
+
+/** Shorthand for the ad-hoc lookups below, which name a module rather than a path. */
+const app = (module: string, fn = ""): EntryPoint => ({ module, fn })
 
 /**
  * The four places a provider payment turns an order into a paid one.
@@ -98,26 +128,57 @@ const SETTLEMENT_ENTRY_POINTS: Array<{ module: string; fn: string }> = [
   { module: "paypal", fn: "capturePayPalOrder" },
 ]
 
+/**
+ * The sixth, and the reason this file learned to read outside `convex/`.
+ *
+ * `settleFromChargeEvent` lives in `@be-in-digital/convex-functions`, is
+ * reached from `stripeWebhook`'s `payment_intent.succeeded` branch, and settles
+ * money exactly like the five above. It was named in the ordering docblock
+ * below — as one of the six, with its offsets measured — and asserted by
+ * nothing, because `code()` read only `CONVEX_DIR`. Measured: swapping its two
+ * calls so the order is marked paid before the money is recorded left this file
+ * 32/32 green.
+ *
+ * It is a separate list rather than a sixth row above because it binds
+ * DIFFERENTLY, and pretending otherwise would be a false symmetry. The five
+ * receive a provider's word for which order a session belongs to, so they call
+ * `assertSettlesOrder`. This one is handed a charge reference, finds the
+ * payment row by `by_externalId`, refuses a provider that does not match it and
+ * takes the order from the row — there is no claim to bind, so there is nothing
+ * for that guard to do. What it shares with the five is everything below:
+ * ledger before order, the shared decision about what to write, and no `"paid"`
+ * literal.
+ */
+const ENGINE_SETTLEMENT_PATHS: EntryPoint[] = [
+  { module: "payments", fn: "settleFromChargeEvent", engine: "convex-functions" },
+]
+
+/** Every path that turns a provider payment into a paid order, wherever it lives. */
+const EVERY_SETTLEMENT_PATH: EntryPoint[] = [
+  ...SETTLEMENT_ENTRY_POINTS,
+  ...ENGINE_SETTLEMENT_PATHS,
+]
+
 describe("settlement binding", () => {
   test("every settlement entry point exists", () => {
     // Guards the guard: a renamed export would make every assertion below
     // vacuously true, because an empty body matches no pattern.
-    for (const { module, fn } of SETTLEMENT_ENTRY_POINTS) {
-      expect(exportBody(module, fn), `${module}.${fn}`).not.toBe("")
+    for (const entry of SETTLEMENT_ENTRY_POINTS) {
+      expect(exportBody(entry), `${entry.module}.${entry.fn}`).not.toBe("")
     }
   })
 
   test.each(SETTLEMENT_ENTRY_POINTS)(
     "$module imports the settlement guard",
-    ({ module }) => {
-      expect(importsGuard(module), `${module}.ts must import ${GUARD}`).toBe(true)
+    (entry) => {
+      expect(importsGuard(entry), `${entry.module}.ts must import ${GUARD}`).toBe(true)
     }
   )
 
   test.each(SETTLEMENT_ENTRY_POINTS)(
     "$module.$fn calls the settlement guard",
-    ({ module, fn }) => {
-      expect(callsGuard(module, fn), `${module}.${fn} must call ${GUARD}`).toBe(true)
+    (entry) => {
+      expect(callsGuard(entry), `${entry.module}.${entry.fn} must call ${GUARD}`).toBe(true)
     }
   )
 
@@ -125,10 +186,10 @@ describe("settlement binding", () => {
     // Guards the guard: SumUp and PayPal have called `assertSettlesOrder` since
     // it was written. If either regex silently matched nothing, the assertions
     // above would pass while proving nothing at all.
-    expect(importsGuard("sumup")).toBe(true)
-    expect(callsGuard("sumup", "verifyCheckout")).toBe(true)
-    expect(importsGuard("paypal")).toBe(true)
-    expect(callsGuard("paypal", "capturePayPalOrder")).toBe(true)
+    expect(importsGuard(app("sumup"))).toBe(true)
+    expect(callsGuard(app("sumup", "verifyCheckout"))).toBe(true)
+    expect(importsGuard(app("paypal"))).toBe(true)
+    expect(callsGuard(app("paypal", "capturePayPalOrder"))).toBe(true)
   })
 
   test("the detector can also say no", () => {
@@ -136,8 +197,8 @@ describe("settlement binding", () => {
     // everything is not a detector. `orders.ts` settles nothing and must not
     // read as guarded, and `createCheckoutSession` opens a session rather than
     // closing one — it has no payment to verify yet.
-    expect(importsGuard("orders")).toBe(false)
-    expect(callsGuard("stripe", "createCheckoutSession")).toBe(false)
+    expect(importsGuard(app("orders"))).toBe(false)
+    expect(callsGuard(app("stripe", "createCheckoutSession"))).toBe(false)
   })
 
   test("the guard is not defeated by a comment that merely names it", () => {
@@ -156,17 +217,17 @@ describe("settlement binding", () => {
     expect(stripped).not.toMatch(new RegExp(`\\b${GUARD}\\b`))
   })
 
-  test.each(SETTLEMENT_ENTRY_POINTS)(
+  test.each(EVERY_SETTLEMENT_PATH)(
     "$module.$fn asks what the settlement should write to the order",
-    ({ module, fn }) => {
-      expect(importsFromSettlement(module, ORDER_GUARD)).toBe(true)
-      expect(consultsOrderGuard(module, fn)).toBe(true)
+    (entry) => {
+      expect(importsFromSettlement(entry, ORDER_GUARD)).toBe(true)
+      expect(consultsOrderGuard(entry)).toBe(true)
     }
   )
 
-  test.each(SETTLEMENT_ENTRY_POINTS)(
+  test.each(EVERY_SETTLEMENT_PATH)(
     "$module.$fn never writes paymentStatus: \"paid\" as a literal",
-    ({ module, fn }) => {
+    (entry) => {
       // THE BUG this catches: all four guarded with
       // `if (order.paymentStatus !== "paid")` and then wrote `"paid"`. Issue
       // #128 introduced `refund_pending` — paid, then cancelled, money owed
@@ -177,7 +238,7 @@ describe("settlement binding", () => {
       // A literal here means someone decided the answer locally instead of
       // asking `paymentStatusAfterSettlement`, which is how the four paths
       // drifted apart from `markCashPaid` in the first place.
-      expect(exportBody(module, fn)).not.toMatch(/paymentStatus:\s*"paid"/)
+      expect(exportBody(entry)).not.toMatch(/paymentStatus:\s*"paid"/)
     }
   )
 
@@ -185,9 +246,53 @@ describe("settlement binding", () => {
     // Guards the guard: it has to be able to FIND the pattern it forbids.
     expect('paymentStatus: "paid",').toMatch(/paymentStatus:\s*"paid"/)
     // And the entry-point bodies it runs against are not empty strings.
-    for (const { module, fn } of SETTLEMENT_ENTRY_POINTS) {
-      expect(exportBody(module, fn).length, `${module}.${fn}`).toBeGreaterThan(200)
+    for (const entry of EVERY_SETTLEMENT_PATH) {
+      expect(exportBody(entry).length, `${entry.module}.${entry.fn}`).toBeGreaterThan(200)
     }
+  })
+})
+
+describe("the engine path binds by the payment row, not by a claim", () => {
+  /**
+   * The sixth path's equivalent of `assertSettlesOrder`, asserted because it is
+   * the thing that would silently widen it.
+   *
+   * `settleFromChargeEvent` is handed a bare charge reference and finds the
+   * payment by `by_externalId` — an index that SPANS PROVIDERS. Its own comment
+   * says what that costs if unchecked: "a SumUp reference that happens to equal
+   * a Stripe intent id must not be settled by a Stripe event." Delete the
+   * comparison and a Stripe webhook settles a SumUp charge against whatever
+   * order that row points at.
+   *
+   * There is no session claim here to bind, which is why the guard the five app
+   * paths call has nothing to do on this one. This is what it has instead.
+   */
+  const engine = ENGINE_SETTLEMENT_PATHS[0] as EntryPoint
+
+  test("it refuses a provider that does not match the stored payment", () => {
+    const body = exportBody(engine)
+    expect(body).toMatch(/payment\.provider\s*!==\s*args\.provider/)
+    expect(body).toMatch(/provider_mismatch/)
+  })
+
+  test("it takes the order from the payment row rather than from the event", () => {
+    // `payment.orderId`, never an order id off the wire: the row is what the
+    // money is actually against.
+    expect(exportBody(engine)).toMatch(/payment\.orderId/)
+  })
+
+  test("it refuses a reference it cannot resolve at all", () => {
+    const body = exportBody(engine)
+    expect(body).toMatch(/unknown_charge/)
+    expect(body).toMatch(/unknown_order/)
+  })
+
+  test("the detectors can also say no", () => {
+    // Guards the guard: these patterns must not match a path that does none of
+    // it. `createCheckoutSession` opens a session and settles nothing.
+    const opening = exportBody(app("stripe", "createCheckoutSession"))
+    expect(opening.length).toBeGreaterThan(200)
+    expect(opening).not.toMatch(/provider_mismatch/)
   })
 })
 
@@ -197,11 +302,20 @@ describe("settlement binding", () => {
  * Returns the character offsets of the first call that RECORDS THE MONEY and
  * the first that MARKS THE ORDER PAID, so a test can assert which comes first.
  */
-function settlementOffsets(module: string, name: string): { settles: number; marksPaid: number } {
-  const body = exportBody(module, name)
+function settlementOffsets(entry: EntryPoint): { settles: number; marksPaid: number } {
+  const body = exportBody(entry)
   return {
-    settles: body.search(/\binternalSettle\b|\bsettleOrRecordRefusal\s*\(/),
-    marksPaid: body.search(/\binternalUpdatePaymentStatus\b/),
+    // The app paths reach the ledger through a Convex mutation reference; the
+    // engine path calls the definition directly, because it IS the engine. Two
+    // spellings of one act, so both are named — a scanner that knew only the
+    // app's would score the engine path -1 and skip it, which is the silent
+    // pass this whole file is about.
+    settles: body.search(
+      /\binternalSettle\b|\bsettleOrRecordRefusal\s*\(|\bsettlePayment\.handler\s*\(/
+    ),
+    marksPaid: body.search(
+      /\binternalUpdatePaymentStatus\b|\brecordPaymentStatus\.handler\s*\(/
+    ),
   }
 }
 
@@ -238,9 +352,10 @@ describe("the ledger is written before the order says « Payé »", () => {
   // A plain loop rather than `test.each`: the `$module.$fn` interpolation the
   // suite above uses renders as "undefined" here, so five identical names go up
   // and the one that failed cannot be told from the four that did not.
-  for (const { module, fn } of SETTLEMENT_ENTRY_POINTS) {
+  for (const entry of EVERY_SETTLEMENT_PATH) {
+    const { module, fn } = entry
     test(`${module}.${fn} records the payment before it marks the order paid`, () => {
-      const { settles, marksPaid } = settlementOffsets(module, fn)
+      const { settles, marksPaid } = settlementOffsets(entry)
       // A path that does not do both is not this test's business; the test
       // below is what holds every entry point to doing them at all.
       if (settles === -1 || marksPaid === -1) return
@@ -256,10 +371,10 @@ describe("the ledger is written before the order says « Payé »", () => {
   test("every entry point does both, so the skip above is never the whole test", () => {
     // The guard above returns early when a path lacks one of the two calls,
     // which would make it vacuous for a path that quietly stopped settling.
-    for (const { module, fn } of SETTLEMENT_ENTRY_POINTS) {
-      const { settles, marksPaid } = settlementOffsets(module, fn)
-      expect(settles, `${module}.${fn} records no payment`).toBeGreaterThan(-1)
-      expect(marksPaid, `${module}.${fn} marks no order paid`).toBeGreaterThan(-1)
+    for (const entry of EVERY_SETTLEMENT_PATH) {
+      const { settles, marksPaid } = settlementOffsets(entry)
+      expect(settles, `${entry.module}.${entry.fn} records no payment`).toBeGreaterThan(-1)
+      expect(marksPaid, `${entry.module}.${entry.fn} marks no order paid`).toBeGreaterThan(-1)
     }
   })
 
@@ -270,12 +385,12 @@ describe("the ledger is written before the order says « Payé »", () => {
     // sweep both do (#411, #438). `settleOrRecordRefusal` is what makes the
     // return pages match; asserting the call site is what stops the next edit
     // reaching for the bare mutation again.
-    for (const { module, fn } of [
-      { module: "stripe", fn: "verifyCheckoutSession" },
-      { module: "sumup", fn: "verifyCheckout" },
-      { module: "paypal", fn: "capturePayPalOrder" },
+    for (const entry of [
+      app("stripe", "verifyCheckoutSession"),
+      app("sumup", "verifyCheckout"),
+      app("paypal", "capturePayPalOrder"),
     ]) {
-      expect(exportBody(module, fn), `${module}.${fn}`).toMatch(
+      expect(exportBody(entry), `${entry.module}.${entry.fn}`).toMatch(
         /settleOrRecordRefusal\s*\(/
       )
     }

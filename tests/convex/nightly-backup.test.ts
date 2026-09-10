@@ -19,12 +19,12 @@
  */
 
 import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
 import { convexTest } from "convex-test"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { internal } from "../../convex/_generated/api"
 import schema from "../../convex/schema"
 import { backupObjectKey } from "../../convex/systemBackupOffsite"
+import { monorepoPath } from "../lib/repo-layout"
 
 const send = vi.fn()
 
@@ -114,13 +114,33 @@ async function seedStore(t: ReturnType<typeof convexTest>) {
  * what a good backup and a truncated one produce identically — while the step's
  * own prose makes that field the go/no-go gate. The very next line already
  * carried the `.manifest` prefix, which is why a read-through missed it.
+ *
+ * WHERE IT LIVES, AND WHY THAT MATTERS HERE. `apps/docs/deployment/` — above
+ * this application, and therefore not in the tree a client receives. This file
+ * SHIPS: the mirror copies every tracked file under `apps/themes` onto the
+ * boilerplate, and rule 9 of `CLAUDE.md` tells the client to run `pnpm test`.
+ * Read through `new URL("../../../docs/…")` it resolved, on a client's machine,
+ * to a path outside their repository, and the whole file — the nightly backup
+ * assertions below included — died on collection with
+ * ENOENT '/home/runner/work/beyours-boilerplate/docs/deployment/backup-restore-rehearsal.md'.
+ *
+ * The runbook is the agency's document about the agency's drill. A client has
+ * no copy of it and nothing to fix if it is wrong, so this block is scoped to
+ * the engine checkout — by `monorepoPath`, which answers from the SHAPE of the
+ * checkout, not from whether the file happens to be readable. Delete the
+ * runbook in this repository and `readFileSync` still throws, loudly, which is
+ * the property worth keeping.
  */
-const RUNBOOK = readFileSync(
-  fileURLToPath(
-    new URL("../../../docs/deployment/backup-restore-rehearsal.md", import.meta.url),
-  ),
-  "utf8",
-)
+const RUNBOOK_PATH = monorepoPath("apps/docs/deployment/backup-restore-rehearsal.md")
+const RUNBOOK: string | null = RUNBOOK_PATH === null ? null : readFileSync(RUNBOOK_PATH, "utf8")
+
+/** The runbook text, or a throw — never a silent empty string standing in for it. */
+function runbook(): string {
+  if (RUNBOOK === null) {
+    throw new Error("the rehearsal runbook is readable only in the engine monorepo")
+  }
+  return RUNBOOK
+}
 
 /**
  * Every manifest field the runbook tells an operator to read.
@@ -131,10 +151,10 @@ const RUNBOOK = readFileSync(
 function runbookManifestFields(): string[] {
   // `manifest.field` with or without the leading dot: the jq lines carry one,
   // the prose around them does not.
-  const direct = [...RUNBOOK.matchAll(/\bmanifest\.([A-Za-z_]\w*)/g)].map(
+  const direct = [...runbook().matchAll(/\bmanifest\.([A-Za-z_]\w*)/g)].map(
     (match) => match[1] as string,
   )
-  const projected = [...RUNBOOK.matchAll(/\.manifest\s*\|\s*\{([^}]*)\}/g)].flatMap((match) =>
+  const projected = [...runbook().matchAll(/\.manifest\s*\|\s*\{([^}]*)\}/g)].flatMap((match) =>
     (match[1] as string).split(",").map((field) => field.trim()).filter(Boolean),
   )
   return [...new Set([...direct, ...projected])]
@@ -148,12 +168,12 @@ function runbookManifestFields(): string[] {
  * one would refuse the fix it is there to protect.
  */
 function runbookCommands(): string[] {
-  return [...RUNBOOK.matchAll(/```bash\n([\s\S]*?)```/g)].flatMap((block) =>
+  return [...runbook().matchAll(/```bash\n([\s\S]*?)```/g)].flatMap((block) =>
     (block[1] as string).split("\n").map((line) => line.trim()).filter(Boolean),
   )
 }
 
-describe("the rehearsal runbook describes the file this writes", () => {
+describe.skipIf(RUNBOOK === null)("the rehearsal runbook describes the file this writes", () => {
   test("every manifest field it names is one the manifest actually has", async () => {
     const t = convexTest(schema, modules)
     await seedSettings(t)

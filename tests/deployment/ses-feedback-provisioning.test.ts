@@ -28,17 +28,51 @@ import { describe, expect, test } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
 
-const APPS = ["themes", "reference"] as const
+import { APP_ROOT, monorepoPath } from "../lib/repo-layout"
 
-function setupScript(app: (typeof APPS)[number]): string {
-  return fs.readFileSync(
-    path.join(__dirname, "../../..", app, "scripts/setup-aws.sh"),
-    "utf8",
-  )
-}
+/** This checkout's own provisioning script. It ships, so a client site has one too. */
+const OWN_SCRIPT = path.join(APP_ROOT, "scripts/setup-aws.sh")
 
-describe.each(APPS)("apps/%s/scripts/setup-aws.sh", (app) => {
-  const script = setupScript(app)
+/**
+ * Every `setup-aws.sh` this checkout actually holds.
+ *
+ * WHAT WAS BROKEN. This read `path.join(__dirname, "../../..", app, …)` for a
+ * hard-coded `["themes", "reference"]`, which is an address only the monorepo
+ * has — and this file SHIPS to every client site, where `pnpm test` is rule 9
+ * of `CLAUDE.md`. On the boilerplate it resolved above the repository root and
+ * the file did not collect:
+ * ENOENT '/home/runner/work/beyours-boilerplate/themes/scripts/setup-aws.sh'.
+ *
+ * The script itself is not monorepo-only — it is copied into every delivered
+ * site and is precisely what a client runs to provision their own AWS account,
+ * so these assertions are as much theirs as ours. What was monorepo-only was
+ * the SIBLING: `apps/reference` exists here and nowhere else. So the app's own
+ * script is read from its own root and always checked, and the twin is added
+ * when there is a twin to add.
+ */
+const SCRIPTS: Array<[label: string, source: string]> = [
+  [
+    monorepoPath() === null ? "scripts/setup-aws.sh" : "apps/themes/scripts/setup-aws.sh",
+    fs.readFileSync(OWN_SCRIPT, "utf8"),
+  ],
+  ...(["reference"] as const).flatMap((app) => {
+    const sibling = monorepoPath("apps", app, "scripts/setup-aws.sh")
+    if (sibling === null) return []
+    return [[`apps/${app}/scripts/setup-aws.sh`, fs.readFileSync(sibling, "utf8")] as [string, string]]
+  }),
+]
+
+describe("the scan itself", () => {
+  test("it found a provisioning script to read", () => {
+    // Without this, a checkout that stops shipping `setup-aws.sh` — or a root
+    // that stops resolving — turns every assertion below into no assertion at
+    // all, silently. That is the failure mode this whole change is about.
+    expect(SCRIPTS.length).toBeGreaterThan(0)
+    expect(SCRIPTS.every(([, source]) => source.length > 0)).toBe(true)
+  })
+})
+
+describe.each(SCRIPTS)("%s", (_label, script) => {
 
   test("it creates the SNS topic the notifications are published to", () => {
     expect(script).toMatch(/aws sns create-topic/)
@@ -102,11 +136,8 @@ describe.each(APPS)("apps/%s/scripts/setup-aws.sh", (app) => {
 
 describe("the handler and the script agree on the route", () => {
   test("the path the script subscribes is the path http.ts registers", () => {
-    const router = fs.readFileSync(
-      path.join(__dirname, "../../convex/http.ts"),
-      "utf8",
-    )
+    const router = fs.readFileSync(path.join(APP_ROOT, "convex/http.ts"), "utf8")
     expect(router).toContain('path: "/webhooks/ses"')
-    expect(setupScript("themes")).toContain("/webhooks/ses")
+    expect(fs.readFileSync(OWN_SCRIPT, "utf8")).toContain("/webhooks/ses")
   })
 })

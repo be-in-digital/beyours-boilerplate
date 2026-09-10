@@ -15,6 +15,7 @@ import {
   OrderAlreadyPaidError,
 } from "@be-in-digital/convex-functions/refusal";
 import { assertCardChargeable } from "@be-in-digital/convex-functions/cardChargeFloor";
+import { refundFailure } from "./lib/refundOutcome";
 
 // ---------------------------------------------------------------------------
 // Inline AES-256-GCM decryption (same pattern as oauthConnect.ts)
@@ -324,28 +325,45 @@ export const internalRefund = internalAction({
     // documents neither, and inventing a header it does not read would be worse
     // than nothing — it would look like the same protection the other two have.
     //
-    // What stands between a lost response and a double refund here is the
-    // reservation in `payments.refundPayment`: the amount is committed before
-    // the call, and released only when the provider REFUSES. A timeout is not a
-    // refusal, so the release does not run and the balance stays committed.
+    // So what stands between a lost response and a double refund is the
+    // reservation in `payments.refundPayment`, which is released only when this
+    // call proves the provider did nothing. This comment used to claim that was
+    // already true — "a timeout is not a refusal, so the release does not run"
+    // — and it was not: the `catch` there released on any throw whatsoever, so
+    // a timed-out 48 € refund gave the balance back, the operator retried, and
+    // 96 € left the account. The distinction the comment described now exists,
+    // and it exists HERE, because this is the only place that knows which of
+    // the two happened. See `lib/refundOutcome.ts`.
     const { accessToken } = await getSumUpAccessToken(ctx);
 
-    const response = await fetch(
-      `https://api.sumup.com/v0.1/me/refund/${args.externalId}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        // SumUp expects major units, like the checkout creation above.
-        body: JSON.stringify({ amount: args.amount / 100 }),
-      }
-    );
+    let response: Response;
+    try {
+      response = await fetch(
+        `https://api.sumup.com/v0.1/me/refund/${args.externalId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          // SumUp expects major units, like the checkout creation above.
+          body: JSON.stringify({ amount: args.amount / 100 }),
+        }
+      );
+    } catch (cause) {
+      // No response at all: a dropped connection, a DNS failure, a timeout.
+      // The request may have arrived and been honoured. `null` says so, and
+      // the reservation stays committed.
+      throw refundFailure(null, cause instanceof Error ? cause.message : "");
+    }
 
     if (!response.ok) {
-      const error = await response.text().catch(() => "");
-      throw new Error(`SumUp refund failed: ${error || response.status}`);
+      // The status is what separates "SumUp refused" from "SumUp may have
+      // refunded and failed to tell us". `refundFailure` maps it to the code
+      // `payments.refundPayment` reads before deciding whether to give the
+      // committed amount back.
+      const detail = await response.text().catch(() => "");
+      throw refundFailure(response.status, detail);
     }
 
     // SumUp answers 204 No Content on success and returns no refund id, so the

@@ -68,6 +68,7 @@ import type * as imageToProduct from "../imageToProduct.js";
 import type * as kitchenTickets from "../kitchenTickets.js";
 import type * as languages from "../languages.js";
 import type * as lib_menuSync from "../lib/menuSync.js";
+import type * as lib_refundOutcome from "../lib/refundOutcome.js";
 import type * as lib_storeFunctions from "../lib/storeFunctions.js";
 import type * as maintenance from "../maintenance.js";
 import type * as maintenanceEmail from "../maintenanceEmail.js";
@@ -192,6 +193,7 @@ declare const fullApi: ApiFromModules<{
   kitchenTickets: typeof kitchenTickets;
   languages: typeof languages;
   "lib/menuSync": typeof lib_menuSync;
+  "lib/refundOutcome": typeof lib_refundOutcome;
   "lib/storeFunctions": typeof lib_storeFunctions;
   maintenance: typeof maintenance;
   maintenanceEmail: typeof maintenanceEmail;

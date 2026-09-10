@@ -328,6 +328,54 @@ describe("orders.create — the weekly schedule", () => {
     expect(accepted).toBe(true)
   })
 
+  /**
+   * The clock when nothing has said which clock to use.
+   *
+   * `globalSettings` is a singleton the team writes; NOTHING seeds it, so a
+   * deployment that has never had its settings saved has no row, and
+   * `globalSettings?.timezone` is `undefined` all the way down to
+   * `restaurantClock`, which then reads `getUTCDay()`/`getUTCHours()`. Every
+   * other case in this file calls `seedGlobalSettings`, so none of them could
+   * ever see it — the blind spot is the fixture, not the code.
+   *
+   * Measured on a store open 11:00–14:00, with no settings row: an order at
+   * 23:30 Paris was ACCEPTED and written, and one at 09:30 Paris was refused
+   * `outside_opening_hours`. Orders taken nine hours after closing; refused
+   * during service.
+   */
+  describe("with no globalSettings row at all", () => {
+    test("refuses an order after closing, on the restaurant's clock", async () => {
+      const t = newHarness()
+      // Deliberately no seedGlobalSettings: this is a deployment whose settings
+      // have never been saved.
+      const storeId = await seedStore(t, week("11:00", "14:00"))
+      const productId = await seedProduct(t, storeId)
+
+      // 21:30 UTC is 23:30 in Paris in July — long after a 14:00 close. Read on
+      // the server clock it is 21:30, which is also shut, so the hour has to be
+      // one where the two disagree.
+      vi.setSystemTime(Date.UTC(2029, 6, 3, 12, 30, 0)) // 14:30 Paris, 12:30 UTC
+      const { accepted, code, written } = await attempt(t, storeId, productId)
+
+      expect(accepted).toBe(false)
+      expect(code).toBe("outside_opening_hours")
+      expect(written).toEqual({ orders: 0, tickets: 0 })
+    })
+
+    test("accepts an order during service, on the restaurant's clock", async () => {
+      const t = newHarness()
+      const storeId = await seedStore(t, week("11:00", "14:00"))
+      const productId = await seedProduct(t, storeId)
+
+      // 09:30 UTC is 11:30 in Paris — inside the service. On the server clock
+      // it is 09:30, ninety minutes before opening, and the order was refused.
+      vi.setSystemTime(Date.UTC(2029, 6, 3, 9, 30, 0))
+      const { accepted } = await attempt(t, storeId, productId)
+
+      expect(accepted).toBe(true)
+    })
+  })
+
   test("does not refuse a location that has declared no week at all", async () => {
     // `hours` is required by the schema and `stores.create` seeds a full week,
     // so an empty array means nobody declared anything — and there is nothing

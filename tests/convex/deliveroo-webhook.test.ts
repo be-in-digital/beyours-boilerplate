@@ -25,6 +25,8 @@
  * between our vocabulary and Deliveroo's.
  */
 
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { convexTest } from "convex-test"
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest"
 import { _resetEnvCache } from "@be-in-digital/core/env"
@@ -1072,5 +1074,78 @@ describe("the sync status a Deliveroo order is answered with", () => {
     })
 
     expect(syncStatusSent().status).toBe("succeeded")
+  })
+})
+
+
+/**
+ * The kitchen-ticket failure is REPORTED, not just logged.
+ *
+ * WHAT WAS BROKEN, and it is the guard rather than the code. `deliverooWebhook.ts`
+ * was an 854-line file with zero `captureBackendError` calls while its Uber Eats
+ * twin had three, so the one failure that silently costs a restaurant a meal —
+ * an order accepted with no ticket on the pass — was visible only to whoever
+ * thought to open that client's Convex logs. The fix added the report and said
+ * so in a comment: "REPORTED, not just logged."
+ *
+ * Nothing held it. Measured on this tree, replacing that one call with a no-op
+ * left `deliveroo-webhook.test.ts` and `error-reporting.test.ts` at **51/51
+ * green** — the exact figure the 10 September audit published. The two calls in
+ * `deliverooWebhookHandler.ts` ARE held, behaviourally, by
+ * `error-reporting.test.ts`; this third one, the one the ticket fix added, was
+ * the one nobody was watching.
+ *
+ * A SOURCE ASSERTION, deliberately. Driving this branch needs a signed
+ * `order.new`, a store, an integration row, a mapped product and then a forced
+ * failure inside `kitchenTickets.create` — a fixture whose own weight is the
+ * reason this went unguarded. What must not silently disappear is the call, and
+ * that is what is checked. Comments are stripped first, because the defect this
+ * class of test exists for is a comment claiming what the code stopped doing.
+ *
+ * NOT a blanket rule over the module. `deliverooWebhook.ts` has ten `catch`
+ * blocks that log, and one reports. Whether the other nine should is a real
+ * question and a larger one; asserting it here would fail nine sites today and
+ * get this test deleted rather than answered.
+ */
+describe("a Deliveroo order that reaches no kitchen is reported", () => {
+  const source = readFileSync(
+    join(__dirname, "../../convex/deliverooWebhook.ts"),
+    "utf8"
+  )
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "")
+
+  test("the module reaches the reporter at all", () => {
+    // Guards the guard: an import that goes means every assertion below is
+    // about a symbol the file no longer has.
+    expect(source).toMatch(
+      /import\s*\{[^}]*\bcaptureBackendError\b[^}]*\}\s*from\s*["']\.\/errorReporting["']/
+    )
+  })
+
+  test("the kitchen-ticket catch reports rather than only logging", () => {
+    const at = source.indexOf("Failed to create kitchen ticket:")
+    expect(at, "the kitchen-ticket catch is not where this test expects it").toBeGreaterThan(-1)
+    // The report belongs in the same catch, right after the log — not somewhere
+    // else in an 854-line file that happens to mention the name.
+    const afterLog = source.slice(at, at + 600)
+    expect(afterLog).toMatch(/captureBackendError\s*\(\s*ctx\s*,/)
+  })
+
+  test("it is reported with enough to find the order", () => {
+    const at = source.indexOf("Failed to create kitchen ticket:")
+    const afterLog = source.slice(at, at + 600)
+    // `source` and `step` are what an on-call engineer filters on; the external
+    // id and the order number are what they search for once they have.
+    expect(afterLog).toContain('source: "deliverooWebhook"')
+    expect(afterLog).toContain('step: "kitchen-ticket"')
+    expect(afterLog).toMatch(/externalOrderId/)
+    expect(afterLog).toMatch(/orderNumber/)
+  })
+
+  test("the detector can say no", () => {
+    // The other half: a window with no report in it must not read as reported.
+    const noReport = 'console.error("Failed to create kitchen ticket:", error);'
+    expect(noReport).not.toMatch(/captureBackendError\s*\(\s*ctx\s*,/)
   })
 })
