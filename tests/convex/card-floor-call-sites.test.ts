@@ -53,6 +53,22 @@ const CARD_CHARGE_ENTRY_POINTS: Array<{ module: string; fn: string }> = [
   { module: "paypal", fn: "createPayPalOrder" },
 ]
 
+/**
+ * The same rows, each carrying the dotted name of its call site.
+ *
+ * `test.each` resolves `$module.$fn` as the property PATH `module.$fn` — one
+ * lookup, not two interpolations joined by a dot — and that property does not
+ * exist, so all three titles rendered `undefined calls the floor`. A failure
+ * then named no call site, which is the only thing a per-case title is for.
+ * Measured: `$module.$fn` prints `undefined`, `$module.fn=$fn` prints
+ * `undefined='createCheckoutSession'`, and a single property prints its value.
+ * So the dot is joined here, where it is an ordinary string.
+ */
+const NAMED_ENTRY_POINTS = CARD_CHARGE_ENTRY_POINTS.map((entry) => ({
+  ...entry,
+  callSite: `${entry.module}.${entry.fn}`,
+}))
+
 /** Source with comments removed, so a claim about the guard cannot pass for it. */
 function code(module: string): string {
   return readFileSync(join(CONVEX_DIR, `${module}.ts`), "utf8")
@@ -93,7 +109,11 @@ describe("the card floor is applied where a charge is opened", () => {
     expect(importsFloor(module), `${module}.ts must import ${FLOOR}`).toBe(true)
   })
 
-  test.each(CARD_CHARGE_ENTRY_POINTS)("$module.$fn calls the floor", ({ module, fn }) => {
+  test.each(NAMED_ENTRY_POINTS)("$callSite calls the floor", ({ module, fn }) => {
+    // The rendered title is part of the guard, so it is asserted rather than
+    // trusted: this reads back what vitest actually produced, which is what
+    // `$module.$fn` silently got wrong while every case still passed.
+    expect(expect.getState().currentTestName).toContain(`${module}.${fn}`)
     expect(callsFloor(module, fn), `${module}.${fn} must call ${FLOOR}`).toBe(true)
   })
 
