@@ -187,6 +187,19 @@ export const createPayPalOrder = action({
       throw new Error("PayPal did not return an approval URL");
     }
 
+    /* The PayPal order id, on OUR order, before the diner leaves to approve it.
+     *
+     * Without it nothing could ask PayPal what became of an approval: a diner
+     * who approved and closed the tab before the redirect completed left the
+     * authorisation at PayPal, our order at `pending`, and the kitchen blind —
+     * permanently, because no path in the product ever asked again.
+     * `reconcilePendingOrders` reads it back (#431.2). */
+    await ctx.runMutation(internal.payments.internalAttachCheckoutSession, {
+      orderId: args.orderId,
+      checkoutSessionId: paypalOrder.id,
+      provider: "paypal" as const,
+    });
+
     return {
       approvalUrl: approvalLink.href,
       paypalOrderId: paypalOrder.id,
@@ -430,5 +443,179 @@ export const internalRefund = internalAction({
     }
 
     return { refundId: refund.id ?? args.captureId };
+  },
+});
+
+/**
+ * The orders whose PayPal approval never came back.
+ *
+ * WHAT WAS BROKEN (#431.2). PayPal had no webhook and no reconciliation of any
+ * kind — `crons.ts` reconciled Stripe alone. A diner who approved a payment and
+ * closed the tab before the redirect completed left the authorisation at PayPal,
+ * our order at `pending`, and the kitchen blind. Permanently: no path in the
+ * product ever asked again.
+ *
+ * WHY THIS ONE IS DIFFERENT FROM SumUp's. A PayPal order is approved and then
+ * CAPTURED, and the capture is what takes the money. So there are two states
+ * worth recovering and they are not the same:
+ *
+ *   - `COMPLETED` — already captured. The redirect died after the capture, so
+ *     the money has moved and only our record is missing. Settle it.
+ *   - `APPROVED` — approved and never captured. The money has NOT moved. This
+ *     sweep captures it, which is the same call `capturePayPalOrder` makes from
+ *     the return page and the only thing that turns an approval into a payment.
+ *     An authorisation left uncaptured expires, and the restaurant is paid
+ *     nothing for a meal it has cooked.
+ *
+ * Anything else — `CREATED`, `VOIDED`, `PAYER_ACTION_REQUIRED` — is left alone.
+ * An abandoned approval is not a failed payment, and marking it as one hides a
+ * customer who is about to come back.
+ *
+ * The binding is the same as the return page's: `reference_id` must be this
+ * order and the captured amount must equal its total, to the cent, or nothing
+ * is marked paid. A sweep acts on a provider's word with no diner in front of
+ * it, so it is the last place to relax that.
+ */
+export const reconcilePendingOrders = internalAction({
+  args: {
+    now: v.optional(v.number()),
+    minAgeMinutes: v.optional(v.number()),
+    maxAgeHours: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ examined: number; settled: number; captured: number }> => {
+    const { getSiteEnv } = await import("@be-in-digital/core/env");
+    const site = getSiteEnv();
+    // Not an error on a deployment that does not take PayPal, which is most of
+    // them. A sweep that threw there would be red every hour for ever.
+    if (!site.PAYPAL_CLIENT_ID || !site.PAYPAL_CLIENT_SECRET) {
+      return { examined: 0, settled: 0, captured: 0 };
+    }
+
+    const candidates = await ctx.runQuery(
+      internal.payments.internalListStrandedCheckouts,
+      {
+        now: args.now,
+        minAgeMinutes: args.minAgeMinutes,
+        maxAgeHours: args.maxAgeHours,
+        limit: args.limit,
+        provider: "paypal" as const,
+      }
+    );
+    if (candidates.length === 0) return { examined: 0, settled: 0, captured: 0 };
+
+    const env = getPayPalEnv();
+    const accessToken = await getAccessToken(env);
+
+    let settled = 0;
+    let captured = 0;
+
+    for (const candidate of candidates) {
+      try {
+        const orderId = candidate.orderId as Id<"orders">;
+
+        const lookup = await fetch(
+          `${env.baseUrl}/v2/checkout/orders/${candidate.checkoutSessionId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        // An order PayPal no longer knows about is not a payment. Skipped
+        // rather than failed: the sweep runs again, and one unreadable row must
+        // not stop the rest.
+        if (!lookup.ok) continue;
+
+        const remote = (await lookup.json()) as { id: string; status?: string };
+        const status = remote.status?.toUpperCase();
+        if (status !== "COMPLETED" && status !== "APPROVED") continue;
+
+        // Read NOW, not from the sweep's snapshot: a sweep that began before
+        // the counter took the cash would otherwise settle a second collection.
+        const order = await ctx.runQuery(internal.orders.internalGetById, {
+          id: orderId,
+        });
+        if (!order) continue;
+        if (order.paymentStatus === "paid") continue;
+
+        /* APPROVED means the money has not moved yet, so this sweep is what
+           moves it. The same endpoint the return page calls — and its
+           `PayPal-Request-Id` is the order id, so a capture this sweep and the
+           returning diner both attempt happens once. */
+        let payload = remote as Record<string, unknown>;
+        if (status === "APPROVED") {
+          const capture = await fetch(
+            `${env.baseUrl}/v2/checkout/orders/${candidate.checkoutSessionId}/capture`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+                "PayPal-Request-Id": `reconcile-${orderId}`,
+              },
+            }
+          );
+          if (!capture.ok) continue;
+          payload = (await capture.json()) as Record<string, unknown>;
+          captured += 1;
+        } else {
+          // COMPLETED already: the capture detail is on the order document.
+          payload = remote as Record<string, unknown>;
+        }
+
+        const read = readPayPalCapture(payload as never);
+        if ((payload as { status?: string }).status?.toUpperCase() !== "COMPLETED") continue;
+
+        assertSettlesOrder(
+          {
+            provider: "paypal",
+            reference: read.reference,
+            amountMajor: read.amountMajor,
+            currency: read.currency,
+          },
+          {
+            orderId,
+            total: order.total,
+            paymentMethod: order.paymentMethod,
+            paymentStatus: order.paymentStatus,
+          }
+        );
+
+        // The ledger first, then the order — the same ordering as the return
+        // page, for the same reason.
+        await settleOrRecordRefusal(ctx, {
+          orderId,
+          storeId: order.storeId as Id<"stores">,
+          amount: order.total,
+          currency: "EUR",
+          provider: "paypal",
+          // The CAPTURE id: PayPal refunds are issued against a capture, so
+          // storing the order id would make every later refund fail.
+          externalId: read.captureId ?? candidate.checkoutSessionId,
+        });
+
+        const nextPaymentStatus = paymentStatusAfterSettlement(order);
+        if (nextPaymentStatus) {
+          await ctx.runMutation(internal.orders.internalUpdatePaymentStatus, {
+            id: orderId,
+            paymentStatus: nextPaymentStatus,
+          });
+        }
+        settled += 1;
+      } catch (error) {
+        console.error(
+          `[PayPal reconcile] ${candidate.orderId}:`,
+          error instanceof Error ? error.message : error
+        );
+      }
+    }
+
+    return { examined: candidates.length, settled, captured };
   },
 });

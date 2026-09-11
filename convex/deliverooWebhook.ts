@@ -214,6 +214,39 @@ type DeliverooWebhookOutcome = {
  * - order.new: New order placed, create internally + sync status + auto-accept if ASAP
  * - order.status_update: Status change (accepted, rejected, canceled, etc.)
  */
+/**
+ * A debug line that does not ship, and never carries what a diner wrote.
+ *
+ * WHAT WAS BROKEN (#433.3). Four `[Sync Debug]` lines were unconditional, and
+ * they are compiled into the artefact `convex deploy` produces:
+ *
+ *     $ grep -c "Sync Debug" apps/themes/.convex-build/convex/deliverooWebhook.js
+ *     4
+ *
+ * One of them printed `note="…"` — the diner's free-text order note, which this
+ * codebase documents elsewhere as carrying allergy instructions
+ * (`orders.ts:1836-1841`, "This is a food-safety path"). Health data, into a
+ * client's Convex log, on every Deliveroo order.
+ *
+ * `packages/integrations/src/common/logger.ts` has gated on
+ * `NODE_ENV === "production" && !DEBUG` for as long as it has existed. The
+ * package did it right; the app code the client runs did not.
+ *
+ * THE NOTE IS GONE ENTIRELY, not merely gated. The keyword scan below reads it
+ * and needs to; printing it is a separate act, and a debug flag set on a client
+ * deployment to diagnose something else must not start logging what a customer
+ * told the kitchen about their allergies. What is printed instead is whether a
+ * note was present and how long it was, which is what the PLU decision below
+ * is actually being debugged for.
+ */
+function syncDebug(message: string): void {
+  if (typeof process !== "undefined") {
+    if (process.env.NODE_ENV === "production" && !process.env.DEBUG) return
+    if (process.env.DEBUG && !process.env.DEBUG.includes("deliveroo")) return
+  }
+  console.log(`[Sync Debug] ${message}`);
+}
+
 export const processOrderWebhook = internalAction({
   args: { payload: v.string() },
   handler: async (ctx, args): Promise<DeliverooWebhookOutcome> => {
@@ -681,10 +714,17 @@ async function handleStatusUpdate(
 
     const items = fullOrder.items ?? [];
 
-    // Debug: log full order data for sync status decision
-    console.log(`[Sync Debug] Order ${orderId}: items=${items.length}, status=${status}`);
-    console.log(`[Sync Debug] note="${fullOrder.note ?? ""}", notes="${fullOrder.notes ?? ""}"`);
-    console.log(`[Sync Debug] Item PLUs: ${items.map((i: DeliverooOrderItem) => `${i.name}:${posItemId(i) ?? "NONE"}`).join(", ")}`);
+    // Debug: what the sync-status decision below is made from.
+    syncDebug(`Order ${orderId}: items=${items.length}, status=${status}`);
+    // The note's SHAPE, never its contents — a diner's free-text note is where
+    // an allergy is written.
+    syncDebug(
+      `note: ${(fullOrder.note ?? "").length} char(s), ` +
+        `notes: ${(fullOrder.notes ?? "").length} char(s)`
+    );
+    syncDebug(
+      `Item PLUs: ${items.map((i: DeliverooOrderItem) => `${i.name}:${posItemId(i) ?? "NONE"}`).join(", ")}`
+    );
 
     // Scenario 11: Missing PLU - items without any POS identifier
     const hasMissingPLU = items.some((item: DeliverooOrderItem) => !posItemId(item));
@@ -728,7 +768,7 @@ async function handleStatusUpdate(
       }
     }
 
-    console.log(`[Sync Debug] hasMissingPLU=${hasMissingPLU}, hasMismatch=${hasMismatch}`);
+    syncDebug(`hasMissingPLU=${hasMissingPLU}, hasMismatch=${hasMismatch}`);
 
     try {
       if (hasMissingPLU) {

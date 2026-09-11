@@ -75,6 +75,34 @@ crons.interval(
   {},
 );
 
+// The same sweep for the other two card providers (#431.2).
+//
+// Neither had one, and neither had a webhook either — so a diner who paid with
+// SumUp or approved with PayPal and closed the tab before the redirect
+// completed left the charge with the provider, the order at `pending` and the
+// kitchen blind. Permanently, not for fifteen minutes: no path in the product
+// ever asked again.
+//
+// Both return `{ examined: 0 }` immediately on a deployment that does not take
+// that provider, which is most of them — the cost of registering them here is a
+// connection lookup every quarter of an hour.
+//
+// The PayPal one also CAPTURES. An approval is not a payment: left uncaptured
+// it expires, and the restaurant is paid nothing for a meal it has cooked.
+crons.interval(
+  "reconcile pending sumup checkouts",
+  { minutes: 15 },
+  internal.sumup.reconcilePending,
+  {},
+);
+
+crons.interval(
+  "reconcile pending paypal orders",
+  { minutes: 15 },
+  internal.paypal.reconcilePendingOrders,
+  {},
+);
+
 // Delete kitchen tickets finished more than 30 days ago. The KDS reads are
 // bounded now, but a bound on the read only moves the problem: the table still
 // grows without limit and the completed history becomes unreadable. 2:30am UTC

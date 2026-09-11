@@ -298,3 +298,17 @@ export const purgeStoreData = internalMutation({
     }
   },
 });
+
+/**
+ * Every establishment on this deployment, for a migration to walk.
+ *
+ * Internal only, and deliberately not `listAll`'s public sibling: that one is
+ * scoped to what the CALLER may see, which is the right rule for a screen and
+ * the wrong one for a backfill — a migration that skipped the establishments
+ * the operator running it does not administer would leave a client book half
+ * built, silently (#364).
+ */
+export const listAllInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => ctx.db.query("stores").collect(),
+});

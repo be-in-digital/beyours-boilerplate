@@ -168,6 +168,23 @@ export const createCheckout = action({
 
     const checkout = (await response.json()) as { id: string; status: string };
 
+    /* The checkout id, on the order, BEFORE the diner leaves for SumUp.
+     *
+     * Without it nothing could ask SumUp what became of a checkout: a diner who
+     * paid and closed the tab before the redirect completed left the charge at
+     * SumUp, the order at `pending`, and the kitchen blind — permanently,
+     * because no path in the product ever asked again. `reconcilePending` reads
+     * it back (#431.2).
+     *
+     * Written before the return rather than after, for the same reason Stripe
+     * writes its own here: the window this closes is precisely the one where
+     * the diner does not come back. */
+    await ctx.runMutation(internal.payments.internalAttachCheckoutSession, {
+      orderId: args.orderId,
+      checkoutSessionId: checkout.id,
+      provider: "sumup" as const,
+    });
+
     return { checkoutId: checkout.id };
   },
 });
@@ -388,5 +405,157 @@ export const internalRefund = internalAction({
     // SumUp answers 204 No Content on success and returns no refund id, so the
     // transaction id is the only reconciliation handle available.
     return { refundId: args.externalId };
+  },
+});
+
+/**
+ * The orders that opened a SumUp checkout and never came back.
+ *
+ * WHAT WAS BROKEN (#431.2). SumUp had no webhook and no reconciliation of any
+ * kind — `crons.ts` reconciled Stripe alone:
+ *
+ *     $ grep -n "reconcile" convex/crons.ts
+ *     only internal.stripe.reconcilePendingCheckouts
+ *
+ * So a diner who paid with SumUp and closed the tab before the redirect
+ * completed left the charge at SumUp, the order at `pending` and the kitchen
+ * blind — permanently. Not a window: no path in the product ever asked again.
+ * The restaurant had the money and no order to cook.
+ *
+ * The same shape as `stripe.reconcilePendingCheckouts`, deliberately, down to
+ * the binding: what SumUp reports must equal the order, to the cent, or nothing
+ * is marked paid. A sweep is the one caller that acts on a provider's word with
+ * no diner in front of it, so it is the last place to relax that.
+ *
+ * WHY A SWEEP RATHER THAN A WEBHOOK. A webhook needs an endpoint registered per
+ * merchant account and a secret every existing client would have to add; the
+ * sweep works on every deployment that already takes SumUp, today, with no
+ * configuration. It is also the recovery path a webhook still needs — a webhook
+ * that is never delivered leaves exactly this state.
+ *
+ * An unpaid or expired checkout is LEFT ALONE. An abandoned basket is not a
+ * failed payment, and marking it as one hides a customer who is about to come
+ * back and pay.
+ */
+export const reconcilePending = internalAction({
+  args: {
+    now: v.optional(v.number()),
+    minAgeMinutes: v.optional(v.number()),
+    maxAgeHours: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ examined: number; settled: number }> => {
+    const connection = await ctx.runQuery(
+      internal.paymentConnections.internalGetByProvider,
+      { provider: "sumup" as const }
+    );
+    // Not an error on a deployment that does not take SumUp, which is most of
+    // them. A sweep that threw there would be red every hour for ever.
+    if (!connection || connection.status !== "connected") {
+      return { examined: 0, settled: 0 };
+    }
+
+    const candidates = await ctx.runQuery(
+      internal.payments.internalListStrandedCheckouts,
+      {
+        now: args.now,
+        minAgeMinutes: args.minAgeMinutes,
+        maxAgeHours: args.maxAgeHours,
+        limit: args.limit,
+        provider: "sumup" as const,
+      }
+    );
+    if (candidates.length === 0) return { examined: 0, settled: 0 };
+
+    const { accessToken } = await getSumUpAccessToken(ctx);
+    let settled = 0;
+
+    for (const candidate of candidates) {
+      try {
+        const response = await fetch(
+          `https://api.payments.sumup.com/v0.1/checkouts/${candidate.checkoutSessionId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        // A checkout SumUp no longer knows about is not a payment. Skipped
+        // rather than failed: the sweep runs again, and one unreadable row must
+        // not stop the rest.
+        if (!response.ok) continue;
+
+        const checkout = (await response.json()) as {
+          id: string;
+          status: string;
+          amount: number;
+          currency: string;
+          checkout_reference?: string;
+          transaction_id?: string;
+        };
+        if (checkout.status?.toUpperCase() !== "PAID") continue;
+
+        const orderId = candidate.orderId as Id<"orders">;
+
+        // Read NOW, not from the sweep's snapshot. `listStrandedCheckouts`
+        // picked this candidate out of an index read taken at the top, so its
+        // `paymentStatus` is already old — and a sweep that began before the
+        // counter took the cash would otherwise settle a second collection.
+        const order = await ctx.runQuery(internal.orders.internalGetById, {
+          id: orderId,
+        });
+        if (!order) continue;
+
+        assertSettlesOrder(
+          {
+            provider: "sumup",
+            reference: checkout.checkout_reference,
+            amountMajor: checkout.amount,
+            currency: checkout.currency,
+          },
+          {
+            orderId,
+            total: order.total,
+            paymentMethod: order.paymentMethod,
+            paymentStatus: order.paymentStatus,
+          }
+        );
+
+        // The ledger first, then the order — the same ordering as the return
+        // page, for the same reason: marking paid first commits a claim the
+        // settlement can still refuse.
+        await settleOrRecordRefusal(ctx, {
+          orderId,
+          storeId: order.storeId as Id<"stores">,
+          amount: order.total,
+          currency: "EUR",
+          provider: "sumup",
+          externalId: checkout.transaction_id ?? checkout.id,
+        });
+
+        const nextPaymentStatus = paymentStatusAfterSettlement(order);
+        if (nextPaymentStatus) {
+          await ctx.runMutation(internal.orders.internalUpdatePaymentStatus, {
+            id: orderId,
+            paymentStatus: nextPaymentStatus,
+          });
+        }
+        settled += 1;
+      } catch (error) {
+        // One order that cannot be settled must not stop the sweep. Reported,
+        // because a refusal nobody can see is a refusal nobody can fix.
+        console.error(
+          `[SumUp reconcile] ${candidate.orderId}:`,
+          error instanceof Error ? error.message : error
+        );
+      }
+    }
+
+    return { examined: candidates.length, settled };
   },
 });

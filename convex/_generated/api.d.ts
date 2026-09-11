@@ -36,6 +36,7 @@ import type * as cmsSvgUpload from "../cmsSvgUpload.js";
 import type * as contactMessages from "../contactMessages.js";
 import type * as crons from "../crons.js";
 import type * as customerAddresses from "../customerAddresses.js";
+import type * as customers from "../customers.js";
 import type * as customerEmail from "../customerEmail.js";
 import type * as deliverooImport from "../deliverooImport.js";
 import type * as deliverooMenuSync from "../deliverooMenuSync.js";
@@ -162,6 +163,7 @@ declare const fullApi: ApiFromModules<{
   contactMessages: typeof contactMessages;
   crons: typeof crons;
   customerAddresses: typeof customerAddresses;
+  customers: typeof customers;
   customerEmail: typeof customerEmail;
   deliverooImport: typeof deliverooImport;
   deliverooMenuSync: typeof deliverooMenuSync;

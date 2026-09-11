@@ -534,11 +534,18 @@ describe("erasing one diner", () => {
     const result = await eraseFully(t, owner, { email: EMAIL })
 
     const tables = result.report.retained.map((r) => r.table)
-    // The three things a report that only counted deletions would let an
-    // operator promise away.
+    // The things a report that only counted deletions would let an operator
+    // promise away.
     expect(tables).toContain("betterAuth")
-    expect(tables).toContain("cmsHome")
     expect(tables).toContain("platformWebhookFailures")
+    expect(tables).toContain("emailSegments")
+    /* `cmsHome` USED TO BE HERE, and the note was printed on every run (#434.7).
+       It asked the operator to check the homepage testimonials by hand — for a
+       table with no reader and no writer anywhere in the product, so there are
+       none to check and never can be. A note nobody can act on makes every
+       erasure read as incomplete and teaches an operator to skip the ones that
+       are real, which is the three above. */
+    expect(tables).not.toContain("cmsHome")
     for (const note of result.report.retained) {
       expect(note.reason.length).toBeGreaterThan(20)
     }

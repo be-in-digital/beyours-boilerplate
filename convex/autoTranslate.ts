@@ -22,6 +22,7 @@ import {
   type MutationCtx,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { storeQuery } from "./lib/storeFunctions";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import * as defs from "@be-in-digital/convex-functions/autoTranslate";
@@ -258,3 +259,22 @@ export async function scheduleTranslation(
     pendingTranslation: true,
   });
 }
+
+/**
+ * The recent catalogue translation runs, for the languages screen.
+ *
+ * WHY IT IS HERE (#95). `translateCatalogue` writes a `translationJobs` row and
+ * the batch keeps it up to date — `completedItems`, `status`, and the `error`
+ * when the daily quota stops a run. Nothing read any of it, so a back-fill that
+ * stopped on the quota looked exactly like one that finished: the toast said
+ * « Traduction du catalogue lancée : 300 éléments », the run stopped at 80, and
+ * the first evidence anybody got was a German storefront with French dish names.
+ *
+ * `translations:read`, not `:write`: reading what a run did is not editing it,
+ * and the screen that shows it is the one a manager opens.
+ */
+export const listJobs = storeQuery({
+  permission: "translations:read",
+  args: defs.listJobs.args,
+  handler: (ctx, args) => defs.listJobs.handler(ctx, args),
+});

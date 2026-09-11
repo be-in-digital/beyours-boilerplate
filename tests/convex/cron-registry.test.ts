@@ -69,6 +69,18 @@ const EXPECTED: Record<string, Registration> = {
     name: "stripe:reconcilePendingCheckouts",
     schedule: { type: "interval", minutes: 15 },
   },
+  // The same sweep for the other two card providers (#431.2). Neither had one,
+  // and neither had a webhook, so a diner who paid and closed the tab before
+  // the redirect completed left the charge with the provider and the kitchen
+  // blind — permanently.
+  "reconcile pending sumup checkouts": {
+    name: "sumup:reconcilePending",
+    schedule: { type: "interval", minutes: 15 },
+  },
+  "reconcile pending paypal orders": {
+    name: "paypal:reconcilePendingOrders",
+    schedule: { type: "interval", minutes: 15 },
+  },
   "purge expired kitchen tickets": {
     name: "kitchenTickets:purgeExpiredTickets",
     schedule: { type: "cron", cron: "30 2 * * *" },

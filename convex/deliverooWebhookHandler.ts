@@ -141,8 +141,31 @@ export const handleWebhook = httpAction(async (ctx, request) => {
 });
 
 /**
- * Verify Deliveroo HMAC-SHA256 signature on raw bytes.
- * Message = sequence_guid_bytes + space_byte + raw_body_bytes
+ * Verify Deliveroo's HMAC-SHA256 over the raw bytes.
+ *
+ * THIS DELEGATES NOW, AND THAT IS THE FIX (#433.2). There were two verifiers.
+ * `packages/integrations/src/deliveroo/security.ts` is the hardened one — and
+ * it was dead code:
+ *
+ *     $ grep -rn "verifyWebhookSignature" packages apps --include='*.ts' \
+ *         | grep -v __tests__ | grep -v /dist/
+ *     packages/integrations/src/deliveroo/security.ts:44:export async function …
+ *     apps/themes/e2e/deliveroo/webhook-signing.test.ts:59
+ *     apps/reference/e2e/deliveroo/webhook-signing.test.ts:59
+ *
+ * Only the two test files imported it. The delivered route had its own copy,
+ * which DROPPED the package's hex-format check and its 64-character length
+ * check, and stripped a `sha256=` prefix the package deliberately refuses.
+ *
+ * So `webhook-signing.test.ts`'s own docblock — *"The real verifier and the
+ * real route. `verifyWebhookSignature` … is put in front of the code that will
+ * judge it in production"* — was false of the tree it ran on. The suite proved
+ * a function no client executed, over a route it never touched.
+ *
+ * The barrel is safe to import here: nothing under `packages/integrations/src`
+ * touches a Node built-in, so the V8 runtime this `httpAction` runs in can
+ * bundle it. Checked rather than assumed —
+ * `grep -rn 'from "node:' packages/integrations/src` is empty.
  */
 async function verifySignature(
   body: ArrayBuffer,
@@ -150,49 +173,21 @@ async function verifySignature(
   sequenceGuid: string,
   secret: string
 ): Promise<boolean> {
-  try {
-    const cleanSig = signature.replace(/^sha256=/, "").trim();
-    const encoder = new TextEncoder();
+  const { deliveroo } = await import("@be-in-digital/integrations");
+  const isValid = await deliveroo.verifyWebhookSignature(
+    body,
+    signature,
+    sequenceGuid,
+    secret
+  );
 
-    const keyData = encoder.encode(secret);
-    const sequenceBytes = encoder.encode(sequenceGuid);
-    const spaceBytes = encoder.encode(" ");
-
-    // Build message: guid + space + body
-    const message = new Uint8Array(
-      sequenceBytes.length + spaceBytes.length + body.byteLength
-    );
-    message.set(sequenceBytes, 0);
-    message.set(spaceBytes, sequenceBytes.length);
-    message.set(new Uint8Array(body), sequenceBytes.length + spaceBytes.length);
-
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      keyData,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify", "sign"]
-    );
-
-    const sigBuffer = hexToBuffer(cleanSig);
-    const isValid = await crypto.subtle.verify("HMAC", cryptoKey, sigBuffer, message);
-
-    if (!isValid) {
-      console.warn(`[Sig Debug] Signature mismatch - received: ${cleanSig.substring(0, 8)}..., secret configured: yes`);
-    }
-
-    return isValid;
-  } catch (error) {
-    console.error("[Sig Error]", error);
-    return false;
+  if (!isValid) {
+    // No fragment of the signature, and no confirmation that a secret is
+    // configured. The first is a free oracle for an attacker probing the
+    // endpoint; the second told them the endpoint is live and misconfigured
+    // rather than simply refusing. A refusal says it refused.
+    console.warn("[Deliveroo] webhook signature rejected");
   }
-}
 
-function hexToBuffer(hex: string): ArrayBuffer {
-  if (hex.length % 2 !== 0) throw new Error("Invalid hex string");
-  const buffer = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    buffer[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-  }
-  return buffer.buffer;
+  return isValid;
 }
