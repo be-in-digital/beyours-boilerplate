@@ -1,5 +1,6 @@
 "use client"
 
+import { convexErrorMessage } from "@/lib/convex-error"
 import "@/lib/cms/init"
 import { useState, useCallback, useRef, useEffect } from "react"
 import { useQuery, useMutation } from "convex/react"
@@ -104,7 +105,7 @@ export function CmsPageEditor({ pageSlug }: CmsPageEditorProps) {
       } catch (err) {
         setSaveStatus("error")
         toast.error(
-          err instanceof Error ? err.message : "Erreur de sauvegarde",
+          convexErrorMessage(err, {}, "Erreur de sauvegarde"),
         )
       }
     },
@@ -238,7 +239,7 @@ export function CmsPageEditor({ pageSlug }: CmsPageEditorProps) {
       setLocalValues({})
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la publication",
+        convexErrorMessage(err, {}, "Erreur lors de la publication"),
       )
     } finally {
       setPublishing(false)
@@ -260,7 +261,7 @@ export function CmsPageEditor({ pageSlug }: CmsPageEditorProps) {
       toast.success("Traduction lancée pour tous les champs")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors du lancement de la traduction",
+        convexErrorMessage(err, {}, "Erreur lors du lancement de la traduction"),
       )
     } finally {
       setTranslatingAll(false)

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { convexErrorMessage } from "@/lib/convex-error"
 import type { Id } from "@/convex/_generated/dataModel"
 import { toast } from "sonner"
 import { Plus, X, Loader2, AlertTriangle } from "lucide-react"
@@ -278,7 +279,7 @@ export function BlogAutoConfigForm({
       setCoerced(false)
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de l'enregistrement"
+        convexErrorMessage(err, {}, "Erreur lors de l'enregistrement")
       )
     }
   }

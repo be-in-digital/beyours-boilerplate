@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { useAdminStoreId } from "@/lib/admin/hooks"
 import { slugify, formatDate } from "@/lib/admin/formatters"
 import { useRouter } from "next/navigation"
@@ -217,7 +218,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
         } catch (err) {
           setSaveStatus("error")
           toast.error(
-            err instanceof Error ? err.message : "Erreur de sauvegarde",
+            convexErrorMessage(err, {}, "Erreur de sauvegarde"),
           )
         } finally {
           isSavingRef.current = false
@@ -365,7 +366,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
       setNewTagInput("")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la création du tag",
+        convexErrorMessage(err, {}, "Erreur lors de la création du tag"),
       )
     }
   }
@@ -403,7 +404,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
       toast.success("Article publié")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la publication",
+        convexErrorMessage(err, {}, "Erreur lors de la publication"),
       )
     } finally {
       setPublishing(false)
@@ -435,7 +436,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
       toast.success("Publication planifiée")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la planification",
+        convexErrorMessage(err, {}, "Erreur lors de la planification"),
       )
     }
   }
@@ -448,7 +449,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
       setScheduleDate("")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de l'annulation",
+        convexErrorMessage(err, {}, "Erreur lors de l'annulation"),
       )
     }
   }
@@ -461,7 +462,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
       toast.success("Article archive")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de l'archivage",
+        convexErrorMessage(err, {}, "Erreur lors de l'archivage"),
       )
     }
   }
@@ -472,7 +473,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
       toast.success("Article desarchive")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors du desarchivage",
+        convexErrorMessage(err, {}, "Erreur lors du desarchivage"),
       )
     }
   }
@@ -486,7 +487,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
       router.push("/dashboard/content/blog")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la suppression",
+        convexErrorMessage(err, {}, "Erreur lors de la suppression"),
       )
     } finally {
       setIsDeleting(false)

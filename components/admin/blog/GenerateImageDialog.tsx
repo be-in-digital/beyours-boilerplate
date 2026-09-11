@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import { useAction, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { useAdminStoreId } from "@/lib/admin/hooks"
 import { toast } from "sonner"
 import { Sparkles, Loader2, ImageIcon } from "lucide-react"
@@ -57,7 +58,7 @@ export function GenerateImageDialog({
       setGeneratedImage({ url: result.url, alt: result.alt })
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la génération"
+        convexErrorMessage(err, {}, "Erreur lors de la génération")
       )
     } finally {
       setGenerating(false)

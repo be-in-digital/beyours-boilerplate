@@ -640,7 +640,12 @@ describe("deleteMedia purges S3", () => {
 
     await expect(
       admin.mutation(api.cmsMedia.deleteMedia, { storeId, mediaId })
-    ).rejects.toThrow(/referenced in block/)
+    ).rejects.toThrow(/media_in_use_by_block/)
+    // The refusal is a `ConvexError` now, so the sentence survives Convex's
+    // production redaction and reaches the media library rather than becoming
+    // "Server Error" beside a delete button (#432.3). Matched on the CODE,
+    // which is the contract; the wording is asserted in
+    // `delete-refusals-reach-the-owner.test.ts`.
 
     const scheduled = await t.run((ctx) =>
       ctx.db.system.query("_scheduled_functions").collect()
@@ -694,7 +699,7 @@ describe("deleteMedia purges S3", () => {
 
     await expect(
       admin.mutation(api.cmsMedia.deleteMedia, { storeId, mediaId })
-    ).rejects.toThrow(/blog article/)
+    ).rejects.toThrow(/media_in_use_by_article/)
 
     const scheduled = await t.run((ctx) =>
       ctx.db.system.query("_scheduled_functions").collect()

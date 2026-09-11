@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef } from "react"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { uploadWithProgress } from "@/lib/cms/upload-with-progress"
 import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -185,7 +186,7 @@ export function CmsMediaPicker({
           toast.info("Upload annulé")
         } else {
           toast.error(
-            err instanceof Error ? err.message : "Erreur lors de l'upload",
+            convexErrorMessage(err, {}, "Erreur lors de l'upload"),
           )
         }
       } finally {

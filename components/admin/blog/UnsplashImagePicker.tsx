@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import { useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { toast } from "sonner"
 import { Search, Loader2 } from "lucide-react"
 import {
@@ -56,7 +57,7 @@ export function UnsplashImagePicker({
       setResults(data.results)
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la recherche"
+        convexErrorMessage(err, {}, "Erreur lors de la recherche")
       )
       setResults([])
     } finally {

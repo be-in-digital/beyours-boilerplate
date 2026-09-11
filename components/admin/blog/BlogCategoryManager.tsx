@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { useAdminStoreId } from "@/lib/admin/hooks"
 import { toast } from "sonner"
 import { Loader2, Plus, Pencil, Trash2, Check, X } from "lucide-react"
@@ -71,7 +72,7 @@ export function BlogCategoryManager({
       setNewDescription("")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la création",
+        convexErrorMessage(err, {}, "Erreur lors de la création"),
       )
     } finally {
       setIsCreating(false)
@@ -98,7 +99,7 @@ export function BlogCategoryManager({
       setEditingId(null)
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la modification",
+        convexErrorMessage(err, {}, "Erreur lors de la modification"),
       )
     } finally {
       setIsSaving(false)
@@ -117,7 +118,7 @@ export function BlogCategoryManager({
       setDeleteTarget(null)
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la suppression",
+        convexErrorMessage(err, {}, "Erreur lors de la suppression"),
       )
     } finally {
       setIsDeleting(false)

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { useAdminStoreId } from "@/lib/admin/hooks"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -67,7 +68,7 @@ export function CreateArticleDialog({
       toast.success("Article créé")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la création",
+        convexErrorMessage(err, {}, "Erreur lors de la création"),
       )
     } finally {
       setIsCreating(false)

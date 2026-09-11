@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useMemo } from "react"
 import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { useAdminStoreId } from "@/lib/admin/hooks"
 import { toast } from "sonner"
 import imageCompression from "browser-image-compression"
@@ -254,7 +255,7 @@ export function CmsMediaLibrary() {
           toast.info("Upload annulé")
         } else {
           toast.error(
-            err instanceof Error ? err.message : "Erreur lors de l'upload",
+            convexErrorMessage(err, {}, "Erreur lors de l'upload"),
           )
         }
       } finally {

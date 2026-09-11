@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { toast } from "sonner"
 import { Check, X, ExternalLink, Loader2 } from "lucide-react"
 import {
@@ -236,7 +237,7 @@ function UpgradePrompt({
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur"
+        convexErrorMessage(err, {}, "Erreur")
       )
       setIsLoading(false)
     }

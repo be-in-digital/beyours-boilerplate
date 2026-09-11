@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { convexErrorMessage } from "@/lib/convex-error"
 import { useAdminStoreId } from "@/lib/admin/hooks"
 import { toast } from "sonner"
 import { FileText, Plus, FolderOpen, Sparkles } from "lucide-react"
@@ -58,7 +59,7 @@ export function BlogContent() {
       toast.success("Article publié")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la publication",
+        convexErrorMessage(err, {}, "Erreur lors de la publication"),
       )
     }
   }
@@ -69,7 +70,7 @@ export function BlogContent() {
       toast.success("Article archive")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de l'archivage",
+        convexErrorMessage(err, {}, "Erreur lors de l'archivage"),
       )
     }
   }
@@ -80,7 +81,7 @@ export function BlogContent() {
       toast.success("Article desarchive")
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors du desarchivage",
+        convexErrorMessage(err, {}, "Erreur lors du desarchivage"),
       )
     }
   }
@@ -94,7 +95,7 @@ export function BlogContent() {
       setDeleteTarget(null)
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Erreur lors de la suppression",
+        convexErrorMessage(err, {}, "Erreur lors de la suppression"),
       )
     } finally {
       setIsDeleting(false)
