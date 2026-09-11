@@ -168,6 +168,56 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
 
+      # WHICH ENGINE DID THIS RUN ACTUALLY TEST? (#389)
+      #
+      # This is the question a red run on this repository raises and the one its
+      # log could not answer. `package.json` pins `"@be-in-digital/admin": "^9.0.0"`
+      # — a RANGE — and this repository is the mirror of `apps/themes`, whose own
+      # CI links the engine with `workspace:^` and therefore tests the current
+      # source. So a fix merged in the engine is green there and absent here
+      # until a release is cut, and a run in between executes the UNFIXED
+      # component with the FIXED spec.
+      #
+      # That happened on 7 September 2026. #387 fixed `addChoice`, merged green,
+      # and this suite then failed three times on the spec that fix was written
+      # for — while installing `admin@9.0.0`, the version from before it. The run
+      # read as the fix failing. It cost a full diagnostic cycle spent on the
+      # wrong hypothesis, and would have cost more if the next step had been to
+      # "fix" working code.
+      #
+      # Three lines and a glance replaces that investigation. Printed BEFORE
+      # anything can fail, so it is in the log of a run that dies at the build
+      # as well as one that dies in a spec.
+      - name: Which engine versions is this testing?
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "### Engine versions under test"
+            echo
+            echo '```'
+            node -e '
+              const { readFileSync } = require("node:fs")
+              const deps = JSON.parse(readFileSync("package.json", "utf8")).dependencies ?? {}
+              const engine = Object.keys(deps).filter((name) => name.startsWith("@be-in-digital/")).sort()
+              if (engine.length === 0) { console.log("no @be-in-digital/* dependency declared"); process.exit(0) }
+              for (const name of engine) {
+                let installed = "NOT INSTALLED"
+                try {
+                  installed = JSON.parse(
+                    readFileSync(`node_modules/${name}/package.json`, "utf8")
+                  ).version
+                } catch {}
+                console.log(`${name.padEnd(36)} range ${String(deps[name]).padEnd(12)} installed ${installed}`)
+              }
+            '
+            echo '```'
+            echo
+            echo "A failure here is evidence about the INSTALLED version above, not"
+            echo "about the engine's \`main\`. A fix merged in the engine reaches this"
+            echo "repository only when a release is published and the mirror syncs."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         id: playwright-cache
