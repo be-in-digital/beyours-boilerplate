@@ -26,6 +26,7 @@ import type { Id } from "../../convex/_generated/dataModel"
 import schema from "../../convex/schema"
 import {
   ARCHIVE_RELINK_TABLES,
+  BACKUP_PAGE_SIZE,
   BACKUP_TABLES,
   DEFERRED_REMAP_TABLES,
 } from "@be-in-digital/convex-functions/backupTables"
@@ -165,9 +166,23 @@ async function exportTables(
 ) {
   const data: Record<string, Record<string, unknown>[]> = {}
   for (const table of tables) {
-    data[table] = await t.query(internal.systemInternal.exportTable, {
-      tableName: table,
-    })
+    // PAGED, the way `system.exportBackup` does it (#432.4). The query used to
+    // `.collect()` the whole table, which Convex refuses past 16,384 documents
+    // — so an establishment trading two years could not take a backup at all.
+    // Driving the cursor here rather than reading one page keeps this helper
+    // honest about the real flow.
+    const rows: Record<string, unknown>[] = []
+    let cursor: string | null = null
+    for (;;) {
+      const page = await t.query(internal.systemInternal.exportTablePage, {
+        tableName: table,
+        cursor,
+      })
+      rows.push(...(page.rows as Record<string, unknown>[]))
+      if (page.isDone) break
+      cursor = page.cursor
+    }
+    data[table] = rows
   }
   return data
 }
@@ -188,20 +203,41 @@ async function restore(
   for (const tableName of BACKUP_TABLES) {
     const rows = data[tableName]
     if (!rows) continue
-    const result = await t.mutation(internal.systemInternal.importTable, {
-      tableName,
-      rows,
-      idMap,
-    })
-    Object.assign(idMap, result.idMap)
+
+    // The clear is its own paged mutation now (#432.4): `importTable` used to
+    // read and delete every existing row in the same transaction as the
+    // inserts, two passes over the whole table against the read ceiling.
+    for (;;) {
+      const pass = await t.mutation(internal.systemInternal.clearTablePage, {
+        tableName,
+      })
+      if (pass.done) break
+    }
+
+    // And the inserts in pages, for the WRITE ceiling: the rows come from a
+    // file an operator uploads.
+    for (let offset = 0; offset < rows.length; offset += BACKUP_PAGE_SIZE) {
+      const result = await t.mutation(internal.systemInternal.importTable, {
+        tableName,
+        rows: rows.slice(offset, offset + BACKUP_PAGE_SIZE),
+        idMap,
+      })
+      Object.assign(idMap, result.idMap)
+    }
   }
 
   // The second pass over the tables whose edges the order breaks on purpose.
   for (const tableName of DEFERRED_REMAP_TABLES) {
-    await t.mutation(internal.systemInternal.remapDeferredReferences, {
-      tableName,
-      idMap,
-    })
+    let cursor: string | null = null
+    for (;;) {
+      const pass = await t.mutation(internal.systemInternal.remapDeferredReferences, {
+        tableName,
+        idMap,
+        cursor,
+      })
+      if (pass.isDone) break
+      cursor = pass.cursor
+    }
   }
 
   /* The archive. `invoices` is never re-inserted, so no ordering reaches it,
@@ -211,23 +247,50 @@ async function restore(
      does not have. */
   let archiveRelinks = 0
   for (const tableName of ARCHIVE_RELINK_TABLES) {
-    const pass = await t.mutation(internal.systemInternal.relinkArchiveReferences, {
-      tableName,
-      idMap,
-    })
-    archiveRelinks += pass.relinked
+    let cursor: string | null = null
+    for (;;) {
+      const pass = await t.mutation(internal.systemInternal.relinkArchiveReferences, {
+        tableName,
+        idMap,
+        cursor,
+      })
+      archiveRelinks += pass.relinked
+      if (pass.isDone) break
+      cursor = pass.cursor
+    }
   }
 
   // And the other end of the same link: an `orders.invoiceId` naming an invoice
   // this deployment does not have.
-  const invoiceLinks = await t.mutation(
-    internal.systemInternal.reconcileOrderInvoiceLinks,
-    {}
-  )
+  const invoiceLinks = { repointed: 0, cleared: 0 }
+  {
+    let cursor: string | null = null
+    for (;;) {
+      const pass = await t.mutation(
+        internal.systemInternal.reconcileOrderInvoiceLinks,
+        { cursor }
+      )
+      invoiceLinks.repointed += pass.repointed
+      invoiceLinks.cleared += pass.cleared
+      if (pass.isDone) break
+      cursor = pass.cursor
+    }
+  }
 
-  const profiles = await t.mutation(internal.systemInternal.remapProfileStores, {
-    idMap,
-  })
+  const profiles = { updated: 0, dropped: 0 }
+  {
+    let cursor: string | null = null
+    for (;;) {
+      const pass = await t.mutation(internal.systemInternal.remapProfileStores, {
+        idMap,
+        cursor,
+      })
+      profiles.updated += pass.updated
+      profiles.dropped += pass.dropped
+      if (pass.isDone) break
+      cursor = pass.cursor
+    }
+  }
 
   return { idMap, profiles, archiveRelinks, invoiceLinks }
 }
@@ -742,8 +805,11 @@ describe("a restore that includes the trade", () => {
     const t = newHarness()
 
     await expect(
-      t.query(internal.systemInternal.exportTable, { tableName: "invoices" })
-    ).resolves.toEqual([])
+      t.query(internal.systemInternal.exportTablePage, {
+        tableName: "invoices",
+        cursor: null,
+      })
+    ).resolves.toMatchObject({ rows: [], isDone: true })
 
     await expect(
       t.mutation(internal.systemInternal.importTable, {
@@ -751,5 +817,127 @@ describe("a restore that includes the trade", () => {
         rows: [],
       })
     ).rejects.toThrow(/non autorisée pour l'import/)
+
+    // And the CLEAR is behind the same allow-list. It is a separate mutation
+    // since #432.4, so a restore that could delete the fiscal series while the
+    // insert refused it would be worse than the ceiling it was split to avoid.
+    await expect(
+      t.mutation(internal.systemInternal.clearTablePage, { tableName: "invoices" })
+    ).rejects.toThrow(/non autorisée pour l'import/)
+  })
+})
+
+/**
+ * A table bigger than one page survives the round trip.
+ *
+ * WHAT WAS BROKEN (#432.4). Every read in the backup subsystem was a bare
+ * `.collect()` over a whole table:
+ *
+ *     const existing = await ctx.db.query(args.tableName).collect()
+ *     for (const row of existing) { await ctx.db.delete(row._id) }
+ *
+ * Convex refuses a transaction that reads more than 16,384 documents, and
+ * `BACKUP_TABLES` holds `orders`, `products`, `gamePlays`, `emailSubscribers`
+ * and `kitchenTickets`. An establishment trading two years passes the ceiling
+ * on its orders alone — so the export threw, the restore threw, and the feature
+ * sold as « Sauvegardes automatiques quotidiennes de vos données et contenus »
+ * could not be used by exactly the establishments with most to lose. The
+ * instrument written for this class of defect, `queryBounds.test.ts`, covered
+ * neither function.
+ *
+ * WHY THIS SEEDS `BACKUP_PAGE_SIZE + 1` AND NOT 16,384. The ceiling is Convex's
+ * and cannot be reached in `convex-test`, which has no such limit — a test that
+ * tried would prove nothing and take an hour. What CAN be proved here is the
+ * thing the fix actually consists of: that the loop runs more than once and
+ * loses nothing at the seam. A paging loop is only exercised by a second page,
+ * and one row past the boundary is the cheapest way to demand one.
+ *
+ * If `BACKUP_PAGE_SIZE` is ever raised past what this seeds, the second page
+ * disappears and these tests go green over a single-page run. The first
+ * assertion below is there to refuse that.
+ */
+describe("a table larger than one page", () => {
+  /** Cheap rows, and a table that is in `BACKUP_TABLES`. */
+  async function seedManyCategories(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    count: number
+  ) {
+    await t.run(async (ctx) => {
+      for (let i = 0; i < count; i++) {
+        await ctx.db.insert("categories", {
+          storeId,
+          name: `Catégorie ${i}`,
+          slug: `categorie-${i}`,
+          sortOrder: i,
+          isActive: true,
+          createdAt: NOW,
+          updatedAt: NOW,
+        })
+      }
+    })
+  }
+
+  const ROWS = BACKUP_PAGE_SIZE + 1
+
+  test("the fixture really crosses the page boundary", () => {
+    // The anti-vacuity guard. Everything below is about the SECOND page; if the
+    // page size grows past the fixture there is no second page and the
+    // assertions stop measuring anything.
+    expect(ROWS).toBeGreaterThan(BACKUP_PAGE_SIZE)
+  })
+
+  test("exports every row, across pages", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t, "Chez Luigi")
+    await seedManyCategories(t, storeId, ROWS)
+
+    const backup = await exportTables(t, ["categories"])
+
+    expect(backup.categories).toHaveLength(ROWS)
+    // And distinct rows, not the first page twice — a cursor threaded wrongly
+    // re-reads page one for ever, which is the other way this loop breaks.
+    expect(new Set(backup.categories.map((row) => row._id as string)).size).toBe(ROWS)
+  })
+
+  test("clears every row, across pages", async () => {
+    const t = newHarness()
+    const storeId = await seedStore(t, "Chez Luigi")
+    await seedManyCategories(t, storeId, ROWS)
+
+    let passes = 0
+    for (;;) {
+      const pass = await t.mutation(internal.systemInternal.clearTablePage, {
+        tableName: "categories",
+      })
+      passes += 1
+      if (pass.done) break
+    }
+
+    // More than one pass, which is the whole point: a clear that finished in one
+    // is a clear that read the table whole.
+    expect(passes).toBeGreaterThan(1)
+    expect(await t.run((ctx) => ctx.db.query("categories").collect())).toHaveLength(0)
+  })
+
+  test("restores every row, and the storeId still resolves", async () => {
+    // The round trip, which is where a paging bug shows as data loss rather
+    // than as an error: rows dropped at a page seam come back silently short.
+    const t = newHarness()
+    const storeId = await seedStore(t, "Chez Luigi")
+    await seedManyCategories(t, storeId, ROWS)
+
+    const backup = await exportTables(t, ["stores", "categories"])
+    await restore(t, backup)
+
+    const stores = await t.run((ctx) => ctx.db.query("stores").collect())
+    const categories = await t.run((ctx) => ctx.db.query("categories").collect())
+
+    expect(stores).toHaveLength(1)
+    expect(categories).toHaveLength(ROWS)
+    // Every one re-pointed at the establishment it came back as — the defect
+    // `importTable`'s id map exists for, now measured across a page boundary.
+    const newStoreId = stores[0]!._id
+    expect(categories.every((c) => c.storeId === newStoreId)).toBe(true)
   })
 })

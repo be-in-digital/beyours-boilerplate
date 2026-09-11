@@ -5,6 +5,7 @@ import { getAuthUser } from "@be-in-digital/convex-functions/auth"
 import * as maintenanceDefs from "@be-in-digital/convex-functions/maintenance"
 import {
   ARCHIVE_RELINK_TABLES,
+  BACKUP_PAGE_SIZE,
   BACKUP_TABLES,
   DEFERRED_REMAP_TABLES,
   EXCLUDED_TABLES,
@@ -497,10 +498,26 @@ export const buildBackup = internalAction({
       const data: Record<string, any[]> = {}
       const tableSummary: Record<string, number> = {}
 
+      /* Paged, not collected (#432.4). `exportTable` used to `.collect()` the
+         whole table, and Convex refuses a transaction that reads more than
+         16,384 documents — so an establishment trading two years threw on its
+         orders alone and could not take a backup at all, for ever, with no
+         admin action that cleared it. The loop is the fix; `BACKUP_PAGE_SIZE`
+         is the page. */
       for (const tableName of tableNames) {
-        const rows = await ctx.runQuery(internal.systemInternal.exportTable, {
-          tableName,
-        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rows: any[] = []
+        let cursor: string | null = null
+        for (;;) {
+          const page: { rows: unknown[]; cursor: string; isDone: boolean } =
+            await ctx.runQuery(internal.systemInternal.exportTablePage, {
+              tableName,
+              cursor,
+            })
+          rows.push(...page.rows)
+          if (page.isDone) break
+          cursor = page.cursor
+        }
         data[tableName] = rows
         tableSummary[tableName] = rows.length
       }
@@ -670,14 +687,38 @@ export const importBackup = action({
 
       for (const tableName of importOrder) {
         if (!data[tableName] || !Array.isArray(data[tableName])) continue
-        // Annotated rather than inferred: `importBackup` reaches these
-        // mutations through `internal`, and letting TypeScript infer the shape
-        // back out of them makes the action's own return type circular.
-        const result: { idMap: Record<string, string> } = await ctx.runMutation(
-          internal.systemInternal.importTable,
-          { tableName, rows: data[tableName], idMap }
-        )
-        Object.assign(idMap, result.idMap)
+
+        /* The clear comes first and in pages (#432.4). `importTable` used to
+           read every existing row and delete it in the same transaction as the
+           inserts — two passes over the whole table against a 16,384-document
+           ceiling, so a restaurant with two years of orders could not restore
+           its own backup.
+
+           `drainClear` loops until a short page says the table is empty. The
+           bound on the loop is that each pass deletes a full page or is the
+           last one, so it terminates on any finite table. */
+        for (;;) {
+          const pass: { deleted: number; done: boolean } = await ctx.runMutation(
+            internal.systemInternal.clearTablePage,
+            { tableName }
+          )
+          if (pass.done) break
+        }
+
+        /* And the inserts in pages too, for the write ceiling rather than the
+           read one: a mutation may write 16,384 documents and 8 MiB, and the
+           rows come from a file an operator uploads. Annotated rather than
+           inferred: `importBackup` reaches these mutations through `internal`,
+           and letting TypeScript infer the shape back out of them makes the
+           action's own return type circular. */
+        const rows = data[tableName]
+        for (let offset = 0; offset < rows.length; offset += BACKUP_PAGE_SIZE) {
+          const result: { idMap: Record<string, string> } = await ctx.runMutation(
+            internal.systemInternal.importTable,
+            { tableName, rows: rows.slice(offset, offset + BACKUP_PAGE_SIZE), idMap }
+          )
+          Object.assign(idMap, result.idMap)
+        }
       }
 
       /* The foreign-key graph has a cycle, so no order can satisfy every edge.
@@ -689,11 +730,18 @@ export const importBackup = action({
          closes it. */
       let deferredRemaps = 0
       for (const tableName of DEFERRED_REMAP_TABLES) {
-        const pass: { patched: number } = await ctx.runMutation(
-          internal.systemInternal.remapDeferredReferences,
-          { tableName, idMap }
-        )
-        deferredRemaps += pass.patched
+        let cursor: string | null = null
+        for (;;) {
+          const pass: { patched: number; cursor: string; isDone: boolean } =
+            await ctx.runMutation(internal.systemInternal.remapDeferredReferences, {
+              tableName,
+              idMap,
+              cursor,
+            })
+          deferredRemaps += pass.patched
+          if (pass.isDone) break
+          cursor = pass.cursor
+        }
       }
 
       /* The fiscal archive is not re-inserted, so no ordering can reach it —
@@ -708,11 +756,18 @@ export const importBackup = action({
          edge that crosses the boundary. */
       let archiveRelinks = 0
       for (const tableName of ARCHIVE_RELINK_TABLES) {
-        const pass: { relinked: number } = await ctx.runMutation(
-          internal.systemInternal.relinkArchiveReferences,
-          { tableName, idMap }
-        )
-        archiveRelinks += pass.relinked
+        let cursor: string | null = null
+        for (;;) {
+          const pass: { relinked: number; cursor: string; isDone: boolean } =
+            await ctx.runMutation(internal.systemInternal.relinkArchiveReferences, {
+              tableName,
+              idMap,
+              cursor,
+            })
+          archiveRelinks += pass.relinked
+          if (pass.isDone) break
+          cursor = pass.cursor
+        }
       }
 
       /* The other half, and the one only a REBUILT deployment sees: the
@@ -724,17 +779,49 @@ export const importBackup = action({
          order, cleared where none does, and counted either way: an operator has
          to be told, because the archived documents are then only in the backup
          file. */
-      const invoiceLinks: { repointed: number; cleared: number } =
-        await ctx.runMutation(internal.systemInternal.reconcileOrderInvoiceLinks, {})
+      const invoiceLinks = { repointed: 0, cleared: 0 }
+      {
+        let cursor: string | null = null
+        for (;;) {
+          const pass: {
+            repointed: number
+            cleared: number
+            cursor: string
+            isDone: boolean
+          } = await ctx.runMutation(
+            internal.systemInternal.reconcileOrderInvoiceLinks,
+            { cursor }
+          )
+          invoiceLinks.repointed += pass.repointed
+          invoiceLinks.cleared += pass.cleared
+          if (pass.isDone) break
+          cursor = pass.cursor
+        }
+      }
 
       // `userProfiles` is not in the backup — it holds identities, not
       // restaurant data — so its `storeIds` still name the deployment's stores
       // from before the restore. Left alone, every store-scoped screen refuses
       // the owner who just ran the restore.
-      const profiles: { updated: number; dropped: number } =
-        await ctx.runMutation(internal.systemInternal.remapProfileStores, {
-          idMap,
-        })
+      const profiles = { updated: 0, dropped: 0 }
+      {
+        let cursor: string | null = null
+        for (;;) {
+          const pass: {
+            updated: number
+            dropped: number
+            cursor: string
+            isDone: boolean
+          } = await ctx.runMutation(internal.systemInternal.remapProfileStores, {
+            idMap,
+            cursor,
+          })
+          profiles.updated += pass.updated
+          profiles.dropped += pass.dropped
+          if (pass.isDone) break
+          cursor = pass.cursor
+        }
+      }
 
       /* A backup carries personal data — orders, payments, kitchen tickets,
          subscribers — and can be older than the retention window it is restored

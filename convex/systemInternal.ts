@@ -7,6 +7,7 @@ import {
   type IdMap,
 } from "@be-in-digital/convex-functions/backupRemap"
 import {
+  BACKUP_PAGE_SIZE,
   isArchiveRelinkTable,
   isBackupTable,
   isExportedTable,
@@ -99,23 +100,52 @@ export const getSettingsInternal = internalQuery({
   },
 })
 
-/** Export all rows from a given table */
-export const exportTable = internalQuery({
-  args: { tableName: v.string() },
+/**
+ * Export ONE PAGE of a table.
+ *
+ * This was `.collect()` over the whole table (#432.4). Convex refuses a
+ * transaction that reads more than 16,384 documents, and `BACKUP_TABLES` holds
+ * `orders`, `products`, `gamePlays`, `emailSubscribers` and `kitchenTickets` —
+ * so an establishment trading two years passed the ceiling on its orders alone
+ * and the export simply threw. Every time, for ever, with no admin action that
+ * could clear it. The feature is sold as « Sauvegardes automatiques
+ * quotidiennes de vos données et contenus ».
+ *
+ * `system.exportBackup` drives the cursor. Paging rather than a `.take()` with
+ * a bigger number, because a bigger number is the same defect with a later
+ * threshold — and because `paginate` is the only read here whose cost does not
+ * grow with the table.
+ *
+ * A backup is a JSON file an administrator downloads to whatever laptop they
+ * were sitting at, and two single-use credentials were in it: an unexpired team
+ * invitation token grants a role to whoever opens the link, and a double-opt-in
+ * token confirms a subscription on someone else's behalf. Both fields are
+ * optional, so a restore comes back without them and the invitation is simply
+ * re-sent.
+ */
+export const exportTablePage = internalQuery({
+  args: {
+    tableName: v.string(),
+    /** `null` for the first page; otherwise the previous page's `cursor`. */
+    cursor: v.union(v.string(), v.null()),
+  },
   handler: async (ctx, args) => {
     assertExportable(args.tableName)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = await (ctx.db.query(args.tableName as never) as any).collect()
-    /* A backup is a JSON file an administrator downloads to whatever laptop
-       they were sitting at, and two single-use credentials were in it: an
-       unexpired team invitation token grants a role to whoever opens the link,
-       and a double-opt-in token confirms a subscription on someone else's
-       behalf. Both fields are optional, so a restore comes back without them
-       and the invitation is simply re-sent. */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return rows.map((row: Record<string, unknown>) =>
-      redactExportedRow(args.tableName, row)
-    )
+    const page = await (
+      ctx.db.query(args.tableName as never) as unknown as {
+        paginate: (opts: { numItems: number; cursor: string | null }) => Promise<{
+          page: Record<string, unknown>[]
+          continueCursor: string
+          isDone: boolean
+        }>
+      }
+    ).paginate({ numItems: BACKUP_PAGE_SIZE, cursor: args.cursor })
+
+    return {
+      rows: page.page.map((row) => redactExportedRow(args.tableName, row)),
+      cursor: page.continueCursor,
+      isDone: page.isDone,
+    }
   },
 })
 
@@ -157,15 +187,23 @@ export const importTable = internalMutation({
 
     const idMap: IdMap = args.idMap ?? {}
 
-    // 1. Delete all existing rows
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existing = await (ctx.db.query(args.tableName as never) as any).collect()
-    for (const row of existing) {
-      await ctx.db.delete(row._id)
-    }
+    /* NO CLEAR HERE ANY MORE. This handler used to `.collect()` the whole table
+       and delete it before inserting, which is the #432.4 ceiling twice over —
+       a read and a write of every existing row, in the same transaction as the
+       inserts. `clearTablePage` below does the deletes, one page at a time, and
+       `system.importBackup` drains it before calling this.
 
-    // 2. Insert new rows: strip Convex system fields, rewrite every id the map
-    //    knows, and record what this table's own rows became.
+       What that costs, stated rather than glossed: the clear and the insert are
+       no longer one transaction, so a failure between them leaves the table
+       empty instead of leaving it as it was. Per-table atomicity was never the
+       guarantee — a restore is one mutation PER TABLE and always has been, so a
+       failure on the fourth table already left three restored and the rest
+       untouched. The change is that the window now exists inside a table as
+       well, and the alternative is a restore that cannot run at all past
+       16,384 rows. `system.importBackup` reports how far it got. */
+
+    // Insert: strip Convex system fields, rewrite every id the map knows, and
+    // record what this table's own rows became.
     const inserted: IdMap = {}
     for (const row of args.rows) {
       const { oldId, data } = splitExportedRow(row)
@@ -176,6 +214,36 @@ export const importTable = internalMutation({
     }
 
     return { idMap: inserted }
+  },
+})
+
+/**
+ * Delete ONE PAGE of a table, so a restore can clear it at all.
+ *
+ * The other half of #432.4. `importTable` read every existing row and deleted
+ * it in one transaction; past 16,384 rows that throws before a single insert,
+ * so a restaurant with two years of orders could not restore its own backup.
+ *
+ * `done` is what the caller loops on. It is computed from the page being short
+ * rather than from a second count — a count is another whole-table read, which
+ * is the thing being removed.
+ */
+export const clearTablePage = internalMutation({
+  args: { tableName: v.string() },
+  handler: async (ctx, args) => {
+    assertImportable(args.tableName)
+
+    const rows = await (
+      ctx.db.query(args.tableName as never) as unknown as {
+        take: (n: number) => Promise<{ _id: string }[]>
+      }
+    ).take(BACKUP_PAGE_SIZE)
+
+    for (const row of rows) {
+      await ctx.db.delete(row._id as never)
+    }
+
+    return { deleted: rows.length, done: rows.length < BACKUP_PAGE_SIZE }
   },
 })
 
@@ -203,25 +271,39 @@ export const remapDeferredReferences = internalMutation({
   args: {
     tableName: v.string(),
     idMap: v.record(v.string(), v.string()),
+    cursor: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
     assertImportable(args.tableName)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = await (ctx.db.query(args.tableName as never) as any).collect()
+    /* One page per call, and the caller loops (#432.4). `.collect()` here was
+       the same ceiling as the clear: `DEFERRED_REMAP_TABLES` is `["stores"]`
+       today, which is small, and that is exactly why the defect was invisible —
+       the list is a declaration of which edges the import order breaks, and the
+       next entry could be `orders`. */
+    const page = await (
+      ctx.db.query(args.tableName as never) as unknown as {
+        paginate: (opts: { numItems: number; cursor: string | null }) => Promise<{
+          page: Record<string, unknown>[]
+          continueCursor: string
+          isDone: boolean
+        }>
+      }
+    ).paginate({ numItems: BACKUP_PAGE_SIZE, cursor: args.cursor })
+
     let patched = 0
 
-    for (const row of rows) {
+    for (const row of page.page) {
       const { data } = splitExportedRow(row)
       const rewritten = remapIds(data, args.idMap)
       // Compared rather than patched blindly: a restore of a large table would
       // otherwise write every row a second time for nothing.
       if (JSON.stringify(rewritten) === JSON.stringify(data)) continue
-      await ctx.db.patch(row._id, rewritten as never)
+      await ctx.db.patch(row._id as never, rewritten as never)
       patched += 1
     }
 
-    return { patched }
+    return { patched, cursor: page.continueCursor, isDone: page.isDone }
   },
 })
 
@@ -259,26 +341,41 @@ export const relinkArchiveReferences = internalMutation({
   args: {
     tableName: v.string(),
     idMap: v.record(v.string(), v.string()),
+    cursor: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
     assertArchiveRelinkable(args.tableName)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = await (ctx.db.query(args.tableName as never) as any).collect()
+    /* One page per call, and this is the one where the ceiling was certain
+       rather than possible: the comment below already says "an establishment
+       with a year of trade has a year of invoices", and it then read all of
+       them in one transaction. A restaurant issuing forty invoices a day
+       crosses 16,384 in fourteen months, and from then on every restore threw
+       here — after the inserts had already happened (#432.4). */
+    const page = await (
+      ctx.db.query(args.tableName as never) as unknown as {
+        paginate: (opts: { numItems: number; cursor: string | null }) => Promise<{
+          page: Record<string, unknown>[]
+          continueCursor: string
+          isDone: boolean
+        }>
+      }
+    ).paginate({ numItems: BACKUP_PAGE_SIZE, cursor: args.cursor })
+
     let relinked = 0
 
-    for (const row of rows) {
+    for (const row of page.page) {
       const { data } = splitExportedRow(row)
       const rewritten = remapIds(data, args.idMap)
       // Compared rather than patched blindly: an establishment with a year of
       // trade has a year of invoices, and a restore must not write every one of
       // them a second time for nothing.
       if (JSON.stringify(rewritten) === JSON.stringify(data)) continue
-      await ctx.db.patch(row._id, rewritten as never)
+      await ctx.db.patch(row._id as never, rewritten as never)
       relinked += 1
     }
 
-    return { relinked }
+    return { relinked, cursor: page.continueCursor, isDone: page.isDone }
   },
 })
 
@@ -320,9 +417,21 @@ export const relinkArchiveReferences = internalMutation({
  * this whole module exists to end.
  */
 export const reconcileOrderInvoiceLinks = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const orders = await ctx.db.query("orders").collect()
+  args: {
+    /** `null` for the first page; otherwise the previous page's `cursor`. */
+    cursor: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, args) => {
+    /* One page, and the caller loops (#432.4). This read the WHOLE orders table
+       and then did a `ctx.db.get` per order carrying an invoice id — two reads
+       per order against Convex's 16,384-document ceiling, on the largest table
+       a restaurant has. It ran at the END of a restore, after every insert, so
+       crossing the ceiling left the deployment restored and the archive
+       detached, which is the exact silence this module exists to end. */
+    const page = await ctx.db
+      .query("orders")
+      .paginate({ numItems: BACKUP_PAGE_SIZE, cursor: args.cursor })
+    const orders = page.page
     let repointed = 0
     let cleared = 0
 
@@ -347,7 +456,7 @@ export const reconcileOrderInvoiceLinks = internalMutation({
       }
     }
 
-    return { repointed, cleared }
+    return { repointed, cleared, cursor: page.continueCursor, isDone: page.isDone }
   },
 })
 
@@ -365,9 +474,22 @@ export const reconcileOrderInvoiceLinks = internalMutation({
  * backup did not contain, which after this import do not exist.
  */
 export const remapProfileStores = internalMutation({
-  args: { idMap: v.record(v.string(), v.string()) },
+  args: {
+    idMap: v.record(v.string(), v.string()),
+    /** `null` for the first page; otherwise the previous page's `cursor`. */
+    cursor: v.union(v.string(), v.null()),
+  },
   handler: async (ctx, args) => {
-    const profiles = await ctx.db.query("userProfiles").collect()
+    /* Paged like the rest, though this is the one table where the ceiling is
+       not reachable today: `userProfiles` holds staff, and a chain with fifty
+       locations and twenty people each is a thousand rows. It is paged anyway
+       because the reason it is safe is a fact about the CUSTOMER rather than
+       about the code, and "small enough" is not a property a reader can check
+       at the call site (#432.4). */
+    const page = await ctx.db
+      .query("userProfiles")
+      .paginate({ numItems: BACKUP_PAGE_SIZE, cursor: args.cursor })
+    const profiles = page.page
     let updated = 0
     let dropped = 0
 
@@ -391,6 +513,6 @@ export const remapProfileStores = internalMutation({
       updated++
     }
 
-    return { updated, dropped }
+    return { updated, dropped, cursor: page.continueCursor, isDone: page.isDone }
   },
 })
