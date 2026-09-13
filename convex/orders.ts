@@ -21,8 +21,26 @@ export const list = storeQuery({
 });
 
 /** The dashboard's aggregates, computed on the server over a window. */
+/**
+ * The overview screen's figures.
+ *
+ * `analytics:read`, not `orders:read`. The two permissions were declared
+ * together and only one of them was ever enforced: `analytics:read` and
+ * `analytics:view_all` existed in `packages/core/src/auth/rbac.ts` and were
+ * consumed by nothing at all, while a `kitchen` account — which holds
+ * `orders:read` so it can work the pass — could read the establishment's
+ * takings, average basket and best-selling dishes. Turnover is not pass
+ * information.
+ *
+ * The SCREEN stays reachable: it is where every login lands, and its quick
+ * actions and recent-orders table are `orders:read`, which all three limited
+ * roles hold. `use-dashboard-stats.ts` asks this query only when the role
+ * carries the permission, and says so in place of the figures when it does
+ * not — a refusal thrown out of `useQuery` unwinds the render, so a screen that
+ * merely let it throw would be a blank page for a third of the team.
+ */
 export const dashboardStats = storeQuery({
-  permission: "orders:read",
+  permission: "analytics:read",
   args: defs.dashboardStats.args,
   handler: (ctx, args) => defs.dashboardStats.handler(ctx, args),
 });

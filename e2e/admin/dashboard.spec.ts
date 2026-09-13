@@ -85,7 +85,18 @@ test.describe("Dashboard Page", () => {
     test("should display recent orders table", async ({ page }) => {
       // The recent orders section should have a table or an empty state
       const ordersTable = page.locator("table")
-      const emptyState = page.getByText("Aucune commande")
+      /*
+       * The recent-orders empty state, by its OWN words.
+       *
+       * This was `getByText("Aucune commande")`, a substring — and « Aucune
+       * commande » is a phrase more than one panel on this dashboard has a
+       * reason to say. The « Heures de pointe » card says « Aucune commande sur
+       * la période », so the loose locator resolved to two elements and
+       * Playwright's strict mode failed the assertion rather than the product
+       * failing. Anchored to the exact sentence `recent-orders-table.tsx:79`
+       * prints.
+       */
+      const emptyState = page.getByText("Aucune commande pour le moment")
 
       await expect(ordersTable.or(emptyState)).toBeVisible({ timeout: 15_000 })
     })
@@ -147,7 +158,18 @@ test.describe("Dashboard Page", () => {
       page,
     }) => {
       const ordersTable = page.locator("table")
-      const emptyState = page.getByText("Aucune commande")
+      /*
+       * The recent-orders empty state, by its OWN words.
+       *
+       * This was `getByText("Aucune commande")`, a substring — and « Aucune
+       * commande » is a phrase more than one panel on this dashboard has a
+       * reason to say. The « Heures de pointe » card says « Aucune commande sur
+       * la période », so the loose locator resolved to two elements and
+       * Playwright's strict mode failed the assertion rather than the product
+       * failing. Anchored to the exact sentence `recent-orders-table.tsx:79`
+       * prints.
+       */
+      const emptyState = page.getByText("Aucune commande pour le moment")
 
       await expect(ordersTable.or(emptyState)).toBeVisible({ timeout: 15_000 })
 
@@ -164,7 +186,18 @@ test.describe("Dashboard Page", () => {
       page,
     }) => {
       const ordersTable = page.locator("table")
-      const emptyState = page.getByText("Aucune commande")
+      /*
+       * The recent-orders empty state, by its OWN words.
+       *
+       * This was `getByText("Aucune commande")`, a substring — and « Aucune
+       * commande » is a phrase more than one panel on this dashboard has a
+       * reason to say. The « Heures de pointe » card says « Aucune commande sur
+       * la période », so the loose locator resolved to two elements and
+       * Playwright's strict mode failed the assertion rather than the product
+       * failing. Anchored to the exact sentence `recent-orders-table.tsx:79`
+       * prints.
+       */
+      const emptyState = page.getByText("Aucune commande pour le moment")
 
       await expect(ordersTable.or(emptyState)).toBeVisible({ timeout: 15_000 })
 

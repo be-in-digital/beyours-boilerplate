@@ -186,7 +186,7 @@ describe("a restaurant with a year of orders", () => {
       breakdownSince: NOW - 30 * DAY,
     })
 
-    expect(stats.last7Days).toHaveLength(7)
+    expect(stats.days).toHaveLength(7)
     expect(stats.today.orderCount).toBeGreaterThan(0)
     expect(stats.byType.length).toBeGreaterThan(0)
     // A cancelled order is not takings: a quarter of the seed is cancelled, so
