@@ -104,18 +104,41 @@ describe("backup coverage", () => {
   })
 
   test("carries the establishment's website, its orders and its translations", () => {
-    // The four families the old 22-table list dropped, named individually
-    // because each was its own reported defect.
+    // The families the old 22-table list dropped, named individually because
+    // each was its own reported defect.
+    for (const table of ["cmsPages", "cmsBlocks", "cmsMedia"]) {
+      expect(BACKUP_TABLES).toContain(table)
+    }
+    for (const table of ["orders", "payments", "kitchenTickets", "translations", "teamMembers"]) {
+      expect(BACKUP_TABLES).toContain(table)
+    }
+  })
+
+  test("does not back up the sixteen legacy CMS singletons", () => {
+    /*
+     * THIS USED TO ASSERT THE OPPOSITE (#434.7). All sixteen were added on the
+     * reasoning that a backup without the pages a client edits is not a backup of
+     * a website — true of the CMS they were written for, and not of the one that
+     * shipped. They were superseded by the block-based `cmsPages` / `cmsBlocks` /
+     * `cmsMedia` above and measured at zero reads, zero inserts and zero patches,
+     * so the nightly backup on every client deployment walked sixteen tables that
+     * cannot hold a row.
+     *
+     * Excluded, not deleted: they stay declared in the schema because Convex
+     * refuses a deploy that drops a table still holding rows, and nothing in this
+     * repository can say whether a deployment provisioned two years ago still has
+     * one. The classification test above requires every schema table to be in
+     * exactly one bucket, which is what stops this being a silent omission.
+     */
     const CMS_SINGLETONS = [
       "cms", "cmsHome", "cmsMenu", "cmsAbout", "cmsContact", "cmsBlogPosts",
       "cmsCart", "cmsCheckout", "cmsTracking", "cmsSignin", "cmsSignup",
       "cmsPrivacy", "cmsTerms", "cms404", "cmsMaintenance", "cmsAccount",
     ]
+    const excluded = new Set(EXCLUDED_TABLES.map((entry) => entry.table))
     for (const table of CMS_SINGLETONS) {
-      expect(BACKUP_TABLES).toContain(table)
-    }
-    for (const table of ["orders", "payments", "kitchenTickets", "translations", "teamMembers"]) {
-      expect(BACKUP_TABLES).toContain(table)
+      expect(BACKUP_TABLES, table).not.toContain(table)
+      expect(excluded, table).toContain(table)
     }
   })
 

@@ -240,8 +240,12 @@ describe("the nightly backup", () => {
 
     expect(payload.data.stores).toHaveLength(1)
     expect(payload.manifest.exportedBy).toBe("cron")
-    // The four families a restore used to reach zero of.
-    for (const table of ["orders", "payments", "kitchenTickets", "cmsHome"]) {
+    /* The families a restore used to reach zero of. `cmsHome` was the fourth,
+       and it left the backup set in #434.7: all sixteen legacy `cms*` singletons
+       were superseded by `cmsPages` / `cmsBlocks` / `cmsMedia` and measured at
+       zero writes anywhere, so backing them up walked sixteen tables that cannot
+       hold a row. `cmsPages` is the one that carries a website now. */
+    for (const table of ["orders", "payments", "kitchenTickets", "cmsPages"]) {
       expect(payload.manifest.tables).toContain(table)
     }
   })
