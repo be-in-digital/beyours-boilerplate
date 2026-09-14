@@ -40,6 +40,7 @@ import type * as customers from "../customers.js";
 import type * as customerEmail from "../customerEmail.js";
 import type * as deliverooImport from "../deliverooImport.js";
 import type * as deliverooMenuSync from "../deliverooMenuSync.js";
+import type * as deliverooOrderDecision from "../deliverooOrderDecision.js";
 import type * as deliverooWebhook from "../deliverooWebhook.js";
 import type * as deliverooWebhookHandler from "../deliverooWebhookHandler.js";
 import type * as deliveryQuotes from "../deliveryQuotes.js";
@@ -168,6 +169,7 @@ declare const fullApi: ApiFromModules<{
   customerEmail: typeof customerEmail;
   deliverooImport: typeof deliverooImport;
   deliverooMenuSync: typeof deliverooMenuSync;
+  deliverooOrderDecision: typeof deliverooOrderDecision;
   deliverooWebhook: typeof deliverooWebhook;
   deliverooWebhookHandler: typeof deliverooWebhookHandler;
   deliveryQuotes: typeof deliveryQuotes;
