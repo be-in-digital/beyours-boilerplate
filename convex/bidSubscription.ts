@@ -112,8 +112,26 @@ export const createCheckoutSession = action({
       subscription_data: {
         metadata: { ownerId },
       },
-      success_url: `${appUrl}/admin/subscription?status=success`,
-      cancel_url: `${appUrl}/admin/subscription`,
+      /*
+       * `/dashboard/subscription`, NOT `/admin/subscription` (#110).
+       *
+       * `app/(admin)/` is a Next.js route GROUP — the parentheses mean it
+       * contributes nothing to the URL — so `/admin/subscription` matched no
+       * route in either app. An owner who had just paid for BeYours landed on a
+       * 404: the subscription was active, because the webhook does that, and the
+       * confirmation screen they were sent to did not exist.
+       *
+       * The two real routes are `(admin)/subscription` → `/subscription` and
+       * `(admin)/dashboard/subscription` → `/dashboard/subscription`. The second
+       * is the canonical one — `adminRoutes.subscription` in
+       * `@be-in-digital/admin` — and it is what the sidebar links to.
+       *
+       * The maintenance checkout below already used `/dashboard/system`
+       * correctly, which is what made this an oversight rather than a
+       * convention.
+       */
+      success_url: `${appUrl}/dashboard/subscription?status=success`,
+      cancel_url: `${appUrl}/dashboard/subscription?status=cancel`,
     });
 
     return { url: session.url };

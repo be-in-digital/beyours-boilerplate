@@ -21,7 +21,11 @@ export function SubscriptionPage() {
       toast.info("Paiement annulé")
     }
     if (status) {
-      window.history.replaceState({}, "", "/admin/subscription")
+      // The canonical route. This said `/admin/subscription`, which is not a
+      // route at all — `app/(admin)/` is a route group and contributes nothing
+      // to the URL — so tidying the query string rewrote the address bar to a
+      // path that 404s on reload (#110).
+      window.history.replaceState({}, "", "/dashboard/subscription")
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
