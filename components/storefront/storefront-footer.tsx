@@ -205,7 +205,7 @@ export function StorefrontFooter() {
                   }}
                   aria-invalid={emailError ? true : undefined}
                   aria-describedby={emailError ? emailErrorId : undefined}
-                  className="bg-white/10 border-white/20 h-14 rounded-xl text-primary-foreground placeholder:text-primary-foreground pr-28 focus-visible:ring-primary focus-visible:border-primary aria-invalid:border-destructive"
+                  className="bg-primary-hover border-white/20 h-14 rounded-xl text-primary-foreground placeholder:text-primary-foreground pr-28 focus-visible:ring-primary focus-visible:border-primary aria-invalid:border-destructive"
                   required
                 />
                 <Button
@@ -240,21 +240,21 @@ export function StorefrontFooter() {
             <a
               href="#"
               aria-label="Facebook"
-              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 text-primary-foreground flex items-center justify-center transition-colors"
+              className="h-10 w-10 rounded-full bg-primary-hover text-primary-foreground flex items-center justify-center transition-colors"
             >
               <Facebook className="h-4 w-4" />
             </a>
             <a
               href="#"
               aria-label="Twitter / X"
-              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 text-primary-foreground flex items-center justify-center transition-colors"
+              className="h-10 w-10 rounded-full bg-primary-hover text-primary-foreground flex items-center justify-center transition-colors"
             >
               <Twitter className="h-4 w-4" />
             </a>
             <a
               href="#"
               aria-label="Instagram"
-              className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 text-primary-foreground flex items-center justify-center transition-colors"
+              className="h-10 w-10 rounded-full bg-primary-hover text-primary-foreground flex items-center justify-center transition-colors"
             >
               <Instagram className="h-4 w-4" />
             </a>

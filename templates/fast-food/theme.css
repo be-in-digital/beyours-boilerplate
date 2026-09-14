@@ -10,7 +10,8 @@
  * yellow). HSL without hsl(), the app/globals.css contract.
  */
 
-:root {
+:root,
+.storefront-theme {
   --background: 45 27% 97%;
   --foreground: 40 15% 9%;
   --card: 45 35% 99%;
@@ -34,9 +35,13 @@
   --chart-3: 96 38% 42%;
   --chart-4: 22 65% 45%;
   --chart-5: 215 25% 46%;
+  --primary-hover: 40 18% 4%;
+  --accent-solid: 44 85% 29%;
+  --accent-solid-foreground: 0 0% 100%;
 }
 
-.dark {
+.dark,
+.dark .storefront-theme {
   --background: 40 12% 7%;
   --foreground: 45 20% 94%;
   --card: 40 11% 10%;
@@ -60,6 +65,9 @@
   --chart-3: 96 40% 52%;
   --chart-4: 22 70% 55%;
   --chart-5: 215 30% 60%;
+  --primary-hover: 42 96% 61%;
+  --accent-solid: 42 55% 55%;
+  --accent-solid-foreground: 45 20% 6%;
 }
 
 /* Admin sidebar (full hsl() format, the app/globals.css contract) */

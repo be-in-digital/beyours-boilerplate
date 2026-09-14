@@ -79,10 +79,12 @@ const PUBLIC_BUILDERS = [
 const KEPT_CALLERLESS: Record<string, string> = {
   // Called by the bench's own ops scripts. The two apps' convex trees are
   // byte-identical, so they stay registered in the template too.
-  "emailAutomations.create":
-    "apps/reference/scripts/verify-resume-and-automation.mjs",
-  "emailAutomations.activate":
-    "apps/reference/scripts/verify-resume-and-automation.mjs",
+  //
+  // `emailAutomations.create` and `.activate` WERE here, kept for
+  // `apps/reference/scripts/verify-resume-and-automation.mjs`. The automations
+  // screen calls both now (#270), so they left — which is what the sibling test
+  // below is for: an entry the product has started calling must not sit here
+  // claiming a script is its only caller.
   "emailEvents.listByCampaign":
     "apps/reference/scripts/verify-campaign-send.mjs",
 

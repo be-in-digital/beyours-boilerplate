@@ -103,6 +103,7 @@ import type * as sesWebhookVerify from "../sesWebhookVerify.js";
 import type * as settlementReturn from "../settlementReturn.js";
 import type * as storageUpload from "../storageUpload.js";
 import type * as storeIntegrations from "../storeIntegrations.js";
+import type * as stockMovements from "../stockMovements.js";
 import type * as stores from "../stores.js";
 import type * as stripe from "../stripe.js";
 import type * as stripeWebhook from "../stripeWebhook.js";
@@ -230,6 +231,7 @@ declare const fullApi: ApiFromModules<{
   settlementReturn: typeof settlementReturn;
   storageUpload: typeof storageUpload;
   storeIntegrations: typeof storeIntegrations;
+  stockMovements: typeof stockMovements;
   stores: typeof stores;
   stripe: typeof stripe;
   stripeWebhook: typeof stripeWebhook;

@@ -123,7 +123,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:bg-white/10"
+                            className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:bg-primary-hover"
                           >
                             Tout vider
                           </Button>
@@ -170,7 +170,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 ref={closeButtonRef}
                 onClick={() => onOpenChange(false)}
                 aria-label="Fermer la Box"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-primary-foreground transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-hover text-primary-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -306,6 +306,28 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                                 </span>
                               ))}
                             </div>
+                          )}
+
+                          {/* What a *formule* contains (#352).
+                              Listed, not summarised: two « Formule Midi » in one
+                              basket are two lines composed differently, and a
+                              diner reviewing their order has no other way to
+                              tell which is which. The prices are deliberately
+                              absent — the diner pays the formule's price, and
+                              printing the dishes' own prices beside it invites
+                              them to add up to a different number. */}
+                          {item.menu && item.menu.choices.length > 0 && (
+                            <ul className="mt-1 space-y-0.5">
+                              {item.menu.choices.map((choice, i) => (
+                                <li
+                                  key={`${choice.sectionId}-${choice.productId}-${i}`}
+                                  className="text-[10px] font-bold text-muted-foreground"
+                                >
+                                  {choice.sectionLabel} : {choice.productName}
+                                  {choice.quantity > 1 && ` × ${choice.quantity}`}
+                                </li>
+                              ))}
+                            </ul>
                           )}
                         </div>
 

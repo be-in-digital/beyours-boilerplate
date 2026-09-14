@@ -8,7 +8,8 @@
  * app/globals.css contract.
  */
 
-:root {
+:root,
+.storefront-theme {
   --background: 28 33% 97%;
   --foreground: 18 38% 12%;
   --card: 30 40% 99%;
@@ -32,9 +33,13 @@
   --chart-3: 42 82% 52%;
   --chart-4: 355 55% 45%;
   --chart-5: 202 42% 48%;
+  --primary-hover: 14 68% 37%;
+  --accent-solid: 14 58% 44%;
+  --accent-solid-foreground: 0 0% 100%;
 }
 
-.dark {
+.dark,
+.dark .storefront-theme {
   --background: 20 24% 8%;
   --foreground: 30 28% 93%;
   --card: 20 22% 11%;
@@ -58,6 +63,9 @@
   --chart-3: 42 85% 58%;
   --chart-4: 355 60% 58%;
   --chart-5: 202 48% 58%;
+  --primary-hover: 15 74% 65%;
+  --accent-solid: 15 55% 60%;
+  --accent-solid-foreground: 30 20% 6%;
 }
 
 /* Admin sidebar (full hsl() format, the app/globals.css contract) */

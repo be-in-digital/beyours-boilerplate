@@ -424,7 +424,7 @@ export default function AccountPage() {
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
-          <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg">
+          <Badge className="bg-primary-hover text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg">
             Mon Espace
           </Badge>
 
@@ -580,7 +580,7 @@ export default function AccountPage() {
                         <button
                           type="button"
                           onClick={addPhone}
-                          className="flex items-center gap-1 text-xs font-bold text-accent-foreground hover:text-primary-hover transition-colors"
+                          className="flex items-center gap-1 text-xs font-bold text-accent-foreground hover:text-primary-ink transition-colors"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           Ajouter

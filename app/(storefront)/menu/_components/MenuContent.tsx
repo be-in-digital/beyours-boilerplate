@@ -31,6 +31,7 @@ import { useStoreId } from "@/lib/hooks/use-store-id"
 import { useStoreStatus } from "@/lib/hooks/use-store-status"
 import { formatArticleDate } from "@/lib/blog/presentation"
 import { ProductGrid } from "@/components/storefront/product-grid"
+import { FormuleCard, type Formule } from "@/components/storefront/formule-card"
 import { ProductDetailClient } from "@/components/storefront/product-detail-client"
 import { MenuPagination } from "@/components/storefront/menu-pagination"
 import { toast } from "sonner"
@@ -114,6 +115,18 @@ function MenuContent() {
     api.categories.list,
     storeId ? { storeId: storeId as Id<"stores"> } : "skip"
   )
+  /**
+   * The *formules* on offer, with their sections resolved (#352).
+   *
+   * `listActive`, not `list`: the second is guarded and unfiltered, which is
+   * right for the screen that switches a formule off and wrong here — a diner
+   * must not be shown a deactivated bundle and must not need a session to see an
+   * active one. See the comment on `menus.list`.
+   */
+  const formules = useQuery(
+    api.menus.listActive,
+    storeId ? { storeId: storeId as Id<"stores"> } : "skip"
+  ) as Formule[] | undefined
   // The teaser below used to render three hard-coded posts, each linking back
   // to /blog. These are the owner's three most recent published articles.
   const latestArticles = useQuery(
@@ -239,7 +252,7 @@ function MenuContent() {
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
-          <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg">
+          <Badge className="bg-primary-hover text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg">
             Notre Carte
           </Badge>
           <h1 className="text-6xl md:text-8xl font-black text-primary-foreground tracking-tighter leading-none mb-8 italic">
@@ -403,6 +416,26 @@ function MenuContent() {
           </div>
         </div>
 
+        {/* ─── FORMULES ───
+            Above the à-la-carte grid, and only when there are any. A formule is
+            what an establishment wants sold: it is the higher basket and the
+            thing the carte is built around at lunch.
+
+            Hidden entirely while the query is loading and when it answers
+            empty — not a skeleton, and not an empty state. « Aucune formule »
+            is a message about the establishment's offering that most
+            establishments would not want printed on their carte. */}
+        {formules && formules.length > 0 && (
+          <div className="mb-12">
+            <h2 className="mb-4 text-2xl font-black tracking-tight">Nos formules</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {formules.map((formule) => (
+                <FormuleCard key={formule._id} formule={formule} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ─── GRID ─── */}
         <div className="mb-8">
           <ProductGrid
@@ -485,7 +518,7 @@ function MenuContent() {
         <div className="relative rounded-[4rem] bg-primary p-12 md:p-24 overflow-hidden text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-12">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-48 -mt-48" />
           <div className="relative z-10 max-w-2xl">
-            <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px]">
+            <Badge className="bg-primary-hover text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px]">
               Une question ?
             </Badge>
             <h2 className="text-4xl md:text-6xl font-black text-primary-foreground tracking-tighter leading-none mb-6 italic">

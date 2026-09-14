@@ -1,4 +1,4 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import * as defs from "@be-in-digital/convex-functions/menus";
 import { touchesTranslatableText } from "@be-in-digital/convex-functions/autoTranslate";
@@ -18,6 +18,20 @@ export const list = storeQuery({
   permission: "products:read",
   args: defs.list.args,
   handler: (ctx, args) => defs.list.handler(ctx, args),
+});
+
+/**
+ * The formules a diner may order, with their sections resolved.
+ *
+ * @public-by-design: this IS the published storefront offering, and the
+ * storefront reads it with no session. It is the filtered twin `list`'s comment
+ * asked for — `isActive` only, deactivated formules never leave the server, and
+ * a formule whose mandatory dish has been switched off is left out rather than
+ * offered and then refused at the checkout.
+ */
+export const listActive = query({
+  args: defs.listActive.args,
+  handler: (ctx, args) => defs.listActive.handler(ctx, args),
 });
 // === Mutations (with menu sync trigger) ===
 

@@ -53,7 +53,7 @@ export default function FavoritesContent() {
             <ArrowLeft className="h-4 w-4" />
             Mon compte
           </Link>
-          <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg block mx-auto w-fit">
+          <Badge className="bg-primary-hover text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-8 font-black tracking-widest uppercase text-[10px] shadow-lg block mx-auto w-fit">
             Collection
           </Badge>
           <h1 className="text-6xl md:text-8xl font-black text-primary-foreground tracking-tighter leading-none mb-8 italic">

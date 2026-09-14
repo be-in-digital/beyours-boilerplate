@@ -54,7 +54,7 @@ export default function BlogPage() {
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="max-w-4xl mx-auto relative z-10 text-center"
                 >
-                    <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
+                    <Badge className="bg-primary-hover text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
                         {heroBadge}
                     </Badge>
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-primary-foreground leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">
@@ -257,7 +257,7 @@ export default function BlogPage() {
                                 value={newsletterEmail}
                                 onChange={(e) => setNewsletterEmail(e.target.value)}
                                 placeholder="Votre email..."
-                                className="flex-1 h-14 px-6 rounded-2xl bg-white/10 border border-white/10 text-primary-foreground placeholder:text-primary-foreground font-bold text-sm outline-none focus:border-white/30 transition-colors"
+                                className="flex-1 h-14 px-6 rounded-2xl bg-primary-hover border border-white/10 text-primary-foreground placeholder:text-primary-foreground font-bold text-sm outline-none focus:border-white/30 transition-colors"
                             />
                             <Button
                                 type="submit"

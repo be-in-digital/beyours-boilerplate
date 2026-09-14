@@ -5,7 +5,8 @@
  * (scripts/gen-templates.mjs). HSL without hsl(), the globals.css contract.
  */
 
-:root {
+:root,
+.storefront-theme {
   --background: 200 45% 96%;
   --foreground: 215 40% 13%;
   --card: 200 45% 98%;
@@ -24,6 +25,9 @@
   --border: 202 44% 86%;
   --input: 202 44% 52%;
   --ring: 205 80% 40%;
+  --primary-hover: 205 80% 33%;
+  --accent-solid: 35 90% 30%;
+  --accent-solid-foreground: 0 0% 100%;
   --chart-1: 205 80% 40%;
   --chart-2: 355 55% 40%;
   --chart-3: 250 70% 48%;
@@ -31,7 +35,8 @@
   --chart-5: 145 50% 50%;
 }
 
-.dark {
+.dark,
+.dark .storefront-theme {
   --background: 215 35% 8%;
   --foreground: 200 30% 93%;
   --card: 215 35% 12%;
@@ -50,6 +55,9 @@
   --border: 213 34% 19%;
   --input: 213 34% 42%;
   --ring: 203 75% 55%;
+  --primary-hover: 203 75% 62%;
+  --accent-solid: 210 55% 58%;
+  --accent-solid-foreground: 200 20% 6%;
   --chart-1: 203 75% 55%;
   --chart-2: 353 55% 52%;
   --chart-3: 248 70% 55%;

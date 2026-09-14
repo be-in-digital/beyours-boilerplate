@@ -22,12 +22,31 @@ import { storeQuery, storeMutation } from "./lib/storeFunctions";
 // Queries
 // ============================================================================
 
-/** List all CMS pages for a store (public) */
-// @public-by-design: published storefront page content, no auth by design
-export const listPages = query(cmsDefs.listPages)
+/**
+ * Every CMS page of the establishment, with its editorial status.
+ *
+ * GUARDED SINCE #97. It was `query(cmsDefs.listPages)` under
+ * `@public-by-design: published storefront page content, no auth by design`, and
+ * that annotation was wrong about the payload: it returns
+ * `hasUnpublishedChanges` and `draftUpdatedAt` per page, which is a list of what
+ * the staff are working on. Its only caller is the admin's content screen, so
+ * nothing anonymous loses a reader.
+ */
+export const listPages = storeQuery({
+  permission: "content:read",
+  args: cmsDefs.listPages.args,
+  handler: (ctx, args) => cmsDefs.listPages.handler(ctx, args),
+})
 
-/** Get published blocks for storefront (public, no auth) */
-// @public-by-design: published storefront page content, no auth by design
+/**
+ * Published blocks for the storefront.
+ *
+ * @public-by-design: the storefront has no session, and this is the published
+ * page a visitor came to read. Its `pageMeta` was narrowed in #97 to
+ * `hasPublished` and `publishedAt` — it used to carry `hasUnpublishedChanges`,
+ * `draftUpdatedAt` and `updatedBy`, which is editorial state and a staff user id
+ * handed to anybody who asked.
+ */
 export const getPageBlocks = query(cmsDefs.getPageBlocks)
 
 /** Get draft + published blocks for admin editor (auth-protected) */

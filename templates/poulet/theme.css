@@ -9,7 +9,8 @@
  * HSL without hsl(), the app/globals.css contract.
  */
 
-:root {
+:root,
+.storefront-theme {
   --background: 42 45% 97%;
   --foreground: 8 22% 11%;
   --card: 42 50% 99%;
@@ -33,9 +34,13 @@
   --chart-3: 88 35% 42%;
   --chart-4: 20 60% 45%;
   --chart-5: 210 25% 46%;
+  --primary-hover: 355 70% 35%;
+  --accent-solid: 355 58% 45%;
+  --accent-solid-foreground: 0 0% 100%;
 }
 
-.dark {
+.dark,
+.dark .storefront-theme {
   --background: 8 16% 7%;
   --foreground: 40 30% 93%;
   --card: 8 14% 10%;
@@ -59,6 +64,9 @@
   --chart-3: 88 38% 52%;
   --chart-4: 20 65% 55%;
   --chart-5: 210 30% 60%;
+  --primary-hover: 355 70% 50%;
+  --accent-solid: 355 55% 65%;
+  --accent-solid-foreground: 40 20% 6%;
 }
 
 /* Admin sidebar (full hsl() format, the app/globals.css contract) */

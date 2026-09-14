@@ -34,6 +34,7 @@ import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { emailSender, sendEmail } from "./emailTransport";
 import { renderOrderConfirmation } from "@be-in-digital/core/aws/ses/order-confirmation";
+import { renderOrderReady } from "@be-in-digital/core/aws/ses/order-ready";
 
 async function sendViaSES(params: {
   toEmail: string;
@@ -298,6 +299,96 @@ export const sendOrderConfirmation = internalAction({
       // screen; losing the email must not turn into a failed scheduled
       // function retrying against a provider that has already refused it.
       console.error("[orderConfirmation] SES send failed:", error);
+      return { sent: false };
+    }
+  },
+});
+
+/**
+ * « Votre commande est prête » (#96).
+ *
+ * Scheduled from `orders.updateStatus` — the one seam every status change goes
+ * through — after `planOrderReady` has decided the diner qualifies and claimed
+ * the send on the order. By the time this runs the decision is made; all that is
+ * left is to render and hand it to the transport.
+ *
+ * WHAT IT DOES NOT DO. It does not fire on `preparing`, `out_for_delivery` or
+ * `completed`, and it never fires on a delivery order — see
+ * `convex-functions/orderReady.ts` for both decisions. One email, at the one
+ * moment the diner has to act.
+ *
+ * Best effort, like the confirmation beside it: scheduled rather than awaited, so
+ * a refused send cannot roll back a status the kitchen has already moved.
+ */
+export const sendOrderReady = internalAction({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args): Promise<{ sent: boolean }> => {
+    const payload = await ctx.runQuery(internal.orders.readyNoticePayload, {
+      orderId: args.orderId,
+    });
+    if (!payload) {
+      // Cancelled, deleted, or its establishment gone between the claim and
+      // this running. The claim goes back so a later legitimate `ready` can
+      // still write.
+      await ctx.runMutation(internal.orders.releaseReadyNoticeClaim, {
+        orderId: args.orderId,
+      });
+      return { sent: false };
+    }
+
+    const config = await ctx.runQuery(internal.emailConfig.getInternal, {
+      storeId: payload.storeId as Id<"stores">,
+    });
+    // `||`, not `??`: `fromEmail` is a required `v.string()` that `upsert`
+    // accepts empty.
+    const fromAddress =
+      (config?.fromEmail as string | undefined) ||
+      process.env.AWS_SES_FROM_EMAIL ||
+      "";
+    if (!fromAddress) {
+      console.error(
+        "[orderReady] no sender address: neither the establishment's email config nor AWS_SES_FROM_EMAIL is set"
+      );
+      await ctx.runMutation(internal.orders.releaseReadyNoticeClaim, {
+        orderId: args.orderId,
+      });
+      return { sent: false };
+    }
+
+    const senderName = quoteDisplayName(
+      (config?.senderName as string | undefined) || payload.email.store.name
+    );
+    const fromEmail = senderName ? `${senderName} <${fromAddress}>` : fromAddress;
+
+    const siteUrl = (process.env.SITE_URL ?? process.env.BID_APP_URL ?? "").replace(
+      /\/$/,
+      ""
+    );
+    const trackingUrl =
+      siteUrl && payload.viewToken
+        ? `${siteUrl}/order/${encodeURIComponent(payload.orderId)}?token=${encodeURIComponent(payload.viewToken)}`
+        : undefined;
+
+    const rendered = renderOrderReady(
+      { ...payload.email, ...(trackingUrl ? { trackingUrl } : {}) } as never,
+      { timeZone: payload.timeZone }
+    );
+
+    try {
+      await sendViaSES({
+        toEmail: payload.toEmail,
+        subject: sanitiseSubject(rendered.subject),
+        htmlBody: rendered.html,
+        textBody: rendered.text,
+        fromEmail,
+        replyToEmail: (config?.replyToEmail as string | undefined) || undefined,
+      });
+      return { sent: true };
+    } catch (error) {
+      // Swallowed like every other transactional send here: the food is ready and
+      // the kitchen has moved on, and losing the email must not turn into a
+      // scheduled function retrying against a provider that already refused it.
+      console.error("[orderReady] send failed:", error);
       return { sent: false };
     }
   },

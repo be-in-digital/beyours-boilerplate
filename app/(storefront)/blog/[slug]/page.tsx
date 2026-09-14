@@ -160,7 +160,7 @@ export default async function BlogArticlePage({ params }: Props) {
         </Link>
 
         {article.category && (
-          <Badge className="w-fit mb-4 px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] bg-primary/10 dark:bg-primary/30 text-accent-foreground border-none">
+          <Badge className="w-fit mb-4 px-3 py-1 rounded-full font-black tracking-widest uppercase text-[9px] bg-accent text-accent-foreground border-none">
             {article.category.name}
           </Badge>
         )}

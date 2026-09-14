@@ -9,6 +9,10 @@ import {
   planOrderConfirmation,
   releaseOrderConfirmationClaim,
 } from "@be-in-digital/convex-functions/orderConfirmation";
+import {
+  readyPayload,
+  releaseReadyClaim,
+} from "@be-in-digital/convex-functions/orderReady";
 import { storeQuery, storeMutation, storeIdFromDocument } from "./lib/storeFunctions";
 import { v } from "convex/values";
 
@@ -304,11 +308,26 @@ async function advanceOrder(
   if (restocks && order) await scheduleMenuSync(ctx, [order.storeId]);
 
   if (dispatch) {
-    await ctx.scheduler.runAfter(
-      0,
-      internal.emailAutomationActions.startPostOrder,
-      dispatch as never
-    );
+    // The post-order automation, when the diner is a subscriber. `ready` is
+    // carried on the same object because a status change can owe two different
+    // sends; `startPostOrder` would refuse a payload without a subscriber id
+    // anyway, so the shape is checked rather than assumed.
+    if ("subscriberId" in dispatch) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.emailAutomationActions.startPostOrder,
+        dispatch as never
+      );
+    }
+
+    // « Votre commande est prête » (#96). Scheduled rather than awaited: a
+    // notification is not a reason for a kitchen status change to fail.
+    const ready = (dispatch as { ready?: { orderId: string } }).ready;
+    if (ready) {
+      await ctx.scheduler.runAfter(0, internal.customerEmail.sendOrderReady, {
+        orderId: ready.orderId as Id<"orders">,
+      });
+    }
   }
 }
 
@@ -393,6 +412,24 @@ export const confirmationPayload = internalQuery({
 export const releaseConfirmationClaim = internalMutation({
   args: { orderId: v.id("orders") },
   handler: (ctx, args) => releaseOrderConfirmationClaim(ctx, args.orderId),
+});
+
+/** What the « votre commande est prête » notice needs (#96). */
+export const readyNoticePayload = internalQuery({
+  args: { orderId: v.id("orders") },
+  handler: (ctx, args) => readyPayload(ctx, args.orderId),
+});
+
+/**
+ * Give back a ready-notice claim the sender could not use.
+ *
+ * Same reason as the confirmation's: `AWS_SES_FROM_EMAIL` unset is the day-one
+ * state of a new backend, and keeping the claim would silence that
+ * establishment's notices for ever — including after the address was configured.
+ */
+export const releaseReadyNoticeClaim = internalMutation({
+  args: { orderId: v.id("orders") },
+  handler: (ctx, args) => releaseReadyClaim(ctx, args.orderId),
 });
 
 /**

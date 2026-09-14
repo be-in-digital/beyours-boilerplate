@@ -103,6 +103,44 @@ export const getForDisplay = storeQuery({
   handler: (ctx, args) => defs.getForDisplay.handler(ctx, args),
 });
 
+/**
+ * The dining-room screen, read with the establishment's display token (#96).
+ *
+ * @public-by-design: `/display/[storeId]` is a tablet bolted to a wall in a
+ * public room, and the guarded twin above needs a staff session — so the screen
+ * a customer is meant to read could not be opened by the screen itself.
+ *
+ * The token IS the authorisation, and it is checked in the handler: a store with
+ * none refuses, a wrong one refuses, and the refusal is the same `null` in every
+ * case. What it protects is narrow by construction — order numbers, statuses and
+ * the establishment's own name, already legible to anybody in the room — so this
+ * is a rate-limiting credential, not a wall around personal data.
+ */
+export const getForDisplayByToken = query({
+  args: defs.getForDisplayByToken.args,
+  handler: (ctx, args) => defs.getForDisplayByToken.handler(ctx, args),
+});
+
+/** Whether the establishment has a display credential. Never its value. */
+export const displayTokenState = storeQuery({
+  permission: "kitchen:read",
+  args: defs.displayTokenState.args,
+  handler: (ctx, args) => defs.displayTokenState.handler(ctx, args),
+});
+
+/**
+ * Issue or rotate it.
+ *
+ * `stores:write`, not `kitchen:write`: the token is a credential for the
+ * establishment, and rotating it takes a screen off the air until somebody walks
+ * over to the tablet. That is an owner's decision, not a shift decision.
+ */
+export const rotateDisplayToken = storeMutation({
+  permission: "stores:write",
+  args: defs.rotateDisplayToken.args,
+  handler: (ctx, args) => defs.rotateDisplayToken.handler(ctx, args),
+});
+
 // Public: token-based access for customer order tracking
 // @public-by-design: order tracking by opaque token. The payload carries
 // preparation state only — no customer details.

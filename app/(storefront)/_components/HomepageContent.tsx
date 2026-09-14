@@ -125,7 +125,7 @@ export default function LandingPage() {
                         transition={{ duration: 0.8, ease: "easeOut" }}
                         className="flex-1 text-center md:text-left"
                     >
-                        <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
+                        <Badge className="bg-primary-hover text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
                             {heroBadge}
                         </Badge>
                         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-primary-foreground leading-[0.9] tracking-tighter mb-8 drop-shadow-2xl whitespace-pre-line">
@@ -186,7 +186,7 @@ export default function LandingPage() {
                             <motion.div
                                 animate={{ y: [0, -20, 0] }}
                                 transition={{ duration: 4, ease: "easeInOut" }}
-                                className="absolute top-10 -left-10 z-30 bg-white/20 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl"
+                                className="absolute top-10 -left-10 z-30 bg-primary-hover backdrop-blur-md p-4 rounded-3xl border border-primary-foreground/20 shadow-2xl"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-primary rounded-full">
@@ -210,7 +210,7 @@ export default function LandingPage() {
                             <motion.div
                                 animate={{ y: [0, 20, 0] }}
                                 transition={{ duration: 4, ease: "easeInOut", delay: 1 }}
-                                className="absolute bottom-1/4 -right-10 z-30 bg-white/20 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl"
+                                className="absolute bottom-1/4 -right-10 z-30 bg-primary-hover backdrop-blur-md p-4 rounded-3xl border border-primary-foreground/20 shadow-2xl"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-primary rounded-full">
@@ -311,12 +311,12 @@ export default function LandingPage() {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-primary-hover/80 via-transparent to-transparent" />
 
-                                    <button type="button" aria-label="Lire la vidéo de présentation" className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-primary-foreground border border-white/30 hover:bg-card hover:text-accent-foreground transition-all shadow-2xl group/play">
+                                    <button type="button" aria-label="Lire la vidéo de présentation" className="absolute inset-0 m-auto h-24 w-24 rounded-full bg-primary-hover backdrop-blur-xl flex items-center justify-center text-primary-foreground border border-white/30 hover:bg-card hover:text-accent-foreground transition-all shadow-2xl group/play">
                                         <Play className="h-10 w-10 fill-current translate-x-1 group-hover/play:scale-110 transition-transform" />
                                         <div className="absolute inset-0 rounded-full bg-card animate-ping opacity-20 group-hover:opacity-0" />
                                     </button>
 
-                                    <div className="absolute bottom-8 left-8 right-8 p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
+                                    <div className="absolute bottom-8 left-8 right-8 p-6 bg-primary-hover backdrop-blur-md rounded-2xl border border-primary-foreground/10">
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-primary-foreground font-black text-sm uppercase tracking-wider mb-1">Watch our story</p>

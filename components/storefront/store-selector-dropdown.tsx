@@ -168,7 +168,7 @@ export function StoreSelectorDropdown({
             <button
               type="button"
               onClick={requestLocation}
-              className="flex items-center gap-1 text-[10px] font-bold text-accent-foreground hover:text-primary-hover uppercase tracking-widest transition-colors"
+              className="flex items-center gap-1 text-[10px] font-bold text-accent-foreground hover:text-primary-ink uppercase tracking-widest transition-colors"
             >
               <Navigation className="h-3 w-3" />
               Localiser

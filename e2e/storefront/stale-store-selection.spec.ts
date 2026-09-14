@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test"
+// The version the seed below must carry. `migrateCartState` recomputes every
+// `lineId` when it runs, so a stale version here silently replaces the ids this
+// spec selects on.
+import { CART_STORAGE_VERSION } from "@be-in-digital/restaurant"
 
 /**
  * A store id this browser kept, that this deployment never issued.
@@ -108,7 +112,7 @@ test.describe("A checkout reached without browsing first", () => {
 
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(
-      ({ key }: { key: string }) => {
+      ({ key, version }: { key: string; version: number }) => {
         window.localStorage.setItem(
           key,
           JSON.stringify({
@@ -129,11 +133,11 @@ test.describe("A checkout reached without browsing first", () => {
               orderType: "pickup",
               storeId: null,
             },
-            version: 1,
+            version,
           }),
         )
       },
-      { key: CART_KEY },
+      { key: CART_KEY, version: CART_STORAGE_VERSION },
     )
   })
 

@@ -111,7 +111,7 @@ export default function ContactPage() {
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="max-w-4xl mx-auto relative z-10 text-center"
                 >
-                    <Badge className="bg-white/20 text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
+                    <Badge className="bg-primary-hover text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
                         {heroBadge}
                     </Badge>
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-primary-foreground leading-[0.9] tracking-tighter mb-8 whitespace-pre-line">

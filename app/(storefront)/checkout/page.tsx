@@ -19,6 +19,7 @@ import { useCartStore, formatPrice,
   saveCheckoutAttempt,
   clearCheckoutAttempt,
   useCartHydrated,
+  type CartItem,
 } from "@be-in-digital/restaurant"
 import {
   computeOrderTotals,
@@ -58,6 +59,35 @@ interface AppliedPromo {
   code: string
   name: string
   discountAmount: number
+}
+
+/**
+ * The cart lines a promotion may be resolved against.
+ *
+ * FORMULE LINES ARE NOT AMONG THEM (#352), and this is the client half of a
+ * decision the server makes in `orders.create`: a formule's dishes never enter
+ * `discountableLines`. The bundle price is the owner's own discount — they set
+ * it below the à-la-carte total deliberately — so letting « -20 % sur les
+ * desserts » also reach the dessert inside a formule discounts the same dish
+ * twice without anybody having asked.
+ *
+ * Order-level promotions still see the formule: those apply to the subtotal,
+ * which includes it.
+ *
+ * One function rather than a filter written at each of the two call sites: the
+ * summary the diner reads and the order the server writes must agree, and the
+ * way they stop agreeing is one site being updated and the other not.
+ */
+function discountableCartLines(items: CartItem[]) {
+  return items
+    .filter((item) => !item.menu && item.productId !== undefined)
+    .map((item) => ({
+      productId: item.productId,
+      categoryId: item.categoryId,
+      subtotal:
+        (item.price + item.options.reduce((s, o) => s + o.priceModifier, 0)) *
+        item.quantity,
+    }))
 }
 
 export default function CheckoutPage() {
@@ -167,13 +197,12 @@ export default function CheckoutPage() {
         subtotal: getSubtotal(),
         deliveryFee: estimatedDeliveryFee ?? 0,
         now,
-        items: items.map((item) => ({
-          productId: item.productId,
-          categoryId: item.categoryId,
-          subtotal:
-            (item.price + item.options.reduce((s, o) => s + o.priceModifier, 0)) *
-            item.quantity,
-        })),
+        // Formule lines are left out, exactly as the server leaves them out of
+        // `discountableLines`: the bundle price IS the owner's discount, and a
+        // category promotion reaching the dessert inside a formule would
+        // discount the same dish twice. Filtering here keeps the summary the
+        // diner reads equal to the order the server writes (#352).
+        items: discountableCartLines(items),
         timezone: globalSettings?.timezone,
         // The email is not known until the form is submitted, so a per-customer
         // cap cannot be checked here. The server checks it and may still refuse.
@@ -235,13 +264,7 @@ export default function CheckoutPage() {
   const automaticOffer = (() => {
     if (appliedPromo || !storeId || !autoPromotions?.length) return null
 
-    const lines = items.map((item) => ({
-      productId: item.productId,
-      categoryId: item.categoryId,
-      subtotal:
-        (item.price + item.options.reduce((s, o) => s + o.priceModifier, 0)) *
-        item.quantity,
-    }))
+    const lines = discountableCartLines(items)
 
     let best: AppliedPromo | null = null
     for (const promotion of autoPromotions) {
@@ -544,21 +567,55 @@ export default function CheckoutPage() {
           email: data.email,
           phone: data.phone,
         },
-        items: items.map((item) => ({
-          productId: item.productId as Id<"products">,
-          productName: item.name,
-          quantity: item.quantity,
-          unitPrice: item.price,
-          selectedOptions: item.options.map((opt) => ({
-            optionName: opt.name,
-            choiceName: opt.choice,
-            priceModifier: opt.priceModifier,
-          })),
-          subtotal:
-            (item.price +
-              item.options.reduce((s, o) => s + o.priceModifier, 0)) *
-            item.quantity,
-        })),
+        items: items.map((item) =>
+          item.menu
+            ? {
+                /*
+                 * A *formule* (#352). No `productId`, and every price here is
+                 * ignored by the server: the bundle price comes from the `menus`
+                 * row and the per-dish shares are computed there, so a client
+                 * that sent them would be a second implementation of a VAT rule.
+                 * `productName`, `unitPrice` and `subtotal` are sent because the
+                 * validator requires them, and are overwritten.
+                 */
+                productName: item.name,
+                quantity: item.quantity,
+                unitPrice: item.price,
+                selectedOptions: [],
+                subtotal: item.price * item.quantity,
+                menu: {
+                  menuId: item.menu.menuId as Id<"menus">,
+                  // The cart's own line id, so the grouping the diner saw is the
+                  // grouping the kitchen prints.
+                  lineId: item.lineId,
+                  choices: item.menu.choices.map((choice) => ({
+                    sectionId: choice.sectionId,
+                    productId: choice.productId as Id<"products">,
+                    quantity: choice.quantity,
+                    selectedOptions: (choice.options ?? []).map((opt) => ({
+                      optionName: opt.name,
+                      choiceName: opt.choice,
+                      priceModifier: opt.priceModifier,
+                    })),
+                  })),
+                },
+              }
+            : {
+                productId: item.productId as Id<"products">,
+                productName: item.name,
+                quantity: item.quantity,
+                unitPrice: item.price,
+                selectedOptions: item.options.map((opt) => ({
+                  optionName: opt.name,
+                  choiceName: opt.choice,
+                  priceModifier: opt.priceModifier,
+                })),
+                subtotal:
+                  (item.price +
+                    item.options.reduce((s, o) => s + o.priceModifier, 0)) *
+                  item.quantity,
+              }
+        ),
         type: orderType,
         paymentMethod: data.paymentMethod,
         // The diner's note to the kitchen — an allergy, most of the time. It

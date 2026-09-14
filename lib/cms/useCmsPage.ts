@@ -38,9 +38,16 @@ export interface CmsBlockAccessor {
 export interface UseCmsPageResult {
   isLoading: boolean
   block: (blockKey: string) => CmsBlockAccessor
+  /**
+   * What the public query says about the page, which is deliberately little.
+   *
+   * `hasUnpublishedChanges`, `draftUpdatedAt` and `updatedBy` left in #97: they
+   * are editorial state and a staff user id, and this query is anonymous. The
+   * admin editor reads them from `getAdminPageBlocks`, which is guarded. Nothing
+   * on the storefront ever read one.
+   */
   pageMeta: {
     hasPublished: boolean
-    hasUnpublishedChanges: boolean
     publishedAt?: number
   } | null
 }

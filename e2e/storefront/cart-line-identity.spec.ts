@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test"
+// The version the seed below must carry. `migrateCartState` recomputes every
+// `lineId` when it runs, so a stale version here silently replaces the ids this
+// spec selects on.
+import { CART_STORAGE_VERSION } from "@be-in-digital/restaurant"
 
 /**
  * Two configurations of one dish are two lines.
@@ -42,18 +46,18 @@ test.describe("Two configurations of one dish", () => {
 
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(
-      ({ key, items }: { key: string; items: unknown[] }) => {
+      ({ key, items, version }: { key: string; items: unknown[]; version: number }) => {
         window.localStorage.setItem(
           key,
           JSON.stringify({
             // No store: the storefront resolves one on load, and the cart
             // empties itself when the one it was filled from changes.
             state: { items, orderType: "pickup", storeId: null },
-            version: 1,
+            version,
           }),
         )
       },
-      { key: CART_KEY, items: [WITH_CHEESE, PLAIN] },
+      { key: CART_KEY, items: [WITH_CHEESE, PLAIN], version: CART_STORAGE_VERSION },
     )
   })
 

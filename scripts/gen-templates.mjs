@@ -158,8 +158,173 @@ function derive(C) {
    */
   const primaryInk = readable(p, [bg, card, muted, a], TEXT, dark);
 
-  return { bg, fg, p, pf, a, af, card, sec, mutedFg: mutedInk, border, input, muted, primaryInk, dark, chart };
+  /*
+   * `--primary-hover`, `--accent-solid` and `--accent-solid-foreground`: three
+   * tokens `globals.css` declares and NO template did.
+   *
+   * A template that moves `--primary` to a red and leaves `--primary-hover` at
+   * the engine's orange has a button that changes hue when a thumb lands on it.
+   * `--accent-solid` is the cart badge and the « nouveau » pill; without it they
+   * stayed orange under every one of the 51 palettes. `buildBrandingCss` derives
+   * all three for the per-store path, and these follow the same rules so a
+   * template and a branding choice cannot disagree about what a hover is.
+   *
+   * Seven points of lightness, away from the page in whichever mode this is. At
+   * 90% opacity — which is what `primary/90` would have been — a dark brand
+   * blends towards a light page and gets LIGHTER on hover.
+   */
+  /*
+   * `--primary-hover`: the pressed state, and it has to stay READABLE.
+   *
+   * Two floors, not one. The button's LABEL reads on it
+   * (`text-primary-foreground`), and the token is written as INK on `--card`
+   * as well. `template-contrast.test.ts` found both the moment the templates
+   * started reaching the scopes that use it.
+   *
+   * SEVEN POINTS AWAY FROM THE PAGE IS THE FIRST GUESS, NOT THE RULE. At 90%
+   * opacity — what `primary/90` would have been — a dark brand blends towards a
+   * light page and gets LIGHTER on hover, which is why the first guess moves away
+   * from the page.
+   *
+   * It is only a guess because a template may pair a light brand with a DARK
+   * label: `asiatique-dragon` ships gold `42 70% 40%` under `0 25% 8%`, and
+   * walking that darker drove the hover to `l: 0` where its own near-black label
+   * measured 1.120:1 — a button whose text vanishes when a thumb lands on it.
+   * Measured, not reasoned: the guard reported it on 41 files of one template.
+   *
+   * So both directions are tried, and `--primary` itself is the fallback. A hover
+   * state equal to the resting state is a button that does not visibly react;
+   * one whose label disappears is a button nobody can read. The first is a
+   * compromise, the second is a defect.
+   */
+  const hoverFloor = (candidate) =>
+    ratio({ h: Math.round(pf.h), s: Math.round(pf.s), l: Math.round(pf.l) }, candidate) >= TEXT &&
+    ratio(candidate, { h: Math.round(card.h), s: Math.round(card.s), l: Math.round(card.l) }) >= TEXT;
+
+  const walkHover = (step) => {
+    let c = {
+      h: Math.round(p.h),
+      s: Math.round(p.s),
+      l: Math.round(Math.max(0, Math.min(100, p.l + step * 7))),
+    };
+    for (let i = 0; i <= 200; i++) {
+      if (hoverFloor(c)) return c;
+      const l = c.l + step;
+      if (l < 0 || l > 100) return null;
+      c = { ...c, l };
+    }
+    return null;
+  };
+
+  const primaryHover =
+    walkHover(dark ? 1 : -1) ??
+    walkHover(dark ? -1 : 1) ??
+    { h: Math.round(p.h), s: Math.round(p.s), l: Math.round(p.l) };
+
+
+  /*
+   * The accent as a FILL, and the label that goes on it.
+   *
+   * A template's `--accent` is already a tint — 92% lightness on `asiatique` —
+   * because `bg-accent` paints hover surfaces. A badge needs the saturated
+   * version: `bg-accent-solid` is the cart count and the « nouveau » pill, and
+   * without the token the storefront hard-coded one, so the accent field only
+   * ever moved hover states.
+   *
+   * DERIVED LIKE `primaryInk`, AND THAT IS THE CORRECTION WORTH RECORDING. The
+   * first attempt walked it until WHITE on it cleared AA, which is the question a
+   * badge label asks — and `template-contrast.test.ts` then reported 490 failures
+   * across the catalogue, because the token is also written as INK (4.5:1 against
+   * `--background`, `--card` and `--muted`) and a colour chosen only to carry
+   * white does not clear a light page. `globals.css` says the same thing about
+   * its own value in a comment: "34% clears at 4.511".
+   *
+   * So it is walked against the surfaces, away from the page in whichever mode
+   * this is — light in dark mode, dark in light mode — and the LABEL is then
+   * chosen to suit whatever that produced, rather than assumed to be white. That
+   * is what `buildBrandingCss` does for the per-store path, and the two now agree.
+   */
+  /*
+   * The badge has to satisfy TWO measurements at once, so both are walked here.
+   *
+   * `--accent-solid` is written as INK (4.5:1 on `--background`, `--card` and
+   * `--muted` — `globals.css` records the same constraint about its own value:
+   * "34% clears at 4.511") AND it is a FILL that must carry a LABEL. One colour,
+   * two floors, and the two pull in opposite directions in dark mode: walking it
+   * lighter to clear a dark page makes white on it worse.
+   *
+   * Two earlier attempts are worth recording, because each was refuted by
+   * measurement rather than by argument. Walking it until white on it cleared AA
+   * produced 490 failures across the catalogue — the ink half was unmet. Walking
+   * it against the surfaces and then choosing between white and the page's own
+   * foreground produced 100 — in dark mode both candidate labels are light, and a
+   * light label on a light badge is the 2.78:1 the engine's comment already warns
+   * about.
+   *
+   * So the label is part of the search. The candidates are white and a near-black
+   * in the template's own hue family — which is what `globals.css` does in dark
+   * mode (`--accent-solid: 24 90% 58%` with `--accent-solid-foreground: 224 71%
+   * 4%`) — and the solid is walked until it clears the surfaces AND one of the
+   * two clears the solid.
+   */
+  const WHITE = { h: 0, s: 0, l: 100 };
+  // Not pure black: the ink belongs to the template, and a hint of its own hue
+  // reads as chosen rather than as a browser default.
+  const NEAR_BLACK = { h: fg.h, s: Math.min(fg.s, 20), l: 6 };
+
+  let accentSolid = {
+    h: Math.round(a.h),
+    // The saturation floor stops a near-grey accent producing a near-grey badge,
+    // which reads as a disabled control.
+    s: Math.round(Math.max(a.s, 55)),
+    l: dark ? 55 : 45,
+  };
+  let accentSolidInk = WHITE;
+  {
+    const surfaces = [bg, card, muted].map((c) => ({
+      h: Math.round(c.h), s: Math.round(c.s), l: Math.round(c.l),
+    }));
+    const step = dark ? 1 : -1;
+    for (let i = 0; i <= 200; i++) {
+      const onSurfaces = surfaces.every((g) => ratio(accentSolid, g) >= TEXT);
+      const label =
+        ratio(WHITE, accentSolid) >= ratio(NEAR_BLACK, accentSolid) ? WHITE : NEAR_BLACK;
+      if (onSurfaces && ratio(label, accentSolid) >= TEXT) {
+        accentSolidInk = label;
+        break;
+      }
+      accentSolidInk = label;
+      const l = accentSolid.l + step;
+      if (l < 0 || l > 100) break;
+      accentSolid = { ...accentSolid, l };
+    }
+  }
+
+  return { bg, fg, p, pf, a, af, card, sec, mutedFg: mutedInk, border, input, muted, primaryInk, primaryHover, accentSolid, accentSolidInk, dark, chart };
 }
+/*
+ * WHY THE SELECTOR IS A LIST, AND NOT `:root`.
+ *
+ * `app/globals.css` declares the storefront palette on `.storefront-theme` — a
+ * `<div>` in `components/storefront/storefront-shell.tsx`, not on `<html>` — and
+ * a custom property declared ON an element beats the one it would have
+ * INHERITED, whatever the layer or the specificity. It names eleven tokens.
+ *
+ * So a template writing `--primary` on `:root` alone repainted the ADMIN and the
+ * sign-in pages and left the storefront the engine's green. Measured and recorded
+ * in `tasks/wcag-contrast-audit-2026-09-08.md`; it is the same defect #410 found
+ * in `StoreTheme`, one layer down, and the same fix: name the element.
+ *
+ * `.dark .storefront-theme` for the same reason — `.dark` is on `<html>`, so it
+ * is inherited by the shell and loses to anything the shell declares.
+ *
+ * The sidebar blocks stay on `:root`/`.dark`: `.storefront-theme` declares no
+ * sidebar token, there is no sidebar on the storefront, and scoping them would
+ * add a selector that paints nothing.
+ */
+const STOREFRONT_LIGHT = ":root,\n.storefront-theme";
+const STOREFRONT_DARK = ".dark,\n.dark .storefront-theme";
+
 const tokenBlock = (sel, C) => {
   const d = derive(C);
   return `${sel} {
@@ -181,6 +346,9 @@ const tokenBlock = (sel, C) => {
   --border: ${F(d.border)};
   --input: ${F(d.input)};
   --ring: ${F(d.p)};
+  --primary-hover: ${F(d.primaryHover)};
+  --accent-solid: ${F(d.accentSolid)};
+  --accent-solid-foreground: ${F(d.accentSolidInk)};
   --chart-1: ${F(d.chart[0])};
   --chart-2: ${F(d.chart[1])};
   --chart-3: ${F(d.chart[2])};
@@ -339,9 +507,9 @@ for (const c of X.ORDER) {
  * (scripts/gen-templates.mjs). HSL without hsl(), the globals.css contract.
  */
 
-${tokenBlock(":root", t.L)}
+${tokenBlock(STOREFRONT_LIGHT, t.L)}
 
-${tokenBlock(".dark", t.D)}
+${tokenBlock(STOREFRONT_DARK, t.D)}
 
 /* Admin sidebar (full hsl() format, the globals.css contract) */
 ${sidebarBlock(":root", t.L)}

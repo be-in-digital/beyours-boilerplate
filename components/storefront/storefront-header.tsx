@@ -308,7 +308,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 border border-white/20 text-primary-foreground"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-hover border border-white/20 text-primary-foreground"
                 aria-label={t("accessibility.closeMenu")}
               >
                 <X className="h-4 w-4" />
