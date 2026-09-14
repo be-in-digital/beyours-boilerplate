@@ -28,6 +28,7 @@
 
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { canTransitionTo } from "@be-in-digital/restaurant";
+import { internal as convexInternal } from "../../convex/_generated/api";
 import { mapDeliverooStatus } from "../../convex/deliverooWebhook";
 import {
   cancelPendingScheduledJobs,
@@ -82,14 +83,53 @@ describe("Scenario 7: cancellation restrictions", () => {
       ).toBe(true);
     }
 
-    // Once the kitchen has the order, our own machine refuses — whoever asks.
-    const notCancellable = ["preparing", "ready", "out_for_delivery"] as const;
-    for (const internal of notCancellable) {
+    // Once the kitchen has the order, Deliveroo refuses — and since #111 that
+    // refusal lives in `orders.updateStatus`, not in the transition table.
+    //
+    // THE TABLE USED TO CARRY IT, and this block asserted `toBe(false)` on all
+    // three. The table is GLOBAL, so the Deliveroo rule was being applied to every
+    // order the establishment took itself — leaving it unable to record the
+    // commonest cancellation there is, the diner who telephones while the kitchen
+    // is cooking. Staff's only recourse was to complete an order that never
+    // happened.
+    //
+    // So the table now permits these three, and the mutation refuses them when
+    // `isMarketplaceOrder(order.source)` — asserted below, and in full in
+    // `tests/convex/order-cancel-window.test.ts`.
+    const platformStagesNotCancellable = ["preparing", "ready", "out_for_delivery"] as const;
+    for (const internal of platformStagesNotCancellable) {
       expect(
         canTransitionTo(internal, "cancelled"),
-        `${internal} must not be cancellable`,
-      ).toBe(false);
+        `${internal} is cancellable for the establishment's own orders`,
+      ).toBe(true);
     }
+  });
+
+  it("refuses a late cancellation on a Deliveroo order, at the mutation", async () => {
+    /*
+     * The half that moved. Deliveroo keeps its own state and refuses a
+     * cancellation once the order is being made; cancelling only on our side
+     * leaves the restaurant reading « annulée » while a rider is still coming.
+     */
+    const t = newHarness();
+    await seedStoreWithDeliveroo(t);
+    await placeOrder(t);
+
+    const orders = await readOrders(t);
+    expect(orders.length, "the webhook created an order").toBeGreaterThan(0);
+    const order = orders[0]!;
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(order._id, { status: "preparing" });
+    });
+
+    await expect(
+      t.mutation(convexInternal.orders.internalUpdateStatus, {
+        id: order._id,
+        status: "cancelled",
+        cancellationReason: "Le client a téléphoné",
+      }),
+    ).rejects.toThrow(/plateforme/);
   });
 });
 
