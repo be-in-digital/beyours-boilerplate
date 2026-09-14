@@ -2,12 +2,21 @@
   "slug": "poulet",
   "category": "Poulet",
   "themeName": "Braise",
-  "label": "Braise — urban rotisserie",
+  "label": "Braise \u2014 urban rotisserie",
   "description": "Chilli red on cream, poster condensed, urban rotisserie energy. Crispy chicken owned outright, executed premium.",
   "primary": "hsl(355 70% 42%)",
   "fonts": {
     "heading": "Barlow Condensed",
     "body": "Barlow"
+  },
+  "layout": {
+    "nav": "left",
+    "hero": "poster",
+    "menu": "cards",
+    "btn": "soft",
+    "tex": "none",
+    "foot": "columns",
+    "up": "1"
   },
   "aliases": [
     "poulet-braise"

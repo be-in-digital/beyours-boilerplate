@@ -6,6 +6,46 @@ admin sidebar, dashboard charts, fonts, shape language) inside the **client
 zone**: pick the template when the site is created, then tune the colors to
 the client's brand in `site/theme.css`.
 
+Three files are copied into `site/` when a template is applied, and all three
+are **overwritten**: `theme.css` (the palette), `fonts.ts` (the type) and
+`layout.ts` (the layout).
+
+## The layout half, and how much of it is built
+
+`layout.ts` carries the seven families the demo engine defines
+(`demos/assets/site.css` states the contract in its own header, and
+`lib/layout-families.ts` is the engine's copy of it). They are generated from
+the same demo identity as the palette, so what a buyer was shown and what the
+site installs come from one source.
+
+**Two of the seven change what a diner sees today.** The other five are carried,
+typed, and refused when the value is not one the family admits — and paint
+nothing yet. This table is what the product currently keeps, not what the demos
+promise; `HONOURED_FAMILIES` in `lib/layout-families.ts` is the same list in
+code, and a test holds the two against the stylesheet in both directions.
+
+| Family | Values | Built? |
+| --- | --- | --- |
+| `tex` | `none` · `dots` · `lines` · `grain` · `checker` | **yes** — a texture under the shop, in the establishment's own ink |
+| `up` | `0` · `1` | **yes** — headings in capitals |
+| `nav` | `left` · `center` · `bar` · `minimal` | not yet |
+| `hero` | `split` · `editorial` · `fullbleed` · `poster` · `board` · `magazine` · `zen` · `banner` · `collage` · `duo` | not yet |
+| `menu` | `cards` · `dotted` · `tickets` · `zen` · `mosaic` · `ledger` · `tabs` · `bento` | not yet |
+| `btn` | `soft` · `pill` · `square` · `brutal` · `underline` | not yet — `--radius` in `theme.css` covers the first three in practice |
+| `foot` | `columns` · `center` · `heavy` | not yet |
+
+Implementing one is a rule in `app/globals.css` plus its name in
+`HONOURED_FAMILIES`; the row above flips on the same commit, because the test
+fails either half alone. Every such rule **must** be confined to
+`.storefront-theme`: the attributes sit on `<html>`, which is the dashboard's
+ancestor too, and a selector that forgets repaints the owner's screens — the
+mistake #410 and #41 each cost once already.
+
+The demo previews (`demos/home.html?t=<slug>`) render all seven. A template's
+`DESIGN.md` names its hero and menu family in prose, and has always said that
+the demo's multi-page layout is what the engine side aims at. It still is, for
+five of the seven.
+
 The 5 flagship directions (one per vertical) are detailed below and maintained
 by hand. The other 45 (`<category>-<theme>`, e.g. `pizzeria-milano`,
 `asiatique-omakase`) are **generated from the demo identities**

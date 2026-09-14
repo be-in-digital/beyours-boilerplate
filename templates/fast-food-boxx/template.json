@@ -9,5 +9,14 @@
     "heading": "League Spartan",
     "body": "Inter Tight"
   },
+  "layout": {
+    "nav": "bar",
+    "hero": "poster",
+    "menu": "bento",
+    "btn": "brutal",
+    "tex": "none",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=fast-food-boxx"
 }

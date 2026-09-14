@@ -7,11 +7,10 @@
  *   pnpm template:apply <slug>        # applies a template to the site
  *   pnpm template:apply default       # restores the original theme
  *
- * Applying a template copies templates/<slug>/theme.css and fonts.ts into
- * site/ (client zone) and records the choice in .beindigital-site.json if the
- * site is initialized. site/theme.css and site/fonts.ts are OVERWRITTEN:
- * review `git diff site/` before committing if the site already had
- * customizations.
+ * Applying a template copies templates/<slug>/theme.css, fonts.ts and layout.ts
+ * into site/ (client zone) and records the choice in .beindigital-site.json if
+ * the site is initialized. All three are OVERWRITTEN: review `git diff site/`
+ * before committing if the site already had customizations.
  *
  * Art direction details: templates/<slug>/DESIGN.md and templates/README.md.
  */
@@ -89,6 +88,12 @@ export function applyTemplate(requestedSlug, root = DEFAULT_ROOT) {
   for (const [from, to] of [
     ["theme.css", path.join("site", "theme.css")],
     ["fonts.ts", path.join("site", "fonts.ts")],
+    // The layout half of the identity (#507). Copied like the other two, and
+    // like them OVERWRITTEN. The `existsSync` refusal below is the reason it is
+    // listed here rather than copied when present: a template with no
+    // `layout.ts` fails loudly at apply time instead of quietly leaving the
+    // previous template's layout over the new one's colours.
+    ["layout.ts", path.join("site", "layout.ts")],
   ]) {
     const src = path.join(dir, from)
     if (!fs.existsSync(src)) throw new Error(`Fichier manquant : templates/${slug}/${from}`)

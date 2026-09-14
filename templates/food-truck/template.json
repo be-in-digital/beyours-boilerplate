@@ -2,12 +2,21 @@
   "slug": "food-truck",
   "category": "Food truck",
   "themeName": "Convoi",
-  "label": "Convoi — food truck street craft",
+  "label": "Convoi \u2014 food truck street craft",
   "description": "Enamelled petrol blue on kraft paper, stencil condensed, sharp angles. Mobile craft, between bodywork and the daily chalkboard.",
   "primary": "hsl(192 62% 27%)",
   "fonts": {
     "heading": "Big Shoulders",
     "body": "Work Sans"
+  },
+  "layout": {
+    "nav": "bar",
+    "hero": "board",
+    "menu": "tickets",
+    "btn": "square",
+    "tex": "dots",
+    "foot": "heavy",
+    "up": "1"
   },
   "aliases": [
     "food-truck-convoi"

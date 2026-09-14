@@ -78,7 +78,7 @@ The boilerplate keeps a DELIBERATELY minimal delta against the engine's
 
 | File | Nature of the patch |
 | --- | --- |
-| `app/layout.tsx` | metadata/fonts/theme from the site zone |
+| `app/layout.tsx` | metadata/fonts/theme/layout from the site zone |
 | `next.config.ts` | registry `transpilePackages` + images via `site.config.ts` |
 | `eslint.config.mjs` | ignores `mobile/**` + `.template/**` (`PATCH BOILERPLATE` block) |
 | `package.json` | `workspace:^` deps → registry versions `^2.x` |

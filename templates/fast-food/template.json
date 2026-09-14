@@ -2,12 +2,21 @@
   "slug": "fast-food",
   "category": "Fast-food",
   "themeName": "Smash",
-  "label": "Smash — premium burger",
+  "label": "Smash \u2014 premium burger",
   "description": "Mustard on charcoal, fleshy grotesque, wide rounding. Smash-burger counter energy, executed premium.",
   "primary": "hsl(42 96% 50%)",
   "fonts": {
     "heading": "Bricolage Grotesque",
     "body": "Archivo"
+  },
+  "layout": {
+    "nav": "left",
+    "hero": "split",
+    "menu": "tabs",
+    "btn": "soft",
+    "tex": "none",
+    "foot": "columns",
+    "up": "1"
   },
   "aliases": [
     "fast-food-smash"

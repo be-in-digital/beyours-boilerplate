@@ -9,5 +9,14 @@
     "heading": "Bebas Neue",
     "body": "Hanken Grotesk"
   },
+  "layout": {
+    "nav": "bar",
+    "hero": "fullbleed",
+    "menu": "tickets",
+    "btn": "brutal",
+    "tex": "grain",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=food-truck-braisenroute"
 }

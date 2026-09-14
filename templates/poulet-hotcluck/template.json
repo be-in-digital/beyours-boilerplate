@@ -9,5 +9,14 @@
     "heading": "Anton",
     "body": "Archivo Narrow"
   },
+  "layout": {
+    "nav": "bar",
+    "hero": "poster",
+    "menu": "mosaic",
+    "btn": "brutal",
+    "tex": "grain",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=poulet-hotcluck"
 }

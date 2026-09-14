@@ -484,6 +484,53 @@ const TAG_EN = {
  *   ("Charcoal, flame, full stop.. numbered ledger");
  * - a lead-in word in front of a label that starts with the same word read as
  *   a stutter ("carte carte typographiée"). */
+/*
+ * The layout half of an identity (#507).
+ *
+ * `demos/assets/themes.js` has carried all seven families since the demos were
+ * written, and this generator read exactly two of them — `hero` and `menu` —
+ * to compose an English sentence for `template.json`'s `description`, throwing
+ * the machine-readable value away. So the catalogue shipped the palette and the
+ * fonts and left the layout in the sales demo, which is what #507 is about.
+ *
+ * `up` is a NUMBER in the source (0 / 1) and a string on the DOM, because it
+ * becomes `data-up`. Stringified here, at the one place that knows both sides,
+ * rather than in the template where fifty copies could disagree.
+ *
+ * The allowed values live in `lib/layout-families.ts`; `layout-families.test.ts`
+ * holds this generator's output against them, so a family renamed in the demos
+ * fails here rather than at a client.
+ */
+const layoutOf = (t) => ({
+  nav: String(t.nav),
+  hero: String(t.hero),
+  menu: String(t.menu),
+  btn: String(t.btn),
+  tex: String(t.tex),
+  foot: String(t.foot),
+  up: String(t.up ?? 0),
+});
+
+const layoutTs = (t, name, catEn) => `/*
+ * Site layout — CLIENT ZONE.
+ *
+ * The layout half of "${name}" (${catEn}), beside the colour half in theme.css
+ * and the type half in fonts.ts. Generated from the "${t.id}" demo identity
+ * (scripts/gen-templates.mjs); \`pnpm template:apply\` OVERWRITES it.
+ *
+ * The seven families and what each admits are declared once, in
+ * lib/layout-families.ts. Two of them — tex and up — currently change what a
+ * diner sees; the other five are carried and typed and paint nothing yet. See
+ * templates/README.md.
+ */
+
+import type { SiteLayout } from "@/lib/layout-families"
+
+export const siteLayout: SiteLayout = ${JSON.stringify(layoutOf(t), null, 2)
+  .replace(/"([a-z]+)":/g, "$1:")
+  .replace(/"/g, '"')}
+`;
+
 const noDot = (s) => s.replace(/\s*\.\s*$/, "");
 const lead = (word, label) =>
   label.toLowerCase().startsWith(word.toLowerCase()) ? label : `${word} ${label}`;
@@ -523,11 +570,17 @@ ${sidebarBlock(".dark", t.D)}
 `;
     fs.writeFileSync(path.join(dir, "theme.css"), css);
     fs.writeFileSync(path.join(dir, "fonts.ts"), fontsTs(t.fonts, X.PAIRINGS[t.fonts]));
+    fs.writeFileSync(path.join(dir, "layout.ts"), layoutTs(t, t.name, catEn));
     fs.writeFileSync(path.join(dir, "template.json"), JSON.stringify({
       slug: t.id, category: catLabel, themeName: t.name,
       label: `${t.name} — ${tagEn}`,
       description: `${tagEn}. ${lead("Menu", MENU_EN[t.menu] || t.menu)}, ${lead("hero", HERO_EN[t.hero] || t.hero)}.`,
       primary: `hsl(${t.L.p})`, fonts: { heading: family(X.PAIRINGS[t.fonts].h), body: family(X.PAIRINGS[t.fonts].b) },
+      // The same seven values as layout.ts, machine-readable beside the prose
+      // `description` composes from two of them. `template.json` is what
+      // `listTemplates` reads, so a catalogue screen can say what a template
+      // does to the layout without parsing a TypeScript file.
+      layout: layoutOf(t),
       demo: `demos/home.html?t=${t.id}`,
     }, null, 2) + "\n");
     fs.writeFileSync(path.join(dir, "DESIGN.md"), `# ${t.name} — ${catEn}

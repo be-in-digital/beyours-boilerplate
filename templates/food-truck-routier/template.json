@@ -9,5 +9,14 @@
     "heading": "Oswald",
     "body": "Onest"
   },
+  "layout": {
+    "nav": "left",
+    "hero": "split",
+    "menu": "ledger",
+    "btn": "square",
+    "tex": "lines",
+    "foot": "columns",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=food-truck-routier"
 }

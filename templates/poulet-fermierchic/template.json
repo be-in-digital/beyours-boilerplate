@@ -9,5 +9,14 @@
     "heading": "Libre Caslon Text",
     "body": "Instrument Sans"
   },
+  "layout": {
+    "nav": "left",
+    "hero": "split",
+    "menu": "tickets",
+    "btn": "soft",
+    "tex": "dots",
+    "foot": "columns",
+    "up": "0"
+  },
   "demo": "demos/home.html?t=poulet-fermierchic"
 }

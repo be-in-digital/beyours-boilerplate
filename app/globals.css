@@ -628,3 +628,69 @@ body:has(.pac-container:not(:empty)) [data-slot="dialog-overlay"] {
     scroll-behavior: auto;
   }
 }
+
+
+/* ═══════════ Layout families (#507) ═══════════
+ *
+ * A template carries seven of them — nav, hero, menu, btn, tex, foot, up —
+ * written onto `<html>` by `app/layout.tsx` from `site/layout.ts`, the way the
+ * demo engine writes them (`demos/assets/site.css` declares the contract in its
+ * own header). The allowed values live once, in `lib/layout-families.ts`.
+ *
+ * EVERY RULE BELOW IS CONFINED TO `.storefront-theme`, AND THAT IS NOT STYLE.
+ * The attribute sits on `<html>`, which is also the administration's ancestor:
+ * a selector that reads one without naming the storefront's own element
+ * repaints the dashboard. #410 and #41 both cost exactly that mistake, one
+ * layer down each time. `layout-families.test.ts` fails a rule that escapes.
+ *
+ * Two families are honoured here. The other five are carried, typed and
+ * refused-when-invalid, and paint nothing yet — `HONOURED_FAMILIES` is the
+ * list, the test holds it against this block in both directions, and
+ * `templates/README.md` says which is which to whoever picks a template. A
+ * family named in that list with no rule here fails; a rule here for a family
+ * not in it fails.
+ */
+
+/* `tex` — a background texture under the shop. Decorative: it paints the
+ * shell's own ground, touches no layout and moves no text. The four patterns
+ * are the demo engine's, retuned for this palette: `--muted-foreground` at low
+ * alpha, so the texture follows the establishment's own colours rather than a
+ * grey the template did not choose. `none` deliberately has no rule. */
+[data-tex="dots"] .storefront-theme {
+  background-image: radial-gradient(hsl(var(--muted-foreground) / 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+[data-tex="lines"] .storefront-theme {
+  background-image: repeating-linear-gradient(
+    0deg,
+    hsl(var(--muted-foreground) / 0.05) 0 1px,
+    transparent 1px 32px
+  );
+}
+
+[data-tex="grain"] .storefront-theme {
+  background-image: repeating-conic-gradient(
+    hsl(var(--muted-foreground) / 0.04) 0% 0.0001%,
+    transparent 0.0002% 0.0004%
+  );
+}
+
+[data-tex="checker"] .storefront-theme {
+  background-image: repeating-linear-gradient(
+    45deg,
+    hsl(var(--muted-foreground) / 0.05) 0 10px,
+    transparent 10px 20px
+  );
+}
+
+/* `up` — headings in capitals, the demo engine's `data-up="1"`.
+ *
+ * Headings only, never body copy or a control: capitals cost about ten per cent
+ * reading speed on a passage, and a screen reader may spell a short all-caps
+ * word letter by letter. `text-transform` leaves the accessible name alone —
+ * the DOM text is unchanged — so this is presentation, which is the whole point
+ * of it being a template's choice rather than the copy's. */
+[data-up="1"] .storefront-theme :is(h1, h2, h3) {
+  text-transform: uppercase;
+}

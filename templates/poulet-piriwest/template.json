@@ -9,5 +9,14 @@
     "heading": "Staatliches",
     "body": "Be Vietnam Pro"
   },
+  "layout": {
+    "nav": "bar",
+    "hero": "duo",
+    "menu": "bento",
+    "btn": "square",
+    "tex": "none",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=poulet-piriwest"
 }

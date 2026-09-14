@@ -9,5 +9,14 @@
     "heading": "Marcellus",
     "body": "Albert Sans"
   },
+  "layout": {
+    "nav": "center",
+    "hero": "editorial",
+    "menu": "dotted",
+    "btn": "soft",
+    "tex": "lines",
+    "foot": "columns",
+    "up": "0"
+  },
   "demo": "demos/home.html?t=asiatique-hanoi"
 }

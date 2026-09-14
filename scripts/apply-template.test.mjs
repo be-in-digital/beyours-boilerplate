@@ -25,6 +25,10 @@ function makeRoot() {
     fs.writeFileSync(path.join(dir, "template.json"), JSON.stringify(meta))
     fs.writeFileSync(path.join(dir, "theme.css"), `/* ${slug} */\n`)
     fs.writeFileSync(path.join(dir, "fonts.ts"), `export const font = "${slug}"\n`)
+    // The layout half (#507). A fixture without it exercises the refusal rather
+    // than the copy, which is a different test — `refuses a template missing a
+    // file` below owns that case and removes one deliberately.
+    fs.writeFileSync(path.join(dir, "layout.ts"), `export const siteLayout = "${slug}"\n`)
   }
 
   write("asiatique", {

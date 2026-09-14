@@ -2,12 +2,21 @@
   "slug": "asiatique",
   "category": "Asiatique",
   "themeName": "Izakaya",
-  "label": "Izakaya — contemporary Asian",
+  "label": "Izakaya \u2014 contemporary Asian",
   "description": "Deep jade and sumi ink on washi paper, Japanese gothic, sharp shapes. Calm precision, contemporary izakaya.",
   "primary": "hsl(168 46% 27%)",
   "fonts": {
     "heading": "Zen Kaku Gothic New",
     "body": "Noto Sans"
+  },
+  "layout": {
+    "nav": "minimal",
+    "hero": "zen",
+    "menu": "zen",
+    "btn": "square",
+    "tex": "none",
+    "foot": "center",
+    "up": "0"
   },
   "aliases": [
     "asiatique-izakaya"

@@ -9,5 +9,14 @@
     "heading": "Gabarito",
     "body": "Onest"
   },
+  "layout": {
+    "nav": "left",
+    "hero": "collage",
+    "menu": "cards",
+    "btn": "pill",
+    "tex": "dots",
+    "foot": "columns",
+    "up": "0"
+  },
   "demo": "demos/home.html?t=asiatique-banhmi"
 }

@@ -9,5 +9,14 @@
     "heading": "Saira Condensed",
     "body": "Onest"
   },
+  "layout": {
+    "nav": "bar",
+    "hero": "board",
+    "menu": "tabs",
+    "btn": "soft",
+    "tex": "none",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=poulet-wingsclub"
 }

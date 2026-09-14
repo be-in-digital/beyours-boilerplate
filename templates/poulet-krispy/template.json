@@ -9,5 +9,14 @@
     "heading": "Passion One",
     "body": "Gabarito"
   },
+  "layout": {
+    "nav": "center",
+    "hero": "collage",
+    "menu": "cards",
+    "btn": "pill",
+    "tex": "dots",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=poulet-krispy"
 }

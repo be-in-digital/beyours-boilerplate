@@ -9,5 +9,14 @@
     "heading": "Oswald",
     "body": "Onest"
   },
+  "layout": {
+    "nav": "bar",
+    "hero": "fullbleed",
+    "menu": "ledger",
+    "btn": "square",
+    "tex": "grain",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=fast-food-grill77"
 }

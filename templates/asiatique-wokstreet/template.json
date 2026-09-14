@@ -9,5 +9,14 @@
     "heading": "Bricolage Grotesque",
     "body": "Archivo"
   },
+  "layout": {
+    "nav": "left",
+    "hero": "fullbleed",
+    "menu": "tabs",
+    "btn": "soft",
+    "tex": "none",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=asiatique-wokstreet"
 }

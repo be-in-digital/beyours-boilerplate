@@ -3,5 +3,17 @@
   "label": "Neutral (engine default)",
   "description": "The engine's original theme: orange accent, Inter + Poppins. A starting point with no vertical direction, free to customize.",
   "primary": "hsl(24 95% 53%)",
-  "fonts": { "heading": "Poppins", "body": "Inter" }
+  "fonts": {
+    "heading": "Poppins",
+    "body": "Inter"
+  },
+  "layout": {
+    "nav": "left",
+    "hero": "split",
+    "menu": "cards",
+    "btn": "soft",
+    "tex": "none",
+    "foot": "columns",
+    "up": "0"
+  }
 }

@@ -9,5 +9,14 @@
     "heading": "Anton",
     "body": "Archivo Narrow"
   },
+  "layout": {
+    "nav": "bar",
+    "hero": "poster",
+    "menu": "bento",
+    "btn": "brutal",
+    "tex": "none",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=asiatique-sichuan"
 }

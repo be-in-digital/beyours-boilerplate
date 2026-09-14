@@ -9,5 +9,14 @@
     "heading": "Saira Condensed",
     "body": "Onest"
   },
+  "layout": {
+    "nav": "bar",
+    "hero": "poster",
+    "menu": "bento",
+    "btn": "square",
+    "tex": "checker",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=food-truck-pitstop"
 }

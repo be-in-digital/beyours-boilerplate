@@ -9,5 +9,14 @@
     "heading": "Cormorant Garamond",
     "body": "Outfit"
   },
+  "layout": {
+    "nav": "center",
+    "hero": "magazine",
+    "menu": "ledger",
+    "btn": "underline",
+    "tex": "lines",
+    "foot": "center",
+    "up": "0"
+  },
   "demo": "demos/home.html?t=poulet-bouillon"
 }

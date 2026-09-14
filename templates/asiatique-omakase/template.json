@@ -9,5 +9,14 @@
     "heading": "Shippori Mincho",
     "body": "IBM Plex Sans"
   },
+  "layout": {
+    "nav": "center",
+    "hero": "magazine",
+    "menu": "ledger",
+    "btn": "underline",
+    "tex": "none",
+    "foot": "center",
+    "up": "0"
+  },
   "demo": "demos/home.html?t=asiatique-omakase"
 }

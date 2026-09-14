@@ -9,5 +9,14 @@
     "heading": "Cormorant Garamond",
     "body": "Outfit"
   },
+  "layout": {
+    "nav": "minimal",
+    "hero": "collage",
+    "menu": "zen",
+    "btn": "pill",
+    "tex": "dots",
+    "foot": "center",
+    "up": "0"
+  },
   "demo": "demos/home.html?t=food-truck-boheme"
 }

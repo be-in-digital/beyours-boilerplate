@@ -9,5 +9,14 @@
     "heading": "Space Grotesk",
     "body": "Karla"
   },
+  "layout": {
+    "nav": "bar",
+    "hero": "duo",
+    "menu": "ledger",
+    "btn": "square",
+    "tex": "grain",
+    "foot": "heavy",
+    "up": "1"
+  },
   "demo": "demos/home.html?t=pizzeria-fornonero"
 }

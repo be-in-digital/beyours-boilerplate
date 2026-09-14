@@ -9,5 +9,14 @@
     "heading": "Familjen Grotesk",
     "body": "Karla"
   },
+  "layout": {
+    "nav": "minimal",
+    "hero": "zen",
+    "menu": "ledger",
+    "btn": "underline",
+    "tex": "none",
+    "foot": "center",
+    "up": "0"
+  },
   "demo": "demos/home.html?t=food-truck-nordique"
 }
