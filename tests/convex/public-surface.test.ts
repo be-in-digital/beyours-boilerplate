@@ -92,9 +92,6 @@ const KEPT_CALLERLESS: Record<string, string> = {
   // one of these removes a capability the shipped documentation still promises.
   "uberEatsActions.runValidation":
     "apps/docs/guides/delivery-integrations.md tells an operator to run it",
-  "uberEatsOAuth.generateAuthorizeUrl":
-    "delivery-integrations.md:125, and the ONLY writer of the oauthStates row " +
-    "that the live uberEatsConnectCallback HTTP route validates",
   "uberEatsOAuth.activateAndListStores":
     "tasks/uber-eats-go-live-runbook.md:89 makes it a go-live step",
   "maintenance.setContract":

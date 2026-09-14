@@ -138,13 +138,14 @@ export const activateAndListStoresCore = internalAction({
   },
 });
 
-// @kept-callerless: no screen calls this, and removing it broke the product.
-// It is the ONLY writer of a `uberEats` row in `oauthStates`, and
-// `uberEatsOAuthHttp.uberEatsConnectCallback` — a live HTTP route on the public
-// router — validates that row before exchanging the code. With no writer the
-// callback can only ever answer "Invalid or expired OAuth state", so Uber Eats
-// could never be connected at all. `apps/docs/guides/delivery-integrations.md:125`
-// documents this call by name as step 2 of the provisioning flow (#413).
+// Called from the admin since #274 — the Uber Eats connection card on a store's
+// Integrations tab. It used to be `@kept-callerless`, kept alive on the strength
+// of being the ONLY writer of a `uberEats` row in `oauthStates`, which the live
+// `uberEatsConnectCallback` HTTP route validates before exchanging the code:
+// with no writer the callback could only ever answer "Invalid or expired OAuth
+// state", so Uber Eats could never be connected at all (#413). An owner now
+// reaches step 2 of the provisioning flow from a button instead of from
+// `apps/docs/guides/delivery-integrations.md:125`.
 // @guarded-inline: checks settings:write by role — no store to scope against
 export const generateAuthorizeUrl = action({
   args: {},
