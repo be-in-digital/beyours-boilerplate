@@ -10,7 +10,31 @@
  *   --muted, --border, --input, --ring, --radius, --success, --warning, --info,
  *   --status-pending … --status-cancelled, --chart-1 … --chart-5
  *
- * Two of those are easy to get wrong, so they are called out:
+ * NAME BOTH SELECTORS, OR YOU REPAINT THE ADMIN AND NOT THE SHOP.
+ *
+ * app/globals.css declares the storefront's palette on `.storefront-theme` — a
+ * <div> in components/storefront/storefront-shell.tsx, not on <html> — and a
+ * custom property declared ON an element beats the one it would have INHERITED,
+ * whatever the layer or the specificity. So `:root { --primary: … }` alone
+ * recolours the dashboard and the sign-in pages, and leaves the shop the
+ * engine's green. Write the pair:
+ *
+ *     :root,
+ *     .storefront-theme { … }
+ *
+ *     .dark,
+ *     .dark .storefront-theme { … }
+ *
+ * Every template under templates/ is generated that way
+ * (scripts/gen-templates.mjs). This file is the one written by hand, which is
+ * why the rule is spelled out here. It is the same defect #410 found one layer
+ * down, in StoreTheme, and the same fix: name the element.
+ *
+ * Sidebar tokens are the exception and stay on `:root` / `.dark`:
+ * `.storefront-theme` declares none of them, and there is no sidebar on the
+ * shop, so scoping them would add a selector that paints nothing.
+ *
+ * Two tokens are easy to get wrong, so they are called out:
  *
  *   --primary-ink  the brand colour a WORD is written in, as opposed to
  *                  --primary, which a BUTTON is filled with. Override --primary
@@ -23,16 +47,20 @@
  *                  the field. Setting it equal to --border is the mistake that
  *                  once shipped in all 51 templates.
  *
- * Example — moving the default orange accent to a brick red:
+ * Example — moving the default orange accent to a brick red, on both:
  *
- *   :root {
+ *   :root,
+ *   .storefront-theme {
  *     --primary: 8 76% 45%;
+ *     --primary-ink: 8 76% 38%;
  *     --ring: 8 76% 45%;
  *     --accent: 8 70% 96%;
  *     --accent-foreground: 8 76% 30%;
  *   }
  *
- *   .dark {
+ *   .dark,
+ *   .dark .storefront-theme {
  *     --primary: 8 80% 55%;
+ *     --primary-ink: 8 80% 62%;
  *   }
  */
