@@ -236,6 +236,42 @@ describe("what the stylesheet honours", () => {
   })
 })
 
+describe("what the catalogue tells whoever picks a template", () => {
+  const README = path.join(TEMPLATES_DIR, "README.md")
+
+  /** The family rows of README's table, as `{ family: builtClaim }`. */
+  function readmeRows(): Record<string, string> {
+    const rows: Record<string, string> = {}
+    for (const line of fs.readFileSync(README, "utf8").split("\n")) {
+      const match = /^\|\s*`([a-z]+)`\s*\|[^|]*\|([^|]*)\|/.exec(line)
+      if (match && FAMILY_NAMES.includes(match[1] as LayoutFamily)) {
+        rows[match[1] as string] = (match[2] ?? "").trim()
+      }
+    }
+    return rows
+  }
+
+  test("every family has a row", () => {
+    // Anti-vacuity, and the reason this test exists: the table is what somebody
+    // choosing a template reads, and a family missing from it is a value they
+    // can set with no way to learn it does nothing.
+    expect(Object.keys(readmeRows()).sort()).toEqual([...FAMILY_NAMES].sort())
+  })
+
+  test("the prose says built for exactly the families that are", () => {
+    // `HONOURED_FAMILIES` is the same list in code, and the stylesheet is held
+    // against that. Without this, the two could agree while the documentation
+    // promised a fourth.
+    const rows = readmeRows()
+    const claimedBuilt = Object.entries(rows)
+      .filter(([, built]) => /^\*\*yes\*\*/.test(built))
+      .map(([family]) => family)
+      .sort()
+
+    expect(claimedBuilt).toEqual([...HONOURED_FAMILIES].sort())
+  })
+})
+
 describe("what reaches the DOM", () => {
   test("the root layout spreads the families onto <html>", () => {
     const source = fs.readFileSync(ROOT_LAYOUT, "utf8")

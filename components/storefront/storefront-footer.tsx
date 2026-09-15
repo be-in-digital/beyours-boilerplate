@@ -103,14 +103,19 @@ export function StorefrontFooter() {
   }
 
   return (
-    <footer className="bg-primary-hover pt-24 pb-12 px-6 md:px-12">
+    // `storefront-footer*` are hooks for the `foot` layout family (#507), not
+    // styling. A template picks `columns`, `center` or `heavy`, and the rules
+    // live in `app/globals.css` under `.storefront-theme` — Tailwind's generated
+    // class names are not a contract, so the CSS needs names of its own. The
+    // default here IS `columns`, so an unstyled footer is already correct.
+    <footer className="storefront-footer bg-primary-hover pt-24 pb-12 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
         {/* 4-column grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16">
+        <div className="storefront-footer-cols grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16">
 
           {/* Column 1 — Brand + contact */}
           <div>
-            <h2 className="text-2xl font-black tracking-tighter text-primary-foreground mb-4">
+            <h2 className="storefront-footer-brand text-2xl font-black tracking-tighter text-primary-foreground mb-4">
               {store?.name ?? "BeYours"}
             </h2>
             <p className="text-sm text-primary-foreground leading-relaxed mb-8">
@@ -230,7 +235,7 @@ export function StorefrontFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/10 pt-12 mt-16 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="storefront-footer-note border-t border-white/10 pt-12 mt-16 flex flex-col sm:flex-row items-center justify-between gap-6">
           <p className="text-xs font-bold text-primary-foreground uppercase tracking-widest">
             &copy; {new Date().getFullYear()} {store?.name ?? "Restaurant"}. Tous droits réservés.
           </p>

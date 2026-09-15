@@ -18,7 +18,7 @@ are **overwritten**: `theme.css` (the palette), `fonts.ts` (the type) and
 the same demo identity as the palette, so what a buyer was shown and what the
 site installs come from one source.
 
-**Two of the seven change what a diner sees today.** The other five are carried,
+**Three of the seven change what a diner sees today.** The other four are carried,
 typed, and refused when the value is not one the family admits — and paint
 nothing yet. This table is what the product currently keeps, not what the demos
 promise; `HONOURED_FAMILIES` in `lib/layout-families.ts` is the same list in
@@ -28,11 +28,11 @@ code, and a test holds the two against the stylesheet in both directions.
 | --- | --- | --- |
 | `tex` | `none` · `dots` · `lines` · `grain` · `checker` | **yes** — a texture under the shop, in the establishment's own ink |
 | `up` | `0` · `1` | **yes** — headings in capitals |
+| `foot` | `columns` · `center` · `heavy` | **yes** — `columns` is the default the component already renders; `center` stacks and centres it, `heavy` states a top edge and enlarges the name |
 | `nav` | `left` · `center` · `bar` · `minimal` | not yet |
 | `hero` | `split` · `editorial` · `fullbleed` · `poster` · `board` · `magazine` · `zen` · `banner` · `collage` · `duo` | not yet |
 | `menu` | `cards` · `dotted` · `tickets` · `zen` · `mosaic` · `ledger` · `tabs` · `bento` | not yet |
-| `btn` | `soft` · `pill` · `square` · `brutal` · `underline` | not yet — `--radius` in `theme.css` covers the first three in practice |
-| `foot` | `columns` · `center` · `heavy` | not yet |
+| `btn` | `soft` · `pill` · `square` · `brutal` · `underline` | not yet, and **blocked**: three of the five are radius languages, and `--radius` reaches nothing on the shop. Measured 14 Sep 2026 — 405 hard-coded `rounded-*` literals across 44 storefront files, and `@theme inline` maps no `--radius-*` token, so no Tailwind utility resolves to it. Its only readers anywhere are the demos and `packages/ui`'s `InputGroup` |
 
 Implementing one is a rule in `app/globals.css` plus its name in
 `HONOURED_FAMILIES`; the row above flips on the same commit, because the test

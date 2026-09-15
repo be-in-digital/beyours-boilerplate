@@ -694,3 +694,35 @@ body:has(.pac-container:not(:empty)) [data-slot="dialog-overlay"] {
 [data-up="1"] .storefront-theme :is(h1, h2, h3) {
   text-transform: uppercase;
 }
+
+/* `foot` — how the footer is laid out. Three of the demo engine's arrangements,
+ * over the engine's own markup rather than the demos'. The hooks are the
+ * `storefront-footer*` classes on the component; Tailwind's generated names are
+ * not a contract, so the CSS carries names of its own.
+ *
+ * `columns` has no rule: it is what the component already renders, so the
+ * default costs nothing and an unstyled footer is already right. */
+[data-foot="center"] .storefront-theme .storefront-footer-cols {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2.5rem;
+}
+
+[data-foot="center"] .storefront-theme .storefront-footer-note {
+  flex-direction: column;
+  text-align: center;
+}
+
+/* `heavy` — a stated top edge and a bigger, capitalised name. `--primary-foreground`
+ * rather than `--foreground`: this footer sits on `--primary-hover`, and the
+ * demos' `--foreground` would be ink from the wrong ground. */
+[data-foot="heavy"] .storefront-theme .storefront-footer {
+  border-top: 2px solid hsl(var(--primary-foreground) / 0.35);
+}
+
+[data-foot="heavy"] .storefront-theme .storefront-footer-brand {
+  font-size: 2.125rem;
+  text-transform: uppercase;
+}
