@@ -5,8 +5,10 @@ import { createRequire } from "node:module"
 
 import {
   ENGINE_LAYOUT,
+  HONOURED,
   HONOURED_FAMILIES,
   LAYOUT_FAMILIES,
+  isHonoured,
   isLayoutValue,
   layoutAttributes,
   type LayoutFamily,
@@ -167,12 +169,13 @@ function globalsRules(): string[] {
     .filter((selector) => selector.length > 0)
 }
 
-/** The families `globals.css` actually has rules for. */
-function familiesInCss(): Set<string> {
-  const found = new Set<string>()
+/** The values `globals.css` actually has rules for, per family. */
+function valuesInCss(): Record<string, Set<string>> {
+  const found: Record<string, Set<string>> = {}
   for (const selector of globalsRules()) {
-    for (const [, family] of selector.matchAll(/\[data-([a-z]+)\s*=/g)) {
-      if (family && FAMILY_NAMES.includes(family as LayoutFamily)) found.add(family)
+    for (const [, family, value] of selector.matchAll(/\[data-([a-z]+)="([^"]*)"\]/g)) {
+      if (!family || !FAMILY_NAMES.includes(family as LayoutFamily)) continue
+      ;(found[family] ??= new Set()).add(value ?? "")
     }
   }
   return found
@@ -197,28 +200,50 @@ function alternatives(selector: string): string[] {
 describe("what the stylesheet honours", () => {
   test("the scan finds rules — it is not reading an empty stylesheet", () => {
     expect(globalsRules().length).toBeGreaterThan(20)
-    expect(familiesInCss().size).toBeGreaterThan(0)
+    expect(Object.keys(valuesInCss()).length).toBeGreaterThan(0)
   })
 
-  test("every family claimed as honoured paints something", () => {
-    // A family carried in `template.json` that paints nothing is a promise the
-    // product does not keep — the failure mode this whole issue is about, one
-    // level up.
-    const painted = familiesInCss()
-    const claimed = HONOURED_FAMILIES.filter((family) => !painted.has(family))
+  test("every value claimed as honoured paints something", () => {
+    // A value carried in `template.json` that paints nothing is a promise the
+    // product does not keep — the failure this whole issue is about, one level
+    // up. Per value and not per family: `hero` honours three of ten, and
+    // claiming the family whole would be the same lie at a coarser grain.
+    //
+    // A family's FIRST value is the engine's own and needs no rule: `split`,
+    // `left`, `columns`, `none`, `0` are what the component already renders.
+    const painted = valuesInCss()
+    const unpainted: string[] = []
+    for (const family of FAMILY_NAMES) {
+      for (const value of HONOURED[family]) {
+        if (value === ENGINE_LAYOUT[family]) continue
+        if (!painted[family]?.has(value as string)) unpainted.push(`${family}="${value}"`)
+      }
+    }
 
-    expect(claimed, "named in HONOURED_FAMILIES with no rule in globals.css").toEqual([])
+    expect(unpainted, "claimed in HONOURED with no rule in globals.css").toEqual([])
   })
 
-  test("every family that paints something is claimed", () => {
-    // The other direction, and the one that keeps the list usable: a rule
-    // written without adding its family here leaves the catalogue's own
-    // documentation saying it does nothing.
-    const unclaimed = [...familiesInCss()].filter(
-      (family) => !(HONOURED_FAMILIES as readonly string[]).includes(family)
-    )
+  test("every value that paints something is claimed", () => {
+    // The other direction: a rule written without adding its value to HONOURED
+    // leaves the catalogue's own documentation saying it does nothing.
+    const unclaimed: string[] = []
+    for (const [family, values] of Object.entries(valuesInCss())) {
+      for (const value of values) {
+        if (!isHonoured(family as LayoutFamily, value)) unclaimed.push(`${family}="${value}"`)
+      }
+    }
 
-    expect(unclaimed, "has rules in globals.css but is not in HONOURED_FAMILIES").toEqual([])
+    expect(unclaimed, "has rules in globals.css but is not in HONOURED").toEqual([])
+  })
+
+  test("a family with no honoured value has no rules at all", () => {
+    // `menu` and `btn` are carried, typed and refused-when-invalid, and paint
+    // nothing. A stray rule for one would make the README's "not yet" false.
+    const painted = valuesInCss()
+    const silent = FAMILY_NAMES.filter((family) => HONOURED[family].length === 0)
+
+    expect(silent.length, "no family is unbuilt — this test has nothing to guard").toBeGreaterThan(0)
+    expect(silent.filter((family) => painted[family])).toEqual([])
   })
 
   test("no rule reading a family can reach the dashboard", () => {
@@ -258,17 +283,32 @@ describe("what the catalogue tells whoever picks a template", () => {
     expect(Object.keys(readmeRows()).sort()).toEqual([...FAMILY_NAMES].sort())
   })
 
-  test("the prose says built for exactly the families that are", () => {
-    // `HONOURED_FAMILIES` is the same list in code, and the stylesheet is held
-    // against that. Without this, the two could agree while the documentation
-    // promised a fourth.
+  test("the prose marks built exactly the families that have a built value", () => {
+    // `HONOURED` is the same thing in code and the stylesheet is held against
+    // that. Without this, the two could agree while the table a person reads
+    // promised one more.
+    //
+    // `**partly**` is its own mark, for a family where some values are built and
+    // some are not — `hero` is three of ten, and calling that `**yes**` would be
+    // the coarse-grained version of the lie this issue is about.
     const rows = readmeRows()
-    const claimedBuilt = Object.entries(rows)
-      .filter(([, built]) => /^\*\*yes\*\*/.test(built))
-      .map(([family]) => family)
-      .sort()
+    const fully = FAMILY_NAMES.filter(
+      (family) => HONOURED[family].length === LAYOUT_FAMILIES[family].length
+    ).sort()
+    const partly = FAMILY_NAMES.filter(
+      (family) =>
+        HONOURED[family].length > 0 && HONOURED[family].length < LAYOUT_FAMILIES[family].length
+    ).sort()
 
-    expect(claimedBuilt).toEqual([...HONOURED_FAMILIES].sort())
+    const marked = (mark: string) =>
+      Object.entries(rows)
+        .filter(([, built]) => built.startsWith(mark))
+        .map(([family]) => family)
+        .sort()
+
+    expect(marked("**yes**")).toEqual(fully)
+    expect(marked("**partly**")).toEqual(partly)
+    expect(HONOURED_FAMILIES.length).toBe(fully.length + partly.length)
   })
 })
 

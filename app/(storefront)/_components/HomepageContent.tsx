@@ -112,18 +112,24 @@ export default function LandingPage() {
     return (
         <div className="min-h-screen bg-background dark:bg-muted text-foreground dark:text-foreground font-sans overflow-x-hidden transition-colors duration-500">
             {/* ─── HERO ─── */}
-            <section className="relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-primary rounded-b-none md:rounded-b-[6rem]">
+            {/* `storefront-hero*` are hooks for the `hero` layout family (#507), not
+                styling. Four of its ten values are expressible on this markup and are
+                CSS rules in `app/globals.css`; the other six want a photograph, a
+                second image, a locations board or a rating stamp this product refuses
+                to invent, and would need a different tree. The default here IS
+                `split`, so an unstyled hero is already correct. */}
+            <section className="storefront-hero relative pt-24 pb-20 md:pt-32 md:pb-32 px-6 md:px-12 overflow-hidden bg-primary rounded-b-none md:rounded-b-[6rem]">
                 <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
                     <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]" />
                     <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px]" />
                 </div>
 
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 relative z-10">
+                <div className="storefront-hero-row max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 relative z-10">
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="flex-1 text-center md:text-left"
+                        className="storefront-hero-text flex-1 text-center md:text-left"
                     >
                         <Badge className="bg-primary-hover text-primary-foreground border-white/30 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 font-black tracking-widest uppercase text-[10px] shadow-lg">
                             {heroBadge}
@@ -151,7 +157,7 @@ export default function LandingPage() {
                         initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
                         animate={{ opacity: 1, scale: 1, rotate: 0 }}
                         transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                        className="flex-1 relative w-full mt-24 md:mt-0"
+                        className="storefront-hero-media flex-1 relative w-full mt-24 md:mt-0"
                     >
                         <div className="relative w-full aspect-square max-w-xl mx-auto">
                             {heroImage && (

@@ -70,8 +70,17 @@ const apiProxy: unknown = new Proxy(
 )
 vi.mock("@/convex/_generated/api", () => ({ api: apiProxy }))
 
+// The CMS block the hero reads. The image matters: without one the media column
+// is empty, and half the values under review are about where that column sits.
+const HERO_IMAGE = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjYwMCIgcng9IjQwIiBmaWxsPSIjZjRhMjYxIi8+PGNpcmNsZSBjeD0iMzAwIiBjeT0iMzAwIiByPSIxOTAiIGZpbGw9IiNlNzZmNTEiLz48L3N2Zz4="
+
 vi.mock("@/lib/cms/useCmsPage", () => ({
-  useCmsPage: () => ({ block: () => ({ field: () => ({}) }) }),
+  useCmsPage: () => ({
+    block: (name: string) => ({
+      field: (field: string) =>
+        name === "hero" && field === "image" ? { mediaUrl: HERO_IMAGE, altText: "" } : {},
+    }),
+  }),
 }))
 
 vi.mock("@/lib/hooks", () => ({
@@ -85,10 +94,18 @@ vi.mock("@/lib/hooks/use-store-id", () => ({
 vi.mock("sonner", () => ({ toast: { success: () => {}, error: () => {} } }))
 
 vi.mock("@be-in-digital/restaurant", () => ({
-  useCartStore: (selector: (s: unknown) => unknown) =>
-    selector({ getItemCount: () => 2, items: [] }),
-  useStorefrontStoreSelection: (selector: (s: unknown) => unknown) =>
-    selector({ storeId: STORE._id, setStoreId: () => {} }),
+  // Called both ways in this tree — with a selector, and bare for the whole
+  // store — so the mock has to answer both.
+  useCartStore: (selector?: (s: unknown) => unknown) => {
+    const state = { getItemCount: () => 2, items: [], addItem: () => {} }
+    return typeof selector === "function" ? selector(state) : state
+  },
+  useStorefrontStoreSelection: (selector?: (s: unknown) => unknown) => {
+    const state = { storeId: STORE._id, setStoreId: () => {} }
+    return typeof selector === "function" ? selector(state) : state
+  },
+  formatPrice: (cents: number) =>
+    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100),
   useTranslation: () => ({
     t: (key: string) =>
       ({
@@ -117,8 +134,60 @@ vi.mock("@/components/storefront/user-menu", () => ({
   UserMenu: () => <button type="button">Compte</button>,
 }))
 
+/**
+ * framer-motion, at rest.
+ *
+ * NOT a convenience. `motion.div` writes its INITIAL state as inline style and
+ * animates from there on a frame loop, and nothing advances frames here — so the
+ * serialised hero carried `opacity: 0` on both of its columns and the artefact
+ * showed an empty section. What a layout family arranges is where the boxes
+ * COME TO REST, which is what a plain element gives.
+ */
+vi.mock("framer-motion", () => {
+  const passthrough = ({ children, ...rest }: Record<string, unknown> & { children?: React.ReactNode }) => {
+    const {
+      initial: _i, animate: _a, exit: _e, transition: _t, variants: _v,
+      whileHover: _wh, whileTap: _wt, whileInView: _wi, viewport: _vp,
+      layout: _l, layoutId: _li, drag: _d, style, className, ...html
+    } = rest as Record<string, unknown>
+    return <div className={className as string} style={style as React.CSSProperties} {...html}>{children}</div>
+  }
+  const motion = new Proxy({}, { get: () => passthrough })
+  return {
+    motion,
+    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    MotionConfig: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    useReducedMotion: () => false,
+  }
+})
+
+vi.mock("@/lib/parse-colored-text", () => ({
+  parseColoredText: (text: string) => text,
+}))
+
+vi.mock("next/image", () => ({
+  // A plain <img> at the same box: next/image needs a loader and a real file,
+  // and what is under review is where the media column SITS.
+  //
+  // base64 rather than the readable `svg+xml,<svg …>` form: the reviewer turns
+  // each page into a data: URL of its own, and a data URI carrying raw quotes
+  // and spaces inside that one made the page unopenable — it looked like a
+  // missing file.
+  default: ({ alt, className }: { alt?: string; className?: string }) => (
+    <img
+      alt={alt ?? ""}
+      className={className}
+      src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNDAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2MyNDEwYyIvPjwvc3ZnPg=="
+    />
+  ),
+}))
+
 const { StorefrontHeader } = await import("@/components/storefront/storefront-header")
 const { StorefrontFooter } = await import("@/components/storefront/storefront-footer")
+const HomepageContent = (await import("@/app/(storefront)/_components/HomepageContent")).default
+// The page mounts tooltips without a provider of its own — the real one lives
+// in the storefront layout, above it.
+const { TooltipProvider } = await import("@be-in-digital/ui")
 
 beforeAll(() => {
   window.matchMedia = ((query: string) => ({
@@ -131,11 +200,17 @@ beforeAll(() => {
     removeListener: () => {},
     dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia
-  ;(globalThis as { ResizeObserver?: unknown }).ResizeObserver = class {
+  // jsdom ships neither, and framer-motion's viewport triggers want both.
+  class Observer {
     observe() {}
     unobserve() {}
     disconnect() {}
+    takeRecords() {
+      return []
+    }
   }
+  ;(globalThis as { ResizeObserver?: unknown }).ResizeObserver = Observer
+  ;(globalThis as { IntersectionObserver?: unknown }).IntersectionObserver = Observer
   fs.mkdirSync(OUT, { recursive: true })
 })
 
@@ -204,5 +279,36 @@ describe("the storefront chrome, serialised for a browser", () => {
     }
 
     emit("footer", html)
+  })
+
+  test("the homepage hero, with its layout hooks intact", async () => {
+    pathname = "/"
+    const html = await renderToHtml(
+      <TooltipProvider>
+        <HomepageContent />
+      </TooltipProvider>
+    )
+
+    for (const hook of [
+      "storefront-hero",
+      "storefront-hero-row",
+      "storefront-hero-text",
+      "storefront-hero-media",
+    ]) {
+      expect(html, hook).toContain(hook)
+    }
+
+    // The hero and the section under it, taken from the DOM rather than sliced
+    // out of the string — a string slice can cut a tag in half, and the artefact
+    // has to be markup a browser parses the way the app's is parsed.
+    //
+    // The section under it earns its place: the features strip rides on a
+    // negative margin INTO the hero's bottom curve, so a value that changes that
+    // curve changes where the strip sits. The rest of the homepage is not what
+    // this family arranges, and carrying it put the page over the size the
+    // reviewer will open.
+    const hero = document.querySelector(".storefront-hero")
+    expect(hero, "no .storefront-hero in the rendered homepage").not.toBeNull()
+    emit("hero", (hero?.outerHTML ?? "") + (hero?.nextElementSibling?.outerHTML ?? ""))
   })
 })

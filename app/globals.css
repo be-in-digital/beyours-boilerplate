@@ -815,3 +815,69 @@ body:has(.pac-container:not(:empty)) [data-slot="dialog-overlay"] {
   font-weight: 600;
   letter-spacing: 0.08em;
 }
+
+/* `hero` — how the first screen is arranged.
+ *
+ * THREE OF TEN, AND THE SEVEN ARE NOT A BACKLOG. The demo engine decides this one
+ * by emitting a different section per value (`site.js:323` is a `switch`), not
+ * by reading the attribute, so each of its heroes carries elements the others do
+ * not: `.hero-editorial .stamp`, `.hero-poster .marq`, `.hero-magazine .rule`,
+ * `.hero-fullbleed .bg`. Four of them are arrangements of what the engine's hero
+ * already has — a text column, one image and two floating badges — and those are
+ * the three below. The rest want content that does not exist here:
+ *
+ *   fullbleed  a photograph to sit behind the text. The engine's image is a
+ *              cut-out product shot (object-contain, drop-shadow), which as a
+ *              background reads as a mistake rather than a photograph.
+ *   editorial  a round photo AND a rating stamp — the demo's says "4,8 sur 5".
+ *              This product does not invent social proof (CLAUDE.md), and
+ *              `tests/storefront/no-fabricated-social-proof.test.ts` would
+ *              refuse it. Not a limitation: a decision.
+ *   magazine   a rule and a meta line (section, date) with nothing to fill them.
+ *   board      a board of locations — a different section, not a hero.
+ *   collage    two overlapping photographs; the CMS block carries one image.
+ *   poster     type at poster scale plus a running marquee strip. The type half
+ *              is expressible; the marquee is markup, and half a value is worse
+ *              than none.
+ *   duo        a colour half and a photo half with a diagonal between them. It
+ *              WAS written — `clip-path` on the media column over a ground of
+ *              `--primary-hover` — and the harness showed why it is in this list
+ *              instead: the media column holds a cut-out product shot on no
+ *              ground of its own, so the diagonal cut the dish rather than
+ *              dividing two panels, and the ground behind it never showed. It
+ *              reads as a clipping mistake. Same want as `fullbleed`: a
+ *              photograph, which this hero does not have.
+ *
+ * `HONOURED.hero` names the three, and a test holds it against the rules here, so
+ * a fifth cannot be claimed without being written. */
+
+/* `zen` — pared back and airy: two equal columns, the headline down from
+ * display scale to something a person reads rather than receives, and the space
+ * doing the work instead of the size. */
+[data-hero="zen"] .storefront-theme .storefront-hero-row {
+  gap: 4rem;
+}
+
+[data-hero="zen"] .storefront-theme .storefront-hero-text h1 {
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+[data-hero="zen"] .storefront-theme .storefront-hero {
+  padding-top: 8rem;
+  padding-bottom: 7rem;
+}
+
+/* `banner` — a straight band. The engine's hero curves into the page with a
+ * 6rem bottom radius; a banner is the value that does not. */
+[data-hero="banner"] .storefront-theme .storefront-hero {
+  border-radius: 0;
+  padding-top: 6rem;
+  padding-bottom: 5rem;
+}
+
+[data-hero="banner"] .storefront-theme .storefront-hero-media {
+  max-width: 28rem;
+}
+

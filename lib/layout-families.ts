@@ -13,12 +13,25 @@
  * radius and a font pair, and the layout half of its identity stayed in the
  * sales demo. This table is the layout half, in a form the engine can act on.
  *
- * WHY AN ATTRIBUTE AND NOT A COMPONENT VARIANT. The demos answer this: every
- * family there is pure CSS keyed on a `data-*` attribute of `<html>`, over
- * markup that does not change between variants — `[data-nav="center"] .nav-in
- * { … }`. No JavaScript, no per-variant tree. The engine's markup is not the
- * demos' markup, so the rules have to be written against the engine's own
- * classes rather than lifted; the mechanism carries over unchanged.
+ * ATTRIBUTE OR COMPONENT VARIANT — THE ANSWER IS BOTH, AND THIS FILE USED TO
+ * SAY OTHERWISE. It claimed that "every family there is pure CSS keyed on a
+ * `data-*` attribute, over markup that does not change between variants". That
+ * is true of `nav`, `btn`, `tex`, `foot` and `up`, and **false of `hero` and
+ * `menu`** — the two that had not been implemented when it was written.
+ *
+ * `demos/assets/site.js` sets all seven attributes on `<html>` at `:121`, and
+ * then decides those two by emitting different markup: `switch (T.hero)` at
+ * `:323` returns a different `<section>` per value, and `renderMenu(dishes,
+ * style, full)` at `:276` branches the same way. The CSS confirms it —
+ * `.hero-editorial .stamp`, `.hero-poster .marq`, `.hero-magazine .rule` select
+ * elements that exist in one variant only.
+ *
+ * That is why `HONOURED` below is per VALUE. Three of `hero`'s ten are
+ * arrangements of what the engine's hero already holds, and those three are
+ * ordinary CSS here; the other seven want a photograph, a second image, a
+ * locations board, a marquee, or a rating stamp this product refuses to invent —
+ * a different tree, not a different rule. A family is not atomic, and pretending
+ * it was would have meant shipping none of the three or claiming all ten.
  *
  * WHERE THE ATTRIBUTE SITS, AND WHERE THE RULES MAY REACH. The attribute goes
  * on `<html>`, as it does in the demos. Every rule that reads it MUST be
@@ -58,20 +71,44 @@ export type SiteLayout = {
 }
 
 /**
- * The families the storefront actually renders differently today.
+ * What the storefront actually renders differently today — per VALUE.
  *
- * Listed rather than inferred, and listed HERE rather than only in the
- * stylesheet, because a family carried in `template.json` that paints nothing
- * is a promise the product does not keep. `layout-families.test.ts` compares
- * this set against the rules in `app/globals.css` in both directions: a family
- * named here with no rule fails, and a rule for a family not named here fails.
- * So implementing one is a two-line edit and its row flips on the same commit.
+ * Per value and not per family, because a family is not atomic. `hero` has ten,
+ * and three of them are expressible on the content an establishment already has;
+ * the other seven want a photograph the engine's hero does not carry, a second
+ * image, a locations board, or — for `editorial` — a rating stamp, which this
+ * product refuses to invent at all (CLAUDE.md § social proof, held by
+ * `tests/storefront/no-fabricated-social-proof.test.ts`). Treating the family as
+ * one switch would have meant shipping none of the four or lying about six.
  *
- * The other four are carried, typed and refused-when-invalid, and change
- * nothing on screen yet. `templates/README.md` says which is which, in the same
- * words, for the person choosing a template rather than reading this file.
+ * `layout-families.test.ts` compares this against what exists, in both
+ * directions and by mechanism: the CSS families against the rules in
+ * `app/globals.css`, and `hero` against the variants its component implements.
+ * So a value listed here with nothing behind it fails, and a variant built
+ * without being listed fails too.
+ *
+ * `templates/README.md` says the same thing in prose, and a test holds that to
+ * this as well.
  */
-export const HONOURED_FAMILIES = ["tex", "up", "foot", "nav"] as const satisfies readonly LayoutFamily[]
+export const HONOURED: { readonly [F in LayoutFamily]: readonly SiteLayout[F][] } = {
+  nav: ["left", "center", "bar", "minimal"],
+  tex: ["none", "dots", "lines", "grain", "checker"],
+  foot: ["columns", "center", "heavy"],
+  up: ["0", "1"],
+  hero: ["split", "zen", "banner"],
+  menu: [],
+  btn: [],
+}
+
+/** The families with at least one value the storefront honours. */
+export const HONOURED_FAMILIES = (Object.keys(HONOURED) as LayoutFamily[]).filter(
+  (family) => HONOURED[family].length > 0
+)
+
+/** Does the storefront render this value differently, or fall back to the default? */
+export function isHonoured(family: LayoutFamily, value: string): boolean {
+  return (HONOURED[family] as readonly string[]).includes(value)
+}
 
 /** The engine's own layout — what a site renders with no template applied. */
 export const ENGINE_LAYOUT: SiteLayout = {

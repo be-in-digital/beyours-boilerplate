@@ -16,7 +16,10 @@
  * Usage:
  *   pnpm --filter @beyours/themes exec vitest run __tests__/layout-harness.render.test.tsx
  *   node scripts/layout-harness.mjs
- *   open .layout-harness/index.html
+ *   node scripts/layout-harness-serve.mjs   # then open http://localhost:4507
+ *
+ * Served over HTTP rather than opened as files: a linked stylesheet resolves,
+ * nothing caps the page size, and the browser treats them as pages.
  *
  * `.layout-harness/` is gitignored: an instrument, not an output.
  */
@@ -33,6 +36,7 @@ const FRAGMENTS = path.join(HARNESS, "fragments");
 const CASES = [
   { family: "nav", fragment: "header-transparent", values: ["left", "center", "bar", "minimal"] },
   { family: "nav", fragment: "header-opaque", values: ["left", "center", "bar", "minimal"] },
+  { family: "hero", fragment: "hero", values: ["split", "zen", "banner"] },
   { family: "foot", fragment: "footer", values: ["columns", "center", "heavy"] },
   { family: "tex", fragment: "footer", values: ["none", "dots", "lines", "grain", "checker"] },
   { family: "up", fragment: "footer", values: ["0", "1"] },
@@ -94,13 +98,25 @@ const compiled = await compile(source, {
   },
 });
 
-const css = compiled.build(candidatesFrom([...fragments.values()]));
-const rules = (css.match(/\{/g) ?? []).length;
-if (rules < 300) {
-  console.error(`Refusing a stylesheet with ~${rules} rules: the compile found nothing.`);
-  process.exit(1);
+/*
+ * One stylesheet PER FRAGMENT, not one for all of them.
+ *
+ * The pages inline their CSS — a linked sheet does not resolve in the reviewer's
+ * static-snapshot mode — and a single sheet covering every fragment put the
+ * homepage pages over the size a snapshot will open. Compiling per fragment
+ * gives each page only the utilities its own markup uses.
+ */
+const sheets = new Map();
+for (const [name, html] of fragments) {
+  const built = compiled.build(candidatesFrom([html]));
+  const count = (built.match(/\{/g) ?? []).length;
+  if (count < 100) {
+    console.error(`Refusing ${name}'s stylesheet at ~${count} rules: the compile found nothing.`);
+    process.exit(1);
+  }
+  sheets.set(name, built);
+  fs.writeFileSync(path.join(HARNESS, `${name}.css`), built);
 }
-fs.writeFileSync(path.join(HARNESS, "globals.css"), css);
 
 const page = (family, value, fragment, html) => `<!doctype html>
 <html lang="fr" data-${family}="${value}">
@@ -108,7 +124,7 @@ const page = (family, value, fragment, html) => `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${family}="${value}" — ${fragment}</title>
-<style>${css}</style>
+<link rel="stylesheet" href="${fragment}.css">
 <style>
   /* The harness's own chrome, kept out of the way of what is being reviewed. */
   body { margin: 0; }
@@ -159,5 +175,7 @@ ${[...new Set(written.map((w) => `${w.family} · ${w.fragment}`))]
 `;
 fs.writeFileSync(path.join(HARNESS, "index.html"), index);
 
-console.log(`globals.css — ${(css.length / 1024).toFixed(1)} KB, ~${rules} rules`);
+for (const [name, sheet] of sheets) {
+  console.log(`  ${name}: ${(sheet.length / 1024).toFixed(1)} KB of CSS`);
+}
 console.log(`${written.length} pages + index.html in .layout-harness/`);
