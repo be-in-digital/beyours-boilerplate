@@ -18,7 +18,7 @@ are **overwritten**: `theme.css` (the palette), `fonts.ts` (the type) and
 the same demo identity as the palette, so what a buyer was shown and what the
 site installs come from one source.
 
-**Three of the seven change what a diner sees today.** The other four are carried,
+**Four of the seven change what a diner sees today.** The other three are carried,
 typed, and refused when the value is not one the family admits — and paint
 nothing yet. This table is what the product currently keeps, not what the demos
 promise; `HONOURED_FAMILIES` in `lib/layout-families.ts` is the same list in
@@ -29,7 +29,7 @@ code, and a test holds the two against the stylesheet in both directions.
 | `tex` | `none` · `dots` · `lines` · `grain` · `checker` | **yes** — a texture under the shop, in the establishment's own ink |
 | `up` | `0` · `1` | **yes** — headings in capitals |
 | `foot` | `columns` · `center` · `heavy` | **yes** — `columns` is the default the component already renders; `center` stacks and centres it, `heavy` states a top edge and enlarges the name |
-| `nav` | `left` · `center` · `bar` · `minimal` | not yet |
+| `nav` | `left` · `center` · `bar` · `minimal` | **yes** — `left` is what the bar already does; `center` puts the name on the bar's centre line (desktop only, since below `md` the links give way to a hamburger); `bar` states a bottom edge; `minimal` drops the edge and steps the links back |
 | `hero` | `split` · `editorial` · `fullbleed` · `poster` · `board` · `magazine` · `zen` · `banner` · `collage` · `duo` | not yet |
 | `menu` | `cards` · `dotted` · `tickets` · `zen` · `mosaic` · `ledger` · `tabs` · `bento` | not yet |
 | `btn` | `soft` · `pill` · `square` · `brutal` · `underline` | not yet, and **blocked**: three of the five are radius languages, and `--radius` reaches nothing on the shop. Measured 14 Sep 2026 — 405 hard-coded `rounded-*` literals across 44 storefront files, and `@theme inline` maps no `--radius-*` token, so no Tailwind utility resolves to it. Its only readers anywhere are the demos and `packages/ui`'s `InputGroup` |
@@ -40,6 +40,14 @@ fails either half alone. Every such rule **must** be confined to
 `.storefront-theme`: the attributes sit on `<html>`, which is the dashboard's
 ancestor too, and a selector that forgets repaints the owner's screens — the
 mistake #410 and #41 each cost once already.
+
+**How a family is reviewed.** These are CSS, and the question that decides whether
+a rule is right — does this lay out the way it is meant to — cannot be answered by
+any test here: jsdom parses CSS and does not lay it out. `scripts/layout-harness.mjs`
+renders the real components to static pages with `app/globals.css` compiled as Next
+compiles it, one page per family value, for review in a browser at two viewports. It
+is how `bar` was caught forcing an opaque ground under text the component still
+painted white for a photograph.
 
 The demo previews (`demos/home.html?t=<slug>`) render all seven. A template's
 `DESIGN.md` names its hero and menu family in prose, and has always said that

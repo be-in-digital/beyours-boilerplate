@@ -71,7 +71,7 @@ export type SiteLayout = {
  * nothing on screen yet. `templates/README.md` says which is which, in the same
  * words, for the person choosing a template rather than reading this file.
  */
-export const HONOURED_FAMILIES = ["tex", "up", "foot"] as const satisfies readonly LayoutFamily[]
+export const HONOURED_FAMILIES = ["tex", "up", "foot", "nav"] as const satisfies readonly LayoutFamily[]
 
 /** The engine's own layout — what a site renders with no template applied. */
 export const ENGINE_LAYOUT: SiteLayout = {

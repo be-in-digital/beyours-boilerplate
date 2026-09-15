@@ -726,3 +726,92 @@ body:has(.pac-container:not(:empty)) [data-slot="dialog-overlay"] {
   font-size: 2.125rem;
   text-transform: uppercase;
 }
+
+/* `nav` — how the top bar is arranged. Four of the demo engine's, over the
+ * engine's own markup. The hooks are the `storefront-nav*` classes on the
+ * component.
+ *
+ * `left` has no rule: the bar already is brand, links, actions across a
+ * `justify-between`, so the default costs nothing.
+ *
+ * Reviewed in a browser at 1280 and 390, over both header states, with
+ * `scripts/layout-harness.mjs`. jsdom cannot lay out, so nothing in the test
+ * suite can see these — the harness is the instrument, and the rules were
+ * written against what it showed rather than against the demos' markup. */
+
+/* `center` — the establishment's name in the middle, links left, actions right.
+ * A grid rather than reordering the flex row: the brand has to be centred on the
+ * BAR, not merely between its neighbours, and those neighbours are different
+ * widths. `1fr auto 1fr` puts it on the bar's own centre line whatever they do.
+ *
+ * Desktop only. Below `md` the links and the actions are display:none and a
+ * hamburger takes over, so a three-column grid there would centre the brand
+ * between two empty tracks and shift it off the visual centre. */
+@media (min-width: 768px) {
+  [data-nav="center"] .storefront-theme .storefront-nav {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  [data-nav="center"] .storefront-theme .storefront-nav-brand {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  [data-nav="center"] .storefront-theme .storefront-nav-links {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  /* The actions live inside a TooltipProvider, which renders no element of its
+     own — so the wrapper is a grid item here and `justify-self` reaches it. */
+  [data-nav="center"] .storefront-theme .storefront-nav-actions {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
+}
+
+/* `bar` — a stated edge, on both states of the header.
+ *
+ * AN EDGE, AND DELIBERATELY NOT A GROUND. The first version of this rule also
+ * forced `background: hsl(var(--background))`, on the reasoning that a "bar" is
+ * opaque. The harness showed what that costs: over the hero the component
+ * paints the brand and the links `text-white` for a photograph, and a rule that
+ * removes the photograph leaves white on cream — measured unreadable in the
+ * browser, and invisible to every test here, because jsdom does not lay out and
+ * the contrast sweep reads source files rather than rendered pages.
+ *
+ * CSS cannot fix the other half: the action controls take their colour from a
+ * `variant` PROP the component computes, and no stylesheet reaches a prop. So
+ * `bar` owns what it can own completely. The demo engine's `bar` is a
+ * border-bottom and uppercase links and has no transparent-over-hero state at
+ * all, so this is also the faithful reading of it — the engine's links are
+ * already uppercase.
+ *
+ * Over the photograph the line is ink on the image, which reads; on an inner
+ * page it is the edge the value is named for. */
+[data-nav="bar"] .storefront-theme .storefront-nav {
+  border-bottom: 2px solid hsl(var(--foreground) / 0.9);
+}
+
+/* `minimal` — no edge at all, and links that step back: smaller, lighter,
+ * further apart. `letter-spacing` rather than a weight change, because the
+ * links are `font-black uppercase` and dropping the weight alone reads as a
+ * different font. */
+[data-nav="minimal"] .storefront-theme .storefront-nav {
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+
+[data-nav="minimal"] .storefront-theme .storefront-nav-links {
+  gap: 2.25rem;
+}
+
+[data-nav="minimal"] .storefront-theme .storefront-nav-links a {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}

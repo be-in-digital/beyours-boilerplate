@@ -137,11 +137,15 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
             : "bg-card/90 backdrop-blur-md shadow-sm border-b border-border"
         }`}
       >
-        <div className="flex items-center justify-between px-6 md:px-12 py-4">
+        {/* `storefront-nav*` are hooks for the `nav` layout family (#507), not
+            styling. Tailwind's generated class names are not a contract, so the
+            rules in `app/globals.css` need names of their own. The default here
+            IS `left`, so an unstyled bar is already correct. */}
+        <div className="storefront-nav flex items-center justify-between px-6 md:px-12 py-4">
           {/* Logo */}
           <Link
             href="/"
-            className={`font-black text-xl tracking-tighter transition-colors duration-300 ${
+            className={`storefront-nav-brand font-black text-xl tracking-tighter transition-colors duration-300 ${
               showTransparent ? "text-white" : "text-accent-foreground"
             }`}
           >
@@ -157,7 +161,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-8 md:flex">
+          <nav className="storefront-nav-links hidden items-center gap-8 md:flex">
             {navLinks.map((link) => {
               const isActive = pathname === link.href
               return (
@@ -204,7 +208,7 @@ export function StorefrontHeader({ hasBanner = false }: { hasBanner?: boolean })
 
           {/* Desktop right actions: Lang → Store → Cart */}
           <TooltipProvider delayDuration={300}>
-            <div className="hidden items-center gap-3 md:flex">
+            <div className="storefront-nav-actions hidden items-center gap-3 md:flex">
               <LanguageSelectorDropdown variant={showTransparent ? "transparent" : "solid"} />
               <StoreSelectorDropdown variant={showTransparent ? "transparent" : "solid"} />
 

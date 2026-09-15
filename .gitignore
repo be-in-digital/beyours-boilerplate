@@ -39,3 +39,6 @@ e2e/.auth/
 # Infisical — `infisical init` writes the project id here; the scripts read
 # INFISICAL_PROJECT_ID instead. Never commit it.
 .infisical.json
+
+# Layout family harness (#507) — an instrument, regenerated on demand
+.layout-harness/
