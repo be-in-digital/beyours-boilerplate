@@ -43,20 +43,20 @@ importers:
         specifier: ^3.1024.0
         version: 3.1079.0
       '@be-in-digital/admin':
-        specifier: ^21.0.0
-        version: 21.0.0(f1935f196b7a2857f1a3403f361b1a42)
+        specifier: ^22.0.0
+        version: 22.0.0(67d540d864cce4f95f81b7423aff0984)
       '@be-in-digital/cms':
         specifier: ^3.1.0
         version: 3.1.0(@noble/hashes@2.2.0)
       '@be-in-digital/convex-functions':
-        specifier: ^7.5.1
-        version: 7.5.1(@noble/hashes@2.2.0)(convex@1.44.0(react@19.2.4))
+        specifier: ^7.6.0
+        version: 7.6.0(@noble/hashes@2.2.0)(convex@1.44.0(react@19.2.4))
       '@be-in-digital/convex-schema':
-        specifier: ^6.7.0
-        version: 6.7.0(convex@1.44.0(react@19.2.4))
+        specifier: ^6.8.0
+        version: 6.8.0(convex@1.44.0(react@19.2.4))
       '@be-in-digital/core':
-        specifier: ^4.3.0
-        version: 4.3.0
+        specifier: ^4.3.1
+        version: 4.3.1
       '@be-in-digital/integrations':
         specifier: ^2.2.2
         version: 2.2.2
@@ -476,12 +476,12 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@be-in-digital/admin@21.0.0':
-    resolution: {integrity: sha512-0IZIpnT//ys+7HdEOwsvGMUIp14NPiLQIc82BGJtFrsNHnrbQV3pt5XApDGzmLmuoFoIlWqsSS+Nntkuu3aGBw==, tarball: https://npm.pkg.github.com/download/@be-in-digital/admin/21.0.0/649c9b9aed7d9921b8e67e42475031c1e3a9028d}
+  '@be-in-digital/admin@22.0.0':
+    resolution: {integrity: sha512-UnBSLmGZQHkbpQwCOhsqFvaEC8as6klHnFOdTYR/fjYZr9lR/bHhpdOL9bQsvd7KU/StR1rZetk6uvhVhoYBeQ==, tarball: https://npm.pkg.github.com/download/@be-in-digital/admin/22.0.0/04b7cab5606c3b075487e53feaf5015436ca701d}
     peerDependencies:
-      '@be-in-digital/convex-functions': ^7.5.1
-      '@be-in-digital/convex-schema': ^6.7.0
-      '@be-in-digital/core': ^4.3.0
+      '@be-in-digital/convex-functions': ^7.6.0
+      '@be-in-digital/convex-schema': ^6.8.0
+      '@be-in-digital/core': ^4.3.1
       '@be-in-digital/marketing': ^3.0.0
       '@be-in-digital/restaurant': ^4.2.0
       '@be-in-digital/ui': ^4.3.3
@@ -498,18 +498,18 @@ packages:
   '@be-in-digital/cms@3.1.0':
     resolution: {integrity: sha512-U5KbAn/voAPF1Q6M69K4pxBOO8rhlfPm7NBxpUwWMnPkhrLj8+8TAAByl/10sFzoBv+hLuKd9ycE+ul+2BNLIQ==, tarball: https://npm.pkg.github.com/download/@be-in-digital/cms/3.1.0/6fe96ea55a25705803c1ff0113875d195da240a5}
 
-  '@be-in-digital/convex-functions@7.5.1':
-    resolution: {integrity: sha512-/9chGwUPjpTFtEZhB1vaCp9azqikjW1IhGXDFbtDoK8hJDGfJZ5l+YhbR8BZun+M4vEivU14+qZN+3mb7qDGlQ==, tarball: https://npm.pkg.github.com/download/@be-in-digital/convex-functions/7.5.1/65de02d9b77fc7e89a40b28fcc68a9e8cdc5b48b}
+  '@be-in-digital/convex-functions@7.6.0':
+    resolution: {integrity: sha512-JeDsPQ3dehQDQQf4/vp7kwPVZwgspwsLI5U5gVXs9Ew4BJtvRLe0SQdJEEpf3GG3kqn8Yhopwh3xBnNQ7GfVew==, tarball: https://npm.pkg.github.com/download/@be-in-digital/convex-functions/7.6.0/c335ea90c82175cf6ba8621e0ea4269acfe56ea7}
     peerDependencies:
       convex: ^1.44.0
 
-  '@be-in-digital/convex-schema@6.7.0':
-    resolution: {integrity: sha512-wQzevfkpB67raeWQexxc2Oy4k8xBpziZUP8K9/pwJyEtIVjYLt3xBR4rifmV8l5wRU19Vr1vOt53vCtOpG1+/w==, tarball: https://npm.pkg.github.com/download/@be-in-digital/convex-schema/6.7.0/6bb6cc4deed7f73be330cdda4678960fd759c640}
+  '@be-in-digital/convex-schema@6.8.0':
+    resolution: {integrity: sha512-6QDUPMpoTaj2VGaTTxk+wooW8h0+8B2LvrhmaZR+Y04EPwSiZAL5PoEvtcgbnP7Ap17eMOCp/wT45iUSFO3nqQ==, tarball: https://npm.pkg.github.com/download/@be-in-digital/convex-schema/6.8.0/30cc5a60d210b3eae72658b83d83230ea7753459}
     peerDependencies:
       convex: ^1.44.0
 
-  '@be-in-digital/core@4.3.0':
-    resolution: {integrity: sha512-486cPw/zfe4zTZDGmtrFsbIKp8W9Rvj223+0yGEFpvrVmudD/UC2tsgljLCSBxMVV4vloVSxKyUchJgLqux2Gg==, tarball: https://npm.pkg.github.com/download/@be-in-digital/core/4.3.0/ab8bab9bd6ca265bf4d2c2463f3aeb7da3c67a41}
+  '@be-in-digital/core@4.3.1':
+    resolution: {integrity: sha512-0BzaVnUY7MadD91Q37/Z17T62UcY7K1rDt/uatVUL4PPTZ5gC6rWCSBH5SAro46nO4fIAokerysnZLtPXDNsRg==, tarball: https://npm.pkg.github.com/download/@be-in-digital/core/4.3.1/32c9b6cd736bb6d06f540efc14d238038d882cfe}
 
   '@be-in-digital/integrations@2.2.2':
     resolution: {integrity: sha512-Mv6S8p6tARnqGsoJnBrtV8fXA2T2mlKBCZUvxKOrCuppea5nZXuJgXfKoej4LsEg4TlYJA/sVpMpgSSHYpvz4Q==, tarball: https://npm.pkg.github.com/download/@be-in-digital/integrations/2.2.2/192491dc3d6f8120d769628ccdedceb1923ae8fd}
@@ -5962,11 +5962,11 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@be-in-digital/admin@21.0.0(f1935f196b7a2857f1a3403f361b1a42)':
+  '@be-in-digital/admin@22.0.0(67d540d864cce4f95f81b7423aff0984)':
     dependencies:
-      '@be-in-digital/convex-functions': 7.5.1(@noble/hashes@2.2.0)(convex@1.44.0(react@19.2.4))
-      '@be-in-digital/convex-schema': 6.7.0(convex@1.44.0(react@19.2.4))
-      '@be-in-digital/core': 4.3.0
+      '@be-in-digital/convex-functions': 7.6.0(@noble/hashes@2.2.0)(convex@1.44.0(react@19.2.4))
+      '@be-in-digital/convex-schema': 6.8.0(convex@1.44.0(react@19.2.4))
+      '@be-in-digital/core': 4.3.1
       '@be-in-digital/marketing': 3.0.0
       '@be-in-digital/restaurant': 4.2.0(@types/react@19.2.14)(convex@1.44.0(react@19.2.4))(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
       '@be-in-digital/ui': 4.3.3(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)
@@ -6003,37 +6003,37 @@ snapshots:
       - '@noble/hashes'
       - canvas
 
-  '@be-in-digital/convex-functions@7.5.1(@noble/hashes@2.2.0)(convex@1.44.0(react@19.2.4))':
+  '@be-in-digital/convex-functions@7.6.0(@noble/hashes@2.2.0)(convex@1.44.0(react@19.2.4))':
     dependencies:
       '@be-in-digital/cms': 3.1.0(@noble/hashes@2.2.0)
-      '@be-in-digital/convex-schema': 6.7.0(convex@1.44.0(react@19.2.4))
-      '@be-in-digital/core': 4.3.0
+      '@be-in-digital/convex-schema': 6.8.0(convex@1.44.0(react@19.2.4))
+      '@be-in-digital/core': 4.3.1
       convex: 1.44.0(react@19.2.4)
       sanitize-html: 2.17.5
     transitivePeerDependencies:
       - '@noble/hashes'
       - canvas
 
-  '@be-in-digital/convex-schema@6.7.0(convex@1.44.0(react@19.2.4))':
+  '@be-in-digital/convex-schema@6.8.0(convex@1.44.0(react@19.2.4))':
     dependencies:
       convex: 1.44.0(react@19.2.4)
       zod: 4.4.3
 
-  '@be-in-digital/core@4.3.0':
+  '@be-in-digital/core@4.3.1':
     dependencies:
       '@aws-sdk/client-sesv2': 3.1079.0
       zod: 4.4.3
 
   '@be-in-digital/integrations@2.2.2':
     dependencies:
-      '@be-in-digital/core': 4.3.0
+      '@be-in-digital/core': 4.3.1
 
   '@be-in-digital/marketing@3.0.0': {}
 
   '@be-in-digital/restaurant@4.2.0(@types/react@19.2.14)(convex@1.44.0(react@19.2.4))(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))':
     dependencies:
-      '@be-in-digital/convex-schema': 6.7.0(convex@1.44.0(react@19.2.4))
-      '@be-in-digital/core': 4.3.0
+      '@be-in-digital/convex-schema': 6.8.0(convex@1.44.0(react@19.2.4))
+      '@be-in-digital/core': 4.3.1
       react: 19.2.4
       zod: 4.4.3
       zustand: 5.0.14(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
@@ -6045,7 +6045,7 @@ snapshots:
 
   '@be-in-digital/ui@4.3.3(@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.2.4)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-hook-form@7.80.0(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@be-in-digital/core': 4.3.0
+      '@be-in-digital/core': 4.3.1
       '@hookform/resolvers': 5.4.0(react-hook-form@7.80.0(react@19.2.4))
       '@types/google.maps': 3.65.2
       class-variance-authority: 0.7.1
