@@ -37,6 +37,7 @@ const CASES = [
   { family: "nav", fragment: "header-transparent", values: ["left", "center", "bar", "minimal"] },
   { family: "nav", fragment: "header-opaque", values: ["left", "center", "bar", "minimal"] },
   { family: "hero", fragment: "hero", values: ["split", "zen", "banner"] },
+  { family: "menu", fragment: "menu", values: ["cards", "zen", "ledger"] },
   { family: "foot", fragment: "footer", values: ["columns", "center", "heavy"] },
   { family: "tex", fragment: "footer", values: ["none", "dots", "lines", "grain", "checker"] },
   { family: "up", fragment: "footer", values: ["0", "1"] },

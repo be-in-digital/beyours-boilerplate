@@ -18,8 +18,9 @@ are **overwritten**: `theme.css` (the palette), `fonts.ts` (the type) and
 the same demo identity as the palette, so what a buyer was shown and what the
 site installs come from one source.
 
-**Four of the seven change what a diner sees today**, and `hero` does so for three
-of its ten values. The rest are carried,
+**Five of the seven change what a diner sees today.** Two of those are partial —
+`hero` for three of its ten values, `menu` for three of its eight. The rest are
+carried,
 typed, and refused when the value is not one the family admits — and paint
 nothing yet. This table is what the product currently keeps, not what the demos
 promise; `HONOURED_FAMILIES` in `lib/layout-families.ts` is the same list in
@@ -32,7 +33,7 @@ code, and a test holds the two against the stylesheet in both directions.
 | `foot` | `columns` · `center` · `heavy` | **yes** — `columns` is the default the component already renders; `center` stacks and centres it, `heavy` states a top edge and enlarges the name |
 | `nav` | `left` · `center` · `bar` · `minimal` | **yes** — `left` is what the bar already does; `center` puts the name on the bar's centre line (desktop only, since below `md` the links give way to a hamburger); `bar` states a bottom edge; `minimal` drops the edge and steps the links back |
 | `hero` | `split` · `zen` · `banner` — **yes**<br>`editorial` · `fullbleed` · `poster` · `board` · `magazine` · `collage` · `duo` — no | **partly**, and the rest are not a backlog. The three are arrangements of what the hero already holds (a text column, one image, two badges). The others want a photograph, a second image, a locations board, a marquee — or, for `editorial`, a rating stamp this product refuses to invent (CLAUDE.md § social proof). An unhonoured value renders `split`. |
-| `menu` | `cards` · `dotted` · `tickets` · `zen` · `mosaic` · `ledger` · `tabs` · `bento` | not yet |
+| `menu` | `cards` · `zen` · `ledger` — **yes**<br>`dotted` · `tickets` · `mosaic` · `tabs` · `bento` — no | **partly**. `cards` is the grid the page already renders; `zen` is one column with hairline rules; `ledger` numbers the dishes with a CSS counter. The rest want the card's body restructured, a thumbnail crop, mixed photo spans, or a sticky bar that lives in another component. An unhonoured value renders `cards`. |
 | `btn` | `soft` · `pill` · `square` · `brutal` · `underline` | not yet, and **blocked**: three of the five are radius languages, and `--radius` reaches nothing on the shop. Measured 14 Sep 2026 — 405 hard-coded `rounded-*` literals across 44 storefront files, and `@theme inline` maps no `--radius-*` token, so no Tailwind utility resolves to it. Its only readers anywhere are the demos and `packages/ui`'s `InputGroup` |
 
 Implementing one is a rule in `app/globals.css` plus its name in

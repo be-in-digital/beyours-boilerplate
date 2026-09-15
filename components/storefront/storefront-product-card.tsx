@@ -59,12 +59,12 @@ export function StorefrontProductCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-card rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/[0.04] border border-white/10 hover:border-primary/20 transition-all group flex flex-col h-full duration-300 ${
+      className={`storefront-menu-item bg-card rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/[0.04] border border-white/10 hover:border-primary/20 transition-all group flex flex-col h-full duration-300 ${
         onClick ? "cursor-pointer hover:-translate-y-2.5" : ""
       }`}
     >
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+      <div className="storefront-menu-photo relative aspect-[4/3] overflow-hidden bg-muted">
         {product.images?.[0] ? (
           <Image
             src={product.images[0]}

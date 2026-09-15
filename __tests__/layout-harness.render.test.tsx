@@ -34,6 +34,16 @@ const OUT = path.resolve(__dirname, "../.layout-harness/fragments")
 /** Which route the header thinks it is on. `/` is the transparent-header case. */
 let pathname = "/"
 
+/** Enough of a catalogue to lay out: two rows at three columns, varied names. */
+const DISHES = [
+  { _id: "p1", name: "Pizza Reine", description: "Jambon, champignons, mozzarella di bufala", price: 1250, isActive: true, categoryId: "c1" },
+  { _id: "p2", name: "Margherita", description: "San Marzano, basilic, huile d'olive", price: 1050, isActive: true, categoryId: "c1" },
+  { _id: "p3", name: "Quatre fromages", description: "Gorgonzola, chèvre, parmesan, mozzarella", price: 1450, isActive: true, categoryId: "c1" },
+  { _id: "p4", name: "Calzone", description: "Ricotta, épinards, œuf", price: 1390, isActive: true, categoryId: "c1" },
+  { _id: "p5", name: "Tiramisu", description: "Mascarpone, café, cacao amer", price: 650, isActive: true, categoryId: "c2" },
+  { _id: "p6", name: "Panna cotta", description: "Vanille de Madagascar, coulis de fruits rouges", price: 590, isActive: true, categoryId: "c2" },
+]
+
 const STORE = {
   _id: "stores_harness",
   name: "Le Comptoir",
@@ -104,6 +114,8 @@ vi.mock("@be-in-digital/restaurant", () => ({
     const state = { storeId: STORE._id, setStoreId: () => {} }
     return typeof selector === "function" ? selector(state) : state
   },
+  isProductAvailable: () => true,
+  useLocalizedDocument: <T,>(doc: T) => doc,
   formatPrice: (cents: number) =>
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100),
   useTranslation: () => ({
@@ -188,6 +200,7 @@ const HomepageContent = (await import("@/app/(storefront)/_components/HomepageCo
 // The page mounts tooltips without a provider of its own — the real one lives
 // in the storefront layout, above it.
 const { TooltipProvider } = await import("@be-in-digital/ui")
+const { ProductGrid } = await import("@/components/storefront/product-grid")
 
 beforeAll(() => {
   window.matchMedia = ((query: string) => ({
@@ -310,5 +323,30 @@ describe("the storefront chrome, serialised for a browser", () => {
     const hero = document.querySelector(".storefront-hero")
     expect(hero, "no .storefront-hero in the rendered homepage").not.toBeNull()
     emit("hero", (hero?.outerHTML ?? "") + (hero?.nextElementSibling?.outerHTML ?? ""))
+  })
+
+  test("the dish grid, which is what `menu` arranges", async () => {
+    // `ProductGrid` rather than the whole menu page: the page is a hero, a
+    // search bar, a category row, formules, platform tiles and a blog strip, and
+    // only this grid is what the family lays out. Mocking the page to get at it
+    // would be mocking six things to look at one.
+    const html = await renderToHtml(
+      <TooltipProvider>
+        <ProductGrid
+          products={DISHES as never}
+          storeId={STORE._id as never}
+          isStoreOpen
+          onProductClick={() => {}}
+          onAddToCart={() => {}}
+        />
+      </TooltipProvider>
+    )
+
+    expect(html).toContain("storefront-menu")
+    // Enough dishes to see a grid rather than a row, and prices to align.
+    expect(html).toContain("Pizza Reine")
+    expect(html.match(/storefront-menu-item/g)?.length).toBe(DISHES.length)
+
+    emit("menu", html)
   })
 })

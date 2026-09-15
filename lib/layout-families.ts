@@ -96,7 +96,7 @@ export const HONOURED: { readonly [F in LayoutFamily]: readonly SiteLayout[F][] 
   foot: ["columns", "center", "heavy"],
   up: ["0", "1"],
   hero: ["split", "zen", "banner"],
-  menu: [],
+  menu: ["cards", "zen", "ledger"],
   btn: [],
 }
 

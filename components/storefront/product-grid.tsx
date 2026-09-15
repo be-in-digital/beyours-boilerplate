@@ -75,7 +75,10 @@ export function ProductGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+    // `storefront-menu` is the hook for the `menu` layout family (#507), not
+    // styling. The default here IS `cards` — a grid of photo cards — so an
+    // unstyled grid is already correct.
+    <div className="storefront-menu grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
       {products.map((product) => (
         <StorefrontProductCard
           key={product._id}

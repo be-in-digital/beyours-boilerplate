@@ -881,3 +881,74 @@ body:has(.pac-container:not(:empty)) [data-slot="dialog-overlay"] {
   max-width: 28rem;
 }
 
+/* `menu` — how the dishes are presented.
+ *
+ * THREE OF EIGHT. Like `hero`, the demo engine decides this one by emitting
+ * different markup — `renderMenu(dishes, style, full)` at `site.js:276` branches
+ * on the value — so each of its presentations carries elements the others do
+ * not. Three are reflows of the grid the engine already renders and are the rules
+ * below; the rest want markup or data this grid has no place for:
+ *
+ *   dotted   a name and a price on ONE line, pulled apart by a leader of dots.
+ *            It WAS written — one column, no photograph, a dotted bottom rule —
+ *            and the harness showed it was not that: the card's body is a
+ *            column, so the name, the description and the price still stack and
+ *            no leader has two ends to span. What it rendered was `zen` with a
+ *            different border, which is not a presentation worth a name. Setting
+ *            the line properly means restructuring the card's body, not
+ *            reflowing the grid.
+ *   tickets  a 72px thumbnail beside a name-and-price row. The card's photo is
+ *            a 4:3 block at the top of a column, and shrinking it into a row
+ *            leaves the crop wrong at every aspect ratio the owner uploads.
+ *   mosaic   photographs at mixed sizes. The engine's cards are uniform by
+ *            construction, and varying spans by `:nth-child` makes the layout
+ *            depend on how many dishes a category happens to hold.
+ *   bento    the same want as mosaic.
+ *   tabs     a sticky category bar. The menu page HAS a category row, but it is
+ *            in `MenuContent`, not in this grid — a different component, so a
+ *            different change. The nearest honest thing is to leave it.
+ *
+ * `HONOURED.menu` names the three, and a test holds it against the rules here. */
+
+/* `zen` — a single column and a hairline between dishes. The difference from
+ * `dotted` is the rule: a hairline, not a dotted leader, and more air. */
+[data-menu="zen"] .storefront-theme .storefront-menu-item {
+  border-radius: 0;
+  border-width: 0 0 1px 0;
+  border-bottom-color: hsl(var(--border));
+  box-shadow: none;
+  background: none;
+  padding-block: 1.25rem;
+}
+
+/* `ledger` — a numbered list, the way a kitchen writes one. The number comes
+ * from a CSS counter and is decorative: it is not in the DOM, so nothing reads
+ * "one" before every dish, and the order it states is the order already on the
+ * page. */
+[data-menu="ledger"] .storefront-theme .storefront-menu {
+  counter-reset: dish;
+}
+
+[data-menu="ledger"] .storefront-theme .storefront-menu-item {
+  counter-increment: dish;
+  position: relative;
+  border-radius: 0;
+  border-width: 0 0 1px 0;
+  border-bottom-color: hsl(var(--border));
+  box-shadow: none;
+  background: none;
+  padding-left: 3.5rem;
+}
+
+[data-menu="ledger"] .storefront-theme .storefront-menu-item::before {
+  content: counter(dish, decimal-leading-zero);
+  position: absolute;
+  left: 0.75rem;
+  top: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+}
+
+/* `cards` is the default and has no rule: a grid of photo cards is what the
+ * component already renders. */
