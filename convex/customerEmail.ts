@@ -294,11 +294,24 @@ export const sendOrderConfirmation = internalAction({
       });
       return { sent: true };
     } catch (error) {
-      // Swallowed like every other transactional send here. The order is paid,
-      // the kitchen has it, and the diner has already seen the confirmation
-      // screen; losing the email must not turn into a failed scheduled
-      // function retrying against a provider that has already refused it.
-      console.error("[orderConfirmation] SES send failed:", error);
+      // The claim goes back, for the reason the branch above already gives
+      // about a missing sender: nothing was delivered, so holding the claim
+      // silences this order's confirmation for ever. The diner has seen the
+      // confirmation SCREEN, which is not the same thing — the email is what
+      // carries the tracking link out of the browser session.
+      //
+      // Same reasoning as `sendOrderReady` on both counts: releasing is not
+      // retrying, and there is no transient-versus-permanent sort to make,
+      // because every refusal this product chooses is made before the claim.
+      //
+      // `error.message` and the order id, never the raw SDK error object.
+      console.error(
+        `[orderConfirmation] send failed for order ${args.orderId}:`,
+        error instanceof Error ? error.message : String(error)
+      );
+      await ctx.runMutation(internal.orders.releaseConfirmationClaim, {
+        orderId: args.orderId,
+      });
       return { sent: false };
     }
   },
@@ -385,10 +398,42 @@ export const sendOrderReady = internalAction({
       });
       return { sent: true };
     } catch (error) {
-      // Swallowed like every other transactional send here: the food is ready and
-      // the kitchen has moved on, and losing the email must not turn into a
-      // scheduled function retrying against a provider that already refused it.
-      console.error("[orderReady] send failed:", error);
+      // THE CLAIM GOES BACK. `readyEmailAt` was stamped transactionally before
+      // SES was called, and keeping it here is the one outcome that loses the
+      // notice for ever — silently, and looking exactly like a sent mail to the
+      // owner and to the diner alike.
+      //
+      // The previous comment argued against "a scheduled function retrying
+      // against a provider that already refused it". Releasing is not retrying:
+      // nothing reschedules this action, and the claim only makes a LATER
+      // legitimate `ready` transition able to send. The fear was real and it
+      // was about a different act.
+      //
+      // NOT SORTED INTO TRANSIENT AND PERMANENT, deliberately, and the reason
+      // is that the set to exclude is empty here. Every refusal this product
+      // CHOOSES is made before the claim, by `orderReadyRefusal` — no address,
+      // a suppressed address, cancelled, delivery — so what is left to reach
+      // this catch is the transport failing, and an outage is not a refusal.
+      // The `deliberateSettlementRefusal` pattern exists because a payment
+      // webhook must answer 2xx or 5xx on the strength of that distinction.
+      // Nothing here consumes it.
+      //
+      // WHAT IT COSTS, stated rather than discovered later: if SES accepted the
+      // message and only the response was lost, the claim goes back over a mail
+      // that was delivered, and staff moving the order out of `ready` and back
+      // would send a second one. A duplicate « c'est prêt » is a smaller harm
+      // than a diner never told, and it takes a human to produce.
+      //
+      // `error.message` and the order id, never the raw SDK error: some SES
+      // rejections carry the recipient's address inside the object, and this
+      // line lands in a log an operator reads.
+      console.error(
+        `[orderReady] send failed for order ${args.orderId}:`,
+        error instanceof Error ? error.message : String(error)
+      );
+      await ctx.runMutation(internal.orders.releaseReadyNoticeClaim, {
+        orderId: args.orderId,
+      });
       return { sent: false };
     }
   },
