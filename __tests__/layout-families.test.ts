@@ -331,10 +331,12 @@ describe("what reaches the DOM", () => {
       up: "1",
     })
 
-    expect(Object.keys(attributes).sort()).toEqual(
-      FAMILY_NAMES.map((family) => `data-${family}`).sort()
-    )
-    expect(attributes["data-hero"]).toBe("poster")
+    // Every family, plus the `-requested` note for the three whose value is
+    // valid and unpainted. See the case below.
+    for (const family of FAMILY_NAMES) {
+      expect(attributes, family).toHaveProperty(`data-${family}`)
+    }
+    expect(attributes["data-nav"]).toBe("center")
     expect(attributes["data-up"]).toBe("1")
   })
 
@@ -345,6 +347,64 @@ describe("what reaches the DOM", () => {
     const attributes = layoutAttributes({ hero: "trapezoid" } as never)
 
     expect(attributes["data-hero"]).toBe(ENGINE_LAYOUT.hero)
+  })
+
+  test("a valid but UNPAINTED value becomes the engine's too (#529)", () => {
+    /*
+     * THE SAME LIE, ONE STEP FURTHER IN. The case above already refuses to emit
+     * a value no rule matches, and gives the reason: "an attribute no rule
+     * matches is invisible, so the site would render the engine layout while
+     * claiming another." That is exactly as true of `hero: "poster"` — a value
+     * its family admits and `globals.css` has no rule for.
+     *
+     * The line was drawn at family membership rather than at what is painted,
+     * and measured at `a92a0e51` that left 31 templates emitting a hero the
+     * shop does not paint, 26 a menu, and 51 a button style — `data-btn` being
+     * the whole family, `HONOURED.btn` is empty.
+     *
+     * The value is not lost. It moves to `data-<family>-requested`, so the DOM
+     * says both what it renders and what the template asked for, and a person
+     * debugging "why is my poster hero not showing" has the answer in the
+     * markup rather than in a stylesheet they have to search.
+     */
+    const attributes = layoutAttributes({
+      hero: "poster",
+      menu: "bento",
+      btn: "brutal",
+    })
+
+    expect(attributes["data-hero"]).toBe(ENGINE_LAYOUT.hero)
+    expect(attributes["data-menu"]).toBe(ENGINE_LAYOUT.menu)
+    expect(attributes["data-btn"]).toBe(ENGINE_LAYOUT.btn)
+
+    expect(attributes["data-hero-requested"]).toBe("poster")
+    expect(attributes["data-menu-requested"]).toBe("bento")
+    expect(attributes["data-btn-requested"]).toBe("brutal")
+  })
+
+  test("an honoured value is emitted as itself, with no note", () => {
+    // Anti-vacuity: a `layoutAttributes` that always answered the engine's
+    // value would satisfy the case above and break every template that works.
+    const attributes = layoutAttributes({ hero: "zen", menu: "ledger", nav: "bar" })
+
+    expect(attributes["data-hero"]).toBe("zen")
+    expect(attributes["data-menu"]).toBe("ledger")
+    expect(attributes["data-nav"]).toBe("bar")
+    expect(attributes).not.toHaveProperty("data-hero-requested")
+    expect(attributes).not.toHaveProperty("data-menu-requested")
+    expect(attributes).not.toHaveProperty("data-nav-requested")
+  })
+
+  test("the engine's own value is never noted as requested-and-refused", () => {
+    // `btn: "soft"` IS the engine's value and is still unpainted, so it must
+    // fall through silently rather than telling a reader their default was
+    // overruled.
+    const attributes = layoutAttributes(ENGINE_LAYOUT)
+
+    for (const family of FAMILY_NAMES) {
+      expect(attributes[`data-${family}`], family).toBe(ENGINE_LAYOUT[family])
+      expect(attributes, family).not.toHaveProperty(`data-${family}-requested`)
+    }
   })
 
   test("a missing layout is the engine's layout, whole", () => {
@@ -358,6 +418,127 @@ describe("what reaches the DOM", () => {
     // every fallback illegal and nothing else would notice.
     for (const family of FAMILY_NAMES) {
       expect(isLayoutValue(family, ENGINE_LAYOUT[family]), `${family}`).toBe(true)
+    }
+  })
+})
+
+/**
+ * How much of the catalogue names a layout the shop does not paint (#529).
+ *
+ * MEASURED, NOT ASSUMED. At `a92a0e51`, over the 51 installed templates:
+ * 31 name a hero outside `HONOURED`, 26 a menu, and 51 a button style — the
+ * whole family, since `HONOURED.btn` is empty. Nothing failed on any of it:
+ * `layout-families.test.ts` pinned only the out-of-FAMILY fallback, so a value
+ * its family admits and no rule paints went straight through.
+ *
+ * WHY A LEDGER RATHER THAN A CLEAN SWEEP, and this is the "say which" the issue
+ * asks for. Neither of the two offered actions is available as written:
+ *
+ *   - PAINT THEM. Each unpainted value already carries a measured reason it is
+ *     not built, written where the rule would go. `btn` is blocked on `--radius`
+ *     reaching the shop at all — 405 hard-coded `rounded-*` literals across 44
+ *     storefront files and no `--radius-*` token in `@theme inline` (#512). The
+ *     five menus want a restructured card body, a 72px thumbnail the 4:3 photo
+ *     block cannot become, or a category bar that lives in another component.
+ *     The seven heroes want a photograph the hero does not carry, a second
+ *     image, a locations board, or — `editorial` — a rating stamp this product
+ *     refuses to invent at all.
+ *   - REGENERATE THE 51 `layout.ts` WITH ONLY HONOURED VALUES. That erases the
+ *     design intent the catalogue is sold on. `pizzeria-trattoria` names
+ *     `hero: "poster"` because that is the design; flattening it to `"split"`
+ *     would make the file agree with the stylesheet by deleting the thing the
+ *     stylesheet is meant to catch up with.
+ *
+ * So the DOM was made honest instead — `layoutAttributes` now emits the engine's
+ * value and records the ask in `data-<family>-requested` — and the gap is a
+ * ledger with its numbers pinned. A new unpainted value fails. Painting one
+ * fails too, until its count comes down, which is the direction that matters.
+ */
+describe("templates naming a layout the shop does not paint", () => {
+  /** Per family: how many of the 51 templates name an unpainted value. */
+  const PINNED: Record<string, number> = {
+    hero: 31,
+    menu: 26,
+    btn: 51,
+  }
+
+  /** Every unpainted value the catalogue names today, per family. */
+  const PINNED_VALUES: Record<string, string[]> = {
+    hero: ["board", "collage", "duo", "editorial", "fullbleed", "magazine", "poster"],
+    menu: ["bento", "dotted", "mosaic", "tabs", "tickets"],
+    btn: ["brutal", "pill", "soft", "square", "underline"],
+  }
+
+  /** `{ family: { count, values } }` over the installed catalogue. */
+  function measure() {
+    const counts: Record<string, number> = {}
+    const values: Record<string, Set<string>> = {}
+    for (const slug of slugs) {
+      const layout = declaredLayout(slug)
+      for (const family of Object.keys(LAYOUT_FAMILIES) as LayoutFamily[]) {
+        const value = layout[family]
+        if (value === undefined || isHonoured(family, value)) continue
+        counts[family] = (counts[family] ?? 0) + 1
+        ;(values[family] ??= new Set()).add(value)
+      }
+    }
+    return { counts, values }
+  }
+
+  test("there are templates to measure", () => {
+    // Anti-vacuity: an empty catalogue satisfies every count below trivially.
+    expect(slugs.length).toBeGreaterThan(40)
+  })
+
+  test("no family is worse than the ledger says", () => {
+    const { counts } = measure()
+
+    for (const [family, count] of Object.entries(counts)) {
+      expect(count, `${family} names an unpainted value in more templates than pinned`)
+        .toBeLessThanOrEqual(PINNED[family] ?? 0)
+    }
+  })
+
+  test("the ledger is not better than the truth either", () => {
+    /*
+     * The half that makes this worth keeping. Painting `poster` drops `hero` to
+     * 24, and this fails until the number comes down — so the ledger cannot sit
+     * at a figure the catalogue left behind, quietly permitting a regression
+     * back up to it.
+     */
+    const { counts } = measure()
+
+    for (const [family, pinned] of Object.entries(PINNED)) {
+      expect(counts[family] ?? 0, `${family}: PINNED says ${pinned}`).toBe(pinned)
+    }
+  })
+
+  test("no family outside the ledger names an unpainted value", () => {
+    // `nav`, `tex`, `foot` and `up` are fully honoured. One of them acquiring an
+    // unpainted value is a new defect, not a known one.
+    const { counts } = measure()
+
+    expect(Object.keys(counts).sort()).toEqual(Object.keys(PINNED).sort())
+  })
+
+  test("the unpainted values are the ones the ledger names", () => {
+    // A template swapping `poster` for some other unpainted hero keeps the count
+    // and changes the fact, and the fix for each value is different.
+    const { values } = measure()
+
+    for (const [family, pinned] of Object.entries(PINNED_VALUES)) {
+      expect([...(values[family] ?? [])].sort(), family).toEqual([...pinned].sort())
+    }
+  })
+
+  test("every pinned value is one its family actually admits", () => {
+    // A typo here would pin a value no template could ever name, and the counts
+    // above would then be measuring something else.
+    for (const [family, pinned] of Object.entries(PINNED_VALUES)) {
+      for (const value of pinned) {
+        expect(isLayoutValue(family as LayoutFamily, value), `${family}/${value}`).toBe(true)
+        expect(isHonoured(family as LayoutFamily, value), `${family}/${value}`).toBe(false)
+      }
     }
   })
 })

@@ -5,9 +5,23 @@ import { countAfterLoad } from "../helpers/list.helpers"
 /**
  * Order Detail Page E2E tests.
  *
- * These tests verify the /orders/[orderId] page structure and behavior.
- * Since we rely on dynamic data, some tests conditionally check elements
- * based on what orders exist in the test database.
+ * WHY THIS FILE WAS REWRITTEN (#533). Every case here read
+ * `const hasOrder = await navigateToFirstOrder(page); if (hasOrder) { … }`, and
+ * the admin project's database has no order when CI runs it. So the whole file
+ * passed by never executing a single assertion — and it stayed that way while
+ * the row it clicks stopped navigating at all. Measured against a seeded bench,
+ * two of its cases fail.
+ *
+ * Three rules follow from that, and they are what this file now does:
+ *
+ *   - Nothing is wrapped in `if (hasOrder)`. A case that cannot run says so, by
+ *     skipping with a reason — the same shape `requireSeedPassword()` uses. A
+ *     skip is visible in the report; a silent early return is not.
+ *   - Opening an order asserts the URL CHANGED before asserting anything about
+ *     the page. Without it, every "is this on the detail page" assertion is
+ *     really being made against the list page, and several of them pass there:
+ *     `heading /Commande/` matches the list's own « Commandes ».
+ *   - The heading is matched exactly, for that same reason.
  */
 
 const ORDERS_URL = "/dashboard/orders"
@@ -15,166 +29,166 @@ const INVALID_ORDER_ID = "invalid-order-id-999"
 
 test.describe("Order Detail Page", () => {
   /**
-   * Helper: navigate to the first order detail page.
-   * Returns true if an order was found, false otherwise.
+   * Open the first order in the list, or skip the calling test saying why.
+   *
+   * Never returns `false`. The boolean this used to return is what let every
+   * case opt out of itself in silence; a skip with a reason is the honest
+   * version of the same fact, and it appears in the report.
+   *
+   * The click lands on the ROW, which is what a reader of the list does — the
+   * row advertises itself with `cursor-pointer` — and the URL assertion
+   * afterwards is what makes that click meaningful. It is also what caught the
+   * defect this file was rewritten for: the row was decorative and only the
+   * text inside each cell navigated.
    */
-  async function navigateToFirstOrder(
+  async function openFirstOrder(
     page: import("@playwright/test").Page
-  ): Promise<boolean> {
+  ): Promise<void> {
     await page.goto(ORDERS_URL, {
       waitUntil: "domcontentloaded",
       timeout: 60_000,
     })
 
-    // Wait for the page to load
     await expect(
       page.getByRole("heading", { name: "Commandes", level: 1 })
     ).toBeVisible({ timeout: 30_000 })
 
-    // Check if there are any order rows in the table
     const rows = page.locator("tbody tr")
     const rowCount = await rows.count().catch(() => 0)
+    test.skip(
+      rowCount === 0,
+      "no order in the database to open — seed one, or run this against a bench that has traded"
+    )
 
-    if (rowCount > 0) {
-      // Click the first row to navigate to order detail
-      await rows.first().click()
-      await page.waitForLoadState("domcontentloaded")
-      return true
-    }
+    await rows.first().click()
 
-    return false
+    // The whole point of the click. Asserted before anything about the page,
+    // because the list page satisfies several of the assertions below.
+    await expect(page).toHaveURL(/\/dashboard\/orders\/[^/]+$/, {
+      timeout: 15_000,
+    })
   }
 
   test.describe("Page Structure", () => {
     test("should display order heading with order number", async ({
       page,
     }) => {
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        // The heading should contain "Commande" followed by order number
-        await expect(
-          page.getByRole("heading", { name: /Commande/ })
-        ).toBeVisible({ timeout: 15_000 })
-      }
+      /*
+       * EXACT, not `/Commande/`. That pattern matches the LIST page's own
+       * « Commandes » heading, so the case passed whether or not the click had
+       * navigated — which is precisely how the dead row survived. The detail
+       * heading is « Commande #ORD-YYYY-NNNNN », and the number is what proves
+       * an order was opened rather than a list.
+       */
+      await expect(
+        page.getByRole("heading", { name: /^Commande #\S+/, level: 1 })
+      ).toBeVisible({ timeout: 15_000 })
     })
 
     test("should display back button linking to /orders", async ({
       page,
     }) => {
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        const backLink = page.getByRole("link", { name: /retour|orders/i }).or(
-          page.locator('a[href="/dashboard/orders"]')
-        )
-        await expect(backLink).toBeVisible({ timeout: 15_000 })
-      }
+      const backLink = page.getByRole("link", { name: /retour|orders/i }).or(
+        page.locator('a[href="/dashboard/orders"]')
+      )
+      await expect(backLink).toBeVisible({ timeout: 15_000 })
     })
 
     test("should display status badge", async ({ page }) => {
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        // One of the status badges should be visible
-        const statusTexts = [
-          "En attente",
-          "Confirmée",
-          "En préparation",
-          "Prête",
-          "En livraison",
-          "Livrée",
-          "Terminée",
-          "Annulée",
-        ]
+      // One of the status badges should be visible
+      const statusTexts = [
+        "En attente",
+        "Confirmée",
+        "En préparation",
+        "Prête",
+        "En livraison",
+        "Livrée",
+        "Terminée",
+        "Annulée",
+      ]
 
-        const statusBadge = page.locator('[data-slot="badge"]').filter({
-          hasText: new RegExp(statusTexts.join("|")),
-        })
+      const statusBadge = page.locator('[data-slot="badge"]').filter({
+        hasText: new RegExp(statusTexts.join("|")),
+      })
 
-        await expect(statusBadge.first()).toBeVisible({ timeout: 15_000 })
-      }
+      await expect(statusBadge.first()).toBeVisible({ timeout: 15_000 })
     })
 
     test("should display type badge", async ({ page }) => {
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        const typeTexts = ["Livraison", "À emporter", "Sur place"]
+      const typeTexts = ["Livraison", "À emporter", "Sur place"]
 
-        const typeBadge = page.locator('[data-slot="badge"]').filter({
-          hasText: new RegExp(typeTexts.join("|")),
-        })
+      const typeBadge = page.locator('[data-slot="badge"]').filter({
+        hasText: new RegExp(typeTexts.join("|")),
+      })
 
-        await expect(typeBadge.first()).toBeVisible({ timeout: 15_000 })
-      }
+      await expect(typeBadge.first()).toBeVisible({ timeout: 15_000 })
     })
 
     test("should display items table", async ({ page }) => {
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        // Check for the items table with expected columns
-        const table = page.locator("table")
-        await expect(table).toBeVisible({ timeout: 15_000 })
+      // Check for the items table with expected columns
+      const table = page.locator("table")
+      await expect(table).toBeVisible({ timeout: 15_000 })
 
-        // Verify column headers
-        const headers = page.locator("thead th")
-        const headerTexts = ["Produit", "Qté", "Prix", "Sous-total"]
+      // Verify column headers
+      const headers = page.locator("thead th")
+      const headerTexts = ["Produit", "Qté", "Prix", "Sous-total"]
 
-        for (const headerText of headerTexts) {
-          await expect(
-            headers.filter({ hasText: headerText })
-          ).toBeVisible()
-        }
+      for (const headerText of headerTexts) {
+        await expect(
+          headers.filter({ hasText: headerText })
+        ).toBeVisible()
       }
     })
   })
 
   test.describe("Customer Info", () => {
     test("should display customer name", async ({ page }) => {
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        // Look for the customer info section with "Nom" label
-        await expect(page.getByText("Nom")).toBeVisible({ timeout: 15_000 })
-      }
+      // Look for the customer info section with "Nom" label
+      await expect(page.getByText("Nom")).toBeVisible({ timeout: 15_000 })
     })
 
     test("should display customer contact info", async ({ page }) => {
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        // Look for Email or Téléphone labels
-        const emailLabel = page.getByText("Email")
-        const phoneLabel = page.getByText("Téléphone")
+      // Look for Email or Téléphone labels
+      const emailLabel = page.getByText("Email")
+      const phoneLabel = page.getByText("Téléphone")
 
-        await expect(emailLabel.or(phoneLabel)).toBeVisible({
-          timeout: 15_000,
-        })
-      }
+      await expect(emailLabel.or(phoneLabel)).toBeVisible({
+        timeout: 15_000,
+      })
     })
   })
 
   test.describe("Status Actions", () => {
     test("should display status action buttons", async ({ page }) => {
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        // Wait for the page to fully load
-        await page.waitForTimeout(2_000)
+      // Wait for the page to fully load
+      await page.waitForTimeout(2_000)
 
-        // Status action buttons should be present (e.g., "Confirmer", "Préparer", etc.)
-        const actionButtons = page.getByRole("button").filter({
-          hasText:
-            /Confirmer|Préparer|Prête|Livrer|Terminer|Annuler/,
-        })
+      // Status action buttons should be present (e.g., "Confirmer", "Préparer", etc.)
+      const actionButtons = page.getByRole("button").filter({
+        hasText:
+          /Confirmer|Préparer|Prête|Livrer|Terminer|Annuler/,
+      })
 
-        // At least one action button should exist (unless order is in terminal state)
-        const count = await countAfterLoad(actionButtons)
-        // Some orders in terminal states (Terminée, Annulée) may have no action buttons
-        expect(count).toBeGreaterThanOrEqual(0)
-      }
+      // At least one action button should exist (unless order is in terminal state)
+      const count = await countAfterLoad(actionButtons)
+      // Some orders in terminal states (Terminée, Annulée) may have no action buttons
+      expect(count).toBeGreaterThanOrEqual(0)
     })
   })
 
@@ -215,19 +229,17 @@ test.describe("Order Detail Page", () => {
     test("should navigate back to /orders via back button", async ({
       page,
     }) => {
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        // Click the back link/button
-        const backLink = page
-          .getByRole("link", { name: /retour|orders/i })
-          .or(page.locator('a[href="/dashboard/orders"]'))
+      // Click the back link/button
+      const backLink = page
+        .getByRole("link", { name: /retour|orders/i })
+        .or(page.locator('a[href="/dashboard/orders"]'))
 
-        await expect(backLink).toBeVisible({ timeout: 15_000 })
-        await backLink.first().click()
+      await expect(backLink).toBeVisible({ timeout: 15_000 })
+      await backLink.first().click()
 
-        await expect(page).toHaveURL(/\/dashboard\/orders$/, { timeout: 15_000 })
-      }
+      await expect(page).toHaveURL(/\/dashboard\/orders$/, { timeout: 15_000 })
     })
   })
 
@@ -235,12 +247,10 @@ test.describe("Order Detail Page", () => {
     test("should not produce unexpected console errors", async ({ page }) => {
       const { getErrors, cleanup } = collectConsoleErrors(page)
 
-      const hasOrder = await navigateToFirstOrder(page)
+      await openFirstOrder(page)
 
-      if (hasOrder) {
-        // Wait for page to settle
-        await page.waitForTimeout(2_000)
-      }
+      // Wait for page to settle
+      await page.waitForTimeout(2_000)
 
       cleanup()
       expect(getErrors()).toEqual([])

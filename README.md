@@ -270,10 +270,13 @@ pnpm template:apply poulet     # applies it (or --template at creation time)
 pnpm template:apply default    # restores the original theme
 ```
 
-**Each template is four files, not two:** `theme.css`, `fonts.ts`,
+**Each template is five files, not two:** `theme.css`, `fonts.ts`, `layout.ts`,
 `template.json` and `DESIGN.md`. `template.json` is **load-bearing, not
 documentation** — the applier reads it, so a template written from a "two files"
-description will not apply.
+description will not apply. `layout.ts` is the fifth, since #507: the applier
+copies it like the other two source files and **fails loudly** when it is
+missing, rather than leaving a site on the engine's layout while its palette says
+otherwise. This line said "four" from #507 until #534.
 
 Visual preview: open `templates/preview.html`. Art direction per template:
 [`templates/README.md`](templates/README.md) and `templates/<slug>/DESIGN.md`.

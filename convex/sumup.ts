@@ -3,7 +3,10 @@
 import { v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { settleOrRecordRefusal } from "./settlementReturn";
+import {
+  recordSettlementRefusal,
+  settleOrRecordRefusal,
+} from "./settlementReturn";
 import type { Id } from "./_generated/dataModel";
 import {
   assertSettlesOrder,
@@ -547,8 +550,24 @@ export const reconcilePending = internalAction({
         }
         settled += 1;
       } catch (error) {
-        // One order that cannot be settled must not stop the sweep. Reported,
-        // because a refusal nobody can see is a refusal nobody can fix.
+        /*
+         * One order that cannot be settled must not stop the sweep — but a
+         * refusal nobody can see is a refusal nobody can fix, and a
+         * `console.error` in one client's Convex dashboard at 3am unattended is
+         * precisely nobody being told (#520).
+         *
+         * A refusal here means a real charge exists at SumUp for an order this
+         * deployment will not record, so the restaurant is holding the diner's
+         * money and somebody owes them a refund. Stripe's sweep has recorded
+         * that since #438; this one reached the log and stopped.
+         */
+        await recordSettlementRefusal(ctx, error, {
+          provider: "sumup",
+          eventType: "reconcilePendingCheckouts",
+          externalId: candidate.checkoutSessionId,
+          orderId: candidate.orderId as Id<"orders">,
+          storeId: candidate.storeId as Id<"stores">,
+        });
         console.error(
           `[SumUp reconcile] ${candidate.orderId}:`,
           error instanceof Error ? error.message : error

@@ -25,7 +25,12 @@
 import { convexTest } from "convex-test"
 import { describe, expect, test } from "vitest"
 import { ConvexError } from "convex/values"
-import { createArticleCore } from "@be-in-digital/convex-functions/blog"
+import fs from "node:fs"
+import { enginePackageFile } from "../lib/repo-layout"
+import {
+  createArticleCore,
+  saveDraftCore,
+} from "@be-in-digital/convex-functions/blog"
 import schema from "../../convex/schema"
 import type { Id } from "../../convex/_generated/dataModel"
 
@@ -180,5 +185,111 @@ describe("filing an article under a rubric", () => {
 
     await expect(create(t, mine, myCategory)).resolves.toBeDefined()
     await expect(create(t, mine, theirCategory)).rejects.toThrow()
+  })
+})
+
+/**
+ * The same rule on the EDIT path (#526).
+ *
+ * #499 put the check in `createArticleCore` and stopped there, and the wrapper's
+ * own guard does not close the gap: `saveDraft` validates the ARTICLE's store
+ * through `storeIdFromArticle` and never the `categoryId` beside it, which
+ * arrives from the browser.
+ *
+ * It does not stay in the draft, which is why this is worth its own suite:
+ * `publishArticleCore` copies `draftCategoryId` to `publishedCategoryId`
+ * unconditionally, three public readers resolve it with a bare `ctx.db.get`, and
+ * `category.name` renders on the page.
+ */
+describe("re-filing an article under a rubric", () => {
+  /** Save a draft through the one patch every edit funnels through. */
+  const saveDraft = (
+    t: ReturnType<typeof convexTest>,
+    articleId: string,
+    categoryId: Id<"blogCategories">
+  ) =>
+    t.run((ctx) =>
+      saveDraftCore(ctx, {
+        articleId,
+        /* The shape `blogContentFieldsValidator` requires. `title` is read to
+           build the slug; the rest is what the editor sends, and none of it
+           matters to the rule under test — but the schema validates the patch,
+           so a short fixture fails on the wrong thing. */
+        draftContent: {
+          title: "Notre risotto de printemps",
+          slug: "notre-risotto-de-printemps",
+          excerpt: "Riz carnaroli, asperges vertes, parmesan.",
+          content: "<p>Le riz est nacré à feu vif.</p>",
+          updatedAt: NOW,
+        },
+        categoryId,
+        authorId: AUTHOR,
+        updatedBy: AUTHOR,
+      })
+    )
+
+  test("accepts another rubric of the same establishment", async () => {
+    // Anti-vacuity: without this, a `saveDraftCore` that refused every category
+    // would pass the refusal tests below.
+    const t = newHarness()
+    const storeId = await seedStore(t, "chez-camille")
+    const first = await seedCategory(t, storeId, "recettes")
+    const second = await seedCategory(t, storeId, "actualites")
+    const articleId = await create(t, storeId, first)
+
+    // `.resolves` and not a value: `saveDraftCore` returns nothing, and what is
+    // being asserted is that it did not refuse. `t.run` resolves `null` for a
+    // void handler, so the assertion is on the absence of a throw.
+    await expect(saveDraft(t, articleId as string, second)).resolves.toBeNull()
+  })
+
+  test("refuses one belonging to another establishment", async () => {
+    /*
+     * THE DEFECT. A member with `content:write` on their own establishment
+     * edits their own article and sends another establishment's rubric id.
+     */
+    const t = newHarness()
+    const mine = await seedStore(t, "chez-camille")
+    const theirs = await seedStore(t, "sushi-bar")
+    const myCategory = await seedCategory(t, mine, "recettes")
+    const theirCategory = await seedCategory(t, theirs, "nos-poissons")
+    const articleId = await create(t, mine, myCategory)
+
+    await expect(saveDraft(t, articleId as string, theirCategory)).rejects.toThrow(
+      /n'appartient pas à cet établissement/
+    )
+  })
+
+  test("refuses a rubric that does not exist", async () => {
+    const t = newHarness()
+    const mine = await seedStore(t, "chez-camille")
+    const myCategory = await seedCategory(t, mine, "recettes")
+    const doomed = await seedCategory(t, mine, "temporaire")
+    const articleId = await create(t, mine, myCategory)
+    await t.run((ctx) => ctx.db.delete(doomed))
+
+    await expect(saveDraft(t, articleId as string, doomed)).rejects.toThrow(
+      /n'appartient pas à cet établissement/
+    )
+  })
+
+  test("takes the store from the ARTICLE, not from anything a caller sends", async () => {
+    // The store is the article's. Taking it from the caller would reopen the
+    // door one field along — `saveDraftCore` has no `storeId` argument at all,
+    // and this pins that it stays that way.
+    // Resolved through `repo-layout` rather than by walking up to `packages/`:
+    // this file SHIPS, and that path exists only in the engine monorepo. A
+    // client's copy is under `node_modules/@be-in-digital/convex-functions`,
+    // which `enginePackageFile` knows about and a `../../../../` does not.
+    const blog = enginePackageFile("convex-functions", "src/blog.ts")
+    if (blog === null) {
+      throw new Error(
+        "blog.ts is not in this checkout, so the rule about saveDraftCore's " +
+          "arguments would be checked against nothing"
+      )
+    }
+
+    const source = fs.readFileSync(blog, "utf8")
+    expect(source).toContain("assertCategoryInStore(ctx, article.storeId, args.categoryId)")
   })
 })

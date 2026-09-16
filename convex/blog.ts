@@ -81,6 +81,23 @@ async function storeIdFromCategory(
   return category.storeId
 }
 
+/**
+ * The establishment a tag belongs to, read from the tag itself (#524).
+ *
+ * The core `deleteTag` takes a bare `tagId` and says nothing about whose it is.
+ * Without this, `storeMutation` would have to take a `storeId` from the caller
+ * — and a caller that supplies the establishment its own permission is checked
+ * against is not a check. That is the hole #112 closed on `categoryId`.
+ */
+async function storeIdFromTag(
+  ctx: QueryCtx,
+  args: { tagId: Id<"blogTags"> }
+): Promise<Id<"stores">> {
+  const tag = await ctx.db.get(args.tagId)
+  if (!tag) throw new Error("Tag not found")
+  return tag.storeId
+}
+
 // ============================================================================
 // Admin Mutations — Articles
 // ============================================================================
@@ -230,6 +247,24 @@ export const createTag = storeMutation({
   permission: "content:write",
   args: blogDefs.createTag.args,
   handler: (ctx, args) => blogDefs.createTag.handler(ctx, args),
+})
+
+/**
+ * Remove a tag, and the joins that pointed at it (#524).
+ *
+ * The editor has created tags since it was written and nothing deleted one, so
+ * every typo and every abandoned idea stayed in the picker for the life of the
+ * establishment. `blogDefs.deleteTag` existed, join cleanup and all, and no app
+ * wrapped it.
+ *
+ * `content:delete`, matching `deleteCategory`: removing a rubric and removing a
+ * tag are the same act on the same screen.
+ */
+export const deleteTag = storeMutation({
+  permission: "content:delete",
+  args: blogDefs.deleteTag.args,
+  storeIdFrom: storeIdFromTag,
+  handler: (ctx, args) => blogDefs.deleteTag.handler(ctx, args),
 })
 
 // ============================================================================

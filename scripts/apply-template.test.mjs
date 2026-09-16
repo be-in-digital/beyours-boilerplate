@@ -27,7 +27,8 @@ function makeRoot() {
     fs.writeFileSync(path.join(dir, "fonts.ts"), `export const font = "${slug}"\n`)
     // The layout half (#507). A fixture without it exercises the refusal rather
     // than the copy, which is a different test — `refuses a template missing a
-    // file` below owns that case and removes one deliberately.
+    // file` below owns that case and removes one deliberately. That test did
+    // not exist until #532, and this comment cited it for as long.
     fs.writeFileSync(path.join(dir, "layout.ts"), `export const siteLayout = "${slug}"\n`)
   }
 
@@ -90,6 +91,60 @@ describe("applyTemplate", () => {
     applyTemplate("asiatique-izakaya", root)
 
     expect(JSON.parse(fs.readFileSync(sentinel, "utf8")).template).toBe("asiatique")
+  })
+
+  /*
+   * THE TEST THE FIXTURE ABOVE ALREADY CITED (#510, written for #532).
+   *
+   * `makeRoot` says "`refuses a template missing a file` below owns that case
+   * and removes one deliberately", and no such test existed. Measured by
+   * inverting #510 in an isolated worktree: deleting the `layout.ts` row from
+   * the applier's copy list left all eight cases green.
+   *
+   * WHY THE REFUSAL IS THE POINT, and not the copy. A template with no
+   * `layout.ts` applied silently and left the PREVIOUS template's layout over
+   * the new one's colours — a site that is half one design and half another,
+   * with nothing anywhere saying so. Throwing at apply time is what turns that
+   * into a message a person reads before the site ships.
+   */
+  for (const missing of ["theme.css", "fonts.ts", "layout.ts", "template.json"]) {
+    it(`refuses a template missing a file — ${missing}`, () => {
+      fs.rmSync(path.join(root, "templates", "asiatique-wokstreet", missing))
+
+      expect(() => applyTemplate("asiatique-wokstreet", root)).toThrow()
+    })
+  }
+
+  it("names the file it could not find", () => {
+    // A refusal that does not say WHICH file leaves the reader to diff a
+    // directory against a list they have to go and find.
+    fs.rmSync(path.join(root, "templates", "asiatique-wokstreet", "layout.ts"))
+
+    expect(() => applyTemplate("asiatique-wokstreet", root)).toThrow(/layout\.ts/)
+  })
+
+  it("writes nothing when it refuses", () => {
+    /*
+     * The half that makes the refusal worth having. The copy loop writes file by
+     * file, so a template missing its LAST source can still have overwritten the
+     * first two — leaving exactly the half-applied site the refusal exists to
+     * prevent, and leaving it after an error the operator has been told to fix.
+     */
+    fs.writeFileSync(path.join(root, "site", "theme.css"), "/* previous */\n")
+    fs.writeFileSync(path.join(root, "site", "fonts.ts"), 'export const font = "previous"\n')
+    fs.rmSync(path.join(root, "templates", "asiatique-wokstreet", "layout.ts"))
+
+    expect(() => applyTemplate("asiatique-wokstreet", root)).toThrow()
+
+    expect(fs.readFileSync(path.join(root, "site", "theme.css"), "utf8")).toContain("previous")
+    expect(fs.readFileSync(path.join(root, "site", "fonts.ts"), "utf8")).toContain("previous")
+  })
+
+  it("applies a complete template, so the refusal is about the missing file", () => {
+    // Anti-vacuity: an applier that threw on everything would satisfy every
+    // case above.
+    expect(() => applyTemplate("asiatique-wokstreet", root)).not.toThrow()
+    expect(fs.readFileSync(path.join(root, "site", "layout.ts"), "utf8")).toContain("wokstreet")
   })
 
   it("names the aliases among the available templates when the slug is unknown", () => {

@@ -19,6 +19,7 @@ import { useCartStore, formatPrice,
   saveCheckoutAttempt,
   clearCheckoutAttempt,
   useCartHydrated,
+  cardUnavailableMessage,
   type CartItem,
 } from "@be-in-digital/restaurant"
 import {
@@ -26,6 +27,7 @@ import {
   resolveTaxRatePercent,
 } from "@be-in-digital/convex-functions/orderTotals"
 import { effectiveDeliveryFeeMode } from "@be-in-digital/convex-functions/deliveryQuote"
+import { cardMinimumFor } from "@be-in-digital/convex-functions/cardChargeFloor"
 import {
   resolvePromotionDiscount,
   PromotionRejectedError,
@@ -712,7 +714,32 @@ export default function CheckoutPage() {
       toast.error(
         convexErrorMessage(
           error,
-          {},
+          {
+            /*
+             * The one refusal whose right wording depends on the SCREEN, not on
+             * the deployment (#531).
+             *
+             * The server's own sentence ends « Choisissez un autre moyen de
+             * paiement. », and `convex/stripe.ts` cannot know what tiles this
+             * page rendered. On a delivery order at an establishment with no
+             * cash and no PayPal, card is the only tile there is — so that
+             * sentence asks the diner to do something the page does not offer,
+             * and they read it as their own oversight.
+             *
+             * Decided here, against the same context the tiles were rendered
+             * from, so the advice cannot contradict what is on screen. Every
+             * other code keeps the server's French verbatim: it is the copy.
+             */
+            card_payment_unavailable: cardUnavailableMessage({
+              cardAvailable: false,
+              paypalEnabled: globalSettings?.payments?.paypal === true,
+              cashEnabled: globalSettings?.payments?.cash === true,
+              isDelivery: orderType === "delivery",
+              isAuthenticated: !!session?.user,
+              amountDue,
+              cardMinimum: cardMinimumFor(globalSettings?.currency),
+            }),
+          },
           "Erreur lors de la commande. Veuillez réessayer."
         )
       )

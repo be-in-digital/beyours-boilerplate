@@ -129,11 +129,31 @@ export function isLayoutValue(family: LayoutFamily, value: unknown): boolean {
 /**
  * The `data-*` attributes for a layout, ready to spread onto `<html>`.
  *
+ * TWO REASONS TO FALL BACK, AND THEY ARE THE SAME REASON (#529).
+ *
  * A value outside its family falls back to the engine's rather than reaching
  * the DOM: an attribute no rule matches is invisible, and an invisible wrong
  * value is how a template silently renders as something else. The applier
  * refuses a template with no `layout.ts` at all, which is the loud half of the
  * same rule.
+ *
+ * A value INSIDE its family that nothing paints is the identical situation, and
+ * the line used to be drawn at family membership instead. `hero: "poster"` is a
+ * legal value with zero rules in `globals.css`, so the shop rendered `split`
+ * while `<html>` said `poster`. Measured at `a92a0e51`: 31 of the 51 templates
+ * named a hero the storefront does not paint, 26 a menu, and 51 a button style —
+ * the whole `btn` family, since `HONOURED.btn` is empty.
+ *
+ * THE DECLARATION IS NOT LOST. It moves to `data-<family>-requested`, so the
+ * markup says both what it renders and what the template asked for. Painting a
+ * value is then one entry in `HONOURED` away from making the note disappear on
+ * its own, and somebody asking "why is my poster hero not showing" finds the
+ * answer in the DOM rather than in a stylesheet they have to search.
+ *
+ * `templates/README.md` carries the measured reason each value is unpainted —
+ * `btn` waits on `--radius` reaching the shop at all, and the heroes and menus
+ * want a photograph, a second image or a board the engine's components do not
+ * carry.
  */
 export function layoutAttributes(
   layout: Partial<SiteLayout> | undefined
@@ -141,9 +161,21 @@ export function layoutAttributes(
   const attributes: Record<string, string> = {}
   for (const family of Object.keys(LAYOUT_FAMILIES) as LayoutFamily[]) {
     const chosen = layout?.[family]
-    attributes[`data-${family}`] = isLayoutValue(family, chosen)
-      ? String(chosen)
-      : ENGINE_LAYOUT[family]
+    const legal = isLayoutValue(family, chosen)
+    const value = legal ? String(chosen) : ENGINE_LAYOUT[family]
+
+    if (isHonoured(family, value)) {
+      attributes[`data-${family}`] = value
+      continue
+    }
+
+    // Unpainted. The engine's value is what renders, so it is what the DOM
+    // says — and the request is recorded beside it, unless it IS the engine's
+    // value, where there is nothing to report.
+    attributes[`data-${family}`] = ENGINE_LAYOUT[family]
+    if (legal && value !== ENGINE_LAYOUT[family]) {
+      attributes[`data-${family}-requested`] = value
+    }
   }
   return attributes
 }

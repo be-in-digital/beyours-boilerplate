@@ -3,7 +3,10 @@
 import { v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { settleOrRecordRefusal } from "./settlementReturn";
+import {
+  recordSettlementRefusal,
+  settleOrRecordRefusal,
+} from "./settlementReturn";
 import type { Id } from "./_generated/dataModel";
 import {
   assertSettlesOrder,
@@ -609,6 +612,19 @@ export const reconcilePendingOrders = internalAction({
         }
         settled += 1;
       } catch (error) {
+        /*
+         * The same as SumUp's, and for the same reason (#520): a deliberate
+         * refusal means PayPal holds a real charge for an order this deployment
+         * will not record, and somebody owes the diner a refund. The sweep still
+         * continues — one unsettleable order must not stop the rest.
+         */
+        await recordSettlementRefusal(ctx, error, {
+          provider: "paypal",
+          eventType: "reconcilePendingCheckouts",
+          externalId: candidate.checkoutSessionId,
+          orderId: candidate.orderId as Id<"orders">,
+          storeId: candidate.storeId as Id<"stores">,
+        });
         console.error(
           `[PayPal reconcile] ${candidate.orderId}:`,
           error instanceof Error ? error.message : error

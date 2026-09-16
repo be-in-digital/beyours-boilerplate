@@ -36,9 +36,23 @@ code, and a test holds the two against the stylesheet in both directions.
 | `menu` | `cards` · `zen` · `ledger` — **yes**<br>`dotted` · `tickets` · `mosaic` · `tabs` · `bento` — no | **partly**. `cards` is the grid the page already renders; `zen` is one column with hairline rules; `ledger` numbers the dishes with a CSS counter. The rest want the card's body restructured, a thumbnail crop, mixed photo spans, or a sticky bar that lives in another component. An unhonoured value renders `cards`. |
 | `btn` | `soft` · `pill` · `square` · `brutal` · `underline` | not yet, and **blocked**: three of the five are radius languages, and `--radius` reaches nothing on the shop. Measured 14 Sep 2026 — 405 hard-coded `rounded-*` literals across 44 storefront files, and `@theme inline` maps no `--radius-*` token, so no Tailwind utility resolves to it. Its only readers anywhere are the demos and `packages/ui`'s `InputGroup` |
 
+**What the catalogue actually asks for, measured (#529).** Of the 51 installed
+templates, 31 name a hero outside the built three, 26 a menu, and 51 a button
+style — the whole `btn` family, since none of its five is built. That is not
+drift: the values are the design, and the rules are what has not caught up.
+
+So `layoutAttributes` emits **the engine's value** for an unpainted one and
+records the ask beside it as `data-<family>-requested`. `<html>` used to read
+`data-hero="poster"` on a shop rendering `split`, which is the same lie the
+out-of-family fallback was already written to avoid — the line was simply drawn
+at what the family ADMITS rather than at what the stylesheet PAINTS. The counts
+above are pinned in `__tests__/layout-families.test.ts`: a new unpainted value
+fails, and painting one fails too until its count comes down.
+
 Implementing one is a rule in `app/globals.css` plus its name in
 `HONOURED_FAMILIES`; the row above flips on the same commit, because the test
-fails either half alone. Every such rule **must** be confined to
+fails either half alone. The `data-<family>-requested` note then disappears on
+its own, and the ledger count has to be lowered in the same change. Every such rule **must** be confined to
 `.storefront-theme`: the attributes sit on `<html>`, which is the dashboard's
 ancestor too, and a selector that forgets repaints the owner's screens — the
 mistake #410 and #41 each cost once already.

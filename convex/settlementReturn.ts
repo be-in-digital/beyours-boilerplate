@@ -59,24 +59,62 @@ export async function settleOrRecordRefusal(
   try {
     await ctx.runMutation(internal.payments.internalSettle, settlement);
   } catch (error) {
-    const refusal = deliberateSettlementRefusal(error);
-    if (refusal) {
-      console.error(
-        `[${settlement.provider}] refused settlement for order ${settlement.orderId} ` +
-          `(${refusal.code}): ${refusal.message}`
-      );
-      await ctx
-        .runMutation(internal.payments.internalRecordRefusedCollection, {
-          provider: settlement.provider,
-          code: refusal.code,
-          message: refusal.message,
-          eventType: `${settlement.provider}.return`,
-          externalId: settlement.externalId,
-          orderId: settlement.orderId,
-          storeId: settlement.storeId,
-        })
-        .catch(() => undefined);
-    }
+    await recordSettlementRefusal(ctx, error, {
+      provider: settlement.provider,
+      eventType: `${settlement.provider}.return`,
+      externalId: settlement.externalId,
+      orderId: settlement.orderId,
+      storeId: settlement.storeId,
+    });
     throw error;
   }
+}
+
+/**
+ * Record a deliberate refusal without rethrowing it (#520).
+ *
+ * The reconciliation sweeps need the same row `settleOrRecordRefusal` writes and
+ * the opposite control flow: one order that cannot be settled must not stop the
+ * sweep, so the error is swallowed there rather than rethrown. Two rules that
+ * differ only in that are one rule with a parameter, which is why this is
+ * exported rather than copied into each provider.
+ *
+ * It is what SumUp and PayPal were missing. Stripe's sweep recorded the refusal;
+ * theirs reached a `console.error` in one client's Convex dashboard, which at
+ * 3am unattended is nobody being told — while a real provider-side charge sat
+ * against an order this deployment would not record, and somebody owed the diner
+ * a refund.
+ *
+ * Returns whether a row was written, so a caller can tell a deliberate refusal
+ * from an unexpected failure.
+ */
+export async function recordSettlementRefusal(
+  ctx: ActionCtx,
+  error: unknown,
+  where: {
+    provider: ReturnSettlement["provider"];
+    eventType: string;
+    externalId: string;
+    orderId: Id<"orders">;
+    storeId: Id<"stores">;
+  }
+): Promise<boolean> {
+  const refusal = deliberateSettlementRefusal(error);
+  if (!refusal) return false;
+
+  // `.catch`, for the same reason the return path does it: a failure to write
+  // the audit row must not swallow the refusal it was describing.
+  await ctx
+    .runMutation(internal.payments.internalRecordRefusedCollection, {
+      provider: where.provider,
+      code: refusal.code,
+      message: refusal.message,
+      eventType: where.eventType,
+      externalId: where.externalId,
+      orderId: where.orderId,
+      storeId: where.storeId,
+    })
+    .catch(() => undefined);
+
+  return true;
 }

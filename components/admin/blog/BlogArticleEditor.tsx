@@ -103,6 +103,7 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
   const unarchiveArticle = useMutation(api.blog.unarchiveArticle)
   const deleteArticle = useMutation(api.blog.deleteArticle)
   const createTag = useMutation(api.blog.createTag)
+  const deleteTag = useMutation(api.blog.deleteTag)
 
   // Local state
   const [localDraft, setLocalDraft] = useState<DraftContent>({
@@ -367,6 +368,40 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
     } catch (err) {
       toast.error(
         convexErrorMessage(err, {}, "Erreur lors de la création du tag"),
+      )
+    }
+  }
+
+  /**
+   * Remove a tag from the establishment altogether (#524).
+   *
+   * Distinct from un-selecting it, which is the × on a chip above: that takes
+   * the tag off THIS article, this removes it from the picker for good. The
+   * editor has created tags since it was written and nothing deleted one, so
+   * every typo and every abandoned idea stayed in the list for the life of the
+   * establishment.
+   *
+   * Confirmed, because it is not undoable and it reaches every article that
+   * carries the tag — the server deletes the joins with it, which is what stops
+   * a row pointing at nothing.
+   */
+  const handleDeleteTag = async (tagId: string, name: string) => {
+    if (
+      !window.confirm(
+        `Supprimer le tag « ${name} » ? Il sera retiré de tous les articles qui le portent.`,
+      )
+    ) {
+      return
+    }
+    try {
+      await deleteTag({ tagId: tagId as Id<"blogTags"> })
+      // Locally too: the article's own selection is client state and the server
+      // has just removed the join behind it.
+      setLocalTagIds((prev) => prev.filter((id) => id !== tagId))
+      toast.success(`Tag « ${name} » supprimé`)
+    } catch (err) {
+      toast.error(
+        convexErrorMessage(err, {}, "Erreur lors de la suppression du tag"),
       )
     }
   }
@@ -946,11 +981,30 @@ export function BlogArticleEditor({ articleId }: BlogArticleEditorProps) {
                   <Badge
                     key={tag._id}
                     variant="outline"
-                    className="text-xs cursor-pointer hover:bg-muted"
-                    onClick={() => handleTagToggle(tag._id)}
+                    className="text-xs hover:bg-muted"
                   >
-                    <Plus className="mr-1 h-2.5 w-2.5" />
-                    {tag.name}
+                    {/* Two controls, because they do different things: the name
+                        adds the tag to this article, the bin removes it from
+                        the establishment. Only on the UNSELECTED chips — a tag
+                        already on this article is removed from it first, with
+                        the × above, so a single click cannot delete a tag the
+                        author was using. */}
+                    <button
+                      type="button"
+                      className="inline-flex cursor-pointer items-center"
+                      onClick={() => handleTagToggle(tag._id)}
+                    >
+                      <Plus className="mr-1 h-2.5 w-2.5" aria-hidden="true" />
+                      {tag.name}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Supprimer le tag ${tag.name}`}
+                      className="ml-1 inline-flex size-6 items-center justify-center hover:text-destructive"
+                      onClick={() => void handleDeleteTag(tag._id, tag.name)}
+                    >
+                      <Trash2 className="h-3 w-3" aria-hidden="true" />
+                    </button>
                   </Badge>
                 ))}
             </div>

@@ -85,19 +85,37 @@ export function applyTemplate(requestedSlug, root = DEFAULT_ROOT) {
   const dir = path.join(root, "templates", slug)
   const meta = JSON.parse(fs.readFileSync(path.join(dir, "template.json"), "utf8"))
 
-  for (const [from, to] of [
+  const sources = [
     ["theme.css", path.join("site", "theme.css")],
     ["fonts.ts", path.join("site", "fonts.ts")],
     // The layout half of the identity (#507). Copied like the other two, and
-    // like them OVERWRITTEN. The `existsSync` refusal below is the reason it is
-    // listed here rather than copied when present: a template with no
-    // `layout.ts` fails loudly at apply time instead of quietly leaving the
-    // previous template's layout over the new one's colours.
+    // like them OVERWRITTEN. The refusal below is the reason it is listed here
+    // rather than copied when present: a template with no `layout.ts` fails
+    // loudly at apply time instead of quietly leaving the previous template's
+    // layout over the new one's colours.
     ["layout.ts", path.join("site", "layout.ts")],
-  ]) {
+  ]
+
+  /*
+   * EVERY SOURCE CHECKED BEFORE ANY IS COPIED (#532).
+   *
+   * The check used to sit inside the copy loop, one file at a time, and that
+   * defeated the refusal it was written for: a template missing its LAST source
+   * had already had `theme.css` and `fonts.ts` written over it before the throw.
+   * The result is precisely the half-applied site the refusal exists to prevent
+   * — the new template's colours and type over the old one's layout — reached
+   * through an error message telling the operator to fix something else.
+   *
+   * Measured: `apply-template.test.mjs` « writes nothing when it refuses » fails
+   * on the loop form and passes on this one.
+   */
+  for (const [from] of sources) {
     const src = path.join(dir, from)
     if (!fs.existsSync(src)) throw new Error(`Fichier manquant : templates/${slug}/${from}`)
-    fs.copyFileSync(src, path.join(root, to))
+  }
+
+  for (const [from, to] of sources) {
+    fs.copyFileSync(path.join(dir, from), path.join(root, to))
     console.log(`  ✓ ${to} ← templates/${slug}/${from}`)
   }
 

@@ -356,6 +356,35 @@ async function seedDiner(t: ReturnType<typeof convexTest>) {
       updatedAt: NOW,
     })
 
+    /*
+     * THE CUSTOMER BOOK ROW (#481, seeded here since #532).
+     *
+     * `customers` is on the erasure set and nothing in this file created one,
+     * so removing it from `DINER_TABLES` left every case green — the
+     * adversarial sweep included, because a needle that is never planted is
+     * never found. That is the shape of a guard that guards nothing.
+     *
+     * It is the row that matters most to art. 17 after the order itself: the
+     * establishment's own address book, keyed on the lower-cased e-mail, and an
+     * erasure that reached the orders and left this behind would leave the
+     * person in the book they asked to be removed from.
+     */
+    await ctx.db.insert("customers", {
+      storeId,
+      email: EMAIL,
+      name: "Marie Dupont",
+      phone: PHONE,
+      totalOrders: 1,
+      totalSpent: 1320,
+      averageOrderValue: 1320,
+      firstOrderAt: NOW,
+      lastOrderAt: NOW,
+      orderTypes: ["delivery"],
+      favoriteProducts: [],
+      createdAt: NOW,
+      updatedAt: NOW,
+    })
+
     return { storeId, orderId, playId }
   })
 }
@@ -464,6 +493,7 @@ describe("erasing one diner", () => {
       favorites: await ctx.db.query("favorites").collect(),
       payments: await ctx.db.query("payments").collect(),
       profiles: await ctx.db.query("userProfiles").collect(),
+      customers: await ctx.db.query("customers").collect(),
     }))
 
     expect(left.tickets, "a kitchen ticket copies the name, phone and allergens").toHaveLength(0)
@@ -474,6 +504,10 @@ describe("erasing one diner", () => {
     expect(left.limits, "the limiter key IS the address").toHaveLength(0)
     expect(left.addresses).toHaveLength(0)
     expect(left.favorites).toHaveLength(0)
+    expect(
+      left.customers,
+      "the establishment's own address book still holds the person who asked to leave it"
+    ).toHaveLength(0)
 
     // The payment stays — it is the proof the money moved — with the live
     // pointer to the provider's copy of her address taken out of it.
