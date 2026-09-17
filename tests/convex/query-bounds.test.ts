@@ -630,6 +630,181 @@ describe("an automation with a mailing list behind it", () => {
     )
     expect(counts).toEqual([{ subscriberId, count: 2 }])
   })
+
+  /**
+   * One subscriber and the events that decide their cap verdict.
+   *
+   * The four cases below are about `sentCountsSince` alone, so the fixture is a
+   * subscriber and their events and nothing else: an automation or a campaign
+   * would only add rows this query never looks at.
+   */
+  async function seedSubscriberWithEvents(
+    t: ReturnType<typeof convexTest>,
+    storeId: Id<"stores">,
+    email: string,
+    events: Array<{
+      type: "sent" | "delivered" | "opened" | "clicked"
+      occurredAt: number
+    }>
+  ) {
+    return t.run(async (ctx) => {
+      const subscriberId = await ctx.db.insert("emailSubscribers", {
+        storeId,
+        email,
+        status: "active" as const,
+        source: "order" as const,
+        tags: [],
+        consentAt: NOW,
+        consentSource: "checkout",
+        bounceCount: 0,
+        metadata: EMPTY_SUBSCRIBER_METADATA,
+        createdAt: NOW,
+        updatedAt: NOW,
+      })
+      for (const event of events) {
+        await ctx.db.insert("emailEvents", { storeId, subscriberId, ...event })
+      }
+      return subscriberId
+    })
+  }
+
+  /** `n` sends, all inside the week the cap is measured over. */
+  const sendsThisWeek = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      type: "sent" as const,
+      occurredAt: NOW - i * 1_000,
+    }))
+
+  test("`sentCountsSince` stops at the cap, however much went out this week", async () => {
+    /*
+     * The case above bounds the read by the WEEK. This one bounds it by the
+     * CAP, and the two are not the same guarantee: a week is only a few rows
+     * while the store behaves, and a store mailing its whole list daily is
+     * precisely the one the cap exists for — so the unbounded read would come
+     * back exactly when it is least affordable.
+     *
+     * Six sends, a cap of three, and the answer is three. `withinWeeklyCap`
+     * asks `count < cap` and nothing else, so 3 and 6 fail it identically. The
+     * number is a verdict, not a statistic; do not repurpose it as one.
+     */
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const subscriberId = await seedSubscriberWithEvents(
+      t,
+      storeId,
+      "everyday@example.fr",
+      sendsThisWeek(6)
+    )
+
+    const counts = await t.run((ctx) =>
+      ctx.runQuery(internal.emailEvents.sentCountsSince, {
+        subscriberIds: [subscriberId],
+        since: NOW - 7 * DAY,
+        countLimit: 3,
+      })
+    )
+    expect(counts).toEqual([{ subscriberId, count: 3 }])
+  })
+
+  test("a countLimit of zero does not report a mailed subscriber as unmailed", async () => {
+    /*
+     * The floor inside `clampPageSize`, load-bearing in the direction that is
+     * easy to miss. A zero reaching `.take(0)` returns no rows, the count comes
+     * back as zero for somebody who HAS been mailed, and `withinWeeklyCap(0,
+     * cap)` then waves every subscriber through — the guard switched off by the
+     * one value that looks like it should tighten it hardest.
+     *
+     * `resolveWeeklyCap` is why the real caller cannot send a zero: it is the
+     * single definition of a cap and it refuses a non-positive one. This pins
+     * the behaviour for everything else that can reach the query.
+     */
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const subscriberId = await seedSubscriberWithEvents(
+      t,
+      storeId,
+      "mailed@example.fr",
+      sendsThisWeek(2)
+    )
+
+    const counts = await t.run((ctx) =>
+      ctx.runQuery(internal.emailEvents.sentCountsSince, {
+        subscriberIds: [subscriberId],
+        since: NOW - 7 * DAY,
+        countLimit: 0,
+      })
+    )
+    // One, not zero, and one is enough: the caller compares it against the real
+    // cap, so a saturated count is never mistaken for "never mailed".
+    expect(counts).toEqual([{ subscriberId, count: 1 }])
+  })
+
+  test("a delivery, an open or a click inside the week is not a send", async () => {
+    /*
+     * The type filter, tested INSIDE the window rather than outside it. The
+     * case above puts its `opened` rows a month back, so an index that had lost
+     * its `type` column would still answer correctly there — the window alone
+     * would hide the fault. Here every row is inside the week and only one of
+     * them is a send.
+     */
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const subscriberId = await seedSubscriberWithEvents(
+      t,
+      storeId,
+      "engaged@example.fr",
+      [
+        { type: "sent" as const, occurredAt: NOW - 3 * DAY },
+        { type: "delivered" as const, occurredAt: NOW - 3 * DAY + 1_000 },
+        { type: "opened" as const, occurredAt: NOW - 2 * DAY },
+        { type: "clicked" as const, occurredAt: NOW - 2 * DAY + 1_000 },
+      ]
+    )
+
+    const counts = await t.run((ctx) =>
+      ctx.runQuery(internal.emailEvents.sentCountsSince, {
+        subscriberIds: [subscriberId],
+        since: NOW - 7 * DAY,
+        countLimit: 3,
+      })
+    )
+    expect(counts).toEqual([{ subscriberId, count: 1 }])
+  })
+
+  test("each subscriber is counted from their own events", async () => {
+    /*
+     * Asked once for the whole page, so the answers have to come back
+     * attributed. A query that counted the batch rather than each subscriber
+     * would hold the quiet ones back on the busy ones' behalf, and nothing else
+     * here would notice: every other case asks about a single subscriber.
+     */
+    const t = convexTest(schema, modules)
+    const storeId = await seedStore(t)
+    const busy = await seedSubscriberWithEvents(
+      t,
+      storeId,
+      "busy@example.fr",
+      sendsThisWeek(2)
+    )
+    const quiet = await seedSubscriberWithEvents(
+      t,
+      storeId,
+      "quiet@example.fr",
+      sendsThisWeek(1)
+    )
+
+    const counts = await t.run((ctx) =>
+      ctx.runQuery(internal.emailEvents.sentCountsSince, {
+        subscriberIds: [busy, quiet],
+        since: NOW - 7 * DAY,
+        countLimit: 3,
+      })
+    )
+    expect(counts).toEqual([
+      { subscriberId: busy, count: 2 },
+      { subscriberId: quiet, count: 1 },
+    ])
+  })
 })
 
 // ===========================================================================
